@@ -4273,3 +4273,130 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     right:14px;
   }
 }
+
+
+/* Lil Kickers class section pink-frame refinement */
+.lilkickers-page .lk-classes{
+  background:var(--lk-cream);
+  color:var(--lk-black);
+  overflow:hidden;
+  padding:118px 5vw 126px;
+  position:relative;
+}
+
+/* Pink becomes the frame, not the field. */
+.lilkickers-page .lk-classes::before{
+  border:14px solid var(--lk-pink);
+  content:"";
+  inset:0;
+  pointer-events:none;
+  position:absolute;
+  z-index:0;
+}
+
+/* Keep the inner content away from the frame so the border feels intentional. */
+.lilkickers-page .lk-classes>*{
+  position:relative;
+  z-index:1;
+}
+
+.lilkickers-page .lk-classes-heading{
+  align-items:end;
+  display:grid;
+  gap:38px 58px;
+  grid-template-columns:1.2fr .8fr;
+  margin:0 auto 62px;
+  max-width:1320px;
+  padding:0 18px;
+}
+
+.lilkickers-page .lk-classes-heading .lk-section-label{
+  color:var(--lk-pink-deep);
+  grid-column:1/-1;
+  margin-bottom:-18px;
+}
+
+.lilkickers-page .lk-classes-heading h2{
+  color:var(--lk-black);
+}
+
+.lilkickers-page .lk-classes-heading>p{
+  color:#615b57;
+  line-height:1.65;
+  margin:0;
+  max-width:500px;
+}
+
+.lilkickers-page .lk-class-grid{
+  gap:18px;
+  margin:0 auto;
+  max-width:1320px;
+  padding:0 18px;
+}
+
+.lilkickers-page .lk-class-card{
+  background:#fff;
+  border:2px solid rgba(240,36,92,.22);
+  box-shadow:none;
+  color:var(--lk-black);
+  min-height:470px;
+  transition:border-color .2s ease,transform .2s ease;
+}
+
+.lilkickers-page .lk-class-card:hover{
+  border-color:var(--lk-pink);
+  transform:translateY(-2px);
+}
+
+.lilkickers-page .lk-class-number{
+  color:#a89f99;
+}
+
+.lilkickers-page .lk-class-top>span{
+  color:var(--lk-pink-deep);
+}
+
+.lilkickers-page .lk-class-price{
+  border-top:1px solid #ddd6d1;
+}
+
+.lilkickers-page .lk-class-price>div+div{
+  border-left:1px solid #ddd6d1;
+}
+
+.lilkickers-page .lk-class-bottom{
+  border-top:1px solid #ddd6d1;
+}
+
+.lilkickers-page .lk-class-bottom span{
+  background:var(--lk-pink-soft);
+  color:var(--lk-pink-deep);
+}
+
+.lilkickers-page .lk-class-bottom a{
+  border-bottom:2px solid var(--lk-pink);
+  color:var(--lk-black);
+}
+
+@media(max-width:720px){
+  .lilkickers-page .lk-classes{
+    padding:82px 20px 88px;
+  }
+
+  .lilkickers-page .lk-classes::before{
+    border-width:9px;
+  }
+
+  .lilkickers-page .lk-classes-heading{
+    grid-template-columns:1fr;
+    padding:0 8px;
+  }
+
+  .lilkickers-page .lk-classes-heading .lk-section-label{
+    grid-column:1;
+  }
+
+  .lilkickers-page .lk-class-grid{
+    padding:0 8px;
+  }
+}
