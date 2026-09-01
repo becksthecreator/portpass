@@ -1072,3 +1072,10 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .futprep-theme textarea:focus{
   box-shadow:0 0 0 2px var(--fp-teal-deep);
 }
+
+
+/* Futprep light pink header */
+.futprep-theme .pilot-header,
+.futprep-theme.registration-page .registration-header{
+  background:#fff1f5;
+}
