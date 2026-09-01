@@ -8,10 +8,13 @@ export const metadata = {
 
 export default function FutprepRegisterPage() {
   return (
-    <main className="registration-page">
+    <main className="registration-page futprep-theme">
       <header className="site-header form-header registration-header">
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-        <Link className="header-link" href="/futprep/lil-kickers">Program details</Link>
+        <div className="registration-header-right">
+          <span className="pilot-partner"><b>FUT</b>PREP · LIL KICKERS</span>
+          <Link className="header-link" href="/futprep/lil-kickers">Program details</Link>
+        </div>
       </header>
       <RegistrationForm />
     </main>

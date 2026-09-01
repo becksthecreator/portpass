@@ -20,32 +20,49 @@ function readableDate(value: string) {
   }).format(new Date(`${value}T12:00:00Z`));
 }
 
+const lyfordCayDirections =
+  "https://www.google.com/maps/search/?api=1&query=Lyford+Cay+Lower+Campus+Soccer+Field+Nassau+Bahamas";
+
 export default function FutprepLilKickersPage() {
   const sessions = activeSessionDates();
 
   return (
-    <main className="pilot-page">
+    <main className="pilot-page futprep-theme">
       <header className="site-header pilot-header">
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-        <span className="pilot-partner">FUTPREP</span>
+        <span className="pilot-partner"><b>FUT</b>PREP · LIL KICKERS</span>
       </header>
 
       <section className="pilot-hero">
         <div className="pilot-hero-copy">
           <div className="eyebrow"><span className="eyebrow-dot" />Futprep · {FUTPREP_TERM.name}</div>
-          <h1>Saturday football<br/><em>starts here.</em></h1>
+          <h1 className="dramatic-headline" aria-label="Saturday football... starts here.">
+            <span className="headline-first">Saturday football<span className="headline-ellipsis">...</span></span>
+            <span className="headline-second">starts here.</span>
+          </h1>
           <p>A fun, age-appropriate introduction to football for young players. Choose the class that fits your child and register in a few minutes.</p>
           <Link className="primary-button" href="/futprep/lil-kickers/register">Register a child →</Link>
         </div>
 
         <aside className="pilot-term-card">
-          <span>Term 1 · 2026</span>
-          <strong>{sessions.length} training Saturdays</strong>
-          <dl>
-            <div><dt>Dates</dt><dd>{readableDate(FUTPREP_TERM.startDate)} — {readableDate(FUTPREP_TERM.endDate)}</dd></div>
-            <div><dt>Location</dt><dd>{FUTPREP_TERM.location}</dd></div>
-            <div><dt>Break</dt><dd>Oct 10 & Oct 17</dd></div>
-          </dl>
+          <div className="session-float">{sessions.length} Fun Sessions!</div>
+          <div className="term-date-line">
+            {readableDate(FUTPREP_TERM.startDate)} — {readableDate(FUTPREP_TERM.endDate)}
+          </div>
+          <div className="term-break-line">
+            <span>Breaks</span>
+            <strong>Oct 10 & Oct 17</strong>
+          </div>
+          <a
+            className="term-location-link"
+            href={lyfordCayDirections}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span>Location</span>
+            <strong>Lyford Cay Lower Campus Soccer Field</strong>
+            <small>Get directions ↗</small>
+          </a>
         </aside>
       </section>
 
@@ -84,7 +101,7 @@ export default function FutprepLilKickersPage() {
       <footer>
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
         <p>Registration powered by PortPass.</p>
-        <span className="footer-partner">FUTPREP</span>
+        <span className="footer-partner"><b>FUT</b>PREP</span>
       </footer>
     </main>
   );
