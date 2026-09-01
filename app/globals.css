@@ -2245,3 +2245,104 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     background-image:none!important;
   }
 }
+
+
+/* Futprep white-drain transitions */
+
+/* Colored sections stay dominant; only their bottom edge drains into white.
+   White acts as a transition/clarity accent rather than a full page territory. */
+.futprep-theme .pilot-hero{
+  background:
+    linear-gradient(
+      to bottom,
+      var(--fp-teal-deep) 0%,
+      var(--fp-teal-deep) 76%,
+      #58b3a4 88%,
+      #cdece7 95%,
+      #ffffff 100%
+    )!important;
+  padding-bottom:clamp(120px,10vw,170px);
+}
+
+.futprep-theme .pilot-classes{
+  background:
+    linear-gradient(
+      to bottom,
+      var(--fp-pink) 0%,
+      var(--fp-pink) 78%,
+      #f86b91 89%,
+      #ffd5e1 96%,
+      #ffffff 100%
+    )!important;
+  padding-bottom:clamp(130px,10vw,180px);
+}
+
+.futprep-theme .futprep-story{
+  background:
+    linear-gradient(
+      to bottom,
+      var(--fp-charcoal) 0%,
+      var(--fp-charcoal) 78%,
+      #5a5a5a 89%,
+      #d7d7d7 96%,
+      #ffffff 100%
+    )!important;
+  padding-bottom:clamp(135px,10vw,185px);
+}
+
+.futprep-theme .pilot-payment-strip{
+  background:
+    linear-gradient(
+      to bottom,
+      var(--fp-teal) 0%,
+      var(--fp-teal) 72%,
+      #6ccdbd 86%,
+      #d7f2ed 95%,
+      #ffffff 100%
+    )!important;
+  padding-bottom:clamp(105px,8vw,145px);
+}
+
+.futprep-theme .futprep-sponsors{
+  background:
+    linear-gradient(
+      to bottom,
+      var(--fp-pink-soft) 0%,
+      var(--fp-pink-soft) 74%,
+      #ffe7ee 88%,
+      #fff7f9 96%,
+      #ffffff 100%
+    )!important;
+  padding-bottom:clamp(105px,8vw,145px);
+}
+
+/* Keep the final CTA solid so the conversion area stays bold and focused. */
+.futprep-theme .pilot-cta{
+  background:var(--fp-teal-deep)!important;
+}
+
+/* Preserve legibility while sections approach their white drain. */
+.futprep-theme .pilot-hero-copy,
+.futprep-theme .pilot-term-card,
+.futprep-theme .pilot-class-grid,
+.futprep-theme .futprep-story-copy,
+.futprep-theme .futprep-gallery,
+.futprep-theme .pilot-payment-strip>*,
+.futprep-theme .futprep-sponsors>*{
+  position:relative;
+  z-index:1;
+}
+
+@media(max-width:640px){
+  .futprep-theme .pilot-hero{
+    padding-bottom:115px;
+  }
+  .futprep-theme .pilot-classes,
+  .futprep-theme .futprep-story{
+    padding-bottom:120px;
+  }
+  .futprep-theme .pilot-payment-strip,
+  .futprep-theme .futprep-sponsors{
+    padding-bottom:105px;
+  }
+}
