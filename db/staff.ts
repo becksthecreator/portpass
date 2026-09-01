@@ -1,5 +1,5 @@
-import { env } from "cloudflare:workers";
-import { ensureFutprepPilotSchema } from "./registrations";
+import { ensureFutprepPilotData } from "./registrations";
+import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type StaffRegistration = {
   id: number;
@@ -53,58 +53,158 @@ export type AttendanceRow = {
   attendance_status: string | null;
 };
 
-async function ensureStaffSchema() {
-  await ensureFutprepPilotSchema();
-  await env.DB.batch([
-    env.DB.prepare(`CREATE TABLE IF NOT EXISTS attendance (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      registration_id INTEGER NOT NULL,
-      session_id INTEGER NOT NULL,
-      status TEXT NOT NULL,
-      marked_by TEXT,
-      marked_at TEXT NOT NULL,
-      FOREIGN KEY (registration_id) REFERENCES registrations(id),
-      FOREIGN KEY (session_id) REFERENCES sessions(id),
-      UNIQUE(registration_id, session_id)
-    )`),
-    env.DB.prepare("CREATE INDEX IF NOT EXISTS attendance_session_idx ON attendance (session_id)"),
-  ]);
-}
+export async function listFutprepStaffRegistrations(): Promise<
+  StaffRegistration[]
+> {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
 
-export async function listFutprepStaffRegistrations(): Promise<StaffRegistration[]> {
-  await ensureStaffSchema();
-  const result = await env.DB.prepare(`SELECT
-      r.id, r.reference_code,
-      p.name AS program_name, p.slug AS program_slug,
-      r.child_name, r.child_dob, r.gender,
-      r.parent_name, r.parent_email, r.parent_phone,
-      r.emergency_contact_name, r.emergency_contact_phone,
-      r.allergies, r.medical_conditions, r.medications, r.special_needs,
-      r.authorized_pickup, r.additional_notes, r.photo_consent,
-      r.payment_frequency, r.payment_method, r.amount_due_cents,
-      r.registration_status, r.payment_status, r.submitted_at,
-      COALESCE((SELECT SUM(pay.amount_cents) FROM payments pay
-        WHERE pay.registration_id = r.id AND pay.status = 'received'), 0) AS paid_cents
-    FROM registrations r
-    JOIN programs p ON p.id = r.program_id
-    WHERE p.slug IN ('lil-kickers','rookies')
-      AND r.registration_status != 'cancelled'
-    ORDER BY p.start_time ASC, r.child_name COLLATE NOCASE ASC`)
-    .all<StaffRegistration>();
-  return result.results;
+  const { data: programs, error: programError } = await db
+    .from("programs")
+    .select("id,name,slug,start_time")
+    .in("slug", ["lil-kickers", "rookies"])
+    .order("start_time", { ascending: true });
+  throwIfSupabaseError(programError, "Could not load Futprep programs");
+
+  const programRows = (programs ?? []) as Array<{
+    id: number;
+    name: string;
+    slug: string;
+    start_time: string;
+  }>;
+  if (!programRows.length) return [];
+
+  const programById = new Map(programRows.map((row) => [row.id, row]));
+  const programIds = programRows.map((row) => row.id);
+
+  const [{ data: registrations, error }, { data: payments, error: paymentError }] =
+    await Promise.all([
+      db
+        .from("registrations")
+        .select("*")
+        .in("program_id", programIds)
+        .neq("registration_status", "cancelled")
+        .order("child_name", { ascending: true }),
+      db
+        .from("payments")
+        .select("registration_id,amount_cents,status")
+        .eq("status", "received"),
+    ]);
+  throwIfSupabaseError(error, "Could not load Futprep registrations");
+  throwIfSupabaseError(paymentError, "Could not load Futprep payments");
+
+  const paidByRegistration = new Map<number, number>();
+  for (const payment of (payments ?? []) as Array<{
+    registration_id: number;
+    amount_cents: number;
+    status: string;
+  }>) {
+    paidByRegistration.set(
+      payment.registration_id,
+      (paidByRegistration.get(payment.registration_id) ?? 0) +
+        Number(payment.amount_cents),
+    );
+  }
+
+  const rows = (registrations ?? []) as Array<Record<string, unknown>>;
+  return rows
+    .map((row) => {
+      const program = programById.get(Number(row.program_id));
+      if (!program) return null;
+      return {
+        id: Number(row.id),
+        reference_code: String(row.reference_code),
+        program_name: program.name,
+        program_slug: program.slug,
+        child_name: String(row.child_name),
+        child_dob: String(row.child_dob),
+        gender: String(row.gender),
+        parent_name: String(row.parent_name),
+        parent_email: String(row.parent_email),
+        parent_phone: String(row.parent_phone),
+        emergency_contact_name: String(row.emergency_contact_name),
+        emergency_contact_phone: String(row.emergency_contact_phone),
+        allergies: String(row.allergies ?? ""),
+        medical_conditions: String(row.medical_conditions ?? ""),
+        medications: String(row.medications ?? ""),
+        special_needs: String(row.special_needs ?? ""),
+        authorized_pickup: String(row.authorized_pickup),
+        additional_notes: String(row.additional_notes ?? ""),
+        photo_consent: String(row.photo_consent),
+        payment_frequency: String(row.payment_frequency),
+        payment_method: String(row.payment_method),
+        amount_due_cents: Number(row.amount_due_cents),
+        registration_status: String(row.registration_status),
+        payment_status: String(row.payment_status),
+        submitted_at: String(row.submitted_at),
+        paid_cents: paidByRegistration.get(Number(row.id)) ?? 0,
+      } satisfies StaffRegistration;
+    })
+    .filter((row): row is StaffRegistration => Boolean(row))
+    .sort((a, b) => {
+      const aProgram = programById.get(
+        programRows.find((program) => program.slug === a.program_slug)?.id ?? -1,
+      );
+      const bProgram = programById.get(
+        programRows.find((program) => program.slug === b.program_slug)?.id ?? -1,
+      );
+      return String(aProgram?.start_time ?? "").localeCompare(
+        String(bProgram?.start_time ?? ""),
+      );
+    });
 }
 
 export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
-  await ensureStaffSchema();
-  const result = await env.DB.prepare(`SELECT
-      s.id, s.program_id, p.name AS program_name, p.slug AS program_slug,
-      s.session_date, s.start_time, s.location, s.status
-    FROM sessions s
-    JOIN programs p ON p.id = s.program_id
-    WHERE p.slug IN ('lil-kickers','rookies')
-    ORDER BY s.session_date ASC, s.start_time ASC`)
-    .all<StaffSession>();
-  return result.results;
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+
+  const { data: programs, error: programError } = await db
+    .from("programs")
+    .select("id,name,slug")
+    .in("slug", ["lil-kickers", "rookies"]);
+  throwIfSupabaseError(programError, "Could not load Futprep session programs");
+
+  const programRows = (programs ?? []) as Array<{
+    id: number;
+    name: string;
+    slug: string;
+  }>;
+  if (!programRows.length) return [];
+
+  const programById = new Map(programRows.map((row) => [row.id, row]));
+  const { data: sessions, error } = await db
+    .from("sessions")
+    .select("id,program_id,session_date,start_time,location,status")
+    .in(
+      "program_id",
+      programRows.map((row) => row.id),
+    )
+    .order("session_date", { ascending: true })
+    .order("start_time", { ascending: true });
+  throwIfSupabaseError(error, "Could not load Futprep sessions");
+
+  return (sessions ?? []).map(
+    (session: {
+      id: number;
+      program_id: number;
+      session_date: string;
+      start_time: string;
+      location: string;
+      status: string;
+    }) => {
+      const program = programById.get(session.program_id);
+      return {
+        id: session.id,
+        program_id: session.program_id,
+        program_name: program?.name ?? "Program",
+        program_slug: program?.slug ?? "",
+        session_date: session.session_date,
+        start_time: session.start_time,
+        location: session.location,
+        status: session.status,
+      };
+    },
+  );
 }
 
 export async function recordFutprepPayment(input: {
@@ -114,36 +214,62 @@ export async function recordFutprepPayment(input: {
   recordedBy: string;
   note?: string;
 }) {
-  await ensureStaffSchema();
-  const registration = await env.DB.prepare(
-    "SELECT id, amount_due_cents, payment_frequency FROM registrations WHERE id = ?"
-  ).bind(input.registrationId).first<{ id:number; amount_due_cents:number; payment_frequency:string }>();
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+
+  const { data: registration, error } = await db
+    .from("registrations")
+    .select("id,amount_due_cents,payment_frequency")
+    .eq("id", input.registrationId)
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load payment registration");
   if (!registration) throw new Error("REGISTRATION_NOT_FOUND");
-  if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) throw new Error("INVALID_AMOUNT");
+  if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
+    throw new Error("INVALID_AMOUNT");
+  }
 
   const now = new Date().toISOString();
-  await env.DB.prepare(`INSERT INTO payments (
-      registration_id, amount_cents, method, status, recorded_by, note, received_at, created_at
-    ) VALUES (?, ?, ?, 'received', ?, ?, ?, ?)`)
-    .bind(input.registrationId, input.amountCents, input.method, input.recordedBy, input.note ?? "", now, now)
-    .run();
+  const { error: insertError } = await db.from("payments").insert({
+    registration_id: input.registrationId,
+    amount_cents: input.amountCents,
+    method: input.method,
+    status: "received",
+    recorded_by: input.recordedBy,
+    note: input.note ?? "",
+    received_at: now,
+    created_at: now,
+  });
+  throwIfSupabaseError(insertError, "Could not record payment");
 
-  const totals = await env.DB.prepare(
-    "SELECT COALESCE(SUM(amount_cents),0) AS total FROM payments WHERE registration_id = ? AND status = 'received'"
-  ).bind(input.registrationId).first<{total:number}>();
+  const { data: payments, error: paymentError } = await db
+    .from("payments")
+    .select("amount_cents")
+    .eq("registration_id", input.registrationId)
+    .eq("status", "received");
+  throwIfSupabaseError(paymentError, "Could not total payments");
 
-  const paid = Number(totals?.total ?? 0);
+  const paid = (payments ?? []).reduce(
+    (sum: number, payment: { amount_cents: number }) =>
+      sum + Number(payment.amount_cents),
+    0,
+  );
+
   const nextStatus =
     registration.payment_frequency === "weekly"
-      ? (paid > 0 ? "paid" : "pending")
-      : paid >= registration.amount_due_cents
+      ? paid > 0
+        ? "paid"
+        : "pending"
+      : paid >= Number(registration.amount_due_cents)
         ? "paid"
         : paid > 0
           ? "partial"
           : "pending";
 
-  await env.DB.prepare("UPDATE registrations SET payment_status = ? WHERE id = ?")
-    .bind(nextStatus, input.registrationId).run();
+  const { error: updateError } = await db
+    .from("registrations")
+    .update({ payment_status: nextStatus })
+    .eq("id", input.registrationId);
+  throwIfSupabaseError(updateError, "Could not update payment status");
 
   return { paidCents: paid, paymentStatus: nextStatus };
 }
@@ -153,39 +279,89 @@ export async function updateFutprepRegistration(input: {
   registrationStatus?: "pending" | "confirmed" | "cancelled";
   paymentStatus?: "pending" | "partial" | "paid" | "overdue" | "waived";
 }) {
-  await ensureStaffSchema();
-  const current = await env.DB.prepare("SELECT id FROM registrations WHERE id = ?")
-    .bind(input.registrationId).first<{id:number}>();
-  if (!current) throw new Error("REGISTRATION_NOT_FOUND");
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
 
+  const updates: Record<string, string> = {};
   if (input.registrationStatus) {
-    await env.DB.prepare("UPDATE registrations SET registration_status = ? WHERE id = ?")
-      .bind(input.registrationStatus, input.registrationId).run();
+    updates.registration_status = input.registrationStatus;
   }
-  if (input.paymentStatus) {
-    await env.DB.prepare("UPDATE registrations SET payment_status = ? WHERE id = ?")
-      .bind(input.paymentStatus, input.registrationId).run();
-  }
+  if (input.paymentStatus) updates.payment_status = input.paymentStatus;
+  if (!Object.keys(updates).length) return;
+
+  const { data, error } = await db
+    .from("registrations")
+    .update(updates)
+    .eq("id", input.registrationId)
+    .select("id")
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not update registration");
+  if (!data) throw new Error("REGISTRATION_NOT_FOUND");
 }
 
-export async function rosterForSession(sessionId: number): Promise<AttendanceRow[]> {
-  await ensureStaffSchema();
-  const session = await env.DB.prepare("SELECT program_id FROM sessions WHERE id = ?")
-    .bind(sessionId).first<{program_id:number}>();
+export async function rosterForSession(
+  sessionId: number,
+): Promise<AttendanceRow[]> {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+
+  const { data: session, error: sessionError } = await db
+    .from("sessions")
+    .select("program_id")
+    .eq("id", sessionId)
+    .maybeSingle();
+  throwIfSupabaseError(sessionError, "Could not load session roster");
   if (!session) throw new Error("SESSION_NOT_FOUND");
 
-  const result = await env.DB.prepare(`SELECT
-      r.id AS registration_id, r.child_name, r.parent_name, r.parent_phone,
-      r.allergies, r.medical_conditions, r.medications, r.special_needs,
-      a.status AS attendance_status
-    FROM registrations r
-    LEFT JOIN attendance a ON a.registration_id = r.id AND a.session_id = ?
-    WHERE r.program_id = ?
-      AND r.registration_status IN ('pending','confirmed')
-    ORDER BY r.child_name COLLATE NOCASE ASC`)
-    .bind(sessionId, session.program_id)
-    .all<AttendanceRow>();
-  return result.results;
+  const [{ data: registrations, error }, { data: attendance, error: attendanceError }] =
+    await Promise.all([
+      db
+        .from("registrations")
+        .select(
+          "id,child_name,parent_name,parent_phone,allergies,medical_conditions,medications,special_needs",
+        )
+        .eq("program_id", session.program_id)
+        .in("registration_status", ["pending", "confirmed"])
+        .order("child_name", { ascending: true }),
+      db
+        .from("attendance")
+        .select("registration_id,status")
+        .eq("session_id", sessionId),
+    ]);
+  throwIfSupabaseError(error, "Could not load roster registrations");
+  throwIfSupabaseError(attendanceError, "Could not load attendance");
+
+  const statusByRegistration = new Map<number, string>(
+    (attendance ?? []).map(
+      (row: { registration_id: number; status: string }) => [
+        row.registration_id,
+        row.status,
+      ],
+    ),
+  );
+
+  return (registrations ?? []).map(
+    (row: {
+      id: number;
+      child_name: string;
+      parent_name: string;
+      parent_phone: string;
+      allergies: string;
+      medical_conditions: string;
+      medications: string;
+      special_needs: string;
+    }) => ({
+      registration_id: row.id,
+      child_name: row.child_name,
+      parent_name: row.parent_name,
+      parent_phone: row.parent_phone,
+      allergies: row.allergies ?? "",
+      medical_conditions: row.medical_conditions ?? "",
+      medications: row.medications ?? "",
+      special_needs: row.special_needs ?? "",
+      attendance_status: statusByRegistration.get(row.id) ?? null,
+    }),
+  );
 }
 
 export async function markFutprepAttendance(input: {
@@ -194,13 +370,19 @@ export async function markFutprepAttendance(input: {
   status: "present" | "absent" | "excused";
   markedBy: string;
 }) {
-  await ensureStaffSchema();
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
   const now = new Date().toISOString();
-  await env.DB.prepare(`INSERT INTO attendance (
-      registration_id, session_id, status, marked_by, marked_at
-    ) VALUES (?, ?, ?, ?, ?)
-    ON CONFLICT(registration_id, session_id)
-    DO UPDATE SET status=excluded.status, marked_by=excluded.marked_by, marked_at=excluded.marked_at`)
-    .bind(input.registrationId, input.sessionId, input.status, input.markedBy, now)
-    .run();
+
+  const { error } = await db.from("attendance").upsert(
+    {
+      registration_id: input.registrationId,
+      session_id: input.sessionId,
+      status: input.status,
+      marked_by: input.markedBy,
+      marked_at: now,
+    },
+    { onConflict: "registration_id,session_id" },
+  );
+  throwIfSupabaseError(error, "Could not mark attendance");
 }
