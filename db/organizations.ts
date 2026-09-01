@@ -1,5 +1,5 @@
-import { env } from "cloudflare:workers";
-import { ensureFutprepPilotSchema } from "./registrations";
+import { ensureFutprepPilotData } from "./registrations";
+import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type OrganizationRecord = {
   id: number;
@@ -72,130 +72,336 @@ export type RegistrationCounts = {
 };
 
 export async function getOrganization(id: number) {
-  await ensureFutprepPilotSchema();
-  return env.DB.prepare("SELECT * FROM organizations WHERE id = ?")
-    .bind(id)
-    .first<OrganizationRecord>();
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("organizations")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load organization");
+  return data as OrganizationRecord | null;
 }
 
-export async function getOrganizationStats(id: number): Promise<OrganizationStats> {
-  await ensureFutprepPilotSchema();
+export async function getOrganizationStats(
+  id: number,
+): Promise<OrganizationStats> {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
   const today = new Date().toISOString().slice(0, 10);
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const weekAgo = new Date(
+    Date.now() - 7 * 24 * 60 * 60 * 1000,
+  ).toISOString();
 
-  const [players, programs, sessions, payments, newRegistrations] = await Promise.all([
-    env.DB.prepare(
-      `SELECT COUNT(*) AS count
-       FROM registrations
-       WHERE organization_id = ? AND registration_status != 'cancelled'`
-    ).bind(id).first<{ count: number }>(),
-    env.DB.prepare(
-      "SELECT COUNT(*) AS count FROM programs WHERE organization_id = ? AND active = 1"
-    ).bind(id).first<{ count: number }>(),
-    env.DB.prepare(
-      `SELECT COUNT(*) AS count
-       FROM sessions s
-       JOIN programs p ON p.id = s.program_id
-       WHERE p.organization_id = ? AND s.session_date >= ? AND s.status = 'scheduled'`
-    ).bind(id, today).first<{ count: number }>(),
-    env.DB.prepare(
-      `SELECT COUNT(*) AS count
-       FROM registrations
-       WHERE organization_id = ?
-         AND payment_status IN ('pending', 'partial', 'overdue')
-         AND registration_status != 'cancelled'`
-    ).bind(id).first<{ count: number }>(),
-    env.DB.prepare(
-      `SELECT COUNT(*) AS count
-       FROM registrations
-       WHERE organization_id = ? AND submitted_at >= ?`
-    ).bind(id, weekAgo).first<{ count: number }>(),
-  ]);
+  const { data: programs, error: programError } = await db
+    .from("programs")
+    .select("id")
+    .eq("organization_id", id)
+    .eq("active", true);
+  throwIfSupabaseError(programError, "Could not load organization programs");
+  const programIds = (programs ?? []).map((row: { id: number }) => row.id);
+
+  const totalPlayersQuery = db
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", id)
+    .neq("registration_status", "cancelled");
+
+  const pendingPaymentsQuery = db
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", id)
+    .in("payment_status", ["pending", "partial", "overdue"])
+    .neq("registration_status", "cancelled");
+
+  const newRegistrationsQuery = db
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", id)
+    .gte("submitted_at", weekAgo);
+
+  const upcomingSessionsQuery = programIds.length
+    ? db
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .in("program_id", programIds)
+        .gte("session_date", today)
+        .eq("status", "scheduled")
+    : Promise.resolve({ count: 0, error: null } as {
+        count: number | null;
+        error: null;
+      });
+
+  const [playersResult, paymentsResult, registrationsResult, sessionsResult] =
+    await Promise.all([
+      totalPlayersQuery,
+      pendingPaymentsQuery,
+      newRegistrationsQuery,
+      upcomingSessionsQuery,
+    ]);
+
+  throwIfSupabaseError(playersResult.error, "Could not count players");
+  throwIfSupabaseError(paymentsResult.error, "Could not count payments");
+  throwIfSupabaseError(
+    registrationsResult.error,
+    "Could not count new registrations",
+  );
+  throwIfSupabaseError(
+    sessionsResult.error,
+    "Could not count upcoming sessions",
+  );
 
   return {
-    totalPlayers: Number(players?.count ?? 0),
-    activePrograms: Number(programs?.count ?? 0),
-    upcomingSessions: Number(sessions?.count ?? 0),
-    pendingPayments: Number(payments?.count ?? 0),
-    newRegistrations: Number(newRegistrations?.count ?? 0),
+    totalPlayers: Number(playersResult.count ?? 0),
+    activePrograms: programIds.length,
+    upcomingSessions: Number(sessionsResult.count ?? 0),
+    pendingPayments: Number(paymentsResult.count ?? 0),
+    newRegistrations: Number(registrationsResult.count ?? 0),
   };
 }
 
-export async function listOrganizationPrograms(id: number): Promise<ProgramSummary[]> {
-  await ensureFutprepPilotSchema();
-  const result = await env.DB.prepare(
-    `SELECT
-       p.id, p.slug, p.name, p.age_min, p.age_max, p.location,
-       p.day_of_week, p.start_time, p.capacity,
-       pt.name AS term_name, pt.start_date, pt.end_date,
-       pt.weekly_fee_cents, pt.term_fee_cents,
-       COUNT(r.id) AS registrations
-     FROM programs p
-     LEFT JOIN program_terms pt ON pt.program_id = p.id AND pt.active = 1
-     LEFT JOIN registrations r
-       ON r.program_id = p.id
-      AND r.term_id = pt.id
-      AND r.registration_status != 'cancelled'
-     WHERE p.organization_id = ? AND p.active = 1
-     GROUP BY p.id, pt.id
-     ORDER BY p.start_time ASC`
-  ).bind(id).all<ProgramSummary>();
-  return result.results;
+export async function listOrganizationPrograms(
+  id: number,
+): Promise<ProgramSummary[]> {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+
+  const { data: programs, error } = await db
+    .from("programs")
+    .select(
+      "id,slug,name,age_min,age_max,location,day_of_week,start_time,capacity",
+    )
+    .eq("organization_id", id)
+    .eq("active", true)
+    .order("start_time", { ascending: true });
+  throwIfSupabaseError(error, "Could not load programs");
+
+  const rows = (programs ?? []) as Array<{
+    id: number;
+    slug: string;
+    name: string;
+    age_min: number;
+    age_max: number;
+    location: string;
+    day_of_week: string;
+    start_time: string;
+    capacity: number;
+  }>;
+  if (!rows.length) return [];
+
+  const programIds = rows.map((row) => row.id);
+
+  const [{ data: terms, error: termError }, { data: registrations, error: registrationError }] =
+    await Promise.all([
+      db
+        .from("program_terms")
+        .select(
+          "id,program_id,name,start_date,end_date,weekly_fee_cents,term_fee_cents",
+        )
+        .in("program_id", programIds)
+        .eq("active", true),
+      db
+        .from("registrations")
+        .select("id,program_id")
+        .in("program_id", programIds)
+        .neq("registration_status", "cancelled"),
+    ]);
+  throwIfSupabaseError(termError, "Could not load active terms");
+  throwIfSupabaseError(registrationError, "Could not load program registrations");
+
+  const termByProgram = new Map<number, {
+    id: number;
+    program_id: number;
+    name: string;
+    start_date: string;
+    end_date: string;
+    weekly_fee_cents: number;
+    term_fee_cents: number;
+  }>();
+  for (const term of (terms ?? []) as Array<{
+    id: number;
+    program_id: number;
+    name: string;
+    start_date: string;
+    end_date: string;
+    weekly_fee_cents: number;
+    term_fee_cents: number;
+  }>) {
+    if (!termByProgram.has(term.program_id)) termByProgram.set(term.program_id, term);
+  }
+
+  const countByProgram = new Map<number, number>();
+  for (const registration of (registrations ?? []) as Array<{
+    id: number;
+    program_id: number;
+  }>) {
+    countByProgram.set(
+      registration.program_id,
+      (countByProgram.get(registration.program_id) ?? 0) + 1,
+    );
+  }
+
+  return rows.map((program) => {
+    const term = termByProgram.get(program.id);
+    return {
+      ...program,
+      term_name: term?.name ?? null,
+      start_date: term?.start_date ?? null,
+      end_date: term?.end_date ?? null,
+      weekly_fee_cents: term?.weekly_fee_cents ?? null,
+      term_fee_cents: term?.term_fee_cents ?? null,
+      registrations: countByProgram.get(program.id) ?? 0,
+    };
+  });
 }
 
-export async function listOrganizationStaff(id: number): Promise<StaffSummary[]> {
-  await ensureFutprepPilotSchema();
-  const result = await env.DB.prepare(
-    `SELECT id, name, role, email, responsibilities
-     FROM staff_members
-     WHERE organization_id = ? AND active = 1
-     ORDER BY CASE role WHEN 'admin_registrar' THEN 1 WHEN 'coach' THEN 2 ELSE 3 END, name`
-  ).bind(id).all<StaffSummary>();
-  return result.results;
+export async function listOrganizationStaff(
+  id: number,
+): Promise<StaffSummary[]> {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("staff_members")
+    .select("id,name,role,email,responsibilities")
+    .eq("organization_id", id)
+    .eq("active", true)
+    .order("role", { ascending: true })
+    .order("name", { ascending: true });
+  throwIfSupabaseError(error, "Could not load organization staff");
+  return (data ?? []) as StaffSummary[];
 }
 
-export async function listOrganizationLocations(id: number): Promise<LocationSummary[]> {
-  await ensureFutprepPilotSchema();
-  const result = await env.DB.prepare(
-    `SELECT id, name, address, map_label
-     FROM locations
-     WHERE organization_id = ? AND active = 1
-     ORDER BY name`
-  ).bind(id).all<LocationSummary>();
-  return result.results;
+export async function listOrganizationLocations(
+  id: number,
+): Promise<LocationSummary[]> {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("locations")
+    .select("id,name,address,map_label")
+    .eq("organization_id", id)
+    .eq("active", true)
+    .order("name", { ascending: true });
+  throwIfSupabaseError(error, "Could not load organization locations");
+  return (data ?? []) as LocationSummary[];
 }
 
-export async function listUpcomingSessions(id: number, limit = 12): Promise<SessionSummary[]> {
-  await ensureFutprepPilotSchema();
+export async function listUpcomingSessions(
+  id: number,
+  limit = 12,
+): Promise<SessionSummary[]> {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
   const today = new Date().toISOString().slice(0, 10);
-  const result = await env.DB.prepare(
-    `SELECT
-       s.id, p.name AS program_name, s.session_date, s.start_time, s.location, s.status
-     FROM sessions s
-     JOIN programs p ON p.id = s.program_id
-     WHERE p.organization_id = ? AND s.session_date >= ?
-     ORDER BY s.session_date ASC, s.start_time ASC
-     LIMIT ?`
-  ).bind(id, today, limit).all<SessionSummary>();
-  return result.results;
+
+  const { data: programs, error: programError } = await db
+    .from("programs")
+    .select("id,name")
+    .eq("organization_id", id);
+  throwIfSupabaseError(programError, "Could not load programs for schedule");
+
+  const programRows = (programs ?? []) as Array<{ id: number; name: string }>;
+  if (!programRows.length) return [];
+
+  const nameByProgram = new Map(programRows.map((row) => [row.id, row.name]));
+  const { data: sessions, error } = await db
+    .from("sessions")
+    .select("id,program_id,session_date,start_time,location,status")
+    .in(
+      "program_id",
+      programRows.map((row) => row.id),
+    )
+    .gte("session_date", today)
+    .order("session_date", { ascending: true })
+    .order("start_time", { ascending: true })
+    .limit(limit);
+  throwIfSupabaseError(error, "Could not load upcoming sessions");
+
+  return (sessions ?? []).map(
+    (session: {
+      id: number;
+      program_id: number;
+      session_date: string;
+      start_time: string;
+      location: string;
+      status: string;
+    }) => ({
+      id: session.id,
+      program_name: nameByProgram.get(session.program_id) ?? "Program",
+      session_date: session.session_date,
+      start_time: session.start_time,
+      location: session.location,
+      status: session.status,
+    }),
+  );
 }
 
-export async function getRegistrationCountsByProgram(id: number): Promise<RegistrationCounts[]> {
-  await ensureFutprepPilotSchema();
-  const result = await env.DB.prepare(
-    `SELECT
-       p.name AS program_name,
-       p.capacity,
-       COUNT(r.id) AS registrations,
-       SUM(CASE WHEN r.payment_status IN ('pending','partial','overdue') THEN 1 ELSE 0 END) AS pending_payments,
-       SUM(CASE WHEN r.payment_status = 'paid' THEN 1 ELSE 0 END) AS paid
-     FROM programs p
-     LEFT JOIN registrations r
-       ON r.program_id = p.id
-      AND r.registration_status != 'cancelled'
-     WHERE p.organization_id = ? AND p.active = 1
-     GROUP BY p.id
-     ORDER BY p.start_time`
-  ).bind(id).all<RegistrationCounts>();
-  return result.results;
+export async function getRegistrationCountsByProgram(
+  id: number,
+): Promise<RegistrationCounts[]> {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+
+  const { data: programs, error: programError } = await db
+    .from("programs")
+    .select("id,name,capacity,start_time")
+    .eq("organization_id", id)
+    .eq("active", true)
+    .order("start_time", { ascending: true });
+  throwIfSupabaseError(programError, "Could not load registration programs");
+
+  const programRows = (programs ?? []) as Array<{
+    id: number;
+    name: string;
+    capacity: number;
+    start_time: string;
+  }>;
+  if (!programRows.length) return [];
+
+  const { data: registrations, error } = await db
+    .from("registrations")
+    .select("id,program_id,payment_status")
+    .in(
+      "program_id",
+      programRows.map((row) => row.id),
+    )
+    .neq("registration_status", "cancelled");
+  throwIfSupabaseError(error, "Could not load registration totals");
+
+  const byProgram = new Map<
+    number,
+    { registrations: number; pending: number; paid: number }
+  >();
+  for (const row of (registrations ?? []) as Array<{
+    id: number;
+    program_id: number;
+    payment_status: string;
+  }>) {
+    const totals = byProgram.get(row.program_id) ?? {
+      registrations: 0,
+      pending: 0,
+      paid: 0,
+    };
+    totals.registrations += 1;
+    if (["pending", "partial", "overdue"].includes(row.payment_status)) {
+      totals.pending += 1;
+    }
+    if (row.payment_status === "paid") totals.paid += 1;
+    byProgram.set(row.program_id, totals);
+  }
+
+  return programRows.map((program) => {
+    const totals = byProgram.get(program.id) ?? {
+      registrations: 0,
+      pending: 0,
+      paid: 0,
+    };
+    return {
+      program_name: program.name,
+      capacity: program.capacity,
+      registrations: totals.registrations,
+      pending_payments: totals.pending,
+      paid: totals.paid,
+    };
+  });
 }
