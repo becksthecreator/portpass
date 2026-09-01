@@ -24,9 +24,9 @@ in the Supabase SQL Editor.
 Then collect these values from Supabase project settings:
 
 - Project URL
-- Service role key
+- Secret key (sb_secret_...)
 
-Do not commit the service role key.
+Do not commit the secret key.
 
 ## 2. Vercel
 
@@ -40,7 +40,7 @@ Add production environment variables:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=<Supabase project URL>
-SUPABASE_SERVICE_ROLE_KEY=<server-only service role key>
+SUPABASE_SECRET_KEY=<server-only secret key>
 PORTPASS_FUTPREP_ADMIN_PIN=<Kiki staff PIN>
 PORTPASS_FUTPREP_COACH_PIN=<Coach Bex staff PIN>
 ```
@@ -84,7 +84,7 @@ After the preview passes:
 
 ## Security
 
-- Never put Supabase service-role keys in GitHub.
+- Never put Supabase secret keys in GitHub.
 - Never put staff PINs in GitHub.
 - RLS is enabled and browser roles have direct table access revoked.
 - Registration APIs validate program, age, capacity, payment choice, and consent server-side.

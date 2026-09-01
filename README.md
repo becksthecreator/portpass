@@ -73,12 +73,12 @@ See `PRODUCTION_SETUP.md` for the deployment checklist.
 ## Security
 
 Do not commit:
-- Supabase service-role keys
+- Supabase secret keys
 - staff PINs or passwords
 - production environment files
 - parent/player data
 
-The production schema enables row-level security and revokes direct browser-role table access. PortPass server routes use the server-only service-role key for controlled operations.
+The production schema enables row-level security and revokes direct browser-role table access. PortPass server routes use the server-only Supabase secret key for controlled operations.
 
 ## CI
 

@@ -1,6 +1,6 @@
 -- PortPass production schema for Supabase/Postgres.
 -- All application reads and writes currently go through trusted Next.js server routes
--- using the server-only Supabase service-role key. RLS is enabled with no public
+-- using the server-only Supabase secret key. RLS is enabled with no public
 -- policies so anon/authenticated clients cannot read child, health, emergency,
 -- registration, or payment records directly.
 
@@ -199,7 +199,7 @@ create index if not exists attendance_session_idx
   on public.attendance(session_id);
 
 -- Defense in depth: no browser/client can directly query these tables.
--- The service-role key used only by PortPass server routes bypasses RLS.
+-- The Supabase secret key used only by PortPass server routes has elevated backend access and bypasses RLS.
 alter table public.applications enable row level security;
 alter table public.organizations enable row level security;
 alter table public.programs enable row level security;

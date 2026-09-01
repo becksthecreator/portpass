@@ -6,16 +6,16 @@ let adminClient: SupabaseClient | null = null;
 export function getSupabaseAdmin() {
   if (adminClient) return adminClient;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const url = process.env.SUPABASE_URL?.trim();
+  const secretKey = process.env.SUPABASE_SECRET_KEY?.trim();
 
-  if (!url || !serviceRoleKey) {
+  if (!url || !secretKey) {
     throw new Error(
-      "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the production environment."
+      "Supabase is not configured. Set SUPABASE_URL and SUPABASE_SECRET_KEY in the production environment."
     );
   }
 
-  adminClient = createClient(url, serviceRoleKey, {
+  adminClient = createClient(url, secretKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
