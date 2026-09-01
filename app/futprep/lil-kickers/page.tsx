@@ -45,17 +45,15 @@ export default function FutprepLilKickersPage() {
             <span className="brand-mark">P</span><span>PORTPASS</span>
           </Link>
           <div className="lk-program-brand">
-            <span className="lk-draft-logo" aria-hidden="true">
-              <img src={transparentFutprepLogo} alt="" />
-              <svg className="lk-draft-crown" viewBox="0 0 36 28" role="presentation">
-                <path d="M3 23 L8 5 L17 16 L27 3 L32 23" />
-                <path d="M7 26 L31 26" />
-              </svg>
-            </span>
+            <img className="lk-header-crest" src={transparentFutprepLogo} alt="Futprep Athletics" />
             <span><b>LIL KICKERS</b><small>by Futprep Athletics</small></span>
           </div>
           <Link className="lk-nav-register" href="/futprep/lil-kickers/register">Register →</Link>
         </header>
+
+        <div className="lk-hero-play" aria-hidden="true">
+          <span>PLAY.</span><span>KICK.</span><span>SMILE.</span><span>GROW.</span>
+        </div>
 
         <div className="lk-hero-content">
           <span className="lk-eyebrow">Futprep · {FUTPREP_TERM.name}</span>
@@ -88,15 +86,14 @@ export default function FutprepLilKickersPage() {
       <section className="lk-kickoff">
         <div className="lk-kickoff-title">
           <span>Saturday energy</span>
-          <h2>The cutest kickoff<br/>of the week.</h2>
+          <h2>The cutest kickoff<br/><em>of the week.</em></h2>
+          <p>Lil Kickers is where Saturdays start with smiles, tiny boots and big energy. We keep it fun, age-appropriate and packed with good vibes.</p>
+          <a href="#classes" className="lk-kickoff-link">More about Lil Kickers →</a>
         </div>
-        <div className="lk-kickoff-copy">
-          <p>Come kick, play and laugh with us. Lil Kickers is a first introduction to football where fun comes first and every small win counts.</p>
-          <div className="lk-instagram-note">
-            <span>From the field</span>
-            <strong>New little ballers + returning stars, all back where they belong.</strong>
-            <small>@messy.tots.bahamas × @futprep</small>
-          </div>
+        <div className="lk-kickoff-gallery" aria-label="Futprep Lil Kickers sessions">
+          <figure><img src={futprepPhotos.training} alt="Young Futprep player enjoying a football session" loading="lazy" /></figure>
+          <figure><img src={futprepPhotos.player} alt="Young Futprep player practicing with the ball" loading="lazy" /></figure>
+          <figure><img src={futprepPhotos.hero} alt="Futprep players together on the field" loading="lazy" /></figure>
         </div>
       </section>
 
@@ -119,8 +116,8 @@ export default function FutprepLilKickersPage() {
       <section className="lk-classes" id="classes">
         <div className="lk-classes-heading">
           <span className="lk-section-label">Choose their Saturday</span>
-          <h2>Two classes.<br/>One fun morning.</h2>
-          <p>Pick the class that fits your child. Each class is capped at {FUTPREP_PROGRAMS[0]?.capacity ?? 20} players so the session can still feel personal.</p>
+          <h2>Pick the class <em>that fits your child.</em></h2>
+          <p>Two classes, one fun morning. Each class is capped at {FUTPREP_PROGRAMS[0]?.capacity ?? 20} players so the session can still feel personal.</p>
         </div>
 
         <div className="lk-class-grid">
@@ -147,13 +144,10 @@ export default function FutprepLilKickersPage() {
 
       <section className="lk-coaching">
         <div className="lk-coaching-copy">
-          <span className="lk-section-label">Meet the energy behind the session</span>
+          <span className="lk-section-label">Meet Coach Becks</span>
           <h2>Coach Becks.<br/>The coach behind the smiles.</h2>
-          <p>The Lil Kickers experience is as much about who is guiding the kids as what they are learning. The goal is simple: create a space where young players feel comfortable enough to move, try, laugh, listen and come back excited for the next Saturday.</p>
-          <div className="lk-caption-card">
-            <span>From the Futprep feed</span>
-            <strong>Big smiles, little ballers and a coach who keeps the session moving without making it feel like work.</strong>
-          </div>
+          <p>Coach Becks builds more than skills — he builds confidence. Every child is seen, encouraged and celebrated. Connection first. Football follows.</p>
+          <Link className="lk-coach-link" href="/futprep/lil-kickers/register">Meet the program →</Link>
         </div>
         <figure className="lk-coaching-image">
           <img src={futprepPhotos.player} alt="Futprep coaching and young players during a football session" loading="lazy" />
@@ -170,8 +164,8 @@ export default function FutprepLilKickersPage() {
         </div>
         <div className="lk-journey-copy">
           <span className="lk-section-label">More than one term</span>
-          <h2>This is where the football journey starts.</h2>
-          <p>Lil Kickers is a beginning, not a dead end. As confidence grows, young players can keep developing within the wider Futprep environment and move into the next challenge when they are ready.</p>
+          <h2>Lil Kickers <em>is just the beginning.</em></h2>
+          <p>As confidence grows, young players can keep developing inside the wider Futprep environment and move into the next challenge when the time is right.</p>
         </div>
         <div className="lk-journey-steps">
           <div><span>01</span><strong>First touches</strong><small>Meet the ball. Learn the space. Have fun.</small></div>
