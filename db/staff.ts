@@ -14,12 +14,6 @@ export type StaffRegistration = {
   parent_phone: string;
   emergency_contact_name: string;
   emergency_contact_phone: string;
-  allergies: string;
-  medical_conditions: string;
-  medications: string;
-  special_needs: string;
-  authorized_pickup: string;
-  additional_notes: string;
   photo_consent: string;
   payment_frequency: string;
   payment_method: string;
@@ -46,6 +40,9 @@ export type AttendanceRow = {
   child_name: string;
   parent_name: string;
   parent_phone: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  authorized_pickup: string;
   allergies: string;
   medical_conditions: string;
   medications: string;
@@ -81,7 +78,7 @@ export async function listFutprepStaffRegistrations(): Promise<
     await Promise.all([
       db
         .from("registrations")
-        .select("*")
+        .select("id,reference_code,program_id,child_name,child_dob,gender,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,photo_consent,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,submitted_at")
         .in("program_id", programIds)
         .neq("registration_status", "cancelled")
         .order("child_name", { ascending: true }),
@@ -124,12 +121,6 @@ export async function listFutprepStaffRegistrations(): Promise<
         parent_phone: String(row.parent_phone),
         emergency_contact_name: String(row.emergency_contact_name),
         emergency_contact_phone: String(row.emergency_contact_phone),
-        allergies: String(row.allergies ?? ""),
-        medical_conditions: String(row.medical_conditions ?? ""),
-        medications: String(row.medications ?? ""),
-        special_needs: String(row.special_needs ?? ""),
-        authorized_pickup: String(row.authorized_pickup),
-        additional_notes: String(row.additional_notes ?? ""),
         photo_consent: String(row.photo_consent),
         payment_frequency: String(row.payment_frequency),
         payment_method: String(row.payment_method),
@@ -318,7 +309,7 @@ export async function rosterForSession(
       db
         .from("registrations")
         .select(
-          "id,child_name,parent_name,parent_phone,allergies,medical_conditions,medications,special_needs",
+          "id,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs",
         )
         .eq("program_id", session.program_id)
         .in("registration_status", ["pending", "confirmed"])
@@ -346,6 +337,9 @@ export async function rosterForSession(
       child_name: string;
       parent_name: string;
       parent_phone: string;
+      emergency_contact_name: string;
+      emergency_contact_phone: string;
+      authorized_pickup: string;
       allergies: string;
       medical_conditions: string;
       medications: string;
@@ -355,6 +349,9 @@ export async function rosterForSession(
       child_name: row.child_name,
       parent_name: row.parent_name,
       parent_phone: row.parent_phone,
+      emergency_contact_name: row.emergency_contact_name,
+      emergency_contact_phone: row.emergency_contact_phone,
+      authorized_pickup: row.authorized_pickup,
       allergies: row.allergies ?? "",
       medical_conditions: row.medical_conditions ?? "",
       medications: row.medications ?? "",
