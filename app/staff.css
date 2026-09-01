@@ -142,3 +142,43 @@
   .registration-share-card{align-items:stretch;flex-direction:column;gap:16px}
   .registration-share-card button{width:100%}
 }
+
+
+/* Coach Alex CEO overview */
+.ceo-summary-grid{display:grid;grid-template-columns:repeat(5,1fr);margin-bottom:22px}
+.ceo-summary-grid article{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:5px;min-height:145px;padding:20px}
+.ceo-summary-grid span{color:var(--muted);font-size:.67rem;text-transform:uppercase}
+.ceo-summary-grid strong{font-family:Georgia,serif;font-size:2.4rem;font-weight:400}
+.ceo-summary-grid small{color:var(--muted);font-size:.66rem;line-height:1.4}
+.ceo-access-grid{display:grid;gap:16px;grid-template-columns:1fr 1fr;margin-bottom:22px}
+.ceo-access-grid>a{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;min-height:250px;padding:26px}
+.ceo-access-grid>a:first-child{border-top:5px solid #f0245c}
+.ceo-access-grid>a:last-child{border-top:5px solid #2cb8a0}
+.ceo-access-grid h2{font-family:Georgia,serif;font-size:2.2rem;font-weight:400;margin:14px 0 10px}
+.ceo-access-grid p{color:var(--muted);font-size:.8rem;line-height:1.55;margin:0 0 28px;max-width:460px}
+.ceo-access-grid>a>strong{font-size:.72rem;margin-top:auto}
+.ceo-panel{background:var(--paper);border:1px solid var(--line);margin-top:18px;padding:26px}
+.ceo-panel-head{align-items:flex-end;display:flex;gap:20px;justify-content:space-between;margin-bottom:22px}
+.ceo-panel-head h2{font-family:Georgia,serif;font-size:2.1rem;font-weight:400;margin:8px 0 0}
+.ceo-panel-head>a{font-size:.7rem;font-weight:800}
+.ceo-registration-table,.ceo-session-table{border-top:1px solid var(--line)}
+.ceo-registration-table>div,.ceo-session-table>a{align-items:center;border-bottom:1px solid var(--line);display:grid;gap:16px;grid-template-columns:1.4fr .65fr .65fr .8fr;padding:14px 6px}
+.ceo-registration-table>div>div,.ceo-session-table>a>div{display:flex;flex-direction:column;gap:3px}
+.ceo-registration-table strong,.ceo-session-table strong{font-size:.8rem}
+.ceo-registration-table span,.ceo-session-table span{color:var(--muted);font-size:.68rem}
+.ceo-ready{color:#285621!important;font-weight:800}
+.ceo-missing{color:#8d2330!important;font-weight:800}
+
+@media(max-width:980px){
+  .ceo-summary-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:720px){
+  .ceo-access-grid{grid-template-columns:1fr}
+  .ceo-registration-table>div,.ceo-session-table>a{align-items:flex-start;grid-template-columns:1fr 1fr}
+  .ceo-registration-table>div>div,.ceo-session-table>a>div{grid-column:1/-1}
+}
+@media(max-width:560px){
+  .ceo-summary-grid{grid-template-columns:repeat(2,1fr)}
+  .ceo-panel{padding:18px}
+  .ceo-panel-head{align-items:flex-start;flex-direction:column}
+}
