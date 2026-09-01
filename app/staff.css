@@ -1,0 +1,104 @@
+.staff-login-page{background:var(--sand);min-height:100vh}
+.staff-login-shell{margin:0 auto;max-width:620px;padding:90px 24px}
+.staff-login-shell h1{font-family:Georgia,serif;font-size:clamp(3.6rem,8vw,6.5rem);font-weight:400;letter-spacing:-.06em;line-height:.9;margin:26px 0 18px}
+.staff-login-shell>p{color:var(--muted);line-height:1.6;margin-bottom:34px}
+.staff-login-form{background:var(--paper);border:1px solid var(--line);padding:30px}
+.staff-role-choice{display:grid;gap:12px;grid-template-columns:1fr 1fr;margin-bottom:28px}
+.staff-role-choice button{background:transparent;border:1px solid var(--line);cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:20px;text-align:left}
+.staff-role-choice button.is-active{background:#edf2e8;border-color:var(--green)}
+.staff-role-choice strong{font-family:Georgia,serif;font-size:1.3rem;font-weight:400}
+.staff-role-choice span{color:var(--muted);font-size:.72rem}
+.staff-login-form label{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+.staff-login-form label span{font-size:.72rem;font-weight:800}
+
+.staff-workspace{background:#f4f4ef;min-height:100vh}
+.staff-workspace-header{align-items:center;background:var(--ink);color:white;display:flex;justify-content:space-between;padding:18px 4vw;position:sticky;top:0;z-index:10}
+.staff-workspace-header>div{align-items:center;display:flex;gap:24px}
+.staff-workspace-header .brand-mark{background:var(--lime);color:var(--ink)}
+.staff-workspace-label{border-left:1px solid #53645e;color:#c3d0cb;font-size:.7rem;padding-left:24px}
+.staff-workspace-header nav{display:flex;gap:22px}
+.staff-workspace-header nav a{color:#d8e0dd;font-size:.72rem;font-weight:800}
+.staff-workspace-content{margin:0 auto;max-width:1220px;padding:54px 24px 90px}
+.staff-page-intro{align-items:end;display:grid;gap:50px;grid-template-columns:1.3fr .7fr;margin-bottom:38px}
+.staff-page-intro .section-kicker{margin-bottom:14px}
+.staff-page-intro h1{font-family:Georgia,serif;font-size:clamp(3rem,6vw,5.8rem);font-weight:400;letter-spacing:-.055em;line-height:.92;margin:0}
+.staff-page-intro>p{color:var(--muted);font-size:.88rem;line-height:1.6;margin:0}
+
+.staff-summary{display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:18px}
+.staff-summary article{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px;padding:20px}
+.staff-summary span{color:var(--muted);font-size:.68rem;text-transform:uppercase}
+.staff-summary strong{font-family:Georgia,serif;font-size:2.5rem;font-weight:400}
+.staff-filter{display:flex;gap:8px;margin:22px 0}
+.staff-filter button{background:var(--paper);border:1px solid var(--line);cursor:pointer;font-size:.72rem;font-weight:800;padding:9px 13px}
+.staff-filter button.is-active{background:var(--ink);color:white}
+.staff-registration-list{display:flex;flex-direction:column;gap:14px}
+.staff-registration-card{background:var(--paper);border:1px solid var(--line);padding:26px}
+.staff-registration-head{align-items:flex-start;display:flex;justify-content:space-between}
+.staff-registration-head h2{font-family:Georgia,serif;font-size:2rem;font-weight:400;margin:8px 0 4px}
+.staff-registration-head p{color:var(--muted);font-size:.78rem;margin:0}
+.staff-status-stack{align-items:flex-end;display:flex;flex-direction:column;gap:7px}
+.staff-info-grid{display:grid;grid-template-columns:repeat(4,1fr);margin-top:24px}
+.staff-info-grid>div{border-left:1px solid var(--line);display:flex;flex-direction:column;gap:5px;padding:2px 14px}
+.staff-info-grid>div:first-child{border-left:0;padding-left:0}
+.staff-info-grid span{color:var(--muted);font-size:.64rem;text-transform:uppercase}
+.staff-info-grid strong{font-size:.78rem}
+.staff-info-grid small{color:var(--muted);font-size:.7rem;line-height:1.45}
+.medical-details{border-top:1px solid var(--line);margin-top:22px;padding-top:16px}
+.medical-details summary{cursor:pointer;font-size:.74rem;font-weight:800}
+.medical-details dl{display:grid;gap:1px;grid-template-columns:repeat(2,1fr);margin:16px 0 0}
+.medical-details dl div{background:var(--sand);padding:14px}
+.medical-details dd{font-size:.76rem;line-height:1.5}
+.staff-actions{align-items:center;border-top:1px solid var(--line);display:flex;gap:10px;margin-top:20px;padding-top:18px}
+.staff-actions>button,.record-payment-inline button{background:var(--ink);border:0;color:white;cursor:pointer;font-size:.7rem;font-weight:800;min-height:40px;padding:0 13px}
+.staff-actions select{border:1px solid var(--line);min-height:40px;padding:0 10px;width:auto}
+.record-payment-inline{align-items:center;display:flex;margin-left:auto}
+.record-payment-inline>span{background:var(--sand);border:1px solid var(--line);border-right:0;display:flex;height:40px;align-items:center;padding:0 9px}
+.record-payment-inline input{border:1px solid var(--line);height:40px;min-height:40px;padding:0 9px;width:76px}
+
+.session-picker{display:flex;gap:8px;margin:0 0 28px;overflow-x:auto;padding-bottom:8px}
+.session-picker a{background:var(--paper);border:1px solid var(--line);display:flex;flex:0 0 160px;flex-direction:column;gap:4px;padding:14px}
+.session-picker a.is-active{background:var(--green);border-color:var(--green);color:white}
+.session-picker span,.session-picker small{color:var(--muted);font-size:.65rem}
+.session-picker a.is-active span,.session-picker a.is-active small{color:#c8d4d0}
+.session-picker strong{font-size:.78rem}
+.coach-session-heading{align-items:flex-end;background:var(--paper);border:1px solid var(--line);display:flex;justify-content:space-between;padding:24px}
+.coach-session-heading h2{font-family:Georgia,serif;font-size:2rem;font-weight:400;margin:7px 0}
+.coach-session-heading p{color:var(--muted);font-size:.75rem;margin:0}
+.coach-session-heading>strong{font-family:Georgia,serif;font-size:2.2rem;font-weight:400}
+.coach-roster{background:var(--paper);border:1px solid var(--line);border-top:0}
+.coach-roster>article{align-items:center;border-bottom:1px solid var(--line);display:grid;gap:18px;grid-template-columns:1fr 1.2fr auto;padding:18px 22px}
+.coach-roster>article:last-child{border-bottom:0}
+.coach-player-main{display:flex;flex-direction:column;gap:4px}
+.coach-player-main strong{font-size:.86rem}.coach-player-main span{color:var(--muted);font-size:.7rem}
+.coach-roster details summary{cursor:pointer;font-size:.7rem;font-weight:800}
+.coach-roster details p{color:var(--muted);font-size:.7rem;line-height:1.45;margin:6px 0}
+.attendance-actions{display:flex;gap:5px}
+.attendance-actions button{background:transparent;border:1px solid var(--line);cursor:pointer;font-size:.64rem;padding:7px 8px;text-transform:capitalize}
+.attendance-actions button.is-active{background:var(--ink);color:white}
+.cash-section{margin-top:46px}
+.cash-section>.section-kicker{margin-bottom:8px}
+.cash-section>h2{font-family:Georgia,serif;font-size:2.6rem;font-weight:400;margin:0 0 20px}
+.cash-list{background:var(--paper);border:1px solid var(--line)}
+.cash-list article{align-items:center;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;padding:16px 18px}
+.cash-list article:last-child{border-bottom:0}
+.cash-list article>div:first-child{display:flex;flex-direction:column;gap:4px}
+.cash-list article>div:first-child strong{font-size:.8rem}.cash-list article>div:first-child span{color:var(--muted);font-size:.68rem}
+
+@media(max-width:800px){
+  .staff-page-intro{grid-template-columns:1fr}
+  .staff-info-grid{grid-template-columns:repeat(2,1fr)}
+  .staff-info-grid>div:nth-child(3){border-left:0;padding-left:0}
+  .staff-actions{align-items:stretch;flex-direction:column}
+  .record-payment-inline{margin-left:0}
+  .coach-roster>article{align-items:flex-start;grid-template-columns:1fr}
+}
+@media(max-width:560px){
+  .staff-workspace-header{align-items:flex-start;flex-direction:column;gap:12px}
+  .staff-workspace-header nav{gap:14px}
+  .staff-role-choice,.staff-summary,.medical-details dl{grid-template-columns:1fr}
+  .staff-info-grid{grid-template-columns:1fr}
+  .staff-info-grid>div{border-left:0;border-top:1px solid var(--line);padding:12px 0}
+  .staff-registration-head{flex-direction:column;gap:12px}
+  .staff-status-stack{align-items:flex-start;flex-direction:row}
+  .cash-list article{align-items:flex-start;flex-direction:column;gap:12px}
+}
