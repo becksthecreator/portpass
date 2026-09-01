@@ -87,9 +87,80 @@ export default function FutprepLilKickersPage() {
         </div>
       </section>
 
+
+      <section className="futprep-story">
+        <div className="futprep-story-copy">
+          <span className="section-kicker">Futprep in motion</span>
+          <h2>Real sessions.<br/><em>Real confidence.</em></h2>
+          <p>Football should feel exciting from the first touch. Lil Kickers is built around movement, confidence, repetition, and fun — with coaching that meets young players where they are.</p>
+          <div className="futprep-story-tags">
+            <span>Fun first</span>
+            <span>Age appropriate</span>
+            <span>Skill building</span>
+          </div>
+        </div>
+        <div className="futprep-gallery" aria-label="Futprep Athletics gallery">
+          <figure className="gallery-main">
+            <img
+              src="https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/d69eda54-1539-434e-bb0c-7e122dd03eab/IMG_5805.jpg"
+              alt="Futprep Athletics players together on the field in Nassau"
+              loading="lazy"
+            />
+          </figure>
+          <figure className="gallery-side gallery-side-one">
+            <img
+              src="https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/1610225610514-4OBCNDHLPNXEFD1ESC0B/IMG-1321.jpg"
+              alt="Futprep Athletics football training in Nassau"
+              loading="lazy"
+            />
+          </figure>
+          <figure className="gallery-side gallery-side-two">
+            <img
+              src="https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/1610225759604-TDXFWZT2SGY2L9L0WHXO/IMG-4915.jpg"
+              alt="Young Futprep players during a football session"
+              loading="lazy"
+            />
+          </figure>
+        </div>
+      </section>
+
       <section className="pilot-payment-strip">
         <div><span className="section-kicker">Payment</span><h2>Simple for now.</h2></div>
         <p>Choose cash or bank transfer when you register. Online card payments are coming soon.</p>
+      </section>
+
+
+      <section className="futprep-sponsors">
+        <div className="sponsor-heading">
+          <span className="section-kicker">Futprep partners</span>
+          <p>Supported by organizations that help Futprep keep young players learning, competing, and growing.</p>
+        </div>
+        <div className="sponsor-grid">
+          <div className="sponsor-card">
+            <img
+              src="https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/8805b0c9-5021-4328-9c5d-934e36e38298/BBD%2BLOGO_3%2B%281%29.png"
+              alt="Bahamas Builders & Development"
+              loading="lazy"
+            />
+            <span>Bahamas Builders & Development</span>
+          </div>
+          <div className="sponsor-card">
+            <img
+              src="https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/4e9519a5-1dd1-4f3c-b2ef-8fa259b36e31/WhatsApp%2BImage%2B2021-01-31%2Bat%2B9.37.56%2BPM.jpeg"
+              alt="Shenanigans Bahamas"
+              loading="lazy"
+            />
+            <span>Shenanigans Bahamas</span>
+          </div>
+          <div className="sponsor-card">
+            <img
+              src="https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/415adee4-afb4-42f9-9383-d5c9aecce953/HAPPY_PETS_FINAL_LOGO.png"
+              alt="Happy Pets Animal Hospital"
+              loading="lazy"
+            />
+            <span>Happy Pets Animal Hospital</span>
+          </div>
+        </div>
       </section>
 
       <section className="closing-cta pilot-cta">
