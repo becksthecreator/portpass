@@ -2086,3 +2086,206 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     background-image:none;
   }
 }
+
+
+/* Concrete Futprep color blocks */
+
+/* Make each section read as one solid color territory instead of mixing the palette everywhere. */
+.futprep-theme .pilot-header,
+.futprep-theme.registration-page .registration-header{
+  background:#fff1f5;
+  border-bottom:1px solid rgba(21,21,21,.12);
+}
+.futprep-theme .pilot-header::after,
+.futprep-theme.registration-page .registration-header::after{
+  display:none;
+}
+
+/* HERO — white territory */
+.futprep-theme .pilot-hero{
+  background:#ffffff!important;
+  border-bottom:0;
+}
+.futprep-theme .pilot-hero::before,
+.futprep-theme .pilot-hero::after{
+  display:none;
+}
+.futprep-theme .headline-first{color:var(--fp-black)}
+.futprep-theme .headline-second,
+.futprep-theme .headline-ellipsis{color:var(--fp-pink)}
+.futprep-theme .primary-button{
+  background:var(--fp-pink);
+  border:0;
+  color:#fff;
+}
+.futprep-theme .primary-button:hover{background:var(--fp-pink-deep)}
+.futprep-theme .pilot-term-card{
+  background:#fff;
+  border:2px solid var(--fp-black);
+  box-shadow:none;
+  color:var(--fp-black);
+}
+.futprep-theme .pilot-term-card::before{display:none}
+.futprep-theme .session-float{
+  background:var(--fp-pink);
+  border:0;
+  box-shadow:none;
+  color:#fff;
+}
+.futprep-theme .term-break-line,
+.futprep-theme .term-location-link{
+  border-color:rgba(21,21,21,.16);
+}
+.futprep-theme .term-break-line span,
+.futprep-theme .term-location-link>span{
+  color:var(--fp-black);
+  opacity:.62;
+}
+.futprep-theme .term-location-link strong{color:var(--fp-black)}
+.futprep-theme .term-location-link small{color:var(--fp-pink)}
+.futprep-theme .term-location-link:hover small{color:var(--fp-pink-deep)}
+
+/* CLASSES — solid teal territory */
+.futprep-theme .pilot-classes{
+  background:var(--fp-teal)!important;
+  border:0;
+  color:#fff;
+}
+.futprep-theme .pilot-classes::before,
+.futprep-theme .pilot-classes::after{
+  display:none;
+}
+.futprep-theme .pilot-classes .section-kicker,
+.futprep-theme .pilot-classes h2{
+  color:#fff;
+}
+.futprep-theme .pilot-class-card{
+  background:#fff!important;
+  border:0!important;
+  box-shadow:none;
+}
+.futprep-theme .pilot-class-card::after{display:none}
+.futprep-theme .pilot-class-card:first-child,
+.futprep-theme .pilot-class-card:nth-child(2){
+  border-top:0!important;
+}
+.futprep-theme .pilot-class-card:first-child h3,
+.futprep-theme .pilot-class-card:nth-child(2) h3{
+  color:var(--fp-black);
+}
+.futprep-theme .class-age{
+  color:var(--fp-teal-deep)!important;
+}
+.futprep-theme .class-capacity,
+.futprep-theme .pilot-class-card:first-child .class-capacity{
+  background:var(--fp-teal-soft);
+  border:0;
+  color:var(--fp-teal-deep)!important;
+}
+
+/* GALLERY — solid soft pink territory */
+.futprep-theme .futprep-story{
+  background:var(--fp-pink-soft)!important;
+  border:0;
+}
+.futprep-theme .futprep-story::before{display:none}
+.futprep-theme .futprep-story-copy>.section-kicker{color:var(--fp-pink)}
+.futprep-theme .futprep-story-copy h2{color:var(--fp-black)}
+.futprep-theme .futprep-story-copy h2 em{color:var(--fp-pink)}
+.futprep-theme .futprep-story-tags span,
+.futprep-theme .futprep-story-tags span:first-child,
+.futprep-theme .futprep-story-tags span:nth-child(2){
+  background:#fff;
+  border:1px solid rgba(21,21,21,.12);
+  color:var(--fp-black);
+}
+.futprep-theme .futprep-gallery::before,
+.futprep-theme .futprep-gallery::after{
+  display:none;
+}
+
+/* PAYMENT — solid white territory */
+.futprep-theme .pilot-payment-strip{
+  background:#fff!important;
+  border:0;
+  color:var(--fp-black);
+}
+.futprep-theme .pilot-payment-strip::before,
+.futprep-theme .pilot-payment-strip::after{
+  display:none;
+}
+.futprep-theme .pilot-payment-strip h2,
+.futprep-theme .pilot-payment-strip p,
+.futprep-theme .pilot-payment-strip .section-kicker{
+  color:var(--fp-black);
+}
+.futprep-theme .pilot-payment-strip .section-kicker{
+  color:var(--fp-teal-deep);
+}
+
+/* SPONSORS — solid soft teal territory */
+.futprep-theme .futprep-sponsors{
+  background:var(--fp-teal-soft)!important;
+  border:0;
+}
+.futprep-theme .futprep-sponsors::before{display:none}
+.futprep-theme .sponsor-heading>.section-kicker{color:var(--fp-teal-deep)}
+.futprep-theme .sponsor-card,
+.futprep-theme .sponsor-card:nth-child(2){
+  background:#fff;
+  border:0;
+}
+
+/* CTA — solid pink territory */
+.futprep-theme .pilot-cta{
+  background:var(--fp-pink)!important;
+  border:0;
+  color:#fff;
+}
+.futprep-theme .pilot-cta::before,
+.futprep-theme .pilot-cta::after{
+  display:none;
+}
+.futprep-theme .pilot-cta>p,
+.futprep-theme .pilot-cta h2{
+  color:#fff;
+}
+.futprep-theme .pilot-cta .light-button{
+  background:#fff;
+  border:0;
+  color:var(--fp-pink);
+}
+.futprep-theme .pilot-cta .light-button:hover{
+  background:var(--fp-black);
+  color:#fff;
+}
+
+/* FOOTER — neutral close */
+.futprep-theme footer{
+  background:#fff;
+  border-top:0;
+}
+.futprep-theme footer::before{display:none}
+
+/* Registration journey: keep the same concrete approach. */
+.futprep-theme.registration-page{
+  background:#fff!important;
+}
+.futprep-theme .registration-form{
+  box-shadow:none;
+}
+.futprep-theme .registration-shell::before,
+.futprep-theme .registration-form fieldset::before{
+  display:none;
+}
+
+@media(max-width:640px){
+  .futprep-theme .pilot-hero,
+  .futprep-theme .pilot-classes,
+  .futprep-theme .futprep-story,
+  .futprep-theme .pilot-payment-strip,
+  .futprep-theme .futprep-sponsors,
+  .futprep-theme .pilot-cta{
+    background-image:none!important;
+  }
+}
