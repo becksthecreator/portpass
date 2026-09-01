@@ -4239,3 +4239,37 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 @media(prefers-reduced-motion:reduce){
   .lilkickers-page *{scroll-behavior:auto}
 }
+
+
+/* Coach Becks story caption */
+.lk-coaching-image{position:relative}
+.lk-coaching-caption{
+  background:rgba(23,23,23,.78);
+  bottom:24px;
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  left:24px;
+  padding:14px 16px;
+  position:absolute;
+}
+.lk-coaching-caption span{
+  color:var(--lk-teal-soft);
+  font-size:.55rem;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.lk-coaching-caption strong{
+  font-family:Georgia,serif;
+  font-size:1.05rem;
+  font-weight:400;
+}
+@media(max-width:720px){
+  .lk-coaching-caption{
+    bottom:14px;
+    left:14px;
+    right:14px;
+  }
+}
