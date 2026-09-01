@@ -83,3 +83,8 @@ The production schema enables row-level security and revokes direct browser-role
 ## CI
 
 Every push to `main` runs a clean production Next.js build through GitHub Actions.
+
+
+## Deployment
+
+Vercel auto-deploys the `main` branch for PortPass testing and production previews.
