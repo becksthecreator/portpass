@@ -45,7 +45,13 @@ export default function FutprepLilKickersPage() {
             <span className="brand-mark">P</span><span>PORTPASS</span>
           </Link>
           <div className="lk-program-brand">
-            <img src={transparentFutprepLogo} alt="Futprep Athletics" />
+            <span className="lk-draft-logo" aria-hidden="true">
+              <img src={transparentFutprepLogo} alt="" />
+              <svg className="lk-draft-crown" viewBox="0 0 36 28" role="presentation">
+                <path d="M3 23 L8 5 L17 16 L27 3 L32 23" />
+                <path d="M7 26 L31 26" />
+              </svg>
+            </span>
             <span><b>LIL KICKERS</b><small>by Futprep Athletics</small></span>
           </div>
           <Link className="lk-nav-register" href="/futprep/lil-kickers/register">Register →</Link>

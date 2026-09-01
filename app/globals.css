@@ -4400,3 +4400,51 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     padding:0 8px;
   }
 }
+
+
+/* Draft-logo treatment for Lil Kickers header */
+.lk-program-brand{
+  background:transparent;
+}
+.lk-draft-logo{
+  display:inline-block;
+  height:58px;
+  position:relative;
+  width:54px;
+}
+.lk-draft-logo>img{
+  background:transparent;
+  display:block;
+  height:58px;
+  object-fit:contain;
+  width:44px;
+}
+.lk-draft-crown{
+  fill:none;
+  height:22px;
+  position:absolute;
+  right:-6px;
+  stroke:var(--lk-pink);
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  stroke-width:3.8;
+  top:-3px;
+  transform:rotate(7deg);
+  width:28px;
+}
+@media(max-width:720px){
+  .lk-draft-logo{
+    height:48px;
+    width:47px;
+  }
+  .lk-draft-logo>img{
+    height:48px;
+    width:38px;
+  }
+  .lk-draft-crown{
+    height:18px;
+    right:-5px;
+    top:-2px;
+    width:24px;
+  }
+}
