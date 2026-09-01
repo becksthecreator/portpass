@@ -4,7 +4,9 @@ import { updateFutprepRegistration } from "@/db/staff";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const role = await currentFutprepStaffRole();
-  if (role !== "admin") return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+  if (role !== "admin" && role !== "ceo") {
+    return NextResponse.json({ error: "Registration admin access required." }, { status: 403 });
+  }
 
   const { id } = await context.params;
   const registrationId = Number(id);

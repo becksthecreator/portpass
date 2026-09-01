@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-export type FutprepStaffRole = "admin" | "coach";
+export type FutprepStaffRole = "admin" | "coach" | "ceo";
 
 const COOKIE = "portpass_futprep_staff";
 
@@ -9,7 +9,9 @@ function secretFor(role: FutprepStaffRole) {
   const value =
     role === "admin"
       ? process.env.PORTPASS_FUTPREP_ADMIN_PIN
-      : process.env.PORTPASS_FUTPREP_COACH_PIN;
+      : role === "coach"
+        ? process.env.PORTPASS_FUTPREP_COACH_PIN
+        : process.env.PORTPASS_FUTPREP_CEO_PIN;
   return typeof value === "string" ? value.trim() : "";
 }
 
@@ -37,7 +39,7 @@ export async function currentFutprepStaffRole(): Promise<FutprepStaffRole | null
   if (!token) return null;
 
   const [roleValue, signature] = token.split(".");
-  if (roleValue !== "admin" && roleValue !== "coach") return null;
+  if (roleValue !== "admin" && roleValue !== "coach" && roleValue !== "ceo") return null;
 
   const role = roleValue as FutprepStaffRole;
   const secret = secretFor(role);

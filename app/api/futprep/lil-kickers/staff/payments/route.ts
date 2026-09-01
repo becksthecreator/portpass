@@ -20,15 +20,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid payment method." }, { status: 400 });
   }
   if (role === "coach" && body.method !== "cash") {
-    return NextResponse.json({ error: "Coach access can record cash payments only." }, { status: 403 });
+    return NextResponse.json({ error: "Coach Bex can record cash payments only." }, { status: 403 });
   }
+
+  const recordedBy =
+    role === "admin"
+      ? "Kiki / Futprep registration"
+      : role === "ceo"
+        ? "Coach Alex / Futprep CEO"
+        : "Coach Bex";
 
   try {
     const result = await recordFutprepPayment({
       registrationId: Number(body.registrationId),
       amountCents: Number(body.amountCents),
       method: body.method,
-      recordedBy: role === "admin" ? "Kiki / Futprep admin" : "Coach Bex",
+      recordedBy,
       note: typeof body.note === "string" ? body.note.slice(0,500) : "",
     });
     return NextResponse.json({ ok: true, ...result });

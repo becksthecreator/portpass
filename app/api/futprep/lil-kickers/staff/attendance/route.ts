@@ -19,11 +19,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid attendance status." }, { status: 400 });
   }
 
+  const markedBy =
+    role === "admin" ? "Kiki / Futprep registration" :
+    role === "ceo" ? "Coach Alex / Futprep CEO" :
+    "Coach Bex";
+
   await markFutprepAttendance({
     sessionId: Number(body.sessionId),
     registrationId: Number(body.registrationId),
     status: body.status as "present" | "absent" | "excused",
-    markedBy: role === "admin" ? "Futprep admin" : "Coach Bex",
+    markedBy,
   });
   return NextResponse.json({ ok: true });
 }

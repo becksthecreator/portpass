@@ -7,8 +7,8 @@ import {
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({})) as { role?: string; pin?: string };
-  if (body.role !== "admin" && body.role !== "coach") {
-    return NextResponse.json({ error: "Choose a valid staff role." }, { status: 400 });
+  if (body.role !== "admin" && body.role !== "coach" && body.role !== "ceo") {
+    return NextResponse.json({ error: "Choose a valid staff account." }, { status: 400 });
   }
   const role = body.role as FutprepStaffRole;
   const token = await makeStaffToken(role, String(body.pin ?? ""));

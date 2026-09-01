@@ -108,7 +108,17 @@ async function seedFutprepPilot() {
           role: "admin_registrar",
           email: null,
           responsibilities:
-            "Registration administration, bank-transfer verification, and payment tracking.",
+            "Registration administration, bank-transfer verification, payment tracking, and parent registration support.",
+          active: true,
+          created_at: now,
+        },
+        {
+          organization_id: organization.id,
+          name: "Coach Alex",
+          role: "ceo",
+          email: null,
+          responsibilities:
+            "CEO oversight with access to registrations, payments, coaching operations, session plans, and staff work logs.",
           active: true,
           created_at: now,
         },
