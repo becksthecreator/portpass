@@ -48,7 +48,10 @@ export default function FutprepLilKickersPage() {
             <img className="lk-header-crest" src={transparentFutprepLogo} alt="Futprep Athletics" />
             <span><b>LIL KICKERS</b><small>by Futprep Athletics</small></span>
           </div>
-          <Link className="lk-nav-register" href="/futprep/lil-kickers/register">Register →</Link>
+          <div className="lk-nav-actions">
+            <Link className="lk-staff-login-link" href="/futprep/lil-kickers/staff/login">Staff login</Link>
+            <Link className="lk-nav-register" href="/futprep/lil-kickers/register">Register →</Link>
+          </div>
         </header>
 
         <div className="lk-hero-play" aria-hidden="true">

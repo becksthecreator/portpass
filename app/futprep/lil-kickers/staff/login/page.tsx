@@ -21,7 +21,7 @@ export default async function StaffLoginPage({
       <section className="staff-login-shell">
         <div className="eyebrow"><span className="eyebrow-dot" />Futprep staff</div>
         <h1>Your staff area.</h1>
-        <p>Kiki, Coach Bex, and Coach Alex each have their own access and see only the tools their role needs.</p>
+        <p>Choose your name, enter your PIN, and PortPass will open the workspace assigned to your role.</p>
         <StaffLoginForm returnTo={safeReturnTo} />
       </section>
     </main>

@@ -4918,3 +4918,103 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     inset:14px 10px;
   }
 }
+
+
+/* Lil Kickers header repair */
+.lilkickers-page .lk-nav{
+  align-items:center;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  min-height:88px;
+  padding:14px 3.5vw;
+  position:absolute;
+}
+.lilkickers-page .lk-portpass-brand{
+  justify-self:start;
+}
+.lilkickers-page .lk-program-brand{
+  align-items:center;
+  background:transparent;
+  display:flex;
+  flex-direction:row;
+  gap:11px;
+  justify-self:center;
+  left:auto;
+  position:static;
+  top:auto;
+  transform:none;
+}
+.lilkickers-page .lk-header-crest{
+  background:transparent;
+  display:block;
+  height:58px;
+  object-fit:contain;
+  width:48px;
+}
+.lilkickers-page .lk-program-brand>span{
+  align-items:flex-start;
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  line-height:1.05;
+}
+.lilkickers-page .lk-program-brand b{
+  font-size:.76rem;
+  letter-spacing:.06em;
+}
+.lilkickers-page .lk-program-brand small{
+  font-size:.52rem;
+  margin-top:4px;
+}
+.lilkickers-page .lk-nav-actions{
+  align-items:center;
+  display:flex;
+  gap:18px;
+  justify-self:end;
+}
+.lilkickers-page .lk-staff-login-link{
+  border-bottom:1px solid rgba(255,255,255,.55);
+  color:#fff;
+  font-size:.62rem;
+  font-weight:900;
+  padding-bottom:4px;
+  text-transform:uppercase;
+}
+.lilkickers-page .lk-nav-register{
+  background:var(--lk-pink);
+  border:0;
+  border-radius:999px;
+  color:#fff;
+  padding:11px 16px;
+}
+@media(max-width:720px){
+  .lilkickers-page .lk-nav{
+    grid-template-columns:auto 1fr auto;
+    min-height:74px;
+    padding:10px 16px;
+  }
+  .lilkickers-page .lk-portpass-brand>span:last-child{
+    display:none;
+  }
+  .lilkickers-page .lk-program-brand{
+    gap:7px;
+  }
+  .lilkickers-page .lk-header-crest{
+    height:46px;
+    width:38px;
+  }
+  .lilkickers-page .lk-program-brand b{
+    font-size:.62rem;
+  }
+  .lilkickers-page .lk-program-brand small{
+    display:none;
+  }
+  .lilkickers-page .lk-staff-login-link{
+    display:none;
+  }
+  .lilkickers-page .lk-nav-register{
+    display:inline-flex;
+    font-size:.58rem;
+    padding:9px 11px;
+  }
+}
