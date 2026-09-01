@@ -1957,3 +1957,132 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     height:66px;
   }
 }
+
+
+/* Adon section color distribution pass */
+
+/* Same palette, redistributed so every section has one clear dominant color. */
+.futprep-theme .pilot-header,
+.futprep-theme.registration-page .registration-header{
+  background:var(--fp-pink-soft);
+}
+
+/* 1. Hero — white */
+.futprep-theme .pilot-hero{
+  background:#fff;
+  border-bottom:1px solid rgba(21,21,21,.08);
+}
+.futprep-theme .pilot-hero::before{
+  opacity:.045;
+}
+.futprep-theme .pilot-hero::after{
+  background:var(--fp-pink);
+  opacity:.75;
+}
+
+/* 2. Classes — soft teal */
+.futprep-theme .pilot-classes{
+  background:var(--fp-teal-soft);
+  border-bottom:1px solid rgba(22,138,121,.12);
+}
+.futprep-theme .pilot-classes::before{
+  background:var(--fp-pink);
+  height:6px;
+  width:25%;
+}
+.futprep-theme .pilot-classes::after{
+  background:var(--fp-teal);
+  height:6px;
+  width:75%;
+}
+
+/* 3. Gallery / story — white */
+.futprep-theme .futprep-story{
+  background:#fff;
+  border-bottom:1px solid rgba(21,21,21,.08);
+}
+.futprep-theme .futprep-story::before{
+  background:var(--fp-pink-soft);
+  opacity:.9;
+}
+
+/* 4. Payment — full teal */
+.futprep-theme .pilot-payment-strip{
+  background:var(--fp-teal);
+  border-bottom:0;
+  border-top:0;
+  color:#fff;
+}
+.futprep-theme .pilot-payment-strip::after{
+  background:var(--fp-pink);
+  height:6px;
+  width:25%;
+}
+.futprep-theme .pilot-payment-strip h2,
+.futprep-theme .pilot-payment-strip p,
+.futprep-theme .pilot-payment-strip .section-kicker{
+  color:#fff;
+}
+
+/* 5. Sponsors — soft pink */
+.futprep-theme .futprep-sponsors{
+  background:var(--fp-pink-soft);
+  border-bottom:1px solid rgba(240,36,92,.10);
+  border-top:0;
+}
+.futprep-theme .futprep-sponsors::before{
+  background:linear-gradient(90deg,var(--fp-teal) 0 75%,var(--fp-pink) 75% 100%);
+  height:6px;
+}
+
+/* 6. Final CTA — white with pink action */
+.futprep-theme .pilot-cta{
+  background:#fff;
+  border-top:0;
+  color:var(--fp-black);
+}
+.futprep-theme .pilot-cta::before{
+  background:var(--fp-teal-soft);
+  border-color:rgba(44,184,160,.12);
+}
+.futprep-theme .pilot-cta>p{
+  color:var(--fp-pink);
+}
+.futprep-theme .pilot-cta .light-button{
+  background:var(--fp-pink);
+  border-color:rgba(240,36,92,.15);
+  color:#fff;
+}
+.futprep-theme .pilot-cta .light-button:hover{
+  background:var(--fp-teal);
+  color:#fff;
+}
+
+/* Footer settles back into a soft teal so the page closes with the secondary brand color. */
+.futprep-theme footer{
+  background:var(--fp-teal-soft);
+}
+.futprep-theme footer::before{
+  background:linear-gradient(90deg,var(--fp-pink) 0 25%,var(--fp-teal) 25% 100%);
+}
+
+/* Make the transitions read as intentional blocks instead of mixed washes. */
+.futprep-theme .pilot-hero,
+.futprep-theme .pilot-classes,
+.futprep-theme .futprep-story,
+.futprep-theme .pilot-payment-strip,
+.futprep-theme .futprep-sponsors,
+.futprep-theme .pilot-cta{
+  background-image:none;
+}
+
+@media(max-width:640px){
+  .futprep-theme .pilot-hero,
+  .futprep-theme .pilot-classes,
+  .futprep-theme .futprep-story,
+  .futprep-theme .pilot-payment-strip,
+  .futprep-theme .futprep-sponsors,
+  .futprep-theme .pilot-cta{
+    background-image:none;
+  }
+}
