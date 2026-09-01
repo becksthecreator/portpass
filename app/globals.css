@@ -1514,3 +1514,126 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     font-size:1.1rem;
   }
 }
+
+
+/* Homepage header hierarchy repair */
+
+/* Re-establish a clear visual hierarchy between PortPass header, Futprep promo, and page content. */
+.site-header:not(.pilot-header):not(.registration-header){
+  background:#ffffff;
+  border-bottom:1px solid #d9dedb;
+  box-shadow:0 1px 0 rgba(20,37,31,.03);
+  position:relative;
+  z-index:20;
+}
+
+.futprep-live-banner{
+  background:#e9f8f5;
+  border-bottom:1px solid rgba(22,138,121,.24);
+  border-top:0;
+  min-height:68px;
+  padding:8px 5vw;
+  position:relative;
+  z-index:10;
+}
+
+.futprep-live-banner::before{
+  background:#f0245c;
+  bottom:0;
+  content:"";
+  left:0;
+  position:absolute;
+  top:0;
+  width:5px;
+}
+
+.futprep-live-banner::after{
+  background:linear-gradient(90deg,#f0245c 0 25%,#2cb8a0 25% 100%);
+  bottom:0;
+  content:"";
+  height:3px;
+  left:0;
+  position:absolute;
+  right:0;
+}
+
+.futprep-live-banner .live-pilot-brand{
+  gap:12px;
+}
+
+.futprep-live-banner .live-pilot-brand img{
+  height:46px;
+  width:38px;
+}
+
+.futprep-live-banner .live-pilot-label{
+  background:#fff1f5;
+  border:1px solid rgba(240,36,92,.22);
+  color:#c91749;
+  padding:4px 8px;
+}
+
+.futprep-live-banner strong{
+  color:#10241f;
+  font-size:1rem;
+}
+
+.futprep-live-banner .live-pilot-action{
+  background:#ffffff;
+  border:1px solid rgba(22,138,121,.22);
+  border-radius:999px;
+  color:#168a79;
+  padding:8px 12px;
+}
+
+.futprep-live-banner:hover{
+  background:#e2f5f1;
+}
+
+.futprep-live-banner:hover .live-pilot-action{
+  background:#fff1f5;
+  border-color:rgba(240,36,92,.24);
+  color:#c91749;
+}
+
+.hero{
+  border-top:0;
+}
+
+/* Keep Futprep-specific headers separate from the PortPass shell. */
+.futprep-theme .pilot-header,
+.futprep-theme.registration-page .registration-header{
+  box-shadow:0 1px 0 rgba(21,21,21,.04);
+}
+
+@media(max-width:640px){
+  .futprep-live-banner{
+    min-height:68px;
+    padding:8px 18px 8px 20px;
+  }
+
+  .futprep-live-banner .live-pilot-brand img{
+    height:40px;
+    width:33px;
+  }
+
+  .futprep-live-banner .live-pilot-label{
+    font-size:.56rem;
+    padding:4px 7px;
+  }
+
+  .futprep-live-banner strong{
+    font-size:.84rem;
+  }
+
+  .futprep-live-banner .live-pilot-action{
+    background:#fff;
+    border-radius:50%;
+    display:flex;
+    height:34px;
+    min-width:34px;
+    padding:0;
+    align-items:center;
+    justify-content:center;
+  }
+}
