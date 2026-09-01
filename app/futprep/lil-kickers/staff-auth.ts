@@ -1,4 +1,3 @@
-import { env } from "cloudflare:workers";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -7,12 +6,11 @@ export type FutprepStaffRole = "admin" | "coach";
 const COOKIE = "portpass_futprep_staff";
 
 function secretFor(role: FutprepStaffRole) {
-  const bindings = env as unknown as Record<string, unknown>;
   const value =
     role === "admin"
-      ? bindings.PORTPASS_FUTPREP_ADMIN_PIN
-      : bindings.PORTPASS_FUTPREP_COACH_PIN;
-  return typeof value === "string" ? value : "";
+      ? process.env.PORTPASS_FUTPREP_ADMIN_PIN
+      : process.env.PORTPASS_FUTPREP_COACH_PIN;
+  return typeof value === "string" ? value.trim() : "";
 }
 
 async function digest(value: string) {
@@ -40,6 +38,7 @@ export async function currentFutprepStaffRole(): Promise<FutprepStaffRole | null
 
   const [roleValue, signature] = token.split(".");
   if (roleValue !== "admin" && roleValue !== "coach") return null;
+
   const role = roleValue as FutprepStaffRole;
   const secret = secretFor(role);
   if (!secret) return null;
