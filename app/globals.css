@@ -812,3 +812,263 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .futprep-program-brand small{font-size:.48rem}
   .registration-header-right .futprep-program-brand{display:none}
 }
+
+
+/* Futprep final balance: white base, teal body, pink accent, light black detail */
+.futprep-theme{
+  --fp-base:#ffffff;
+  --fp-teal:#2cb8a0;
+  --fp-teal-deep:#168a79;
+  --fp-teal-soft:#e9f8f5;
+  --fp-pink:#f0245c;
+  --fp-pink-soft:#fff1f5;
+  --fp-black:#151515;
+  --fp-line:#d9e3e0;
+}
+
+.futprep-theme .pilot-header,
+.futprep-theme.registration-page .registration-header,
+.futprep-theme footer{
+  background:var(--fp-base);
+  border-bottom:1px solid rgba(21,21,21,.14);
+}
+
+.futprep-theme .brand-mark{
+  background:var(--fp-teal);
+  color:#fff;
+  border:1px solid rgba(21,21,21,.18);
+}
+
+.futprep-theme .futprep-program-brand small,
+.futprep-theme .futprep-footer-brand,
+.futprep-theme .headline-first,
+.futprep-theme .registration-intro h1,
+.futprep-theme .registration-form legend{
+  color:var(--fp-black);
+}
+
+.futprep-theme .futprep-program-brand b,
+.futprep-theme .headline-second,
+.futprep-theme .headline-ellipsis,
+.futprep-theme .registration-intro .eyebrow,
+.futprep-theme .pilot-classes .section-kicker,
+.futprep-theme .class-age{
+  color:var(--fp-pink);
+}
+
+.futprep-theme .eyebrow-dot{
+  background:var(--fp-pink);
+  border:1px solid rgba(21,21,21,.22);
+}
+
+.futprep-theme .pilot-hero{
+  background:
+    radial-gradient(circle at 84% 18%, rgba(44,184,160,.12), transparent 28%),
+    radial-gradient(circle at 15% 82%, rgba(240,36,92,.06), transparent 24%),
+    var(--fp-base);
+  color:var(--fp-black);
+}
+
+.futprep-theme .pilot-hero-copy>p{
+  color:#474747;
+}
+
+.futprep-theme .primary-button{
+  background:var(--fp-teal);
+  color:#fff;
+  border:1px solid rgba(21,21,21,.16);
+}
+
+.futprep-theme .primary-button:hover{
+  background:var(--fp-pink);
+}
+
+.futprep-theme .header-link{
+  color:var(--fp-black);
+  border-color:rgba(21,21,21,.5);
+}
+
+.futprep-theme .pilot-term-card{
+  background:var(--fp-teal);
+  color:#fff;
+  border:1px solid rgba(21,21,21,.16);
+  box-shadow:10px 10px 0 rgba(240,36,92,.22);
+}
+
+.futprep-theme .session-float{
+  background:var(--fp-pink);
+  color:#fff;
+  border:1px solid rgba(21,21,21,.12);
+  box-shadow:0 10px 24px rgba(240,36,92,.18);
+}
+
+.futprep-theme .term-break-line,
+.futprep-theme .term-location-link{
+  border-color:rgba(255,255,255,.34);
+}
+
+.futprep-theme .term-break-line span,
+.futprep-theme .term-location-link>span{
+  color:#eafffb;
+}
+
+.futprep-theme .term-location-link small{
+  color:#fff;
+}
+
+.futprep-theme .pilot-classes{
+  background:var(--fp-teal-soft);
+  color:var(--fp-black);
+}
+
+.futprep-theme .pilot-class-card{
+  background:#fff!important;
+  border:1px solid rgba(21,21,21,.16)!important;
+  box-shadow:0 12px 30px rgba(22,138,121,.07);
+}
+
+.futprep-theme .pilot-class-card:first-child{
+  border-top:5px solid var(--fp-pink)!important;
+}
+
+.futprep-theme .pilot-class-card:nth-child(2){
+  border-top:5px solid var(--fp-teal)!important;
+}
+
+.futprep-theme .pilot-class-card:first-child h3{
+  color:var(--fp-pink);
+}
+
+.futprep-theme .pilot-class-card:nth-child(2) h3{
+  color:var(--fp-teal-deep);
+}
+
+.futprep-theme .class-pricing,
+.futprep-theme .class-pricing>div+div{
+  border-color:rgba(21,21,21,.12);
+}
+
+.futprep-theme .pilot-payment-strip{
+  background:var(--fp-teal);
+  color:#fff;
+  border-top:1px solid rgba(21,21,21,.12);
+  border-bottom:1px solid rgba(21,21,21,.12);
+}
+
+.futprep-theme .pilot-payment-strip p{
+  color:#effffb;
+}
+
+.futprep-theme .pilot-payment-strip .section-kicker{
+  color:#fff;
+}
+
+.futprep-theme .pilot-cta{
+  background:#fff;
+  color:var(--fp-black);
+  border-top:1px solid rgba(21,21,21,.12);
+}
+
+.futprep-theme .pilot-cta>p{
+  color:var(--fp-pink);
+}
+
+.futprep-theme .pilot-cta .light-button{
+  background:var(--fp-pink);
+  color:#fff;
+  border:1px solid rgba(21,21,21,.14);
+}
+
+.futprep-theme .pilot-cta .light-button:hover{
+  background:var(--fp-teal);
+  color:#fff;
+}
+
+/* Registration: white shell, teal body cues, pink accents, black only for text/line details */
+.futprep-theme.registration-page{
+  background:
+    radial-gradient(circle at 92% 4%, rgba(44,184,160,.08), transparent 26%),
+    #fff;
+  color:var(--fp-black);
+}
+
+.futprep-theme .registration-progress .is-current{
+  border-color:var(--fp-pink);
+  color:var(--fp-black);
+}
+
+.futprep-theme .registration-progress .is-current span,
+.futprep-theme .registration-progress .is-complete span{
+  background:var(--fp-pink);
+  border-color:var(--fp-pink);
+  color:#fff;
+}
+
+.futprep-theme .registration-form{
+  background:#fff;
+  border:1px solid rgba(21,21,21,.14);
+  box-shadow:8px 8px 0 rgba(44,184,160,.16);
+}
+
+.futprep-theme .registration-form legend>span{
+  background:var(--fp-pink);
+  color:#fff;
+  border:1px solid rgba(21,21,21,.12);
+}
+
+.futprep-theme .choice-card{
+  border-color:rgba(21,21,21,.14);
+}
+
+.futprep-theme .choice-card.is-selected{
+  background:var(--fp-teal-soft);
+  border-color:var(--fp-teal-deep);
+}
+
+.futprep-theme .choice-card.is-selected .choice-check{
+  background:var(--fp-pink);
+  box-shadow:inset 0 0 0 4px var(--fp-teal-soft);
+}
+
+.futprep-theme .bank-panel{
+  background:var(--fp-pink-soft);
+  border-color:rgba(240,36,92,.28);
+}
+
+.futprep-theme .registration-total{
+  background:var(--fp-teal);
+  color:#fff;
+  border:1px solid rgba(21,21,21,.12);
+}
+
+.futprep-theme .confirmation-reference{
+  background:var(--fp-teal);
+  color:#fff;
+  border:1px solid rgba(21,21,21,.12);
+}
+
+.futprep-theme .confirmation-reference span{
+  color:#eafffb;
+}
+
+.futprep-theme .payment-instruction{
+  background:var(--fp-teal-soft);
+  border:1px solid rgba(21,21,21,.08);
+}
+
+.futprep-theme input,
+.futprep-theme select,
+.futprep-theme textarea{
+  border-color:rgba(21,21,21,.28);
+}
+
+.futprep-theme input:focus,
+.futprep-theme select:focus,
+.futprep-theme textarea:focus{
+  border-color:var(--fp-teal-deep);
+  box-shadow:0 2px 0 var(--fp-teal-deep);
+}
+
+.futprep-theme textarea:focus{
+  box-shadow:0 0 0 2px var(--fp-teal-deep);
+}
