@@ -1959,173 +1959,74 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 }
 
 
-/* Adon section color distribution pass */
 
-/* Same palette, redistributed so every section has one clear dominant color. */
+/* Adon reset: strong Futprep color territories
+   White is reserved for high-clarity cards and controls only. */
+.futprep-theme{
+  --fp-pink:#f0245c;
+  --fp-pink-deep:#c91749;
+  --fp-pink-soft:#ffd9e4;
+  --fp-teal:#2cb8a0;
+  --fp-teal-deep:#168a79;
+  --fp-teal-soft:#ccefe8;
+  --fp-black:#151515;
+  --fp-charcoal:#242424;
+}
+
+/* HEADER — pink territory */
 .futprep-theme .pilot-header,
 .futprep-theme.registration-page .registration-header{
   background:var(--fp-pink-soft);
-}
-
-/* 1. Hero — white */
-.futprep-theme .pilot-hero{
-  background:#fff;
-  border-bottom:1px solid rgba(21,21,21,.08);
-}
-.futprep-theme .pilot-hero::before{
-  opacity:.045;
-}
-.futprep-theme .pilot-hero::after{
-  background:var(--fp-pink);
-  opacity:.75;
-}
-
-/* 2. Classes — soft teal */
-.futprep-theme .pilot-classes{
-  background:var(--fp-teal-soft);
-  border-bottom:1px solid rgba(22,138,121,.12);
-}
-.futprep-theme .pilot-classes::before{
-  background:var(--fp-pink);
-  height:6px;
-  width:25%;
-}
-.futprep-theme .pilot-classes::after{
-  background:var(--fp-teal);
-  height:6px;
-  width:75%;
-}
-
-/* 3. Gallery / story — white */
-.futprep-theme .futprep-story{
-  background:#fff;
-  border-bottom:1px solid rgba(21,21,21,.08);
-}
-.futprep-theme .futprep-story::before{
-  background:var(--fp-pink-soft);
-  opacity:.9;
-}
-
-/* 4. Payment — full teal */
-.futprep-theme .pilot-payment-strip{
-  background:var(--fp-teal);
   border-bottom:0;
-  border-top:0;
-  color:#fff;
-}
-.futprep-theme .pilot-payment-strip::after{
-  background:var(--fp-pink);
-  height:6px;
-  width:25%;
-}
-.futprep-theme .pilot-payment-strip h2,
-.futprep-theme .pilot-payment-strip p,
-.futprep-theme .pilot-payment-strip .section-kicker{
-  color:#fff;
-}
-
-/* 5. Sponsors — soft pink */
-.futprep-theme .futprep-sponsors{
-  background:var(--fp-pink-soft);
-  border-bottom:1px solid rgba(240,36,92,.10);
-  border-top:0;
-}
-.futprep-theme .futprep-sponsors::before{
-  background:linear-gradient(90deg,var(--fp-teal) 0 75%,var(--fp-pink) 75% 100%);
-  height:6px;
-}
-
-/* 6. Final CTA — white with pink action */
-.futprep-theme .pilot-cta{
-  background:#fff;
-  border-top:0;
-  color:var(--fp-black);
-}
-.futprep-theme .pilot-cta::before{
-  background:var(--fp-teal-soft);
-  border-color:rgba(44,184,160,.12);
-}
-.futprep-theme .pilot-cta>p{
-  color:var(--fp-pink);
-}
-.futprep-theme .pilot-cta .light-button{
-  background:var(--fp-pink);
-  border-color:rgba(240,36,92,.15);
-  color:#fff;
-}
-.futprep-theme .pilot-cta .light-button:hover{
-  background:var(--fp-teal);
-  color:#fff;
-}
-
-/* Footer settles back into a soft teal so the page closes with the secondary brand color. */
-.futprep-theme footer{
-  background:var(--fp-teal-soft);
-}
-.futprep-theme footer::before{
-  background:linear-gradient(90deg,var(--fp-pink) 0 25%,var(--fp-teal) 25% 100%);
-}
-
-/* Make the transitions read as intentional blocks instead of mixed washes. */
-.futprep-theme .pilot-hero,
-.futprep-theme .pilot-classes,
-.futprep-theme .futprep-story,
-.futprep-theme .pilot-payment-strip,
-.futprep-theme .futprep-sponsors,
-.futprep-theme .pilot-cta{
-  background-image:none;
-}
-
-@media(max-width:640px){
-  .futprep-theme .pilot-hero,
-  .futprep-theme .pilot-classes,
-  .futprep-theme .futprep-story,
-  .futprep-theme .pilot-payment-strip,
-  .futprep-theme .futprep-sponsors,
-  .futprep-theme .pilot-cta{
-    background-image:none;
-  }
-}
-
-
-/* Concrete Futprep color blocks */
-
-/* Make each section read as one solid color territory instead of mixing the palette everywhere. */
-.futprep-theme .pilot-header,
-.futprep-theme.registration-page .registration-header{
-  background:#fff1f5;
-  border-bottom:1px solid rgba(21,21,21,.12);
+  box-shadow:none;
 }
 .futprep-theme .pilot-header::after,
 .futprep-theme.registration-page .registration-header::after{
   display:none;
 }
 
-/* HERO — white territory */
+/* HERO — deep teal territory */
 .futprep-theme .pilot-hero{
-  background:#ffffff!important;
-  border-bottom:0;
+  background:var(--fp-teal-deep)!important;
+  border:0;
+  color:#fff;
 }
 .futprep-theme .pilot-hero::before,
 .futprep-theme .pilot-hero::after{
   display:none;
 }
-.futprep-theme .headline-first{color:var(--fp-black)}
-.futprep-theme .headline-second,
-.futprep-theme .headline-ellipsis{color:var(--fp-pink)}
-.futprep-theme .primary-button{
+.futprep-theme .pilot-hero .eyebrow,
+.futprep-theme .pilot-hero .headline-first,
+.futprep-theme .pilot-hero-copy>p{
+  color:#fff;
+}
+.futprep-theme .pilot-hero .headline-second,
+.futprep-theme .pilot-hero .headline-ellipsis{
+  color:var(--fp-pink-soft);
+}
+.futprep-theme .pilot-hero .eyebrow-dot{
+  background:var(--fp-pink);
+  border-color:rgba(255,255,255,.35);
+}
+.futprep-theme .pilot-hero .primary-button{
   background:var(--fp-pink);
   border:0;
   color:#fff;
 }
-.futprep-theme .primary-button:hover{background:var(--fp-pink-deep)}
+.futprep-theme .pilot-hero .primary-button:hover{
+  background:var(--fp-black);
+}
+
+/* Hero information card — white only because dates/location need immediate clarity */
 .futprep-theme .pilot-term-card{
   background:#fff;
-  border:2px solid var(--fp-black);
+  border:0;
   box-shadow:none;
   color:var(--fp-black);
 }
-.futprep-theme .pilot-term-card::before{display:none}
+.futprep-theme .pilot-term-card::before{
+  display:none;
+}
 .futprep-theme .session-float{
   background:var(--fp-pink);
   border:0;
@@ -2138,16 +2039,18 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 }
 .futprep-theme .term-break-line span,
 .futprep-theme .term-location-link>span{
-  color:var(--fp-black);
-  opacity:.62;
+  color:var(--fp-teal-deep);
 }
-.futprep-theme .term-location-link strong{color:var(--fp-black)}
-.futprep-theme .term-location-link small{color:var(--fp-pink)}
-.futprep-theme .term-location-link:hover small{color:var(--fp-pink-deep)}
+.futprep-theme .term-location-link strong{
+  color:var(--fp-black);
+}
+.futprep-theme .term-location-link small{
+  color:var(--fp-pink);
+}
 
-/* CLASSES — solid teal territory */
+/* CLASSES — full pink territory */
 .futprep-theme .pilot-classes{
-  background:var(--fp-teal)!important;
+  background:var(--fp-pink)!important;
   border:0;
   color:#fff;
 }
@@ -2162,9 +2065,11 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .futprep-theme .pilot-class-card{
   background:#fff!important;
   border:0!important;
-  box-shadow:none;
+  box-shadow:none!important;
 }
-.futprep-theme .pilot-class-card::after{display:none}
+.futprep-theme .pilot-class-card::after{
+  display:none;
+}
 .futprep-theme .pilot-class-card:first-child,
 .futprep-theme .pilot-class-card:nth-child(2){
   border-top:0!important;
@@ -2174,39 +2079,54 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   color:var(--fp-black);
 }
 .futprep-theme .class-age{
-  color:var(--fp-teal-deep)!important;
+  color:var(--fp-pink-deep)!important;
 }
 .futprep-theme .class-capacity,
 .futprep-theme .pilot-class-card:first-child .class-capacity{
-  background:var(--fp-teal-soft);
+  background:var(--fp-pink-soft);
   border:0;
-  color:var(--fp-teal-deep)!important;
+  color:var(--fp-pink-deep)!important;
 }
 
-/* GALLERY — solid soft pink territory */
+/* STORY / GALLERY — charcoal territory */
 .futprep-theme .futprep-story{
-  background:var(--fp-pink-soft)!important;
+  background:var(--fp-charcoal)!important;
   border:0;
+  color:#fff;
 }
-.futprep-theme .futprep-story::before{display:none}
-.futprep-theme .futprep-story-copy>.section-kicker{color:var(--fp-pink)}
-.futprep-theme .futprep-story-copy h2{color:var(--fp-black)}
-.futprep-theme .futprep-story-copy h2 em{color:var(--fp-pink)}
+.futprep-theme .futprep-story::before{
+  display:none;
+}
+.futprep-theme .futprep-story-copy>.section-kicker{
+  color:var(--fp-teal);
+}
+.futprep-theme .futprep-story-copy h2{
+  color:#fff;
+}
+.futprep-theme .futprep-story-copy h2 em{
+  color:var(--fp-pink);
+}
+.futprep-theme .futprep-story-copy>p{
+  color:#d8dfdd;
+}
 .futprep-theme .futprep-story-tags span,
 .futprep-theme .futprep-story-tags span:first-child,
 .futprep-theme .futprep-story-tags span:nth-child(2){
-  background:#fff;
-  border:1px solid rgba(21,21,21,.12);
-  color:var(--fp-black);
+  background:transparent;
+  border:1px solid rgba(255,255,255,.26);
+  color:#fff;
 }
 .futprep-theme .futprep-gallery::before,
 .futprep-theme .futprep-gallery::after{
   display:none;
 }
+.futprep-theme .futprep-gallery figure{
+  border-color:rgba(255,255,255,.14);
+}
 
-/* PAYMENT — solid white territory */
+/* PAYMENT — teal territory */
 .futprep-theme .pilot-payment-strip{
-  background:#fff!important;
+  background:var(--fp-teal)!important;
   border:0;
   color:var(--fp-black);
 }
@@ -2215,30 +2135,41 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   display:none;
 }
 .futprep-theme .pilot-payment-strip h2,
-.futprep-theme .pilot-payment-strip p,
 .futprep-theme .pilot-payment-strip .section-kicker{
   color:var(--fp-black);
 }
-.futprep-theme .pilot-payment-strip .section-kicker{
-  color:var(--fp-teal-deep);
+.futprep-theme .pilot-payment-strip>p{
+  background:#fff;
+  border:0;
+  color:var(--fp-black);
+  margin:0;
+  padding:24px 26px;
 }
 
-/* SPONSORS — solid soft teal territory */
+/* SPONSORS — pink-soft territory, logos get white cards for maximum readability */
 .futprep-theme .futprep-sponsors{
-  background:var(--fp-teal-soft)!important;
+  background:var(--fp-pink-soft)!important;
   border:0;
+  color:var(--fp-black);
 }
-.futprep-theme .futprep-sponsors::before{display:none}
-.futprep-theme .sponsor-heading>.section-kicker{color:var(--fp-teal-deep)}
+.futprep-theme .futprep-sponsors::before{
+  display:none;
+}
+.futprep-theme .sponsor-heading>.section-kicker{
+  color:var(--fp-pink-deep);
+}
+.futprep-theme .sponsor-heading p{
+  color:#533f46;
+}
 .futprep-theme .sponsor-card,
 .futprep-theme .sponsor-card:nth-child(2){
   background:#fff;
   border:0;
 }
 
-/* CTA — solid pink territory */
+/* CTA — teal-deep territory */
 .futprep-theme .pilot-cta{
-  background:var(--fp-pink)!important;
+  background:var(--fp-teal-deep)!important;
   border:0;
   color:#fff;
 }
@@ -2253,30 +2184,55 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .futprep-theme .pilot-cta .light-button{
   background:#fff;
   border:0;
-  color:var(--fp-pink);
+  color:var(--fp-teal-deep);
 }
 .futprep-theme .pilot-cta .light-button:hover{
-  background:var(--fp-black);
+  background:var(--fp-pink);
   color:#fff;
 }
 
-/* FOOTER — neutral close */
+/* FOOTER — black territory */
 .futprep-theme footer{
-  background:#fff;
-  border-top:0;
+  background:var(--fp-black);
+  border:0;
+  color:#fff;
 }
-.futprep-theme footer::before{display:none}
+.futprep-theme footer::before{
+  display:none;
+}
+.futprep-theme footer p,
+.futprep-theme footer .futprep-footer-brand,
+.futprep-theme footer .brand{
+  color:#fff;
+}
+.futprep-theme footer .brand-mark{
+  background:var(--fp-pink);
+  color:#fff;
+}
 
-/* Registration journey: keep the same concrete approach. */
+/* Registration journey — colored shell, white only where forms need clarity */
 .futprep-theme.registration-page{
-  background:#fff!important;
-}
-.futprep-theme .registration-form{
-  box-shadow:none;
+  background:var(--fp-teal-soft)!important;
+  color:var(--fp-black);
 }
 .futprep-theme .registration-shell::before,
 .futprep-theme .registration-form fieldset::before{
   display:none;
+}
+.futprep-theme .registration-form{
+  background:#fff;
+  box-shadow:none;
+}
+.futprep-theme .registration-total,
+.futprep-theme .confirmation-reference{
+  background:var(--fp-teal-deep);
+  color:#fff;
+}
+.futprep-theme .bank-panel{
+  background:var(--fp-pink-soft);
+}
+.futprep-theme .payment-instruction{
+  background:#fff;
 }
 
 @media(max-width:640px){
