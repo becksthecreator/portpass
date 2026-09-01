@@ -139,16 +139,20 @@ export default function FutprepLilKickersPage() {
 
       <section className="lk-coaching">
         <div className="lk-coaching-copy">
-          <span className="lk-section-label">Coaching at their level</span>
-          <h2>Sometimes the student becomes the teacher.</h2>
-          <p>Young players learn quickly when they feel comfortable enough to copy, explore and show us what they can do. Coaches guide the session without taking the fun out of it.</p>
+          <span className="lk-section-label">Meet the energy behind the session</span>
+          <h2>Coach Becks.<br/>The coach behind the smiles.</h2>
+          <p>The Lil Kickers experience is as much about who is guiding the kids as what they are learning. The goal is simple: create a space where young players feel comfortable enough to move, try, laugh, listen and come back excited for the next Saturday.</p>
           <div className="lk-caption-card">
-            <span>Instagram energy, translated for the page</span>
-            <strong>Check that ball control. Check that balance. Then let them show you how it is done.</strong>
+            <span>From the Futprep feed</span>
+            <strong>Big smiles, little ballers and a coach who keeps the session moving without making it feel like work.</strong>
           </div>
         </div>
         <figure className="lk-coaching-image">
-          <img src={futprepPhotos.player} alt="Young Futprep player practicing football skills" loading="lazy" />
+          <img src={futprepPhotos.player} alt="Futprep coaching and young players during a football session" loading="lazy" />
+          <figcaption className="lk-coaching-caption">
+            <span>Coach + kids</span>
+            <strong>Connection first. Football follows.</strong>
+          </figcaption>
         </figure>
       </section>
 
