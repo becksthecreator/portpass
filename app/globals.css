@@ -2805,3 +2805,15 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     max-width:360px;
   }
 }
+
+
+/* PortPass translucent Now Registering strip */
+.live-pilot-banner{
+  background:rgba(23,63,52,.78);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(255,255,255,.12);
+}
+.live-pilot-banner:hover{
+  background:rgba(23,63,52,.88);
+}
