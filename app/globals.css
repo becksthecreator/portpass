@@ -1637,3 +1637,60 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     justify-content:center;
   }
 }
+
+
+/* Restore separated Now Registering categories */
+.live-pilot-banner{
+  align-items:center;
+  background:var(--green);
+  border:0;
+  color:white;
+  display:grid;
+  gap:24px;
+  grid-template-columns:auto 1fr auto;
+  min-height:auto;
+  padding:13px 5vw;
+  position:relative;
+  text-align:left;
+  z-index:10;
+}
+.live-pilot-banner::before,
+.live-pilot-banner::after{display:none}
+.live-pilot-banner>span:first-child{
+  background:var(--lime);
+  border:0;
+  border-radius:999px;
+  color:var(--ink);
+  font-size:.72rem;
+  font-weight:800;
+  padding:5px 9px;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.live-pilot-banner>strong{
+  color:white;
+  font-family:Georgia,serif;
+  font-size:1rem;
+  font-weight:400;
+  justify-self:start;
+}
+.live-pilot-banner>span:last-child{
+  background:transparent;
+  border:0;
+  color:#dfe8e3;
+  font-size:.72rem;
+  font-weight:700;
+  padding:0;
+  white-space:nowrap;
+}
+.live-pilot-banner:hover{background:#20493d}
+.live-pilot-banner:hover>span:last-child{color:white}
+@media(max-width:640px){
+  .live-pilot-banner{
+    gap:8px 12px;
+    grid-template-columns:auto 1fr;
+    padding:12px 20px;
+  }
+  .live-pilot-banner>strong{font-size:.92rem}
+  .live-pilot-banner>span:last-child{display:none}
+}
