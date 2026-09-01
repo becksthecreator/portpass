@@ -151,6 +151,7 @@ async function seedFutprepPilot() {
       .select("id,organization_id")
       .single();
     throwIfSupabaseError(programError, "Could not seed Futprep program");
+    if (!storedProgram) throw new Error("Could not seed Futprep program");
 
     const programId = Number(storedProgram.id);
 
@@ -174,6 +175,7 @@ async function seedFutprepPilot() {
       .select("id")
       .single();
     throwIfSupabaseError(termError, "Could not seed Futprep term");
+    if (!term) throw new Error("Could not seed Futprep term");
 
     const breaks = new Set<string>(FUTPREP_TERM.breakDates);
     const cursor = new Date(`${FUTPREP_TERM.startDate}T12:00:00Z`);
