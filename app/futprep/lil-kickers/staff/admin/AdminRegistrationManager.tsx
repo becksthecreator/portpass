@@ -75,17 +75,6 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
               <div><span>Photo / video</span><strong>{item.photo_consent==="yes" ? "Allowed" : "Not allowed"}</strong></div>
             </div>
 
-            <details className="medical-details">
-              <summary>Medical, special needs & pickup details</summary>
-              <dl>
-                <div><dt>Allergies</dt><dd>{item.allergies || "None provided"}</dd></div>
-                <div><dt>Medical conditions</dt><dd>{item.medical_conditions || "None provided"}</dd></div>
-                <div><dt>Medications</dt><dd>{item.medications || "None provided"}</dd></div>
-                <div><dt>Special needs / accommodations</dt><dd>{item.special_needs || "None provided"}</dd></div>
-                <div><dt>Authorized pickup</dt><dd>{item.authorized_pickup}</dd></div>
-                <div><dt>Additional notes</dt><dd>{item.additional_notes || "None"}</dd></div>
-              </dl>
-            </details>
 
             <div className="staff-actions">
               <button disabled={busy===item.id} onClick={()=>patch(item.id,{registrationStatus:"confirmed"})}>Confirm registration</button>

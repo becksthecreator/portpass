@@ -54,7 +54,7 @@ export function CoachRoster({
         {roster.map((row)=>(
           <article key={row.registration_id}>
             <div className="coach-player-main"><strong>{row.child_name}</strong><span>{row.parent_name} · {row.parent_phone}</span></div>
-            <details><summary>Safety notes</summary><p><b>Allergies:</b> {row.allergies || "None provided"}</p><p><b>Medical:</b> {row.medical_conditions || "None provided"}</p><p><b>Medications:</b> {row.medications || "None provided"}</p><p><b>Special needs:</b> {row.special_needs || "None provided"}</p></details>
+            <details><summary>Safety notes</summary><p><b>Emergency:</b> {row.emergency_contact_name} · {row.emergency_contact_phone}</p><p><b>Authorized pickup:</b> {row.authorized_pickup}</p><p><b>Allergies:</b> {row.allergies || "None provided"}</p><p><b>Medical:</b> {row.medical_conditions || "None provided"}</p><p><b>Medications:</b> {row.medications || "None provided"}</p><p><b>Special needs:</b> {row.special_needs || "None provided"}</p></details>
             <div className="attendance-actions">
               {(["present","absent","excused"] as const).map((status)=><button className={row.attendance_status===status ? "is-active":""} disabled={busy===row.registration_id} onClick={()=>attendance(row.registration_id,status)} key={status}>{status}</button>)}
             </div>
