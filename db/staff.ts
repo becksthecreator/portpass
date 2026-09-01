@@ -383,3 +383,210 @@ export async function markFutprepAttendance(input: {
   );
   throwIfSupabaseError(error, "Could not mark attendance");
 }
+
+
+export type StaffSessionPlan = {
+  session_id: number;
+  title: string;
+  plan_text: string;
+  parent_note: string;
+  attachment_url: string;
+  updated_by: string;
+  updated_at: string;
+};
+
+export type StaffWorkLog = {
+  session_id: number;
+  staff_name: string;
+  work_date: string;
+  start_time: string;
+  end_time: string;
+  hours: number;
+  notes: string;
+  updated_at: string;
+};
+
+function optionalStaffToolsMissing(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  return error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    String(error.message ?? "").toLowerCase().includes("schema cache");
+}
+
+async function assertFutprepSession(sessionId: number) {
+  const db = getSupabaseAdmin();
+  const { data: session, error } = await db
+    .from("sessions")
+    .select("id,program_id")
+    .eq("id", sessionId)
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not validate Futprep session");
+  if (!session) throw new Error("SESSION_NOT_FOUND");
+
+  const { data: program, error: programError } = await db
+    .from("programs")
+    .select("slug")
+    .eq("id", session.program_id)
+    .in("slug", ["lil-kickers","rookies"])
+    .maybeSingle();
+  throwIfSupabaseError(programError, "Could not validate Futprep program");
+  if (!program) throw new Error("SESSION_NOT_FOUND");
+}
+
+export async function getFutprepSessionPlan(sessionId: number): Promise<StaffSessionPlan | null> {
+  await ensureFutprepPilotData();
+  await assertFutprepSession(sessionId);
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("session_plans")
+    .select("session_id,title,plan_text,parent_note,attachment_url,updated_by,updated_at")
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  if (optionalStaffToolsMissing(error)) return null;
+  throwIfSupabaseError(error, "Could not load session plan");
+  return data ? {
+    session_id: Number(data.session_id),
+    title: String(data.title ?? ""),
+    plan_text: String(data.plan_text ?? ""),
+    parent_note: String(data.parent_note ?? ""),
+    attachment_url: String(data.attachment_url ?? ""),
+    updated_by: String(data.updated_by ?? ""),
+    updated_at: String(data.updated_at ?? ""),
+  } : null;
+}
+
+export async function saveFutprepSessionPlan(input: {
+  sessionId: number;
+  title: string;
+  planText: string;
+  parentNote: string;
+  attachmentUrl: string;
+  updatedBy: string;
+}) {
+  await ensureFutprepPilotData();
+  await assertFutprepSession(input.sessionId);
+  const db = getSupabaseAdmin();
+  const now = new Date().toISOString();
+  const { data, error } = await db
+    .from("session_plans")
+    .upsert({
+      session_id: input.sessionId,
+      title: input.title,
+      plan_text: input.planText,
+      parent_note: input.parentNote,
+      attachment_url: input.attachmentUrl,
+      updated_by: input.updatedBy,
+      updated_at: now,
+    }, { onConflict: "session_id" })
+    .select("session_id,title,plan_text,parent_note,attachment_url,updated_by,updated_at")
+    .single();
+  if (optionalStaffToolsMissing(error)) throw new Error("STAFF_TOOLS_MIGRATION_REQUIRED");
+  throwIfSupabaseError(error, "Could not save session plan");
+  return data;
+}
+
+export async function getFutprepWorkLog(
+  sessionId: number,
+  staffName = "Coach Bex",
+): Promise<StaffWorkLog | null> {
+  await ensureFutprepPilotData();
+  await assertFutprepSession(sessionId);
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("staff_work_logs")
+    .select("session_id,staff_name,work_date,start_time,end_time,hours,notes,updated_at")
+    .eq("session_id", sessionId)
+    .eq("staff_name", staffName)
+    .maybeSingle();
+  if (optionalStaffToolsMissing(error)) return null;
+  throwIfSupabaseError(error, "Could not load work log");
+  return data ? {
+    session_id: Number(data.session_id),
+    staff_name: String(data.staff_name),
+    work_date: String(data.work_date),
+    start_time: String(data.start_time ?? ""),
+    end_time: String(data.end_time ?? ""),
+    hours: Number(data.hours ?? 0),
+    notes: String(data.notes ?? ""),
+    updated_at: String(data.updated_at ?? ""),
+  } : null;
+}
+
+export async function saveFutprepWorkLog(input: {
+  sessionId: number;
+  staffName: string;
+  workDate: string;
+  startTime: string;
+  endTime: string;
+  hours: number;
+  notes: string;
+}) {
+  await ensureFutprepPilotData();
+  await assertFutprepSession(input.sessionId);
+  if (!Number.isFinite(input.hours) || input.hours < 0 || input.hours > 24) {
+    throw new Error("INVALID_HOURS");
+  }
+  const db = getSupabaseAdmin();
+  const now = new Date().toISOString();
+  const { data, error } = await db
+    .from("staff_work_logs")
+    .upsert({
+      session_id: input.sessionId,
+      staff_name: input.staffName,
+      work_date: input.workDate,
+      start_time: input.startTime,
+      end_time: input.endTime,
+      hours: input.hours,
+      notes: input.notes,
+      updated_at: now,
+    }, { onConflict: "session_id,staff_name" })
+    .select("session_id,staff_name,work_date,start_time,end_time,hours,notes,updated_at")
+    .single();
+  if (optionalStaffToolsMissing(error)) throw new Error("STAFF_TOOLS_MIGRATION_REQUIRED");
+  throwIfSupabaseError(error, "Could not save work log");
+  return data;
+}
+
+export async function listFutprepSessionPlans(): Promise<StaffSessionPlan[]> {
+  const sessions = await listFutprepStaffSessions();
+  if (!sessions.length) return [];
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("session_plans")
+    .select("session_id,title,plan_text,parent_note,attachment_url,updated_by,updated_at")
+    .in("session_id", sessions.map((item) => item.id));
+  if (optionalStaffToolsMissing(error)) return [];
+  throwIfSupabaseError(error, "Could not load Futprep session plans");
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    session_id: Number(row.session_id),
+    title: String(row.title ?? ""),
+    plan_text: String(row.plan_text ?? ""),
+    parent_note: String(row.parent_note ?? ""),
+    attachment_url: String(row.attachment_url ?? ""),
+    updated_by: String(row.updated_by ?? ""),
+    updated_at: String(row.updated_at ?? ""),
+  }));
+}
+
+export async function listFutprepWorkLogs(): Promise<StaffWorkLog[]> {
+  const sessions = await listFutprepStaffSessions();
+  if (!sessions.length) return [];
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("staff_work_logs")
+    .select("session_id,staff_name,work_date,start_time,end_time,hours,notes,updated_at")
+    .in("session_id", sessions.map((item) => item.id))
+    .order("work_date", { ascending: true });
+  if (optionalStaffToolsMissing(error)) return [];
+  throwIfSupabaseError(error, "Could not load Futprep work logs");
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    session_id: Number(row.session_id),
+    staff_name: String(row.staff_name ?? ""),
+    work_date: String(row.work_date ?? ""),
+    start_time: String(row.start_time ?? ""),
+    end_time: String(row.end_time ?? ""),
+    hours: Number(row.hours ?? 0),
+    notes: String(row.notes ?? ""),
+    updated_at: String(row.updated_at ?? ""),
+  }));
+}

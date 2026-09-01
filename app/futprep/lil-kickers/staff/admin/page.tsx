@@ -2,11 +2,12 @@ import Link from "next/link";
 import { requireFutprepStaff } from "../../staff-auth";
 import { listFutprepStaffRegistrations } from "@/db/staff";
 import { AdminRegistrationManager } from "./AdminRegistrationManager";
+import { StaffLogoutButton } from "../StaffLogoutButton";
 
 export const dynamic = "force-dynamic";
 
 export default async function FutprepStaffAdminPage() {
-  await requireFutprepStaff(["admin"], "/futprep/lil-kickers/staff/admin");
+  const role = await requireFutprepStaff(["admin","ceo"], "/futprep/lil-kickers/staff/admin");
   const registrations = await listFutprepStaffRegistrations();
 
   return (
@@ -14,14 +15,18 @@ export default async function FutprepStaffAdminPage() {
       <header className="staff-workspace-header">
         <div>
           <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-          <span className="staff-workspace-label">Futprep · Kiki admin</span>
+          <span className="staff-workspace-label">Futprep · Registration desk</span>
         </div>
-        <nav><Link href="/futprep/lil-kickers/staff/coach">Coach view</Link><Link href="/futprep/lil-kickers">Parent view ↗</Link></nav>
+        <nav>
+          {role==="ceo" && <Link href="/futprep/lil-kickers/staff/ceo">CEO overview</Link>}
+          <Link href="/futprep/lil-kickers">Parent view ↗</Link>
+          <StaffLogoutButton />
+        </nav>
       </header>
       <section className="staff-workspace-content">
         <div className="staff-page-intro">
-          <div><span className="section-kicker">Registrations & payments</span><h1>Term 1 admin.</h1></div>
-          <p>Confirm registrations, verify bank transfers, record payments, and review health or emergency information when needed.</p>
+          <div><span className="section-kicker">Kiki · registrations & payments</span><h1>Registration desk.</h1></div>
+          <p>Send parents the registration link, confirm children, and keep payment status current. Coach Bex and Coach Alex see those updates automatically in their own areas.</p>
         </div>
         <AdminRegistrationManager initialRegistrations={registrations} />
       </section>

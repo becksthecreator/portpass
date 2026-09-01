@@ -102,3 +102,43 @@
   .staff-status-stack{align-items:flex-start;flex-direction:row}
   .cash-list article{align-items:flex-start;flex-direction:column;gap:12px}
 }
+
+
+/* Named Futprep staff accounts and operations */
+.staff-role-choice-three{grid-template-columns:repeat(3,1fr)}
+.staff-logout-button{background:transparent;border:0;color:#d8e0dd;cursor:pointer;font-size:.72rem;font-weight:800;padding:0}
+.registration-share-card{align-items:center;background:#e9f8f5;border:1px solid #b9dfd7;display:flex;gap:30px;justify-content:space-between;margin-bottom:18px;padding:22px}
+.registration-share-card>div{display:flex;flex-direction:column;gap:6px}
+.registration-share-card strong{font-family:Georgia,serif;font-size:1.15rem;font-weight:400}
+.registration-share-card p{color:var(--muted);font-size:.75rem;line-height:1.5;margin:0}
+.registration-share-card button{background:var(--ink);border:0;color:white;cursor:pointer;font-size:.72rem;font-weight:800;min-height:42px;padding:0 15px;white-space:nowrap}
+.staff-summary-four{grid-template-columns:repeat(4,1fr)}
+.coach-tools-grid{display:grid;gap:16px;grid-template-columns:1.2fr .8fr;margin-bottom:28px}
+.coach-tool-panel{background:var(--paper);border:1px solid var(--line);padding:26px}
+.coach-tool-panel>.section-kicker{margin-bottom:9px}
+.coach-tool-panel h2{font-family:Georgia,serif;font-size:2rem;font-weight:400;margin:0 0 24px}
+.coach-tool-panel label{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.coach-tool-panel label>span{font-size:.7rem;font-weight:800}
+.coach-tool-panel label small{color:var(--muted);font-weight:400}
+.coach-tool-panel textarea{background:white}
+.coach-tool-hint,.cash-section-note{color:var(--muted);font-size:.72rem;line-height:1.55}
+.coach-work-grid{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+.calculated-hours{background:#e9f8f5;border:1px solid #b9dfd7;cursor:pointer;font-size:.68rem;font-weight:800;margin:-4px 0 18px;padding:8px 10px}
+.coach-tool-message{background:#fff1f5;border:1px solid #f5c1d0;font-size:.75rem;grid-column:1/-1;margin:0;padding:12px}
+.coach-payment-badge{align-self:flex-start;border-radius:999px;font-size:.58rem!important;font-weight:900!important;margin-top:4px;padding:4px 7px;text-transform:uppercase}
+.coach-payment-badge.payment-paid{background:#dff5d2;color:#285621!important}
+.coach-payment-badge.payment-partial{background:#fff0b8;color:#634d00!important}
+.coach-payment-badge.payment-pending,.coach-payment-badge.payment-overdue{background:#ffe5e8;color:#8d2330!important}
+.coach-payment-badge.payment-waived{background:#e8e8e4;color:#555!important}
+.cash-section-note{margin:-10px 0 18px;max-width:720px}
+
+@media(max-width:900px){
+  .staff-role-choice-three,.staff-summary-four,.coach-tools-grid{grid-template-columns:1fr 1fr}
+  .staff-role-choice-three button:last-child{grid-column:1/-1}
+}
+@media(max-width:620px){
+  .staff-role-choice-three,.staff-summary-four,.coach-tools-grid,.coach-work-grid{grid-template-columns:1fr}
+  .staff-role-choice-three button:last-child{grid-column:auto}
+  .registration-share-card{align-items:stretch;flex-direction:column;gap:16px}
+  .registration-share-card button{width:100%}
+}

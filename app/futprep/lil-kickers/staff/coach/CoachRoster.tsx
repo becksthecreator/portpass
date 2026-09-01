@@ -18,6 +18,7 @@ export function CoachRoster({
   const [payments,setPayments] = useState(registrations);
   const [busy,setBusy] = useState<number|null>(null);
   const [amounts,setAmounts] = useState<Record<number,string>>({});
+  const paymentById = new Map(payments.map((item)=>[item.id,item]));
 
   async function attendance(registrationId:number,status:"present"|"absent"|"excused") {
     setBusy(registrationId);
@@ -51,20 +52,28 @@ export function CoachRoster({
 
       <div className="coach-roster">
         {roster.length===0 && <div className="dashboard-empty"><h3>No players registered yet.</h3></div>}
-        {roster.map((row)=>(
-          <article key={row.registration_id}>
-            <div className="coach-player-main"><strong>{row.child_name}</strong><span>{row.parent_name} · {row.parent_phone}</span></div>
-            <details><summary>Safety notes</summary><p><b>Emergency:</b> {row.emergency_contact_name} · {row.emergency_contact_phone}</p><p><b>Authorized pickup:</b> {row.authorized_pickup}</p><p><b>Allergies:</b> {row.allergies || "None provided"}</p><p><b>Medical:</b> {row.medical_conditions || "None provided"}</p><p><b>Medications:</b> {row.medications || "None provided"}</p><p><b>Special needs:</b> {row.special_needs || "None provided"}</p></details>
-            <div className="attendance-actions">
-              {(["present","absent","excused"] as const).map((status)=><button className={row.attendance_status===status ? "is-active":""} disabled={busy===row.registration_id} onClick={()=>attendance(row.registration_id,status)} key={status}>{status}</button>)}
-            </div>
-          </article>
-        ))}
+        {roster.map((row)=>{
+          const payment=paymentById.get(row.registration_id);
+          return (
+            <article key={row.registration_id}>
+              <div className="coach-player-main">
+                <strong>{row.child_name}</strong>
+                <span>{row.parent_name} · {row.parent_phone}</span>
+                <span className={`coach-payment-badge payment-${payment?.payment_status ?? "pending"}`}>Payment: {payment?.payment_status ?? "pending"}</span>
+              </div>
+              <details><summary>Safety notes</summary><p><b>Emergency:</b> {row.emergency_contact_name} · {row.emergency_contact_phone}</p><p><b>Authorized pickup:</b> {row.authorized_pickup}</p><p><b>Allergies:</b> {row.allergies || "None provided"}</p><p><b>Medical:</b> {row.medical_conditions || "None provided"}</p><p><b>Medications:</b> {row.medications || "None provided"}</p><p><b>Special needs:</b> {row.special_needs || "None provided"}</p></details>
+              <div className="attendance-actions">
+                {(["present","absent","excused"] as const).map((status)=><button className={row.attendance_status===status ? "is-active":""} disabled={busy===row.registration_id} onClick={()=>attendance(row.registration_id,status)} key={status}>{status}</button>)}
+              </div>
+            </article>
+          );
+        })}
       </div>
 
       <div className="cash-section">
-        <span className="section-kicker">Cash collection</span>
-        <h2>Record cash received.</h2>
+        <span className="section-kicker">Payment visibility</span>
+        <h2>Cash received on the field.</h2>
+        <p className="cash-section-note">Kiki remains in charge of registration/payment administration. This area lets you see the same live status and record cash only when you personally receive it.</p>
         <div className="cash-list">
           {payments.map((item)=>(
             <article key={item.id}>
