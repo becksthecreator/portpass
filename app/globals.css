@@ -1400,3 +1400,117 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     width:4px;
   }
 }
+
+
+/* Futprep branded Now Registering banner */
+.futprep-live-banner{
+  align-items:center;
+  background:
+    linear-gradient(90deg,#fff1f5 0 25%,#e9f8f5 25% 100%);
+  border-bottom:1px solid rgba(21,21,21,.12);
+  color:#151515;
+  display:flex;
+  gap:24px;
+  justify-content:space-between;
+  min-height:74px;
+  overflow:hidden;
+  padding:10px 5vw;
+  position:relative;
+}
+.futprep-live-banner::before{
+  background:#f0245c;
+  content:"";
+  height:100%;
+  left:0;
+  position:absolute;
+  top:0;
+  width:6px;
+}
+.futprep-live-banner::after{
+  background:linear-gradient(90deg,#f0245c 0 25%,#2cb8a0 25% 100%);
+  bottom:0;
+  content:"";
+  height:4px;
+  left:0;
+  position:absolute;
+  right:0;
+}
+.live-pilot-brand{
+  align-items:center;
+  display:flex;
+  gap:14px;
+  min-width:0;
+  position:relative;
+  z-index:1;
+}
+.live-pilot-brand img{
+  flex:0 0 auto;
+  height:52px;
+  object-fit:contain;
+  width:43px;
+}
+.live-pilot-brand>div{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
+}
+.futprep-live-banner .live-pilot-label{
+  align-self:flex-start;
+  background:#f0245c;
+  border:1px solid rgba(21,21,21,.10);
+  border-radius:999px;
+  color:#fff;
+  font-size:.61rem;
+  font-weight:900;
+  letter-spacing:.08em;
+  padding:5px 9px;
+  text-transform:uppercase;
+}
+.futprep-live-banner strong{
+  color:#151515;
+  font-family:Georgia,serif;
+  font-size:1.05rem;
+  font-weight:400;
+  line-height:1.15;
+}
+.futprep-live-banner .live-pilot-action{
+  color:#168a79;
+  font-size:.72rem;
+  font-weight:900;
+  position:relative;
+  z-index:1;
+}
+.futprep-live-banner:hover{
+  background:
+    linear-gradient(90deg,#ffe8ef 0 25%,#def5f0 25% 100%);
+}
+.futprep-live-banner:hover .live-pilot-action{
+  color:#f0245c;
+}
+@media(max-width:640px){
+  .futprep-live-banner{
+    align-items:center;
+    flex-direction:row;
+    gap:12px;
+    min-height:76px;
+    padding:10px 18px 10px 20px;
+  }
+  .live-pilot-brand{
+    gap:10px;
+  }
+  .live-pilot-brand img{
+    height:45px;
+    width:36px;
+  }
+  .futprep-live-banner strong{
+    font-size:.9rem;
+  }
+  .futprep-live-banner .live-pilot-action{
+    font-size:0;
+  }
+  .futprep-live-banner .live-pilot-action::after{
+    content:"→";
+    font-size:1.1rem;
+  }
+}
