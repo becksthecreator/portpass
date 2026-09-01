@@ -17,13 +17,12 @@ export default function Home() {
         <Link className="header-link" href="/apply">Early access ↗</Link>
       </header>
 
-      <Link className="live-pilot-banner" href="/futprep/lil-kickers">
-        <span>Now registering</span>
-        <strong>Futprep Lil Kickers · Term 1</strong>
-        <span>View program →</span>
-      </Link>
-
       <section className="hero">
+        <Link className="live-pilot-banner hero-register-banner" href="/futprep/lil-kickers">
+          <span>Now registering</span>
+          <strong>Futprep Lil Kickers · Term 1</strong>
+          <span>View program →</span>
+        </Link>
         <div className="hero-grid">
           <div className="eyebrow"><span className="eyebrow-dot" />Built in The Bahamas</div>
           <h1>Your club.<br/><em>Better connected.</em></h1>

@@ -2817,3 +2817,29 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .live-pilot-banner:hover{
   background:rgba(23,63,52,.88);
 }
+
+
+/* Integrate Now Registering into hero image */
+.hero-register-banner{
+  left:5vw;
+  position:absolute;
+  right:5vw;
+  top:18px;
+  z-index:4;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.10);
+}
+.hero{
+  padding-top:clamp(126px,11vw,170px);
+}
+@media(max-width:640px){
+  .hero-register-banner{
+    left:20px;
+    right:20px;
+    top:14px;
+  }
+  .hero{
+    padding-top:118px;
+  }
+}
