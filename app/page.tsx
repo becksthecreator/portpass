@@ -32,6 +32,13 @@ export default function Home() {
             <Link className="primary-button" href="/apply">Apply for early access →</Link>
           </div>
         </div>
+        <figure className="hero-photo" aria-label="Tennis ball caught in a tennis net">
+          <img
+            src="https://images.unsplash.com/photo-1661881545067-b15c94c6b7cd?auto=format&fit=crop&w=1800&q=85"
+            alt="Close-up tennis ball caught in a tennis net"
+          />
+          <figcaption>Photo by cal gao · Unsplash</figcaption>
+        </figure>
         <div className="court-lines" aria-hidden="true"><span/><span/><span/></div>
       </section>
 
