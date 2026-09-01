@@ -1079,3 +1079,324 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .futprep-theme.registration-page .registration-header{
   background:#fff1f5;
 }
+
+
+/* Futprep brand distribution pass */
+
+/* Keep the layout, but make the Futprep identity feel present from top to bottom. */
+.futprep-theme .pilot-header{
+  position:relative;
+}
+.futprep-theme .pilot-header::after{
+  background:linear-gradient(90deg,var(--fp-pink) 0 26%,var(--fp-teal) 26% 100%);
+  bottom:-1px;
+  content:"";
+  height:4px;
+  left:0;
+  position:absolute;
+  right:0;
+}
+
+.futprep-theme .pilot-hero{
+  overflow:hidden;
+  position:relative;
+}
+.futprep-theme .pilot-hero::before{
+  background-image:url("/futprep-logo.png");
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:contain;
+  content:"";
+  height:min(43vw,470px);
+  opacity:.055;
+  pointer-events:none;
+  position:absolute;
+  right:-4vw;
+  top:2vw;
+  transform:rotate(7deg);
+  width:min(34vw,370px);
+}
+.futprep-theme .pilot-hero::after{
+  background:linear-gradient(180deg,var(--fp-pink),var(--fp-teal));
+  border-radius:999px;
+  content:"";
+  height:150px;
+  left:2.2vw;
+  opacity:.9;
+  position:absolute;
+  top:24%;
+  width:7px;
+}
+.futprep-theme .pilot-hero-copy,
+.futprep-theme .pilot-term-card{
+  position:relative;
+  z-index:1;
+}
+
+.futprep-theme .pilot-term-card::before{
+  background-image:url("/futprep-logo.png");
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:contain;
+  bottom:18px;
+  content:"";
+  height:92px;
+  opacity:.12;
+  pointer-events:none;
+  position:absolute;
+  right:18px;
+  transform:rotate(-6deg);
+  width:75px;
+}
+.futprep-theme .pilot-term-card{
+  isolation:isolate;
+  overflow:hidden;
+}
+.futprep-theme .pilot-term-card>*{
+  position:relative;
+  z-index:1;
+}
+
+.futprep-theme .pilot-classes{
+  overflow:hidden;
+  position:relative;
+}
+.futprep-theme .pilot-classes::before{
+  background:var(--fp-pink);
+  content:"";
+  height:10px;
+  left:0;
+  position:absolute;
+  top:0;
+  width:25%;
+}
+.futprep-theme .pilot-classes::after{
+  background:var(--fp-teal);
+  content:"";
+  height:10px;
+  position:absolute;
+  right:0;
+  top:0;
+  width:75%;
+}
+.futprep-theme .pilot-class-card{
+  overflow:hidden;
+  position:relative;
+}
+.futprep-theme .pilot-class-card::after{
+  background-image:url("/futprep-logo.png");
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:contain;
+  content:"";
+  height:110px;
+  opacity:.045;
+  pointer-events:none;
+  position:absolute;
+  right:22px;
+  top:18px;
+  transform:rotate(7deg);
+  width:90px;
+}
+.futprep-theme .pilot-class-card:nth-child(2)::after{
+  transform:rotate(-7deg);
+}
+.futprep-theme .pilot-class-card>*{
+  position:relative;
+  z-index:1;
+}
+.futprep-theme .class-capacity{
+  align-self:flex-start;
+  background:var(--fp-teal-soft);
+  border:1px solid rgba(22,138,121,.18);
+  border-radius:999px;
+  color:var(--fp-teal-deep)!important;
+  font-weight:800;
+  padding:7px 11px;
+}
+.futprep-theme .pilot-class-card:first-child .class-capacity{
+  background:var(--fp-pink-soft);
+  border-color:rgba(240,36,92,.18);
+  color:var(--fp-pink)!important;
+}
+
+.futprep-theme .pilot-payment-strip{
+  overflow:hidden;
+  position:relative;
+}
+.futprep-theme .pilot-payment-strip::before{
+  background-image:url("/futprep-logo.png");
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:contain;
+  content:"";
+  height:180px;
+  opacity:.075;
+  pointer-events:none;
+  position:absolute;
+  right:5vw;
+  top:50%;
+  transform:translateY(-50%) rotate(8deg);
+  width:145px;
+}
+.futprep-theme .pilot-payment-strip::after{
+  background:var(--fp-pink);
+  bottom:0;
+  content:"";
+  height:7px;
+  left:0;
+  position:absolute;
+  width:25%;
+}
+.futprep-theme .pilot-payment-strip>*{
+  position:relative;
+  z-index:1;
+}
+
+.futprep-theme .pilot-cta{
+  overflow:hidden;
+  position:relative;
+}
+.futprep-theme .pilot-cta::before{
+  background:var(--fp-pink-soft);
+  border:1px solid rgba(240,36,92,.15);
+  border-radius:50%;
+  content:"";
+  height:420px;
+  left:-170px;
+  position:absolute;
+  top:-210px;
+  width:420px;
+}
+.futprep-theme .pilot-cta::after{
+  background-image:url("/futprep-logo.png");
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:contain;
+  bottom:18px;
+  content:"";
+  height:150px;
+  opacity:.07;
+  pointer-events:none;
+  position:absolute;
+  right:5vw;
+  transform:rotate(-5deg);
+  width:120px;
+}
+.futprep-theme .pilot-cta>*{
+  position:relative;
+  z-index:1;
+}
+
+.futprep-theme footer{
+  border-top:1px solid rgba(21,21,21,.10);
+  position:relative;
+}
+.futprep-theme footer::before{
+  background:linear-gradient(90deg,var(--fp-teal) 0 75%,var(--fp-pink) 75% 100%);
+  content:"";
+  height:4px;
+  left:0;
+  position:absolute;
+  right:0;
+  top:0;
+}
+
+/* Registration page branding */
+.futprep-theme.registration-page .registration-header{
+  position:relative;
+}
+.futprep-theme.registration-page .registration-header::after{
+  background:linear-gradient(90deg,var(--fp-pink) 0 25%,var(--fp-teal) 25% 100%);
+  bottom:-1px;
+  content:"";
+  height:4px;
+  left:0;
+  position:absolute;
+  right:0;
+}
+.futprep-theme .registration-shell{
+  position:relative;
+}
+.futprep-theme .registration-shell::before{
+  background-image:url("/futprep-logo.png");
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:contain;
+  content:"";
+  height:220px;
+  opacity:.035;
+  pointer-events:none;
+  position:absolute;
+  right:-90px;
+  top:20px;
+  transform:rotate(7deg);
+  width:180px;
+}
+.futprep-theme .registration-form fieldset{
+  position:relative;
+}
+.futprep-theme .registration-form fieldset::before{
+  background:linear-gradient(180deg,var(--fp-teal),var(--fp-pink));
+  border-radius:999px;
+  content:"";
+  height:56px;
+  left:-45px;
+  opacity:.8;
+  position:absolute;
+  top:0;
+  width:5px;
+}
+.futprep-theme .choice-section{
+  border-radius:4px;
+  padding:4px 0;
+}
+.futprep-theme .photo-consent{
+  background:linear-gradient(90deg,var(--fp-pink-soft),transparent 58%);
+  margin-left:-14px;
+  margin-right:-14px;
+  padding-left:14px;
+  padding-right:14px;
+}
+.futprep-theme .single-consent{
+  background:linear-gradient(90deg,var(--fp-teal-soft),transparent 68%);
+  margin-left:-14px;
+  margin-right:-14px;
+  padding-left:14px;
+  padding-right:14px;
+}
+
+@media(max-width:640px){
+  .futprep-theme .pilot-hero::before{
+    height:220px;
+    opacity:.04;
+    right:-70px;
+    top:40px;
+    width:180px;
+  }
+  .futprep-theme .pilot-hero::after{
+    display:none;
+  }
+  .futprep-theme .pilot-term-card::before{
+    height:72px;
+    width:58px;
+  }
+  .futprep-theme .pilot-payment-strip::before{
+    height:120px;
+    opacity:.05;
+    right:-15px;
+    width:96px;
+  }
+  .futprep-theme .pilot-cta::after{
+    height:100px;
+    right:-5px;
+    width:80px;
+  }
+  .futprep-theme .registration-shell::before{
+    display:none;
+  }
+  .futprep-theme .registration-form fieldset::before{
+    left:-19px;
+    width:4px;
+  }
+}
