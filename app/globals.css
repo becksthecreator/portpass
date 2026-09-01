@@ -2346,3 +2346,176 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     padding-bottom:105px;
   }
 }
+
+
+/* Futprep option 6: soft-to-bold journey */
+
+/* Option 6 — soft-to-bold journey.
+   White stays reserved for clarity cards and controls. */
+.futprep-theme .pilot-header,
+.futprep-theme.registration-page .registration-header{
+  background:var(--fp-pink-soft);
+}
+
+/* HERO — soft teal */
+.futprep-theme .pilot-hero{
+  background:
+    linear-gradient(
+      to bottom,
+      var(--fp-teal-soft) 0%,
+      var(--fp-teal-soft) 78%,
+      #e7f7f3 92%,
+      #ffffff 100%
+    )!important;
+  color:var(--fp-black);
+}
+.futprep-theme .pilot-hero .eyebrow,
+.futprep-theme .pilot-hero .headline-first,
+.futprep-theme .pilot-hero-copy>p{
+  color:var(--fp-black);
+}
+.futprep-theme .pilot-hero .headline-second,
+.futprep-theme .pilot-hero .headline-ellipsis{
+  color:var(--fp-pink);
+}
+.futprep-theme .pilot-hero .eyebrow-dot{
+  background:var(--fp-pink);
+  border-color:rgba(21,21,21,.18);
+}
+
+/* CLASSES — teal */
+.futprep-theme .pilot-classes{
+  background:
+    linear-gradient(
+      to bottom,
+      var(--fp-teal) 0%,
+      var(--fp-teal) 80%,
+      #86d8cb 91%,
+      #ffffff 100%
+    )!important;
+  color:#fff;
+}
+.futprep-theme .pilot-classes .section-kicker,
+.futprep-theme .pilot-classes h2{
+  color:#fff;
+}
+.futprep-theme .pilot-class-card{
+  background:#fff!important;
+}
+.futprep-theme .pilot-class-card h3{
+  color:var(--fp-black)!important;
+}
+.futprep-theme .class-age{
+  color:var(--fp-teal-deep)!important;
+}
+.futprep-theme .class-capacity,
+.futprep-theme .pilot-class-card:first-child .class-capacity{
+  background:var(--fp-teal-soft);
+  color:var(--fp-teal-deep)!important;
+}
+
+/* GALLERY — pink */
+.futprep-theme .futprep-story{
+  background:
+    linear-gradient(
+      to bottom,
+      var(--fp-pink) 0%,
+      var(--fp-pink) 80%,
+      #f77a9d 91%,
+      #ffffff 100%
+    )!important;
+  color:#fff;
+}
+.futprep-theme .futprep-story-copy>.section-kicker{
+  color:#fff;
+}
+.futprep-theme .futprep-story-copy h2{
+  color:#fff;
+}
+.futprep-theme .futprep-story-copy h2 em{
+  color:var(--fp-teal-soft);
+}
+.futprep-theme .futprep-story-copy>p{
+  color:#fff7f9;
+}
+.futprep-theme .futprep-story-tags span,
+.futprep-theme .futprep-story-tags span:first-child,
+.futprep-theme .futprep-story-tags span:nth-child(2){
+  background:transparent;
+  border-color:rgba(255,255,255,.35);
+  color:#fff;
+}
+
+/* PAYMENT — deep pink */
+.futprep-theme .pilot-payment-strip{
+  background:
+    linear-gradient(
+      to bottom,
+      var(--fp-pink-deep) 0%,
+      var(--fp-pink-deep) 76%,
+      #e45d81 89%,
+      #f7c7d5 96%,
+      #ffffff 100%
+    )!important;
+  color:#fff;
+}
+.futprep-theme .pilot-payment-strip h2,
+.futprep-theme .pilot-payment-strip .section-kicker{
+  color:#fff;
+}
+.futprep-theme .pilot-payment-strip>p{
+  background:#fff;
+  color:var(--fp-black);
+}
+
+/* SPONSORS — soft teal */
+.futprep-theme .futprep-sponsors{
+  background:
+    linear-gradient(
+      to bottom,
+      var(--fp-teal-soft) 0%,
+      var(--fp-teal-soft) 78%,
+      #e8f8f4 93%,
+      #ffffff 100%
+    )!important;
+  color:var(--fp-black);
+}
+.futprep-theme .sponsor-heading>.section-kicker{
+  color:var(--fp-teal-deep);
+}
+.futprep-theme .sponsor-heading p{
+  color:#3f5e58;
+}
+.futprep-theme .sponsor-card,
+.futprep-theme .sponsor-card:nth-child(2){
+  background:#fff;
+}
+
+/* CTA — deep teal */
+.futprep-theme .pilot-cta{
+  background:var(--fp-teal-deep)!important;
+  color:#fff;
+}
+.futprep-theme .pilot-cta>p,
+.futprep-theme .pilot-cta h2{
+  color:#fff;
+}
+.futprep-theme .pilot-cta .light-button{
+  background:#fff;
+  color:var(--fp-teal-deep);
+}
+.futprep-theme .pilot-cta .light-button:hover{
+  background:var(--fp-pink);
+  color:#fff;
+}
+
+/* FOOTER — black */
+.futprep-theme footer{
+  background:var(--fp-black);
+  color:#fff;
+}
+.futprep-theme footer p,
+.futprep-theme footer .futprep-footer-brand,
+.futprep-theme footer .brand{
+  color:#fff;
+}
