@@ -595,3 +595,220 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 @media(prefers-reduced-motion:reduce){
   .headline-first,.headline-second,.headline-ellipsis,.session-float{animation:none!important;opacity:1!important;transform:none!important}
 }
+
+/* Corrected Futprep / Lil Kickers brand palette from supplied Futprep logo + Lil Kickers artwork */
+.futprep-theme{
+  --fp-pink:#f0245c;
+  --fp-pink-deep:#c91749;
+  --fp-teal:#2cb8a0;
+  --fp-teal-deep:#168a79;
+  --fp-teal-soft:#e5f8f4;
+  --fp-pink-soft:#fff0f4;
+  --fp-black:#080808;
+  --fp-white:#ffffff;
+  --fp-offwhite:#fbfbf8;
+  --fp-line:#d9d9d4;
+  --fp-muted:#666b6a;
+  --fp-blue:var(--fp-black);
+  --fp-blue-deep:var(--fp-black);
+  --fp-blue-soft:var(--fp-teal-soft);
+  --fp-orange:var(--fp-pink);
+  --fp-orange-soft:var(--fp-pink-soft);
+  --fp-cream:var(--fp-offwhite);
+  --fp-ink:var(--fp-black);
+}
+.futprep-theme .pilot-header,
+.futprep-theme.registration-page .registration-header{
+  background:var(--fp-white);
+  border-bottom:1px solid var(--fp-black);
+}
+.futprep-theme .brand-mark{
+  background:var(--fp-black);
+  color:var(--fp-pink);
+}
+.futprep-theme .eyebrow{
+  color:var(--fp-black);
+}
+.futprep-theme .eyebrow-dot{
+  background:var(--fp-pink);
+  border-color:var(--fp-black);
+}
+.futprep-theme .primary-button{
+  background:var(--fp-black);
+  color:#fff;
+}
+.futprep-theme .primary-button:hover{
+  background:var(--fp-pink);
+}
+.futprep-theme .light-button{
+  background:var(--fp-black);
+  color:#fff;
+}
+.futprep-theme .light-button:hover{
+  background:#fff;
+  color:var(--fp-black);
+}
+.futprep-theme .header-link{
+  border-color:var(--fp-black);
+  color:var(--fp-black);
+}
+.futprep-program-brand{
+  align-items:center;
+  display:flex;
+  gap:11px;
+}
+.futprep-program-brand img{
+  height:58px;
+  object-fit:contain;
+  width:48px;
+}
+.futprep-program-brand span{
+  display:flex;
+  flex-direction:column;
+  line-height:1;
+}
+.futprep-program-brand b{
+  color:var(--fp-pink);
+  font-size:.9rem;
+  font-style:italic;
+  font-weight:900;
+  letter-spacing:.03em;
+}
+.futprep-program-brand small{
+  color:var(--fp-black);
+  font-size:.55rem;
+  font-weight:800;
+  letter-spacing:.06em;
+  margin-top:5px;
+  text-transform:uppercase;
+}
+.futprep-program-brand.compact img{height:46px;width:38px}
+.futprep-program-brand.compact b{font-size:.76rem}
+.futprep-program-brand.compact small{font-size:.48rem}
+.futprep-footer-brand{
+  align-items:center;
+  display:flex;
+  gap:8px;
+  font-size:.7rem;
+  font-weight:800;
+  text-transform:uppercase;
+}
+.futprep-footer-brand img{height:38px;object-fit:contain;width:31px}
+
+.futprep-theme .pilot-hero{
+  background:
+    radial-gradient(circle at 12% 18%, rgba(240,36,92,.12), transparent 24%),
+    radial-gradient(circle at 86% 78%, rgba(44,184,160,.14), transparent 28%),
+    var(--fp-offwhite);
+  color:var(--fp-black);
+}
+.futprep-theme .headline-first{color:var(--fp-black)}
+.futprep-theme .headline-second,
+.futprep-theme .headline-ellipsis{color:var(--fp-pink)}
+.futprep-theme .pilot-hero-copy>p{color:#444}
+.futprep-theme .pilot-term-card{
+  background:var(--fp-black);
+  border:0;
+  box-shadow:12px 12px 0 var(--fp-teal);
+  color:#fff;
+}
+.futprep-theme .session-float{
+  background:var(--fp-pink);
+  box-shadow:0 12px 30px rgba(240,36,92,.25);
+  color:#fff;
+}
+.futprep-theme .term-break-line,
+.futprep-theme .term-location-link{
+  border-color:#3e3e3e;
+}
+.futprep-theme .term-break-line span,
+.futprep-theme .term-location-link>span{
+  color:var(--fp-teal);
+}
+.futprep-theme .term-location-link small{
+  color:#ff6f94;
+}
+.futprep-theme .term-location-link:hover small{color:var(--fp-teal)}
+
+.futprep-theme .pilot-classes{background:#fff;color:var(--fp-black)}
+.futprep-theme .pilot-classes .section-kicker,
+.futprep-theme .class-age{color:var(--fp-pink)}
+.futprep-theme .pilot-class-card{border-color:var(--fp-black)}
+.futprep-theme .pilot-class-card:first-child{background:var(--fp-pink-soft)}
+.futprep-theme .pilot-class-card:nth-child(2){background:var(--fp-teal-soft)}
+.futprep-theme .pilot-class-card:first-child h3{color:var(--fp-pink-deep)}
+.futprep-theme .pilot-class-card:nth-child(2) h3{color:var(--fp-teal-deep)}
+.futprep-theme .pilot-payment-strip{
+  background:var(--fp-teal);
+  color:var(--fp-black);
+}
+.futprep-theme .pilot-payment-strip p{color:#123c35}
+.futprep-theme .pilot-payment-strip .section-kicker{color:#fff}
+.futprep-theme .pilot-cta{
+  background:var(--fp-pink);
+  color:#fff;
+}
+.futprep-theme .pilot-cta>p{color:#fff}
+.futprep-theme footer{background:#fff;color:var(--fp-black)}
+
+.futprep-theme.registration-page{
+  background:
+    radial-gradient(circle at 92% 3%, rgba(240,36,92,.10), transparent 24%),
+    radial-gradient(circle at 4% 92%, rgba(44,184,160,.10), transparent 25%),
+    var(--fp-offwhite);
+  color:var(--fp-black);
+}
+.futprep-theme .registration-intro .eyebrow{color:var(--fp-pink)}
+.futprep-theme .registration-intro h1,
+.futprep-theme .registration-form legend{color:var(--fp-black)}
+.futprep-theme .registration-progress .is-current{
+  border-color:var(--fp-pink);
+  color:var(--fp-black);
+}
+.futprep-theme .registration-progress .is-current span,
+.futprep-theme .registration-progress .is-complete span{
+  background:var(--fp-pink);
+  border-color:var(--fp-pink);
+  color:#fff;
+}
+.futprep-theme .registration-form{
+  border-color:var(--fp-black);
+  box-shadow:8px 8px 0 rgba(44,184,160,.35);
+}
+.futprep-theme .registration-form legend>span{
+  background:var(--fp-pink);
+  color:#fff;
+}
+.futprep-theme .choice-card.is-selected{
+  background:var(--fp-teal-soft);
+  border-color:var(--fp-teal-deep);
+}
+.futprep-theme .choice-card.is-selected .choice-check{
+  background:var(--fp-pink);
+  box-shadow:inset 0 0 0 4px var(--fp-teal-soft);
+}
+.futprep-theme .bank-panel{
+  background:var(--fp-pink-soft);
+  border-color:#f4a2b8;
+}
+.futprep-theme .registration-total,
+.futprep-theme .confirmation-reference{
+  background:var(--fp-black);
+  color:#fff;
+}
+.futprep-theme .confirmation-reference span{color:var(--fp-teal)}
+.futprep-theme .payment-instruction{background:var(--fp-teal-soft)}
+.futprep-theme input:focus,
+.futprep-theme select:focus,
+.futprep-theme textarea:focus{
+  border-color:var(--fp-teal-deep);
+  box-shadow:0 2px 0 var(--fp-teal-deep);
+}
+.futprep-theme textarea:focus{box-shadow:0 0 0 2px var(--fp-teal-deep)}
+
+@media(max-width:640px){
+  .futprep-program-brand img{height:46px;width:38px}
+  .futprep-program-brand b{font-size:.76rem}
+  .futprep-program-brand small{font-size:.48rem}
+  .registration-header-right .futprep-program-brand{display:none}
+}

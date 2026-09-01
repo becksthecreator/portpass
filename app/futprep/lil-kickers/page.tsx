@@ -30,7 +30,7 @@ export default function FutprepLilKickersPage() {
     <main className="pilot-page futprep-theme">
       <header className="site-header pilot-header">
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-        <span className="pilot-partner"><b>FUT</b>PREP · LIL KICKERS</span>
+        <div className="futprep-program-brand"><img src="/futprep-logo.png" alt="Futprep Athletics" /><span><b>LIL KICKERS</b><small>by Futprep Athletics</small></span></div>
       </header>
 
       <section className="pilot-hero">
@@ -101,7 +101,7 @@ export default function FutprepLilKickersPage() {
       <footer>
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
         <p>Registration powered by PortPass.</p>
-        <span className="footer-partner"><b>FUT</b>PREP</span>
+        <div className="futprep-footer-brand"><img src="/futprep-logo.png" alt="" /><span>Futprep Athletics</span></div>
       </footer>
     </main>
   );
