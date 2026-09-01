@@ -155,6 +155,18 @@ async function seedFutprepPilot() {
 
     const programId = Number(storedProgram.id);
 
+    if (organization) {
+      const { error: attachError } = await db
+        .from("registrations")
+        .update({ organization_id: organization.id })
+        .eq("program_id", programId)
+        .is("organization_id", null);
+      throwIfSupabaseError(
+        attachError,
+        "Could not attach Futprep registrations to organization",
+      );
+    }
+
     const { data: term, error: termError } = await db
       .from("program_terms")
       .upsert(
