@@ -12,7 +12,7 @@ export default async function FutprepTeamPage(){
   return <main className="staff-workspace">
     <header className="staff-workspace-header">
       <div><Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link><span className="staff-workspace-label">Futprep · Team management</span></div>
-      <nav><Link href="/futprep/lil-kickers/staff/private-sessions">Private sessions</Link>{account==="ceo"&&<Link href="/futprep/lil-kickers/staff/ceo">CEO overview</Link>}<Link href="/futprep/coaches">Public team ↗</Link><StaffLogoutButton /></nav>
+      <nav><Link href="/futprep/lil-kickers/staff/private-sessions">Private sessions</Link><Link href="/futprep/lil-kickers/staff/notes">Notes</Link>{account==="ceo"&&<Link href="/futprep/lil-kickers/staff/ceo">CEO overview</Link>}<Link href="/futprep/coaches">Public team ↗</Link><StaffLogoutButton /></nav>
     </header>
     <section className="staff-workspace-content">
       <div className="staff-page-intro"><div><span className="section-kicker">{account==="ceo"?"CEO":"Head Tech Admin"} · team control</span><h1>Futprep team.</h1></div><p>Add, hide, unhide, update, or retire team profiles. Public-facing bios, licenses, playing history, videos and testimonials live here so the same information can later power marketing assets.</p></div>
