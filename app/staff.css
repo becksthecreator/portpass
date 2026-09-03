@@ -202,3 +202,52 @@
     grid-template-columns:1fr;
   }
 }
+
+
+/* Futprep team + private-session operations */
+.staff-migration-warning{background:#fff3d9;border:1px solid #e4c889;display:flex;flex-direction:column;gap:5px;margin-bottom:22px;padding:16px}
+.staff-migration-warning span{color:#6e5a2b;font-size:.74rem}
+.coach-manager-message{background:#e9f8f5;border:1px solid #b9dfd7;padding:11px 13px}
+.team-manager-grid{display:grid;gap:14px;grid-template-columns:repeat(2,1fr)}
+.team-manager-card{background:var(--paper);border:1px solid var(--line);padding:24px}
+.team-manager-card>div:first-child>span{color:var(--muted);font-size:.62rem;font-weight:900;text-transform:uppercase}
+.team-manager-card h2{font-family:Georgia,serif;font-size:1.8rem;font-weight:400;margin:8px 0}
+.team-manager-card p{color:var(--muted);font-size:.78rem;line-height:1.5}
+.team-manager-flags{display:flex;gap:7px;margin:16px 0}
+.team-manager-flags span{font-size:.58rem;font-weight:900;padding:5px 7px;text-transform:uppercase}
+.flag-on{background:#ddf5d9;color:#285621}.flag-off{background:#ecece8;color:#666}
+.team-manager-actions{display:flex;flex-wrap:wrap;gap:7px}
+.team-manager-actions button{background:var(--ink);border:0;color:#fff;cursor:pointer;font-size:.65rem;font-weight:800;min-height:38px;padding:0 10px}
+.team-manager-actions .danger-action{background:#8f3026}
+.team-manager-actions button:disabled{opacity:.4}
+.team-profile-details{border-top:1px solid var(--line);margin-top:18px;padding-top:13px}
+.team-profile-details summary{cursor:pointer;font-size:.7rem;font-weight:900}
+.team-profile-details dl{display:grid;gap:1px;grid-template-columns:1fr 1fr}
+.team-profile-details dl div{background:var(--sand);padding:10px}
+.team-profile-details dd{font-size:.7rem}
+.team-admin-panels{display:grid;gap:16px;grid-template-columns:1.2fr .8fr;margin-top:20px}
+.team-admin-form{background:var(--paper);border:1px solid var(--line);padding:26px}
+.team-admin-form h2{font-family:Georgia,serif;font-size:2rem;font-weight:400;margin:7px 0 22px}
+.team-admin-form label{display:flex;flex-direction:column;gap:6px;margin-bottom:15px}
+.team-admin-form label>span{font-size:.68rem;font-weight:900}
+.team-admin-form input,.team-admin-form select,.team-admin-form textarea{background:#fff}
+.team-form-two{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.private-session-manager{display:flex;flex-direction:column;gap:14px}
+.private-request-card{background:var(--paper);border:1px solid var(--line);padding:24px}
+.private-request-head{align-items:flex-start;display:flex;justify-content:space-between}
+.private-request-head h2{font-family:Georgia,serif;font-size:1.9rem;font-weight:400;margin:8px 0 4px}
+.private-request-head p{color:var(--muted);font-size:.75rem;margin:0}
+.request-type,.request-status{font-size:.58rem;font-weight:900;padding:5px 7px;text-transform:uppercase}
+.request-private_lesson{background:#e9f8f5;color:#176e60}.request-birthday{background:#fff1f5;color:#a91b47}
+.status-pending{background:#fff3d9;color:#765b18}.status-accepted{background:#def3d8;color:#2e6026}.status-declined{background:#fde3e3;color:#8f3026}.status-referred{background:#e7e7f9;color:#4c4686}.status-completed{background:#e8e8e4;color:#555}
+.private-request-grid{display:grid;grid-template-columns:repeat(4,1fr);margin-top:22px}
+.private-request-grid>div{border-left:1px solid var(--line);display:flex;flex-direction:column;gap:5px;padding:3px 12px}
+.private-request-grid>div:first-child{border-left:0;padding-left:0}
+.private-request-grid span{color:var(--muted);font-size:.6rem;text-transform:uppercase}.private-request-grid strong{font-size:.76rem}.private-request-grid small{color:var(--muted);font-size:.68rem}
+.request-alert{background:#fff0e9;border-left:4px solid #d56e3f;font-size:.72rem;padding:10px 12px}.request-ok{color:#285621;font-size:.72rem;font-weight:800}
+.private-request-actions{align-items:center;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;padding-top:16px}
+.private-request-actions select{border:1px solid var(--line);min-height:40px;padding:0 8px;width:auto}
+.private-request-actions button{background:var(--ink);border:0;color:#fff;cursor:pointer;font-size:.65rem;font-weight:800;min-height:40px;padding:0 11px}
+.private-request-actions button:disabled{opacity:.4}
+@media(max-width:850px){.team-manager-grid,.team-admin-panels{grid-template-columns:1fr}.private-request-grid{grid-template-columns:1fr 1fr}.private-request-grid>div:nth-child(3){border-left:0}}
+@media(max-width:560px){.team-form-two,.team-profile-details dl,.private-request-grid{grid-template-columns:1fr}.private-request-grid>div{border-left:0;border-top:1px solid var(--line);padding:10px 0}.private-request-head{flex-direction:column;gap:10px}}

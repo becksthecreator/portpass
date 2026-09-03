@@ -9,7 +9,7 @@ const destinations: Record<Account,string> = {
   coach: "/futprep/lil-kickers/staff/coach",
   ceo: "/futprep/lil-kickers/staff/ceo",
   kione: "/futprep/lil-kickers/staff/coach",
-  adon: "/futprep/lil-kickers/staff/admin",
+  adon: "/futprep/lil-kickers/staff/team",
 };
 
 export function StaffLoginForm({ returnTo }: { returnTo: string }) {
@@ -56,7 +56,7 @@ export function StaffLoginForm({ returnTo }: { returnTo: string }) {
           <strong>Coach Kione</strong><span>Coaching workspace</span>
         </button>
         <button className={account==="adon" ? "is-active" : ""} type="button" onClick={()=>setAccount("adon")}>
-          <strong>Adon</strong><span>Program operations</span>
+          <strong>Adon</strong><span>Head Tech Admin · team operations</span>
         </button>
       </div>
       <label><span>Staff PIN</span><input inputMode="numeric" autoComplete="current-password" type="password" value={pin} onChange={(e)=>setPin(e.target.value)} required /></label>

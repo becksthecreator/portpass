@@ -5018,3 +5018,75 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     padding:9px 11px;
   }
 }
+
+
+/* Futprep team directory + private-session drawer */
+.futprep-team-page{background:#fffaf6;color:#171717;min-height:100vh}
+.futprep-team-header{align-items:center;display:flex;justify-content:space-between;padding:22px 5vw}
+.futprep-team-header nav{display:flex;gap:22px}
+.futprep-team-header nav a{font-size:.68rem;font-weight:900;text-transform:uppercase}
+.futprep-team-hero{background:#173f34;color:#fff;padding:90px 7vw 100px;position:relative;overflow:hidden}
+.futprep-team-hero::after{background:#f0245c;border-radius:50%;content:"";height:250px;opacity:.16;position:absolute;right:-70px;top:-90px;width:250px}
+.futprep-team-hero>span{color:#ffd9e4;font-size:.64rem;font-weight:900;letter-spacing:.13em;text-transform:uppercase}
+.futprep-team-hero h1{font-family:Georgia,serif;font-size:clamp(4rem,8vw,8.5rem);font-weight:400;letter-spacing:-.07em;line-height:.84;margin:24px 0}
+.futprep-team-hero h1 em{color:#f0245c;font-weight:400}
+.futprep-team-hero>p{color:#d5e1dc;line-height:1.65;max-width:620px}
+.private-session-trigger{background:#f0245c;border:0;border-radius:999px;color:#fff;cursor:pointer;font-size:.68rem;font-weight:900;margin-top:24px;padding:15px 19px;text-transform:uppercase}
+.futprep-team-grid{display:grid;gap:18px;grid-template-columns:repeat(2,minmax(0,1fr));padding:70px 7vw}
+.futprep-team-card{background:#fff;border:1px solid #eee4dc;display:grid;grid-template-columns:.9fr 1.1fr;min-height:430px}
+.futprep-team-photo{background:#d7eee8;min-height:100%;overflow:hidden;position:relative}
+.futprep-team-photo img{height:100%;object-fit:cover;width:100%}
+.futprep-team-photo>span{background:#f0245c;color:#fff;font-size:.56rem;font-weight:900;left:14px;padding:6px 9px;position:absolute;text-transform:uppercase;top:14px}
+.futprep-team-initial{align-items:center;color:#168a79;display:flex;font-family:Georgia,serif;font-size:8rem;height:100%;justify-content:center;min-height:430px}
+.futprep-team-copy{padding:34px}
+.futprep-team-copy>small{color:#c91749;font-size:.59rem;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+.futprep-team-copy h2{font-family:Georgia,serif;font-size:2.4rem;font-weight:400;letter-spacing:-.04em;margin:10px 0 16px}
+.futprep-team-copy>p{color:#5d5955;line-height:1.6}
+.coach-facts{display:grid;gap:1px;grid-template-columns:repeat(2,1fr);margin:22px 0}
+.coach-facts>div{background:#f7f2ed;padding:12px}
+.coach-facts dd{font-size:.75rem}
+.coach-availability{border-top:1px solid #ddd5ce;display:flex;flex-direction:column;gap:7px;margin-top:22px;padding-top:18px}
+.coach-availability>strong{font-family:Georgia,serif;font-size:1.15rem;font-weight:400}
+.coach-availability>span{font-size:.7rem}
+.availability-available{color:#168a79}.availability-blocked{color:#8f3026}.availability-booked{color:#8b6900}.availability-unset{color:#777}
+.coach-availability .private-session-trigger{align-self:flex-start;margin-top:10px}
+.futprep-team-copy blockquote{border-left:3px solid #f0245c;color:#494440;font-family:Georgia,serif;font-size:1.05rem;margin:24px 0 0;padding-left:16px}
+.futprep-team-copy blockquote cite{display:block;font-family:Arial,sans-serif;font-size:.65rem;margin-top:7px}
+.coach-video-link{display:inline-block;font-size:.67rem;font-weight:900;margin-top:18px}
+.futprep-team-note{align-items:center;background:#2cb8a0;color:#fff;display:grid;gap:40px;grid-template-columns:1fr 1fr auto;padding:60px 7vw}
+.futprep-team-note span{font-size:.6rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.futprep-team-note h2{font-family:Georgia,serif;font-size:2.8rem;font-weight:400;letter-spacing:-.04em;line-height:.95;margin:10px 0 0}
+.futprep-team-note>p{line-height:1.6}
+.futprep-team-note .private-session-trigger{background:#fff;color:#168a79;margin:0;white-space:nowrap}
+.private-session-backdrop{background:rgba(8,18,15,.5);inset:0;position:fixed;z-index:100}
+.private-session-drawer{background:#fff;height:100%;max-width:620px;overflow:auto;padding:48px;position:absolute;right:0;top:0;width:min(100%,620px)}
+.private-session-close{background:transparent;border:0;cursor:pointer;font-size:2rem;position:absolute;right:20px;top:13px}
+.private-session-kicker{color:#c91749;font-size:.6rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.private-session-drawer h2{font-family:Georgia,serif;font-size:3rem;font-weight:400;letter-spacing:-.05em;line-height:.95;margin:15px 0}
+.private-session-intro{color:#67615d;line-height:1.6}
+.private-session-warning{background:#fff3d9;border:1px solid #ead2a1;padding:12px;font-size:.75rem;line-height:1.45}
+.private-session-drawer form{display:flex;flex-direction:column;gap:16px;margin-top:28px}
+.private-session-drawer label{display:flex;flex-direction:column;gap:7px}
+.private-session-drawer label>span{font-size:.65rem;font-weight:900}
+.private-session-drawer input,.private-session-drawer select,.private-session-drawer textarea{background:#fff;border:1px solid #cfc7c1;min-height:46px;padding:10px;width:100%}
+.private-session-two{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+.private-session-submit{background:#173f34;border:0;color:#fff;cursor:pointer;font-weight:900;min-height:50px}
+.private-session-submit:disabled{cursor:not-allowed;opacity:.45}
+.private-session-success{padding-top:80px}
+.private-session-success span{color:#168a79;font-size:.64rem;font-weight:900;text-transform:uppercase}
+.private-session-success h2{font-size:3.5rem}
+.private-session-success button{background:#173f34;border:0;color:#fff;cursor:pointer;margin-top:20px;padding:13px 18px}
+@media(max-width:900px){
+  .futprep-team-grid{grid-template-columns:1fr}
+  .futprep-team-note{grid-template-columns:1fr}
+  .futprep-team-note .private-session-trigger{justify-self:start}
+}
+@media(max-width:650px){
+  .futprep-team-header{padding:17px 20px}.futprep-team-header nav{gap:12px}.futprep-team-header nav a:first-child{display:none}
+  .futprep-team-hero{padding:70px 20px 78px}
+  .futprep-team-grid{padding:42px 20px}
+  .futprep-team-card{grid-template-columns:1fr}.futprep-team-photo{min-height:350px}.futprep-team-initial{min-height:350px}
+  .futprep-team-copy{padding:25px}.coach-facts{grid-template-columns:1fr}
+  .futprep-team-note{padding:50px 20px}
+  .private-session-drawer{padding:42px 20px 50px}.private-session-two{grid-template-columns:1fr}
+}

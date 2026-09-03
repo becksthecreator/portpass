@@ -46,6 +46,7 @@ export default async function FutprepCoachPage({
         <div><Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link><span className="staff-workspace-label">Futprep · Coach Bex</span></div>
         <nav>
           {role==="ceo" && <Link href="/futprep/lil-kickers/staff/ceo">CEO overview</Link>}
+          <Link href="/futprep/lil-kickers/staff/private-sessions">Private sessions</Link>
           <Link href="/futprep/lil-kickers">Parent view ↗</Link>
           <StaffLogoutButton />
         </nav>

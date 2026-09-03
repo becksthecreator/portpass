@@ -56,6 +56,55 @@ export async function makeStaffToken(account: FutprepStaffAccount, pin: string) 
   return `${account}.${role}.${signature}`;
 }
 
+export async function currentFutprepStaffAccount(): Promise<FutprepStaffAccount | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE)?.value;
+  if (!token) return null;
+  const parts = token.split(".");
+
+  if (parts.length === 3) {
+    const [accountValue, roleValue, signature] = parts;
+    if (
+      accountValue !== "admin" &&
+      accountValue !== "coach" &&
+      accountValue !== "ceo" &&
+      accountValue !== "kione" &&
+      accountValue !== "adon"
+    ) return null;
+    if (roleValue !== "admin" && roleValue !== "coach" && roleValue !== "ceo") return null;
+    const account = accountValue as FutprepStaffAccount;
+    const role = roleValue as FutprepStaffRole;
+    if (ACCOUNT_ROLE[account] !== role) return null;
+    const secret = secretForAccount(account);
+    if (!secret) return null;
+    const expected = await digest(`portpass:futprep:${account}:${role}:${secret}`);
+    return signature === expected ? account : null;
+  }
+
+  // Legacy sessions cannot distinguish Kiki from Adon, or Coach Bex from Kione.
+  // CEO is unambiguous and can safely map to the CEO account.
+  if (parts.length === 2 && parts[0] === "ceo") {
+    const secret = secretForRole("ceo");
+    if (!secret) return null;
+    const expected = await digest(`portpass:futprep:ceo:${secret}`);
+    return parts[1] === expected ? "ceo" : null;
+  }
+  return null;
+}
+
+export function canManageFutprepTeam(account: FutprepStaffAccount) {
+  return account === "ceo" || account === "adon";
+}
+
+export async function requireFutprepAccount(
+  allowed: FutprepStaffAccount[],
+  returnTo: string,
+) {
+  const account = await currentFutprepStaffAccount();
+  if (account && allowed.includes(account)) return account;
+  redirect(`/futprep/lil-kickers/staff/login?returnTo=${encodeURIComponent(returnTo)}`);
+}
+
 export async function currentFutprepStaffRole(): Promise<FutprepStaffRole | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE)?.value;

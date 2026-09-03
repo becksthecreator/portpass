@@ -150,7 +150,7 @@ export default function FutprepLilKickersPage() {
           <span className="lk-section-label">Meet Coach Becks</span>
           <h2>Coach Becks.<br/>The coach behind the smiles.</h2>
           <p>Coach Becks builds more than skills — he builds confidence. Every child is seen, encouraged and celebrated. Connection first. Football follows.</p>
-          <Link className="lk-coach-link" href="/futprep/lil-kickers/register">Meet the program →</Link>
+          <Link className="lk-coach-link" href="/futprep/coaches">Meet the team + private lessons →</Link>
         </div>
         <figure className="lk-coaching-image">
           <img src={futprepPhotos.player} alt="Futprep coaching and young players during a football session" loading="lazy" />
