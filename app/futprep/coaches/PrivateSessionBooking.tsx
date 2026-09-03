@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import steamerStyles from "./SteamerLeft.module.css";
 
 type CoachChoice={id:number;displayName:string};
 
@@ -54,7 +55,7 @@ export function PrivateSessionBooking({
               <div className="request-mail-stamp">FP</div>
               <div className="request-mail-lines"><i/><i/><i/></div>
             </div>
-            <div className="request-mail-steamer">
+            <div className={`request-mail-steamer ${steamerStyles.fromLeft}`}>
               <svg viewBox="0 0 220 120" role="presentation">
                 <path className="request-steamer-hull" d="M28 75h154l-18 24H53z" />
                 <rect className="request-steamer-deck" x="55" y="54" width="90" height="23" rx="4" />
