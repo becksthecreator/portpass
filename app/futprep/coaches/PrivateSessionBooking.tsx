@@ -54,20 +54,32 @@ export function PrivateSessionBooking({
               <div className="request-mail-stamp">FP</div>
               <div className="request-mail-lines"><i/><i/><i/></div>
             </div>
-            <div className="request-mail-boat">
-              <svg viewBox="0 0 180 120" role="presentation">
-                <path className="request-boat-hull" d="M29 78h121l-20 25H52z" />
-                <path className="request-boat-mast" d="M89 24v57" />
-                <path className="request-boat-sail request-boat-sail-main" d="M93 28v48h48z" />
-                <path className="request-boat-sail request-boat-sail-mail" d="M85 35v40H48z" />
-                <path className="request-boat-mail-fold" d="M50 38l18 14 16-14" />
+            <div className="request-mail-steamer">
+              <svg viewBox="0 0 220 120" role="presentation">
+                <path className="request-steamer-hull" d="M28 75h154l-18 24H53z" />
+                <rect className="request-steamer-deck" x="55" y="54" width="90" height="23" rx="4" />
+                <rect className="request-steamer-cabin" x="84" y="34" width="48" height="22" rx="3" />
+                <rect className="request-steamer-window" x="92" y="40" width="10" height="8" rx="1" />
+                <rect className="request-steamer-window" x="109" y="40" width="10" height="8" rx="1" />
+                <rect className="request-steamer-stack" x="61" y="24" width="15" height="34" rx="2" />
+                <rect className="request-steamer-stack-cap" x="57" y="20" width="23" height="7" rx="2" />
+                <circle className="request-steamer-wheel" cx="151" cy="80" r="17" />
+                <path className="request-steamer-wheel-spokes" d="M151 64v32M135 80h32M140 69l22 22M162 69l-22 22" />
+                <path className="request-steamer-mail" d="M94 59h28v16H94zM95 60l13 10 13-10" />
               </svg>
+              <i className="request-steam-puff puff-one" />
+              <i className="request-steam-puff puff-two" />
+              <i className="request-steam-puff puff-three" />
             </div>
             <div className="request-mail-water"><i/><i/><i/></div>
           </div>
           <h2>On its way.</h2>
-          <p>Your request has sailed over to the Futprep coaching team. It is not confirmed until a coach accepts it.</p>
-          <div className="request-reference"><small>Keep this reference</small><strong>{reference}</strong></div>
+          <p>Your request has been mailed to the Futprep coaching team. It is not confirmed until a coach accepts it.</p>
+          <div className="request-reference">
+            <small>Request code</small>
+            <strong>{reference.split("-").at(-1)}</strong>
+            <span className="request-reference-full">Full ref: {reference}</span>
+          </div>
           <button type="button" onClick={()=>setOpen(false)}>Done</button>
         </div> : <>
           <span className="private-session-kicker">Futprep private sessions</span>

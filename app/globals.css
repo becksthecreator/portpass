@@ -5297,142 +5297,153 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .fp-home-footer{align-items:flex-start;flex-direction:column;gap:14px;padding:24px 20px}
 }
 
-/* Futprep request sail-away confirmation */
+/* Futprep request steam-launch confirmation */
 .request-mail-scene{
-  background:linear-gradient(180deg,#fffaf6 0%,#fffaf6 68%,#dff5f0 68%,#dff5f0 100%);
+  background:linear-gradient(180deg,#fffaf6 0%,#fffaf6 67%,#dff5f0 67%,#dff5f0 100%);
   border:1px solid #eee2da;
-  height:220px;
-  margin:26px 0 28px;
+  height:190px;
+  margin:24px 0 26px;
   overflow:hidden;
   position:relative;
 }
 .request-mail-card{
   background:#fff;
   border:1px solid #ded4cd;
-  box-shadow:0 12px 30px rgba(23,63,52,.12);
-  height:82px;
+  box-shadow:0 10px 24px rgba(23,63,52,.12);
+  height:72px;
   left:50%;
-  padding:16px;
+  padding:13px;
   position:absolute;
-  top:55px;
+  top:48px;
   transform:translateX(-50%);
-  width:132px;
+  width:116px;
   z-index:3;
-  animation:request-mail-fold-away 3.2s cubic-bezier(.55,.05,.25,1) both;
+  animation:request-mail-load .48s ease-in both;
 }
 .request-mail-stamp{
   align-items:center;
   background:#f0245c;
   color:#fff;
   display:flex;
-  font-size:.52rem;
+  font-size:.48rem;
   font-weight:900;
-  height:24px;
+  height:21px;
   justify-content:center;
   margin-left:auto;
-  width:24px;
+  width:21px;
 }
-.request-mail-lines{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  margin-top:7px;
-  width:70px;
-}
-.request-mail-lines i{
-  background:#d8d0cb;
-  display:block;
-  height:3px;
-}
+.request-mail-lines{display:flex;flex-direction:column;gap:5px;margin-top:6px;width:62px}
+.request-mail-lines i{background:#d8d0cb;display:block;height:3px}
 .request-mail-lines i:nth-child(2){width:82%}
 .request-mail-lines i:nth-child(3){width:58%}
 
-.request-mail-boat{
-  bottom:31px;
-  left:42%;
+.request-mail-steamer{
+  bottom:25px;
+  left:38%;
   opacity:0;
   position:absolute;
-  width:150px;
+  width:178px;
   z-index:4;
-  animation:request-boat-sail-away 4.4s cubic-bezier(.28,.62,.35,1) .8s both;
+  animation:request-steamer-go 1.55s cubic-bezier(.3,.75,.42,1) .32s both;
 }
-.request-mail-boat svg{display:block;width:100%}
-.request-boat-hull{fill:#173f34}
-.request-boat-mast{fill:none;stroke:#173f34;stroke-linecap:round;stroke-width:4}
-.request-boat-sail{stroke:#c91749;stroke-linejoin:round;stroke-width:2}
-.request-boat-sail-main{fill:#f0245c}
-.request-boat-sail-mail{fill:#fff}
-.request-boat-mail-fold{fill:none;stroke:#c91749;stroke-linecap:round;stroke-linejoin:round;stroke-width:2.5}
+.request-mail-steamer svg{display:block;width:100%}
+.request-steamer-hull{fill:#173f34}
+.request-steamer-deck{fill:#f0245c}
+.request-steamer-cabin{fill:#fff}
+.request-steamer-window{fill:#2cb8a0}
+.request-steamer-stack{fill:#173f34}
+.request-steamer-stack-cap{fill:#f0245c}
+.request-steamer-wheel{fill:#fff;stroke:#c91749;stroke-width:5}
+.request-steamer-wheel-spokes{fill:none;stroke:#c91749;stroke-linecap:round;stroke-width:2}
+.request-steamer-mail{fill:#fff;stroke:#c91749;stroke-linejoin:round;stroke-width:2}
 
-.request-mail-water{
-  bottom:16px;
-  height:26px;
-  left:0;
+.request-steam-puff{
+  background:rgba(23,63,52,.16);
+  border-radius:50%;
+  height:20px;
+  left:38px;
+  opacity:0;
   position:absolute;
-  right:0;
+  top:6px;
+  width:20px;
 }
+.request-steam-puff.puff-one{animation:request-steam-pop .62s ease-out .46s both}
+.request-steam-puff.puff-two{animation:request-steam-pop .62s ease-out .72s both}
+.request-steam-puff.puff-three{animation:request-steam-pop .62s ease-out .98s both}
+
+.request-mail-water{bottom:13px;height:22px;left:0;position:absolute;right:0}
 .request-mail-water i{
   border-top:2px solid rgba(22,138,121,.55);
   border-radius:50%;
   display:block;
-  height:12px;
+  height:10px;
   position:absolute;
-  width:160px;
-  animation:request-wave-drift 2.6s linear infinite;
+  width:150px;
+  animation:request-wave-drift 1.4s linear infinite;
 }
 .request-mail-water i:nth-child(1){left:8%;top:0}
-.request-mail-water i:nth-child(2){left:40%;top:8px;animation-delay:-.8s}
-.request-mail-water i:nth-child(3){right:3%;top:1px;animation-delay:-1.6s}
+.request-mail-water i:nth-child(2){left:40%;top:7px;animation-delay:-.45s}
+.request-mail-water i:nth-child(3){right:3%;top:1px;animation-delay:-.9s}
 
 .request-reference{
-  background:#f7f2ed;
-  border-left:4px solid #f0245c;
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-  margin:22px 0 0;
-  padding:13px 15px;
+  align-items:baseline;
+  background:#faf6f1;
+  border:1px solid #eee4dc;
+  border-left:3px solid #f0245c;
+  display:grid;
+  gap:3px 12px;
+  grid-template-columns:auto 1fr;
+  margin:18px 0 0;
+  max-width:330px;
+  padding:10px 12px;
 }
 .request-reference small{
   color:#77706a;
-  font-size:.58rem;
+  font-size:.55rem;
   font-weight:900;
   letter-spacing:.06em;
   text-transform:uppercase;
 }
 .request-reference strong{
   color:#171717;
-  font-family:Georgia,serif;
-  font-size:1.35rem;
-  font-weight:400;
-  letter-spacing:.01em;
+  font-family:Arial,sans-serif;
+  font-size:.95rem;
+  font-weight:900;
+  letter-spacing:.06em;
 }
-.private-session-success>p{
-  color:#5f5a56;
-  line-height:1.6;
-  max-width:490px;
+.request-reference-full{
+  color:#9a928d!important;
+  font-size:.52rem!important;
+  font-weight:600!important;
+  grid-column:1/-1;
+  letter-spacing:0!important;
+  text-transform:none!important;
 }
+.private-session-success>p{color:#5f5a56;line-height:1.6;max-width:490px}
 
-@keyframes request-mail-fold-away{
-  0%,18%{opacity:1;transform:translateX(-50%) translateY(0) rotate(0) scale(1)}
-  36%{opacity:1;transform:translateX(-50%) translateY(14px) rotate(-2deg) scale(.82,.58)}
-  52%{opacity:0;transform:translateX(-50%) translateY(28px) rotate(8deg) scale(.45,.35)}
-  100%{opacity:0;transform:translateX(-50%) translateY(28px) rotate(8deg) scale(.45,.35)}
+@keyframes request-mail-load{
+  0%{opacity:1;transform:translateX(-50%) scale(1)}
+  70%{opacity:1;transform:translateX(-50%) translateY(12px) scale(.62)}
+  100%{opacity:0;transform:translateX(-50%) translateY(18px) scale(.25)}
 }
-@keyframes request-boat-sail-away{
-  0%{opacity:0;transform:translateX(-30px) translateY(9px) rotate(-2deg) scale(.72)}
-  12%{opacity:1}
-  28%{opacity:1;transform:translateX(0) translateY(0) rotate(1deg) scale(1)}
-  58%{opacity:1;transform:translateX(125px) translateY(-3px) rotate(-1deg) scale(.98)}
-  86%{opacity:1;transform:translateX(330px) translateY(2px) rotate(2deg) scale(.88)}
-  100%{opacity:0;transform:translateX(470px) translateY(-6px) rotate(2deg) scale(.7)}
+@keyframes request-steamer-go{
+  0%{opacity:0;transform:translateX(-50px) translateY(5px) scale(.78)}
+  9%{opacity:1}
+  25%{opacity:1;transform:translateX(0) translateY(0) scale(1)}
+  68%{opacity:1;transform:translateX(250px) translateY(-2px) scale(.96)}
+  100%{opacity:0;transform:translateX(560px) translateY(-5px) scale(.78)}
+}
+@keyframes request-steam-pop{
+  0%{opacity:0;transform:translate(0,0) scale(.35)}
+  30%{opacity:.55}
+  100%{opacity:0;transform:translate(-28px,-38px) scale(1.5)}
 }
 @keyframes request-wave-drift{
-  from{transform:translateX(-25px)}
-  to{transform:translateX(80px)}
+  from{transform:translateX(-20px)}
+  to{transform:translateX(75px)}
 }
 @media(prefers-reduced-motion:reduce){
   .request-mail-card{animation:none;opacity:0}
-  .request-mail-boat{animation:none;left:50%;opacity:1;transform:translateX(-50%)}
-  .request-mail-water i{animation:none}
+  .request-mail-steamer{animation:none;left:50%;opacity:1;transform:translateX(-50%)}
+  .request-steam-puff,.request-mail-water i{animation:none}
 }

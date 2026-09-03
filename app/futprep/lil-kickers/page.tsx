@@ -34,23 +34,27 @@ export default function FutprepLilKickersPage() {
 
   return (
     <main className="lilkickers-page futprep-theme">
+      <header className="fp-home-nav fp-lk-nav">
+        <Link className="fp-home-portpass" href="/" aria-label="Back to PortPass">
+          <span className="brand-mark">P</span>
+          <span>PORTPASS</span>
+        </Link>
+
+        <Link className="fp-home-brand" href="/futprep" aria-label="Futprep home">
+          <img src="/futprep-logo.png" alt="Futprep Athletics" />
+          <span>FUTPREP ATHLETICS</span>
+        </Link>
+
+        <nav>
+          <Link href="/futprep/messy-tots">Programs</Link>
+          <Link href="/futprep/coaches">Coaches</Link>
+          <Link className="fp-home-login" href="/futprep/lil-kickers/staff/login">Staff login</Link>
+        </nav>
+      </header>
+
       <section className="lk-hero">
         <img className="lk-hero-image" src={futprepPhotos.hero} alt="Young Futprep players together on the football field" />
         <div className="lk-hero-shade" aria-hidden="true" />
-
-        <header className="lk-nav">
-          <Link className="lk-portpass-brand" href="/" aria-label="Back to PortPass">
-            <span className="brand-mark">P</span><span>PORTPASS</span>
-          </Link>
-          <Link className="lk-program-brand" href="/futprep" aria-label="Back to Futprep home">
-            <img className="lk-header-crest" src="/futprep-logo.png" alt="Futprep Athletics" />
-            <span><b>LIL KICKERS</b><small>by Futprep Athletics</small></span>
-          </Link>
-          <div className="lk-nav-actions">
-            <Link className="lk-staff-login-link" href="/futprep/lil-kickers/staff/login">Staff login</Link>
-            <Link className="lk-nav-register" href="/futprep/lil-kickers/register">Register →</Link>
-          </div>
-        </header>
 
         <div className="lk-hero-play" aria-hidden="true">
           <span>PLAY.</span><span>KICK.</span><span>SMILE.</span><span>GROW.</span>
