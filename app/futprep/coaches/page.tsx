@@ -16,7 +16,7 @@ export default async function FutprepCoachesPage(){
     <main className="futprep-team-page">
       <header className="futprep-team-header">
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-        <nav><Link href="/futprep/lil-kickers">Lil Kickers</Link><Link href="/futprep/lil-kickers/staff/login">Staff login</Link></nav>
+        <nav><Link href="/futprep">Futprep home</Link><Link href="/futprep/messy-tots">Messy Tots</Link><Link href="/futprep/lil-kickers/staff/login">Staff login</Link></nav>
       </header>
 
       <section className="futprep-team-hero">
