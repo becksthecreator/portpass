@@ -1,0 +1,35 @@
+.fromLeft {
+  left: -190px !important;
+  animation: steamerFromLeft 1.45s cubic-bezier(.28,.76,.4,1) .22s both !important;
+}
+
+@keyframes steamerFromLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(0) translateY(5px) scale(.78);
+  }
+  7% {
+    opacity: 1;
+  }
+  24% {
+    opacity: 1;
+    transform: translateX(190px) translateY(0) scale(1);
+  }
+  66% {
+    opacity: 1;
+    transform: translateX(520px) translateY(-2px) scale(.96);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(830px) translateY(-5px) scale(.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fromLeft {
+    left: 50% !important;
+    opacity: 1 !important;
+    transform: translateX(-50%) !important;
+    animation: none !important;
+  }
+}
