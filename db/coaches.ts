@@ -76,7 +76,6 @@ function isMissingTable(error: unknown) {
 async function futprepOrganizationId() {
   const db = getSupabaseAdmin();
 
-  // 1) Normal case: locate the approved Futprep organization by name.
   const { data: namedOrganizations, error: namedOrganizationError } = await db
     .from("organizations")
     .select("id,name")
@@ -86,8 +85,6 @@ async function futprepOrganizationId() {
   throwIfSupabaseError(namedOrganizationError, "Could not locate Futprep organization");
   if (namedOrganizations?.[0]?.id) return Number(namedOrganizations[0].id);
 
-  // 2) Recovery case: the Futprep programs may already be attached to an
-  // organization even when the organization name does not contain "Futprep".
   const { data: programRows, error: programError } = await db
     .from("programs")
     .select("organization_id,slug")
@@ -97,19 +94,51 @@ async function futprepOrganizationId() {
   throwIfSupabaseError(programError, "Could not locate Futprep organization from programs");
   if (programRows?.[0]?.organization_id) return Number(programRows[0].organization_id);
 
-  // 3) Self-heal an older approved Futprep application if approval existed
-  // before an organization row was created.
+  // Recover an existing Futprep application even if an older pilot approval
+  // did not create the organization row correctly.
   const { data: applications, error: applicationError } = await db
     .from("applications")
     .select("id,organization_name,contact_person,email,phone,activity_type,main_location,status")
-    .eq("status", "approved")
     .or("organization_name.ilike.%futprep%,organization_name.ilike.%footprep%")
     .order("id", { ascending: true })
     .limit(1);
-  throwIfSupabaseError(applicationError, "Could not locate approved Futprep application");
+  throwIfSupabaseError(applicationError, "Could not locate Futprep application");
 
-  const application = applications?.[0];
-  if (!application?.id) return null;
+  let application = applications?.[0] ?? null;
+  const now = new Date().toISOString();
+
+  // Futprep is the live PortPass pilot. If the database was created before the
+  // early-access organization row existed, create the minimum internal pilot
+  // record so coach booking is not blocked forever.
+  if (!application) {
+    const { data: createdApplication, error: createApplicationError } = await db
+      .from("applications")
+      .insert({
+        organization_name: "Futprep Athletics",
+        contact_person: "Futprep Team",
+        email: "futprep@portpass.local",
+        phone: "Not provided",
+        activity_type: "Football",
+        main_location: "Nassau, The Bahamas",
+        player_count: "Pilot",
+        help_needed: "PortPass operations",
+        description: "System-created Futprep pilot record for the PortPass live pilot.",
+        status: "approved",
+        submitted_at: now,
+        reviewed_at: now,
+      })
+      .select("id,organization_name,contact_person,email,phone,activity_type,main_location,status")
+      .single();
+    throwIfSupabaseError(createApplicationError, "Could not create Futprep pilot application");
+    application = createdApplication;
+  } else if (application.status !== "approved") {
+    const { error: approveApplicationError } = await db
+      .from("applications")
+      .update({ status: "approved", reviewed_at: now })
+      .eq("id", application.id);
+    throwIfSupabaseError(approveApplicationError, "Could not repair Futprep approval");
+    application = { ...application, status: "approved" };
+  }
 
   const { data: existingOrganization, error: existingOrganizationError } = await db
     .from("organizations")
@@ -117,35 +146,36 @@ async function futprepOrganizationId() {
     .eq("application_id", application.id)
     .maybeSingle();
   throwIfSupabaseError(existingOrganizationError, "Could not check Futprep organization");
-  if (existingOrganization?.id) return Number(existingOrganization.id);
 
-  const now = new Date().toISOString();
-  const { data: createdOrganization, error: createOrganizationError } = await db
-    .from("organizations")
-    .insert({
-      application_id: application.id,
-      name: application.organization_name,
-      primary_contact: application.contact_person,
-      email: String(application.email ?? "").toLowerCase(),
-      phone: application.phone,
-      activity_type: application.activity_type,
-      main_location: application.main_location,
-      created_at: now,
-    })
-    .select("id")
-    .single();
-  throwIfSupabaseError(createOrganizationError, "Could not repair Futprep organization");
+  let organizationId = existingOrganization?.id ? Number(existingOrganization.id) : null;
 
-  if (createdOrganization?.id) {
-    await db
-      .from("programs")
-      .update({ organization_id: createdOrganization.id })
-      .in("slug", ["lil-kickers", "rookies"])
-      .is("organization_id", null);
-    return Number(createdOrganization.id);
+  if (!organizationId) {
+    const { data: createdOrganization, error: createOrganizationError } = await db
+      .from("organizations")
+      .insert({
+        application_id: application.id,
+        name: application.organization_name,
+        primary_contact: application.contact_person,
+        email: String(application.email ?? "").toLowerCase(),
+        phone: application.phone,
+        activity_type: application.activity_type,
+        main_location: application.main_location,
+        created_at: now,
+      })
+      .select("id")
+      .single();
+    throwIfSupabaseError(createOrganizationError, "Could not repair Futprep organization");
+    organizationId = Number(createdOrganization.id);
   }
 
-  return null;
+  const { error: attachProgramsError } = await db
+    .from("programs")
+    .update({ organization_id: organizationId })
+    .in("slug", ["lil-kickers", "rookies"])
+    .is("organization_id", null);
+  throwIfSupabaseError(attachProgramsError, "Could not attach Futprep programs");
+
+  return organizationId;
 }
 
 async function seedProfiles() {
