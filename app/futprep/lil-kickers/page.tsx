@@ -44,10 +44,10 @@ export default function FutprepLilKickersPage() {
           <Link className="lk-portpass-brand" href="/" aria-label="Back to PortPass">
             <span className="brand-mark">P</span><span>PORTPASS</span>
           </Link>
-          <div className="lk-program-brand">
+          <Link className="lk-program-brand" href="/futprep" aria-label="Back to Futprep home">
             <img className="lk-header-crest" src={transparentFutprepLogo} alt="Futprep Athletics" />
             <span><b>LIL KICKERS</b><small>by Futprep Athletics</small></span>
-          </div>
+          </Link>
           <div className="lk-nav-actions">
             <Link className="lk-staff-login-link" href="/futprep/lil-kickers/staff/login">Staff login</Link>
             <Link className="lk-nav-register" href="/futprep/lil-kickers/register">Register →</Link>
