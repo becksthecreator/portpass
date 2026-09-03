@@ -130,6 +130,7 @@ async function futprepOrganizationId() {
       .select("id,organization_name,contact_person,email,phone,activity_type,main_location,status")
       .single();
     throwIfSupabaseError(createApplicationError, "Could not create Futprep pilot application");
+    if (!createdApplication) throw new Error("Could not create Futprep pilot application");
     application = createdApplication;
   } else if (application.status !== "approved") {
     const { error: approveApplicationError } = await db
@@ -165,6 +166,7 @@ async function futprepOrganizationId() {
       .select("id")
       .single();
     throwIfSupabaseError(createOrganizationError, "Could not repair Futprep organization");
+    if (!createdOrganization) throw new Error("Could not repair Futprep organization");
     organizationId = Number(createdOrganization.id);
   }
 
