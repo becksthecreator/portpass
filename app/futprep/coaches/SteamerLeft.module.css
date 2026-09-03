@@ -1,6 +1,6 @@
 .fromLeft {
   left: -190px !important;
-  animation: steamerFromLeft 1.45s cubic-bezier(.28,.76,.4,1) .22s both !important;
+  animation: steamerFromLeft 2.8s cubic-bezier(.24,.64,.36,1) .22s both !important;
 }
 
 @keyframes steamerFromLeft {
