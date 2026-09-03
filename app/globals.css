@@ -5296,3 +5296,143 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .fp-home-private-steps small{grid-column:2}
   .fp-home-footer{align-items:flex-start;flex-direction:column;gap:14px;padding:24px 20px}
 }
+
+/* Futprep request sail-away confirmation */
+.request-mail-scene{
+  background:linear-gradient(180deg,#fffaf6 0%,#fffaf6 68%,#dff5f0 68%,#dff5f0 100%);
+  border:1px solid #eee2da;
+  height:220px;
+  margin:26px 0 28px;
+  overflow:hidden;
+  position:relative;
+}
+.request-mail-card{
+  background:#fff;
+  border:1px solid #ded4cd;
+  box-shadow:0 12px 30px rgba(23,63,52,.12);
+  height:82px;
+  left:50%;
+  padding:16px;
+  position:absolute;
+  top:55px;
+  transform:translateX(-50%);
+  width:132px;
+  z-index:3;
+  animation:request-mail-fold-away 3.2s cubic-bezier(.55,.05,.25,1) both;
+}
+.request-mail-stamp{
+  align-items:center;
+  background:#f0245c;
+  color:#fff;
+  display:flex;
+  font-size:.52rem;
+  font-weight:900;
+  height:24px;
+  justify-content:center;
+  margin-left:auto;
+  width:24px;
+}
+.request-mail-lines{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-top:7px;
+  width:70px;
+}
+.request-mail-lines i{
+  background:#d8d0cb;
+  display:block;
+  height:3px;
+}
+.request-mail-lines i:nth-child(2){width:82%}
+.request-mail-lines i:nth-child(3){width:58%}
+
+.request-mail-boat{
+  bottom:31px;
+  left:42%;
+  opacity:0;
+  position:absolute;
+  width:150px;
+  z-index:4;
+  animation:request-boat-sail-away 4.4s cubic-bezier(.28,.62,.35,1) .8s both;
+}
+.request-mail-boat svg{display:block;width:100%}
+.request-boat-hull{fill:#173f34}
+.request-boat-mast{fill:none;stroke:#173f34;stroke-linecap:round;stroke-width:4}
+.request-boat-sail{stroke:#c91749;stroke-linejoin:round;stroke-width:2}
+.request-boat-sail-main{fill:#f0245c}
+.request-boat-sail-mail{fill:#fff}
+.request-boat-mail-fold{fill:none;stroke:#c91749;stroke-linecap:round;stroke-linejoin:round;stroke-width:2.5}
+
+.request-mail-water{
+  bottom:16px;
+  height:26px;
+  left:0;
+  position:absolute;
+  right:0;
+}
+.request-mail-water i{
+  border-top:2px solid rgba(22,138,121,.55);
+  border-radius:50%;
+  display:block;
+  height:12px;
+  position:absolute;
+  width:160px;
+  animation:request-wave-drift 2.6s linear infinite;
+}
+.request-mail-water i:nth-child(1){left:8%;top:0}
+.request-mail-water i:nth-child(2){left:40%;top:8px;animation-delay:-.8s}
+.request-mail-water i:nth-child(3){right:3%;top:1px;animation-delay:-1.6s}
+
+.request-reference{
+  background:#f7f2ed;
+  border-left:4px solid #f0245c;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  margin:22px 0 0;
+  padding:13px 15px;
+}
+.request-reference small{
+  color:#77706a;
+  font-size:.58rem;
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.request-reference strong{
+  color:#171717;
+  font-family:Georgia,serif;
+  font-size:1.35rem;
+  font-weight:400;
+  letter-spacing:.01em;
+}
+.private-session-success>p{
+  color:#5f5a56;
+  line-height:1.6;
+  max-width:490px;
+}
+
+@keyframes request-mail-fold-away{
+  0%,18%{opacity:1;transform:translateX(-50%) translateY(0) rotate(0) scale(1)}
+  36%{opacity:1;transform:translateX(-50%) translateY(14px) rotate(-2deg) scale(.82,.58)}
+  52%{opacity:0;transform:translateX(-50%) translateY(28px) rotate(8deg) scale(.45,.35)}
+  100%{opacity:0;transform:translateX(-50%) translateY(28px) rotate(8deg) scale(.45,.35)}
+}
+@keyframes request-boat-sail-away{
+  0%{opacity:0;transform:translateX(-30px) translateY(9px) rotate(-2deg) scale(.72)}
+  12%{opacity:1}
+  28%{opacity:1;transform:translateX(0) translateY(0) rotate(1deg) scale(1)}
+  58%{opacity:1;transform:translateX(125px) translateY(-3px) rotate(-1deg) scale(.98)}
+  86%{opacity:1;transform:translateX(330px) translateY(2px) rotate(2deg) scale(.88)}
+  100%{opacity:0;transform:translateX(470px) translateY(-6px) rotate(2deg) scale(.7)}
+}
+@keyframes request-wave-drift{
+  from{transform:translateX(-25px)}
+  to{transform:translateX(80px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .request-mail-card{animation:none;opacity:0}
+  .request-mail-boat{animation:none;left:50%;opacity:1;transform:translateX(-50%)}
+  .request-mail-water i{animation:none}
+}

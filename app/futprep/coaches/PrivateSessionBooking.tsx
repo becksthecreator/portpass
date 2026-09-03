@@ -47,7 +47,29 @@ export function PrivateSessionBooking({
     {open && <div className="private-session-backdrop" role="presentation" onMouseDown={()=>setOpen(false)}>
       <aside className="private-session-drawer" role="dialog" aria-modal="true" aria-label="Request a Futprep session" onMouseDown={(e)=>e.stopPropagation()}>
         <button className="private-session-close" type="button" onClick={()=>setOpen(false)} aria-label="Close">×</button>
-        {reference ? <div className="private-session-success"><span>Request sent</span><h2>{reference}</h2><p>Futprep has your request. It is not confirmed until a coach accepts it. Keep this reference for follow-up.</p><button type="button" onClick={()=>setOpen(false)}>Done</button></div> : <>
+        {reference ? <div className="private-session-success">
+          <span>Request mailed</span>
+          <div className="request-mail-scene" aria-hidden="true">
+            <div className="request-mail-card">
+              <div className="request-mail-stamp">FP</div>
+              <div className="request-mail-lines"><i/><i/><i/></div>
+            </div>
+            <div className="request-mail-boat">
+              <svg viewBox="0 0 180 120" role="presentation">
+                <path className="request-boat-hull" d="M29 78h121l-20 25H52z" />
+                <path className="request-boat-mast" d="M89 24v57" />
+                <path className="request-boat-sail request-boat-sail-main" d="M93 28v48h48z" />
+                <path className="request-boat-sail request-boat-sail-mail" d="M85 35v40H48z" />
+                <path className="request-boat-mail-fold" d="M50 38l18 14 16-14" />
+              </svg>
+            </div>
+            <div className="request-mail-water"><i/><i/><i/></div>
+          </div>
+          <h2>On its way.</h2>
+          <p>Your request has sailed over to the Futprep coaching team. It is not confirmed until a coach accepts it.</p>
+          <div className="request-reference"><small>Keep this reference</small><strong>{reference}</strong></div>
+          <button type="button" onClick={()=>setOpen(false)}>Done</button>
+        </div> : <>
           <span className="private-session-kicker">Futprep private sessions</span>
           <h2>Tell us what your child needs.</h2>
           <p className="private-session-intro">Stay on this page while you request a private lesson or birthday session. A coach will review the request before it is confirmed.</p>
