@@ -24,9 +24,10 @@ const lyfordCayDirections =
   "https://www.google.com/maps/search/?api=1&query=Lyford+Cay+Lower+Campus+Soccer+Field+Nassau+Bahamas";
 
 const futprepPhotos = {
-  hero: "https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/d69eda54-1539-434e-bb0c-7e122dd03eab/IMG_5805.jpg",
-  training: "https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/1610225610514-4OBCNDHLPNXEFD1ESC0B/IMG-1321.jpg",
-  player: "https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/1610225759604-TDXFWZT2SGY2L9L0WHXO/IMG-4915.jpg",
+  hero: "/futprep/lil-kickers/lil-kickers-group.webp",
+  training: "/futprep/lil-kickers/lil-kickers-training.webp",
+  player: "/futprep/lil-kickers/lil-kickers-player.webp",
+  coach: "/futprep/lil-kickers/lil-kickers-coach.webp",
 };
 
 export default function FutprepLilKickersPage() {
@@ -53,7 +54,7 @@ export default function FutprepLilKickersPage() {
       </header>
 
       <section className="lk-hero">
-        <img className="lk-hero-image" src={futprepPhotos.hero} alt="Young Futprep players together on the football field" />
+        <img className="lk-hero-image" src={futprepPhotos.hero} alt="Futprep Lil Kickers players and coaches together on the football field" />
         <div className="lk-hero-shade" aria-hidden="true" />
 
         <div className="lk-hero-play" aria-hidden="true">
@@ -97,14 +98,14 @@ export default function FutprepLilKickersPage() {
         </div>
         <div className="lk-kickoff-gallery" aria-label="Futprep Lil Kickers sessions">
           <figure><img src={futprepPhotos.training} alt="Young Futprep player enjoying a football session" loading="lazy" /></figure>
-          <figure><img src={futprepPhotos.player} alt="Young Futprep player practicing with the ball" loading="lazy" /></figure>
-          <figure><img src={futprepPhotos.hero} alt="Futprep players together on the field" loading="lazy" /></figure>
+          <figure><img src={futprepPhotos.player} alt="Young Futprep player practicing during Lil Kickers" loading="lazy" /></figure>
+          <figure><img src={futprepPhotos.hero} alt="Futprep Lil Kickers group on the field" loading="lazy" /></figure>
         </div>
       </section>
 
       <section className="lk-photo-story">
         <figure className="lk-photo-story-main">
-          <img src={futprepPhotos.training} alt="Futprep coaching during a football session" loading="lazy" />
+          <img src={futprepPhotos.training} alt="Young Futprep players training during a Lil Kickers session" loading="lazy" />
         </figure>
         <div className="lk-photo-story-copy">
           <span className="lk-section-label">What Saturdays feel like</span>
@@ -155,7 +156,7 @@ export default function FutprepLilKickersPage() {
           <Link className="lk-coach-link" href="/futprep/coaches">Meet the team + private lessons →</Link>
         </div>
         <figure className="lk-coaching-image">
-          <img src={futprepPhotos.player} alt="Futprep coaching and young players during a football session" loading="lazy" />
+          <img src={futprepPhotos.coach} alt="Futprep coach working with young players during a Lil Kickers session" loading="lazy" />
           <figcaption className="lk-coaching-caption">
             <span>Coach + kids</span>
             <strong>Connection first. Football follows.</strong>
