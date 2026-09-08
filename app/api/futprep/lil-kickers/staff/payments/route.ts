@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentFutprepStaffRole } from "@/app/futprep/lil-kickers/staff-auth";
 import { recordFutprepPayment } from "@/db/staff";
+import { sendFutprepPaymentRecordedEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
   const role = await currentFutprepStaffRole();
@@ -38,7 +39,16 @@ export async function POST(request: Request) {
       recordedBy,
       note: typeof body.note === "string" ? body.note.slice(0,500) : "",
     });
-    return NextResponse.json({ ok: true, ...result });
+    sendFutprepPaymentRecordedEmail({
+      parentEmail: result.parentEmail,
+      parentName: result.parentName,
+      childName: result.childName,
+      amountRecordedCents: Number(body.amountCents),
+      balanceCents: Math.max(0, result.amountDueCents - result.paidCents),
+      paymentStatus: result.paymentStatus,
+      statusUrl: `${new URL(request.url).origin}/futprep/my`,
+    }).catch((error) => console.error("Futprep payment email error", error));
+    return NextResponse.json({ ok: true, paidCents: result.paidCents, paymentStatus: result.paymentStatus });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Payment could not be recorded." }, { status: 400 });
   }

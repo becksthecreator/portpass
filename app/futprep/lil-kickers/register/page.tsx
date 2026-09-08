@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { RegistrationForm } from "./RegistrationForm";
 
 export const metadata = {
@@ -16,7 +17,9 @@ export default function FutprepRegisterPage() {
           <Link className="header-link" href="/futprep/lil-kickers">Program details</Link>
         </div>
       </header>
-      <RegistrationForm />
+      <Suspense fallback={null}>
+        <RegistrationForm />
+      </Suspense>
     </main>
   );
 }

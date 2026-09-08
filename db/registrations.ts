@@ -334,6 +334,90 @@ export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
   return output;
 }
 
+export type FutprepRegistrationStatus = {
+  referenceCode: string;
+  childName: string;
+  parentName: string;
+  parentEmail: string;
+  parentPhone: string;
+  relationship: string;
+  program: { name: string; day: string; time: string; endTime: string; location: string };
+  paymentFrequency: PaymentFrequency;
+  paymentMethod: PaymentMethod;
+  amountDueCents: number;
+  paidCents: number;
+  paymentStatus: PaymentStatus;
+  registrationStatus: RegistrationStatus;
+  remainingSessionDates: string[];
+};
+
+// Parent self-service lookup. Deliberately returns only the fields above —
+// never medical, allergy, medication, special-needs, or emergency-contact
+// data, which stay behind staff auth. The reference code alone is not
+// enough to see this: the child's date of birth must match too, so a
+// leaked or guessed code can't be used to pull up a registration.
+export async function getFutprepRegistrationStatus(
+  referenceCode: string,
+  childDob: string,
+): Promise<FutprepRegistrationStatus | null> {
+  const db = getSupabaseAdmin();
+
+  const { data: registration, error } = await db
+    .from("registrations")
+    .select("id,reference_code,child_name,child_dob,program_id,term_id,payment_frequency,payment_method,amount_due_cents,payment_status,registration_status,parent_name,parent_email,parent_phone,relationship")
+    .ilike("reference_code", referenceCode.trim())
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not look up registration");
+  if (!registration || registration.child_dob !== childDob) return null;
+
+  const { data: program, error: programError } = await db
+    .from("programs")
+    .select("name,day_of_week,start_time,end_time,location")
+    .eq("id", registration.program_id)
+    .maybeSingle();
+  throwIfSupabaseError(programError, "Could not load registration program");
+
+  const [{ data: payments, error: paymentsError }, { data: sessions, error: sessionsError }] =
+    await Promise.all([
+      db.from("payments").select("amount_cents").eq("registration_id", registration.id).eq("status", "received"),
+      db
+        .from("sessions")
+        .select("session_date")
+        .eq("program_id", registration.program_id)
+        .eq("term_id", registration.term_id)
+        .neq("status", "cancelled")
+        .gte("session_date", new Date().toISOString().slice(0, 10))
+        .order("session_date", { ascending: true }),
+    ]);
+  throwIfSupabaseError(paymentsError, "Could not load registration payments");
+  throwIfSupabaseError(sessionsError, "Could not load registration sessions");
+
+  const paidCents = (payments ?? []).reduce((sum, row) => sum + Number(row.amount_cents), 0);
+
+  return {
+    referenceCode: registration.reference_code,
+    childName: registration.child_name,
+    parentName: registration.parent_name,
+    parentEmail: registration.parent_email,
+    parentPhone: registration.parent_phone,
+    relationship: registration.relationship,
+    program: {
+      name: program?.name ?? "",
+      day: program?.day_of_week ?? "",
+      time: program?.start_time ?? "",
+      endTime: program?.end_time ?? program?.start_time ?? "",
+      location: program?.location ?? "",
+    },
+    paymentFrequency: registration.payment_frequency as PaymentFrequency,
+    paymentMethod: registration.payment_method as PaymentMethod,
+    amountDueCents: Number(registration.amount_due_cents),
+    paidCents,
+    paymentStatus: registration.payment_status as PaymentStatus,
+    registrationStatus: registration.registration_status as RegistrationStatus,
+    remainingSessionDates: (sessions ?? []).map((row) => row.session_date as string),
+  };
+}
+
 export async function createFutprepRegistration(
   input: FutprepRegistrationInput,
 ) {

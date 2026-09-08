@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentFutprepStaffRole } from "@/app/futprep/lil-kickers/staff-auth";
 import { updateFutprepRegistration } from "@/db/staff";
+import { sendFutprepRegistrationConfirmedEmail } from "@/lib/email";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const role = await currentFutprepStaffRole();
@@ -27,11 +28,20 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 
   try {
-    await updateFutprepRegistration({
+    const confirmed = await updateFutprepRegistration({
       registrationId,
       registrationStatus: body.registrationStatus as "pending" | "confirmed" | "cancelled" | undefined,
       paymentStatus: body.paymentStatus as "pending" | "partial" | "paid" | "overdue" | "waived" | undefined,
     });
+    if (confirmed) {
+      sendFutprepRegistrationConfirmedEmail({
+        parentEmail: confirmed.parentEmail,
+        parentName: confirmed.parentName,
+        childName: confirmed.childName,
+        programName: confirmed.programName,
+        statusUrl: `${new URL(request.url).origin}/futprep/my`,
+      }).catch((error) => console.error("Futprep confirmation email error", error));
+    }
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Registration not found." }, { status: 404 });

@@ -28,7 +28,8 @@
 .staff-summary article{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px;padding:20px}
 .staff-summary span{color:var(--muted);font-size:.68rem;text-transform:uppercase}
 .staff-summary strong{font-family:Georgia,serif;font-size:2.5rem;font-weight:400}
-.staff-filter{display:flex;gap:8px;margin:22px 0}
+.staff-search-input{background:var(--paper);border:1px solid var(--line);font-size:.85rem;height:44px;margin-top:18px;padding:0 14px;width:100%}
+.staff-filter{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0}
 .staff-filter button{background:var(--paper);border:1px solid var(--line);cursor:pointer;font-size:.72rem;font-weight:800;padding:9px 13px}
 .staff-filter button.is-active{background:var(--ink);color:white}
 .staff-registration-list{display:flex;flex-direction:column;gap:14px}

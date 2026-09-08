@@ -24,7 +24,7 @@ export default function FutprepHomePage() {
         </Link>
 
         <nav>
-          <Link href="/futprep/messy-tots">Programs</Link>
+          <Link href="/futprep/programs">Programs</Link>
           <Link href="/futprep/coaches">Coaches</Link>
           <Link className="fp-home-login" href="/futprep/lil-kickers/staff/login">Staff login</Link>
         </nav>
@@ -38,7 +38,7 @@ export default function FutprepHomePage() {
           <h1>Football starts here.<br/><em>Growth goes further.</em></h1>
           <p>Programs, coaches, private training and player development — all connected through one Futprep experience.</p>
           <div>
-            <Link className="fp-home-primary" href="/futprep/messy-tots">Explore programs →</Link>
+            <Link className="fp-home-primary" href="/futprep/programs">Explore programs →</Link>
             <Link className="fp-home-secondary" href="/futprep/coaches">Meet the team</Link>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function FutprepHomePage() {
       </section>
 
       <section className="fp-home-feature-grid">
-        <Link className="fp-home-feature fp-home-feature-program" href="/futprep/messy-tots">
+        <Link className="fp-home-feature fp-home-feature-program" href="/futprep/lil-kickers">
           <img src={trainingPhoto} alt="Young Futprep player in a training session" />
           <div className="fp-home-feature-shade" aria-hidden="true" />
           <div className="fp-home-feature-copy">

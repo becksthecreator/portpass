@@ -216,7 +216,7 @@ export async function recordFutprepPayment(input: {
 
   const { data: registration, error } = await db
     .from("registrations")
-    .select("id,amount_due_cents,payment_frequency")
+    .select("id,amount_due_cents,payment_frequency,parent_name,parent_email,child_name")
     .eq("id", input.registrationId)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load payment registration");
@@ -268,7 +268,14 @@ export async function recordFutprepPayment(input: {
     .eq("id", input.registrationId);
   throwIfSupabaseError(updateError, "Could not update payment status");
 
-  return { paidCents: paid, paymentStatus: nextStatus };
+  return {
+    paidCents: paid,
+    paymentStatus: nextStatus,
+    parentName: registration.parent_name as string,
+    parentEmail: registration.parent_email as string,
+    childName: registration.child_name as string,
+    amountDueCents: Number(registration.amount_due_cents),
+  };
 }
 
 export async function updateFutprepRegistration(input: {
@@ -290,10 +297,26 @@ export async function updateFutprepRegistration(input: {
     .from("registrations")
     .update(updates)
     .eq("id", input.registrationId)
-    .select("id")
+    .select("id,program_id,parent_name,parent_email,child_name")
     .maybeSingle();
   throwIfSupabaseError(error, "Could not update registration");
   if (!data) throw new Error("REGISTRATION_NOT_FOUND");
+
+  if (input.registrationStatus === "confirmed") {
+    const { data: program, error: programError } = await db
+      .from("programs")
+      .select("name")
+      .eq("id", data.program_id)
+      .maybeSingle();
+    throwIfSupabaseError(programError, "Could not load confirmed registration's program");
+    return {
+      parentName: data.parent_name as string,
+      parentEmail: data.parent_email as string,
+      childName: data.child_name as string,
+      programName: program?.name ?? "",
+    };
+  }
+  return null;
 }
 
 export async function rosterForSession(

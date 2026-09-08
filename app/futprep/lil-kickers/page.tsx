@@ -1,11 +1,13 @@
 import Link from "next/link";
 import {
-  FUTPREP_PROGRAMS,
   FUTPREP_TERM,
   activeSessionDates,
   formatMoney,
   programTimeRange,
 } from "./config";
+import { getFutprepAvailability } from "@/db/registrations";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Futprep Lil Kickers | PortPass",
@@ -31,8 +33,10 @@ const futprepPhotos = {
   coach: "/futprep/lil-kickers/lil-kickers-coach.jpg",
 };
 
-export default function FutprepLilKickersPage() {
+export default async function FutprepLilKickersPage() {
   const sessions = activeSessionDates();
+  const availability = await getFutprepAvailability();
+  const programs = availability.filter((program) => program.location === FUTPREP_TERM.location);
 
   return (
     <main className="lilkickers-page futprep-theme">
@@ -48,7 +52,7 @@ export default function FutprepLilKickersPage() {
         </Link>
 
         <nav>
-          <Link href="/futprep/messy-tots">Programs</Link>
+          <Link href="/futprep/programs">Programs</Link>
           <Link href="/futprep/coaches">Coaches</Link>
           <Link className="fp-home-login" href="/futprep/lil-kickers/staff/login">Staff login</Link>
         </nav>
@@ -124,11 +128,12 @@ export default function FutprepLilKickersPage() {
         <div className="lk-classes-heading">
           <span className="lk-section-label">Choose their Saturday</span>
           <h2>Pick the class <em>that fits your child.</em></h2>
-          <p>Two classes, one fun morning. Each class is capped at {FUTPREP_PROGRAMS[0]?.capacity ?? 20} players so the session can still feel personal.</p>
+          <p>Saturday classes, one fun morning. Each class is capped at {programs[0]?.capacity ?? 20} players so the session can still feel personal.</p>
         </div>
 
         <div className="lk-class-grid">
-          {FUTPREP_PROGRAMS.map((program, index) => (
+          {programs.length === 0 && <p className="form-hint">Classes are loading — check back in a moment.</p>}
+          {programs.map((program, index) => (
             <article className="lk-class-card" key={program.slug}>
               <div className="lk-class-number">0{index + 1}</div>
               <div className="lk-class-top">
@@ -141,8 +146,8 @@ export default function FutprepLilKickersPage() {
                 <div><small>Full term</small><strong>{formatMoney(program.termFeeCents)}</strong><span>one payment</span></div>
               </div>
               <div className="lk-class-bottom">
-                <span>{program.capacity} spots</span>
-                <Link href="/futprep/lil-kickers/register">Choose this class →</Link>
+                <span>{program.spotsRemaining} of {program.capacity} spots</span>
+                <Link href={`/futprep/lil-kickers/register?program=${program.slug}`}>Choose this class →</Link>
               </div>
             </article>
           ))}
@@ -197,7 +202,7 @@ export default function FutprepLilKickersPage() {
           <div>
             <small>Registration</small>
             <strong>Free to register</strong>
-            <p>Complete the form once, choose a class and receive your registration confirmation.</p>
+            <p>Complete the form once, choose a class and receive your registration confirmation. Already registered? <Link href="/futprep/my">Check your status →</Link></p>
           </div>
           <div>
             <small>Location</small>

@@ -5470,3 +5470,63 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .request-mail-steamer{animation:none;left:50%;opacity:1;transform:translateX(-50%)}
   .request-steam-puff,.request-mail-water i{animation:none}
 }
+
+/* PROGRAMS INDEX (/futprep/programs) */
+.futprep-programs-page{padding-bottom:60px}
+.futprep-programs-page .fpp-hero{padding:72px 6vw 40px;max-width:720px}
+.futprep-programs-page .fpp-hero h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(2.6rem,5vw,4.2rem);font-weight:400;letter-spacing:-.04em;line-height:.98;margin:14px 0}
+.futprep-programs-page .fpp-hero h1 em{color:var(--lk-pink);font-weight:400}
+.futprep-programs-page .fpp-hero>p{color:var(--muted);font-size:1rem;line-height:1.6;margin:0}
+.futprep-programs-page .fpp-body{padding:0 6vw 40px}
+.futprep-programs-page .fpp-empty{background:#fff;border:1px solid var(--line);padding:48px;text-align:center}
+.futprep-programs-page .fpp-location-group+.fpp-location-group{margin-top:52px}
+.futprep-programs-page .fpp-location-heading{margin-bottom:20px}
+.futprep-programs-page .fpp-location-heading h2{font-family:Georgia,serif;font-size:1.9rem;font-weight:400;margin:6px 0 0}
+.futprep-programs-page .fpp-program-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.futprep-programs-page .fpp-card{background:#fff;border:1px solid var(--line);display:flex;flex-direction:column;gap:18px;padding:24px}
+.futprep-programs-page .fpp-card-top span{color:var(--lk-pink);font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.futprep-programs-page .fpp-card-top h3{font-family:Georgia,serif;font-size:1.5rem;font-weight:400;margin:8px 0 6px}
+.futprep-programs-page .fpp-card-top p{color:var(--muted);font-size:.85rem;margin:0}
+.futprep-programs-page .fpp-card-price{border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;gap:24px;padding:14px 0}
+.futprep-programs-page .fpp-card-price small{color:var(--muted);display:block;font-size:.66rem;text-transform:uppercase}
+.futprep-programs-page .fpp-card-price strong{font-family:Georgia,serif;font-size:1.15rem;font-weight:400}
+.futprep-programs-page .fpp-card-bottom{align-items:center;display:flex;justify-content:space-between}
+.futprep-programs-page .fpp-card-bottom span{color:var(--muted);font-size:.75rem}
+.futprep-programs-page .fpp-card-bottom a{color:var(--lk-pink-deep);font-size:.8rem;font-weight:800}
+@media(max-width:640px){
+  .futprep-programs-page .fpp-hero{padding:44px 20px 28px}
+  .futprep-programs-page .fpp-body{padding:0 20px 40px}
+  .futprep-programs-page .fpp-program-grid{grid-template-columns:1fr}
+  .futprep-programs-page .fpp-card-bottom{flex-direction:column;align-items:flex-start;gap:10px}
+}
+
+/* PARENT STATUS LOOKUP (/futprep/my) */
+.status-pending,.status-overdue{background:#ffe5e8;color:#8d2330}
+.status-partial{background:#fff0b8;color:#634d00}
+.status-paid{background:#dff5d2;color:#285621}
+.status-waived,.status-cancelled{background:#e8e8e4;color:#555}
+.my-status-page{margin:0 auto;max-width:640px;padding:0 24px 90px}
+.my-status-intro{padding:56px 0 32px}
+.my-status-intro h1{font-family:Georgia,serif;font-size:clamp(2rem,4vw,2.8rem);font-weight:400;margin:14px 0 12px}
+.my-status-intro p{color:var(--muted);font-size:.92rem;line-height:1.6;margin:0}
+.my-lookup-form{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:20px;padding:32px}
+.my-lookup-form label{display:flex;flex-direction:column;gap:8px}
+.my-lookup-form label>span{font-size:.74rem;font-weight:800}
+.my-lookup-form input{background:#fff;border:1px solid var(--line);font-size:.92rem;height:46px;padding:0 14px}
+.my-status-card{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:18px;padding:32px}
+.my-status-card h1{font-family:Georgia,serif;font-size:2rem;font-weight:400;margin:10px 0 0}
+.my-status-reference{color:var(--muted);font-size:.85rem;margin:0}
+.my-status-grid{display:grid;gap:16px;grid-template-columns:1fr 1fr;margin:0}
+.my-status-grid dt{color:var(--muted);font-size:.64rem;letter-spacing:.05em;text-transform:uppercase}
+.my-status-grid dd{font-size:.9rem;margin:4px 0 0}
+.my-status-balance{background:#fff0b8;padding:18px}
+.my-status-balance span{color:#634d00;display:block;font-size:.7rem;font-weight:800;text-transform:uppercase}
+.my-status-balance strong{display:block;font-family:Georgia,serif;font-size:1.6rem;font-weight:400;margin:4px 0}
+.my-status-balance p{color:#634d00;font-size:.82rem;margin:0}
+.my-status-sessions ul{list-style:none;margin:10px 0 0;max-height:200px;overflow-y:auto;padding:0}
+.my-status-sessions li{border-top:1px solid var(--line);font-size:.85rem;padding:9px 0}
+.my-status-back{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:.8rem;padding:0;text-align:left;text-decoration:underline}
+@media(max-width:560px){
+  .my-status-grid{grid-template-columns:1fr}
+  .my-lookup-form,.my-status-card{padding:24px 18px}
+}

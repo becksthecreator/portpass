@@ -3,6 +3,7 @@ import {
   createFutprepRegistration,
   type FutprepRegistrationInput,
 } from "@/db/registrations";
+import { sendFutprepRegistrationReceivedEmail } from "@/lib/email";
 
 const limits: Record<string, number> = {
   parentName: 120, parentEmail: 180, parentPhone: 40, relationship: 60,
@@ -91,6 +92,19 @@ export async function POST(request: Request) {
 
   try {
     const registration = await createFutprepRegistration(input);
+    sendFutprepRegistrationReceivedEmail({
+      parentEmail: input.parentEmail,
+      parentName: input.parentName,
+      childName: input.childName,
+      programName: registration.program.name,
+      day: registration.program.day,
+      time: registration.program.time,
+      endTime: registration.program.endTime,
+      location: registration.term.location,
+      amountDueCents: registration.amountDueCents,
+      referenceCode: registration.referenceCode,
+      statusUrl: `${new URL(request.url).origin}/futprep/my/${registration.referenceCode}`,
+    }).catch((error) => console.error("Futprep registration email error", error));
     return NextResponse.json({ registration }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   FUTPREP_BANK_DETAILS,
   FUTPREP_TERM,
@@ -70,7 +71,15 @@ function ageAt(dob: string, referenceDate: string) {
 }
 
 export function RegistrationForm() {
-  const [form, setForm] = useState<FormState>(initial);
+  const searchParams = useSearchParams();
+  const [form, setForm] = useState<FormState>(() => ({
+    ...initial,
+    programSlug: searchParams.get("program") ?? "",
+    parentName: searchParams.get("parentName") ?? "",
+    parentEmail: searchParams.get("parentEmail") ?? "",
+    parentPhone: searchParams.get("parentPhone") ?? "",
+    relationship: searchParams.get("relationship") ?? "",
+  }));
   const [step, setStep] = useState(0);
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [busy, setBusy] = useState(false);
@@ -184,8 +193,8 @@ export function RegistrationForm() {
           ) : (
             <>
               <p>{form.paymentMethod === "online_banking"
-                ? "Send this from your own bank's online or mobile banking app. Include the parent/guardian name and child's name in the transfer reference."
-                : "Use the parent/guardian name and child's name in the transfer reference so Futprep can match the payment."}</p>
+                ? "Send this from your own bank's online or mobile banking app."
+                : "Visit your bank and transfer to the account below."} Use your registration code as the transfer reference — <strong>{result.referenceCode}</strong> — so Futprep can match the payment automatically.</p>
               <div className="bank-details compact">
                 <span>{FUTPREP_BANK_DETAILS.bankName}</span>
                 <span>{FUTPREP_BANK_DETAILS.accountName}</span>
@@ -195,7 +204,8 @@ export function RegistrationForm() {
             </>
           )}
         </div>
-        <a className="primary-button" href="/futprep/lil-kickers">Back to program details →</a>
+        <a className="primary-button" href={`/futprep/my/${result.referenceCode}`}>Check registration status →</a>
+        <a className="secondary-button" href="/futprep/lil-kickers">Back to program details</a>
       </section>
     );
   }
@@ -317,8 +327,8 @@ export function RegistrationForm() {
                 <div>
                   <span className="choice-heading">{form.paymentMethod === "online_banking" ? "Pay via online banking" : "Futprep bank transfer"}</span>
                   <p>{form.paymentMethod === "online_banking"
-                    ? "Send this from your own bank's online or mobile banking app. Include the parent/guardian name and child's name in the transfer reference."
-                    : "Visit your bank and transfer to the account below. Include the parent/guardian name and child's name in the transfer reference."}</p>
+                    ? "Send this from your own bank's online or mobile banking app."
+                    : "Visit your bank and transfer to the account below."} You'll get a registration code after you submit — use it as the transfer reference so Futprep can match your payment.</p>
                 </div>
                 <dl className="bank-details">
                   <div><dt>Bank</dt><dd>{FUTPREP_BANK_DETAILS.bankName}</dd></div>

@@ -16,14 +16,19 @@ function paymentMethodLabel(method:string) {
 export function AdminRegistrationManager({ initialRegistrations }: { initialRegistrations: StaffRegistration[] }) {
   const [items,setItems] = useState(initialRegistrations);
   const [filter,setFilter] = useState("all");
+  const [search,setSearch] = useState("");
   const [busy,setBusy] = useState<number|null>(null);
   const [amounts,setAmounts] = useState<Record<number,string>>({});
   const [copied,setCopied] = useState(false);
 
-  const visible = useMemo(
-    ()=>items.filter((item)=>filter==="all" || item.program_slug===filter),
-    [items,filter]
-  );
+  const visible = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return items.filter((item) => {
+      if (filter !== "all" && item.program_slug !== filter) return false;
+      if (!query) return true;
+      return item.reference_code.toLowerCase().includes(query) || item.child_name.toLowerCase().includes(query);
+    });
+  }, [items,filter,search]);
 
   // Built from whatever programs actually have registrations, so a newly
   // added program (e.g. Futprep Out East) gets its own filter automatically.
@@ -81,6 +86,14 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
         <article><span>Paid</span><strong>{items.filter(i=>i.payment_status==="paid").length}</strong></article>
         <article><span>Awaiting payment</span><strong>{items.filter(i=>["pending","partial","overdue"].includes(i.payment_status)).length}</strong></article>
       </div>
+      <input
+        className="staff-search-input"
+        type="search"
+        placeholder="Search by reference code or child name…"
+        value={search}
+        onChange={(e)=>setSearch(e.target.value)}
+      />
+
       <div className="staff-filter">
         <button className={filter==="all"?"is-active":""} onClick={()=>setFilter("all")}>All</button>
         {programFilters.map(([slug,name])=>(
