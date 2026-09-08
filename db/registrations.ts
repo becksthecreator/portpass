@@ -2,7 +2,6 @@ import {
   CONSENT_VERSION,
   FUTPREP_PROGRAMS,
   FUTPREP_TERM,
-  type FutprepProgramSlug,
 } from "@/app/futprep/lil-kickers/config";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -27,7 +26,7 @@ export type FutprepRegistrationInput = {
   specialNeeds: string;
   authorizedPickup: string;
   additionalNotes: string;
-  programSlug: FutprepProgramSlug;
+  programSlug: string;
   paymentFrequency: PaymentFrequency;
   paymentMethod: PaymentMethod;
   photoConsent: "yes" | "no";
@@ -36,9 +35,18 @@ export type FutprepRegistrationInput = {
 };
 
 export type FutprepAvailability = {
-  slug: FutprepProgramSlug;
+  slug: string;
   name: string;
+  ageMin: number;
+  ageMax: number;
+  day: string;
+  time: string;
+  endTime: string;
+  location: string;
   capacity: number;
+  weeklyFeeCents: number;
+  termFeeCents: number;
+  termStartDate: string;
   registered: number;
   spotsRemaining: number;
 };
@@ -250,44 +258,47 @@ function ageOnDate(dateOfBirth: string, onDate: string) {
 export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+
+  // Dynamic: reads every active Futprep program (whether seeded from the
+  // static Term 1 config or added later by staff, e.g. Futprep Out East)
+  // rather than only the two originally-hardcoded programs.
+  const { data: programs, error: programsError } = await db
+    .from("programs")
+    .select("id,slug,name,age_min,age_max,location,day_of_week,start_time,end_time,capacity,organization_id")
+    .eq("active", true)
+    .order("id", { ascending: true });
+  throwIfSupabaseError(programsError, "Could not load class availability");
+
   const output: FutprepAvailability[] = [];
 
-  for (const configured of FUTPREP_PROGRAMS) {
-    const { data: program, error: programError } = await db
-      .from("programs")
-      .select("id,capacity")
-      .eq("slug", configured.slug)
-      .eq("active", true)
-      .maybeSingle();
-    throwIfSupabaseError(programError, "Could not load class availability");
-
-    if (!program) {
-      output.push({
-        slug: configured.slug,
-        name: configured.name,
-        capacity: configured.capacity,
-        registered: 0,
-        spotsRemaining: configured.capacity,
-      });
-      continue;
-    }
-
+  for (const program of programs ?? []) {
     const { data: term, error: termError } = await db
       .from("program_terms")
-      .select("id")
+      .select("id,start_date,weekly_fee_cents,term_fee_cents")
       .eq("program_id", program.id)
-      .eq("name", FUTPREP_TERM.name)
       .eq("active", true)
+      .order("start_date", { ascending: false })
+      .limit(1)
       .maybeSingle();
     throwIfSupabaseError(termError, "Could not load term availability");
 
+    const capacity = Number(program.capacity);
     if (!term) {
       output.push({
-        slug: configured.slug,
-        name: configured.name,
-        capacity: Number(program.capacity),
+        slug: program.slug,
+        name: program.name,
+        ageMin: Number(program.age_min),
+        ageMax: Number(program.age_max),
+        day: program.day_of_week,
+        time: program.start_time,
+        endTime: program.end_time ?? program.start_time,
+        location: program.location,
+        capacity,
+        weeklyFeeCents: 0,
+        termFeeCents: 0,
+        termStartDate: new Date().toISOString().slice(0, 10),
         registered: 0,
-        spotsRemaining: Number(program.capacity),
+        spotsRemaining: capacity,
       });
       continue;
     }
@@ -301,12 +312,20 @@ export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
     throwIfSupabaseError(countError, "Could not count registrations");
 
     const registered = Number(count ?? 0);
-    const capacity = Number(program.capacity);
 
     output.push({
-      slug: configured.slug,
-      name: configured.name,
+      slug: program.slug,
+      name: program.name,
+      ageMin: Number(program.age_min),
+      ageMax: Number(program.age_max),
+      day: program.day_of_week,
+      time: program.start_time,
+      endTime: program.end_time ?? program.start_time,
+      location: program.location,
       capacity,
+      weeklyFeeCents: Number(term.weekly_fee_cents),
+      termFeeCents: Number(term.term_fee_cents),
+      termStartDate: term.start_date,
       registered,
       spotsRemaining: Math.max(0, capacity - registered),
     });
@@ -321,34 +340,30 @@ export async function createFutprepRegistration(
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
 
-  const configuredProgram = FUTPREP_PROGRAMS.find(
-    (program) => program.slug === input.programSlug,
-  );
-  if (!configuredProgram) throw new Error("INVALID_PROGRAM");
-
-  const age = ageOnDate(input.childDob, FUTPREP_TERM.startDate);
-  if (age < configuredProgram.ageMin || age > configuredProgram.ageMax) {
-    throw new Error("AGE_MISMATCH");
-  }
-
   const { data: program, error: programError } = await db
     .from("programs")
-    .select("id,organization_id,capacity")
+    .select("id,organization_id,capacity,name,age_min,age_max,location,day_of_week,start_time,end_time")
     .eq("slug", input.programSlug)
     .eq("active", true)
     .maybeSingle();
   throwIfSupabaseError(programError, "Could not load selected program");
-  if (!program) throw new Error("PROGRAM_NOT_AVAILABLE");
+  if (!program) throw new Error("INVALID_PROGRAM");
 
   const { data: term, error: termError } = await db
     .from("program_terms")
-    .select("id,weekly_fee_cents,term_fee_cents")
+    .select("id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents")
     .eq("program_id", program.id)
-    .eq("name", FUTPREP_TERM.name)
     .eq("active", true)
+    .order("start_date", { ascending: false })
+    .limit(1)
     .maybeSingle();
   throwIfSupabaseError(termError, "Could not load selected term");
   if (!term) throw new Error("PROGRAM_NOT_AVAILABLE");
+
+  const age = ageOnDate(input.childDob, term.start_date);
+  if (age < Number(program.age_min) || age > Number(program.age_max)) {
+    throw new Error("AGE_MISMATCH");
+  }
 
   const { count, error: countError } = await db
     .from("registrations")
@@ -427,8 +442,25 @@ export async function createFutprepRegistration(
 
   return {
     referenceCode,
-    program: configuredProgram,
-    term: FUTPREP_TERM,
+    program: {
+      slug: input.programSlug,
+      name: program.name,
+      ageMin: Number(program.age_min),
+      ageMax: Number(program.age_max),
+      day: program.day_of_week,
+      time: program.start_time,
+      endTime: program.end_time ?? program.start_time,
+      capacity: Number(program.capacity),
+      weeklyFeeCents: Number(term.weekly_fee_cents),
+      termFeeCents: Number(term.term_fee_cents),
+    },
+    term: {
+      name: term.name,
+      startDate: term.start_date,
+      endDate: term.end_date,
+      breakDates: (term.break_dates ?? []) as string[],
+      location: program.location,
+    },
     amountDueCents,
     paymentStatus: "pending" as const,
     registrationStatus: "pending" as const,

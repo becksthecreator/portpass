@@ -3,10 +3,8 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   FUTPREP_BANK_DETAILS,
-  FUTPREP_PROGRAMS,
   FUTPREP_TERM,
   formatMoney,
-  programBySlug,
   programTimeRange,
 } from "../config";
 
@@ -26,10 +24,26 @@ type FormState = {
   photoConsent: string; signatureName: string; consentAccepted: boolean;
 };
 
-type Availability = { slug: string; registered: number; spotsRemaining: number; capacity: number };
+type Availability = {
+  slug: string;
+  name: string;
+  ageMin: number;
+  ageMax: number;
+  day: string;
+  time: string;
+  endTime: string;
+  location: string;
+  capacity: number;
+  weeklyFeeCents: number;
+  termFeeCents: number;
+  termStartDate: string;
+  registered: number;
+  spotsRemaining: number;
+};
 type RegistrationResult = {
   referenceCode: string;
-  program: (typeof FUTPREP_PROGRAMS)[number];
+  program: { name: string; day: string; time: string; endTime: string };
+  term: { location: string };
   amountDueCents: number;
 };
 
@@ -44,11 +58,11 @@ const initial: FormState = {
 
 const steps = ["Parent","Child","Health & safety","Class & payment","Consent"];
 
-function ageAtStart(dob: string) {
+function ageAt(dob: string, referenceDate: string) {
   if (!dob) return null;
   const birth = new Date(`${dob}T12:00:00Z`);
-  const start = new Date(`${FUTPREP_TERM.startDate}T12:00:00Z`);
-  if (Number.isNaN(birth.valueOf())) return null;
+  const start = new Date(`${referenceDate}T12:00:00Z`);
+  if (Number.isNaN(birth.valueOf()) || Number.isNaN(start.valueOf())) return null;
   let age = start.getUTCFullYear() - birth.getUTCFullYear();
   const delta = start.getUTCMonth() - birth.getUTCMonth();
   if (delta < 0 || (delta === 0 && start.getUTCDate() < birth.getUTCDate())) age--;
@@ -63,10 +77,21 @@ export function RegistrationForm() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<RegistrationResult | null>(null);
 
-  const selectedProgram = useMemo(() => programBySlug(form.programSlug), [form.programSlug]);
+  const selectedProgram = useMemo(
+    () => availability.find((program) => program.slug === form.programSlug),
+    [availability, form.programSlug],
+  );
   const selectedPrice = selectedProgram && form.paymentFrequency
     ? (form.paymentFrequency === "term" ? selectedProgram.termFeeCents : selectedProgram.weeklyFeeCents)
     : null;
+
+  const overallAgeRange = useMemo(() => {
+    if (!availability.length) return { min: 0, max: 99 };
+    return {
+      min: Math.min(...availability.map((program) => program.ageMin)),
+      max: Math.max(...availability.map((program) => program.ageMax)),
+    };
+  }, [availability]);
 
   useEffect(() => {
     fetch("/api/futprep/lil-kickers/availability", { cache: "no-store" })
@@ -87,14 +112,19 @@ export function RegistrationForm() {
     }
     if (step === 1) {
       if (!form.childName || !form.childDob || !form.gender || !form.authorizedPickup) return "Complete the child and pickup details.";
-      const age = ageAtStart(form.childDob);
-      if (age === null || age < 3 || age > 7) return "Term 1 currently serves children ages 3–7.";
+      const referenceDate = availability[0]?.termStartDate ?? FUTPREP_TERM.startDate;
+      const age = ageAt(form.childDob, referenceDate);
+      if (age === null || age < overallAgeRange.min || age > overallAgeRange.max) {
+        return `Our current classes serve children ages ${overallAgeRange.min}–${overallAgeRange.max}.`;
+      }
     }
     if (step === 2 && (!form.emergencyContactName || !form.emergencyContactPhone)) return "Add an emergency contact.";
     if (step === 3) {
       if (!form.programSlug || !form.paymentFrequency || !form.paymentMethod) return "Choose a class, payment plan, and payment method.";
-      const age = ageAtStart(form.childDob);
-      if (selectedProgram && age !== null && (age < selectedProgram.ageMin || age > selectedProgram.ageMax)) return `${selectedProgram.name} is for ages ${selectedProgram.ageMin}–${selectedProgram.ageMax}.`;
+      if (selectedProgram) {
+        const age = ageAt(form.childDob, selectedProgram.termStartDate);
+        if (age !== null && (age < selectedProgram.ageMin || age > selectedProgram.ageMax)) return `${selectedProgram.name} is for ages ${selectedProgram.ageMin}–${selectedProgram.ageMax}.`;
+      }
     }
     return "";
   }
@@ -141,8 +171,8 @@ export function RegistrationForm() {
         <div className="confirmation-reference"><span>Registration reference</span><strong>{result.referenceCode}</strong></div>
         <dl className="confirmation-grid">
           <div><dt>Class</dt><dd>{result.program.name}</dd></div>
-          <div><dt>Time</dt><dd>Saturday · {programTimeRange(result.program)}</dd></div>
-          <div><dt>Location</dt><dd>{FUTPREP_TERM.location}</dd></div>
+          <div><dt>Time</dt><dd>{result.program.day} · {programTimeRange(result.program)}</dd></div>
+          <div><dt>Location</dt><dd>{result.term.location}</dd></div>
           <div><dt>Plan</dt><dd>{form.paymentFrequency === "term" ? "Full term" : "Weekly"}</dd></div>
           <div><dt>Amount</dt><dd>{formatMoney(result.amountDueCents)}{form.paymentFrequency === "weekly" ? " per class" : ""}</dd></div>
           <div><dt>Status</dt><dd><span className="status status-submitted">Payment pending</span></dd></div>
@@ -176,7 +206,7 @@ export function RegistrationForm() {
         <div>
           <div className="eyebrow"><span className="eyebrow-dot" />Futprep · Term 1 registration</div>
           <h1>Register your child.</h1>
-          <p>Saturday sessions at {FUTPREP_TERM.location}. Registration is free.</p>
+          <p>Choose your child&apos;s class below. Registration is free.</p>
         </div>
         <div className="registration-progress">
           {steps.map((name,index) => (
@@ -233,18 +263,16 @@ export function RegistrationForm() {
             <div className="choice-section">
               <span className="choice-heading">Choose a class *</span>
               <div className="class-choice-grid">
-                {FUTPREP_PROGRAMS.map((program) => {
-                  const open = availability.find((a)=>a.slug===program.slug);
-                  return (
-                    <label className={`choice-card ${form.programSlug===program.slug ? "is-selected" : ""}`} key={program.slug}>
-                      <input type="radio" name="program" checked={form.programSlug===program.slug} onChange={()=>set("programSlug",program.slug)} />
-                      <span className="choice-check" />
-                      <strong>{program.name}</strong>
-                      <span>Ages {program.ageMin}–{program.ageMax} · Saturday {programTimeRange(program)}</span>
-                      <small>{open ? `${open.spotsRemaining} of ${open.capacity} spots remaining` : `${program.capacity} spots`}</small>
-                    </label>
-                  );
-                })}
+                {availability.length === 0 && <p className="form-hint">Loading classes…</p>}
+                {availability.map((program) => (
+                  <label className={`choice-card ${form.programSlug===program.slug ? "is-selected" : ""}`} key={program.slug}>
+                    <input type="radio" name="program" checked={form.programSlug===program.slug} onChange={()=>set("programSlug",program.slug)} />
+                    <span className="choice-check" />
+                    <strong>{program.name}</strong>
+                    <span>Ages {program.ageMin}–{program.ageMax} · {program.day} {programTimeRange(program)}</span>
+                    <small>{program.spotsRemaining} of {program.capacity} spots remaining</small>
+                  </label>
+                ))}
               </div>
             </div>
 
@@ -310,7 +338,7 @@ export function RegistrationForm() {
             <legend><span>05</span>Review & consent</legend>
             <div className="registration-review">
               <div><span>Child</span><strong>{form.childName}</strong><small>{form.childDob}</small></div>
-              <div><span>Class</span><strong>{selectedProgram?.name}</strong><small>Saturday · {selectedProgram ? programTimeRange(selectedProgram) : ""}</small></div>
+              <div><span>Class</span><strong>{selectedProgram?.name}</strong><small>{selectedProgram ? `${selectedProgram.day} · ${programTimeRange(selectedProgram)}` : ""}</small></div>
               <div><span>Payment</span><strong>{form.paymentFrequency==="term" ? "Full term" : "Weekly"} · {selectedPrice!==null ? formatMoney(selectedPrice) : ""}</strong><small>{paymentMethodLabel(form.paymentMethod)}</small></div>
               <div><span>Parent/guardian</span><strong>{form.parentName}</strong><small>{form.parentEmail}</small></div>
             </div>

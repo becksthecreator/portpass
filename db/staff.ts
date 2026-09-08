@@ -1,4 +1,5 @@
 import { ensureFutprepPilotData, type PaymentMethod } from "./registrations";
+import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type StaffRegistration = {
@@ -55,11 +56,15 @@ export async function listFutprepStaffRegistrations(): Promise<
 > {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
 
+  // Any active Futprep program (the original Term 1 pilot, or one staff
+  // added later, e.g. a second location) shows up here — not just the two
+  // originally-hardcoded slugs.
   const { data: programs, error: programError } = await db
     .from("programs")
     .select("id,name,slug,start_time")
-    .in("slug", ["lil-kickers", "rookies"])
+    .eq("organization_id", organizationId)
     .order("start_time", { ascending: true });
   throwIfSupabaseError(programError, "Could not load Futprep programs");
 
@@ -148,11 +153,12 @@ export async function listFutprepStaffRegistrations(): Promise<
 export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
 
   const { data: programs, error: programError } = await db
     .from("programs")
     .select("id,name,slug")
-    .in("slug", ["lil-kickers", "rookies"]);
+    .eq("organization_id", organizationId);
   throwIfSupabaseError(programError, "Could not load Futprep session programs");
 
   const programRows = (programs ?? []) as Array<{
@@ -423,11 +429,12 @@ async function assertFutprepSession(sessionId: number) {
   throwIfSupabaseError(error, "Could not validate Futprep session");
   if (!session) throw new Error("SESSION_NOT_FOUND");
 
+  const organizationId = await futprepOrganizationId();
   const { data: program, error: programError } = await db
     .from("programs")
     .select("slug")
     .eq("id", session.program_id)
-    .in("slug", ["lil-kickers","rookies"])
+    .eq("organization_id", organizationId)
     .maybeSingle();
   throwIfSupabaseError(programError, "Could not validate Futprep program");
   if (!program) throw new Error("SESSION_NOT_FOUND");

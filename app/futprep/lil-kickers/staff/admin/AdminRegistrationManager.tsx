@@ -25,6 +25,14 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
     [items,filter]
   );
 
+  // Built from whatever programs actually have registrations, so a newly
+  // added program (e.g. Futprep Out East) gets its own filter automatically.
+  const programFilters = useMemo(() => {
+    const seen = new Map<string,string>();
+    for (const item of items) if (!seen.has(item.program_slug)) seen.set(item.program_slug,item.program_name);
+    return Array.from(seen.entries());
+  }, [items]);
+
   async function copyRegistrationLink() {
     const url=`${window.location.origin}/futprep/lil-kickers/register`;
     await navigator.clipboard.writeText(url);
@@ -75,8 +83,9 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
       </div>
       <div className="staff-filter">
         <button className={filter==="all"?"is-active":""} onClick={()=>setFilter("all")}>All</button>
-        <button className={filter==="lil-kickers"?"is-active":""} onClick={()=>setFilter("lil-kickers")}>Lil Kickers</button>
-        <button className={filter==="rookies"?"is-active":""} onClick={()=>setFilter("rookies")}>Kickers</button>
+        {programFilters.map(([slug,name])=>(
+          <button key={slug} className={filter===slug?"is-active":""} onClick={()=>setFilter(slug)}>{name}</button>
+        ))}
       </div>
 
       <div className="staff-registration-list">

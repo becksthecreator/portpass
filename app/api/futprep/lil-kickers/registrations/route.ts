@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { FUTPREP_PROGRAMS } from "@/app/futprep/lil-kickers/config";
 import {
   createFutprepRegistration,
   type FutprepRegistrationInput,
@@ -43,7 +42,7 @@ export async function POST(request: Request) {
   }
 
   const programSlug = clean(body, "programSlug");
-  if (!FUTPREP_PROGRAMS.some((program) => program.slug === programSlug)) {
+  if (!programSlug) {
     return NextResponse.json({ error: "Choose a valid class." }, { status: 400 });
   }
 
@@ -95,8 +94,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ registration }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    if (message === "AGE_MISMATCH") return NextResponse.json({ error: "The child’s age does not match the selected class for Term 1." }, { status: 400 });
-    if (message === "PROGRAM_FULL") return NextResponse.json({ error: "That class has reached its 20-player capacity." }, { status: 409 });
+    if (message === "INVALID_PROGRAM" || message === "PROGRAM_NOT_AVAILABLE") return NextResponse.json({ error: "Choose a valid class." }, { status: 400 });
+    if (message === "AGE_MISMATCH") return NextResponse.json({ error: "The child’s age does not match the selected class." }, { status: 400 });
+    if (message === "PROGRAM_FULL") return NextResponse.json({ error: "That class has reached capacity." }, { status: 409 });
     if (message.startsWith("DUPLICATE:")) return NextResponse.json({ error: "A Term 1 registration for this child has already been received.", referenceCode: message.split(":")[1] }, { status: 409 });
     console.error("Futprep registration error", error);
     return NextResponse.json({ error: "We couldn’t complete the registration. Please try again." }, { status: 500 });
