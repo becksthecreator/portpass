@@ -41,9 +41,13 @@ Add production environment variables:
 ```
 NEXT_PUBLIC_SUPABASE_URL=<Supabase project URL>
 SUPABASE_SECRET_KEY=<server-only secret key>
-PORTPASS_FUTPREP_ADMIN_PIN=<Kiki staff PIN>
-PORTPASS_FUTPREP_COACH_PIN=<Coach Bex staff PIN>
 ```
+
+Staff PINs are no longer set through environment variables. They are stored
+as hashes on `staff_members.pin_hash` in Supabase (see
+`supabase/migrations/202609090002_futprep_staff_pin_storage.sql`), keyed by
+`staff_members.account_key` (`admin`, `coach`, `ceo`, `kione`, `adon`). This
+lets PINs be reset from the database without a redeploy.
 
 Deploy the Vercel preview first. Do not move the custom domain yet.
 
