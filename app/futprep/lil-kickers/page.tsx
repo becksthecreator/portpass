@@ -4,11 +4,12 @@ import {
   FUTPREP_TERM,
   activeSessionDates,
   formatMoney,
+  programTimeRange,
 } from "./config";
 
 export const metadata = {
   title: "Futprep Lil Kickers | PortPass",
-  description: "Register for Futprep Lil Kickers and Rookies Term 1 through PortPass.",
+  description: "Register for Futprep Lil Kickers and Futprep Kickers Term 1 through PortPass.",
 };
 
 function readableDate(value: string) {
@@ -133,7 +134,7 @@ export default function FutprepLilKickersPage() {
               <div className="lk-class-top">
                 <span>Ages {program.ageMin}–{program.ageMax}</span>
                 <h3>{program.name}</h3>
-                <p>{program.day}s · <strong>{program.time}</strong></p>
+                <p>{program.day}s · <strong>{programTimeRange(program)}</strong></p>
               </div>
               <div className="lk-class-price">
                 <div><small>Weekly</small><strong>{formatMoney(program.weeklyFeeCents)}</strong><span>per class</span></div>
@@ -190,7 +191,7 @@ export default function FutprepLilKickersPage() {
         <div className="lk-clarity-card">
           <div>
             <small>Payment</small>
-            <strong>Cash or bank transfer</strong>
+            <strong>Cash, bank transfer or online banking</strong>
             <p>Choose your payment method during registration. Online card payments are coming soon.</p>
           </div>
           <div>

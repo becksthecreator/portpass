@@ -174,7 +174,6 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .choice-section+.choice-section{margin-top:36px}
 .choice-heading{display:block;font-size:.72rem;font-weight:800;margin-bottom:13px}
 .class-choice-grid,.payment-method-grid{display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
-.payment-method-grid{grid-template-columns:repeat(3,1fr)}
 .choice-card{border:1px solid var(--line);cursor:pointer;display:flex!important;flex-direction:column;gap:8px!important;min-height:140px;padding:20px;position:relative}
 .choice-card input{height:1px;opacity:0;position:absolute;width:1px}
 .choice-card .choice-check{border:1px solid #909a94;border-radius:50%;height:16px;position:absolute;right:16px;top:16px;width:16px}

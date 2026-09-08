@@ -55,8 +55,8 @@ Verify:
 - early-access form
 - super-admin review
 - Futprep program page
-- Lil Kickers registration
-- Rookies registration
+- Futprep Lil Kickers registration
+- Futprep Kickers registration
 - class capacity
 - duplicate prevention
 - cash payment selection

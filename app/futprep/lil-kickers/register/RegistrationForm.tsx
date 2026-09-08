@@ -7,7 +7,15 @@ import {
   FUTPREP_TERM,
   formatMoney,
   programBySlug,
+  programTimeRange,
 } from "../config";
+
+function paymentMethodLabel(method: string) {
+  if (method === "cash") return "Cash";
+  if (method === "online_banking") return "Online banking transfer";
+  if (method === "bank_transfer") return "Bank transfer";
+  return "";
+}
 
 type FormState = {
   parentName: string; parentEmail: string; parentPhone: string; relationship: string;
@@ -133,23 +141,26 @@ export function RegistrationForm() {
         <div className="confirmation-reference"><span>Registration reference</span><strong>{result.referenceCode}</strong></div>
         <dl className="confirmation-grid">
           <div><dt>Class</dt><dd>{result.program.name}</dd></div>
-          <div><dt>Time</dt><dd>Saturday · {result.program.time}</dd></div>
+          <div><dt>Time</dt><dd>Saturday · {programTimeRange(result.program)}</dd></div>
           <div><dt>Location</dt><dd>{FUTPREP_TERM.location}</dd></div>
           <div><dt>Plan</dt><dd>{form.paymentFrequency === "term" ? "Full term" : "Weekly"}</dd></div>
           <div><dt>Amount</dt><dd>{formatMoney(result.amountDueCents)}{form.paymentFrequency === "weekly" ? " per class" : ""}</dd></div>
           <div><dt>Status</dt><dd><span className="status status-submitted">Payment pending</span></dd></div>
         </dl>
         <div className="payment-instruction">
-          <strong>{form.paymentMethod === "cash" ? "Cash payment" : "Bank transfer"}</strong>
+          <strong>{form.paymentMethod === "cash" ? "Cash payment" : paymentMethodLabel(form.paymentMethod)}</strong>
           {form.paymentMethod === "cash" ? (
             <p>Please give the cash payment directly to Coach Bex in person. Futprep will update the payment status after it is received.</p>
           ) : (
             <>
-              <p>Use the parent/guardian name and child&apos;s name in the transfer reference so Futprep can match the payment.</p>
+              <p>{form.paymentMethod === "online_banking"
+                ? "Send this from your own bank's online or mobile banking app. Include the parent/guardian name and child's name in the transfer reference."
+                : "Use the parent/guardian name and child's name in the transfer reference so Futprep can match the payment."}</p>
               <div className="bank-details compact">
                 <span>{FUTPREP_BANK_DETAILS.bankName}</span>
                 <span>{FUTPREP_BANK_DETAILS.accountName}</span>
                 <span>{FUTPREP_BANK_DETAILS.accountNumber}</span>
+                <span>SWIFT {FUTPREP_BANK_DETAILS.swiftCode}</span>
               </div>
             </>
           )}
@@ -229,7 +240,7 @@ export function RegistrationForm() {
                       <input type="radio" name="program" checked={form.programSlug===program.slug} onChange={()=>set("programSlug",program.slug)} />
                       <span className="choice-check" />
                       <strong>{program.name}</strong>
-                      <span>Ages {program.ageMin}–{program.ageMax} · Saturday {program.time}</span>
+                      <span>Ages {program.ageMin}–{program.ageMax} · Saturday {programTimeRange(program)}</span>
                       <small>{open ? `${open.spotsRemaining} of ${open.capacity} spots remaining` : `${program.capacity} spots`}</small>
                     </label>
                   );
@@ -263,24 +274,29 @@ export function RegistrationForm() {
                 </label>
                 <label className={`choice-card ${form.paymentMethod==="bank_transfer" ? "is-selected" : ""}`}>
                   <input type="radio" checked={form.paymentMethod==="bank_transfer"} onChange={()=>set("paymentMethod","bank_transfer")} />
-                  <span className="choice-check" /><strong>Bank transfer</strong><span>Transfer directly to Futprep.</span>
+                  <span className="choice-check" /><strong>Bank transfer</strong><span>Deposit or wire at your bank.</span>
+                </label>
+                <label className={`choice-card ${form.paymentMethod==="online_banking" ? "is-selected" : ""}`}>
+                  <input type="radio" checked={form.paymentMethod==="online_banking"} onChange={()=>set("paymentMethod","online_banking")} />
+                  <span className="choice-check" /><strong>Online banking transfer</strong><span>Pay from your own bank&apos;s app.</span>
                 </label>
                 <div className="choice-card is-disabled"><span className="coming-soon-pill">Coming soon</span><strong>Online card payment</strong><span>Pay securely through PortPass.</span></div>
               </div>
             </div>
 
-            {form.paymentMethod === "bank_transfer" && (
+            {(form.paymentMethod === "bank_transfer" || form.paymentMethod === "online_banking") && (
               <div className="bank-panel">
                 <div>
-                  <span className="choice-heading">Futprep bank transfer</span>
-                  <p>Final banking details will be added once Futprep confirms them. Include the parent/guardian name and child&apos;s name in the transfer reference.</p>
+                  <span className="choice-heading">{form.paymentMethod === "online_banking" ? "Pay via online banking" : "Futprep bank transfer"}</span>
+                  <p>{form.paymentMethod === "online_banking"
+                    ? "Send this from your own bank's online or mobile banking app. Include the parent/guardian name and child's name in the transfer reference."
+                    : "Visit your bank and transfer to the account below. Include the parent/guardian name and child's name in the transfer reference."}</p>
                 </div>
                 <dl className="bank-details">
                   <div><dt>Bank</dt><dd>{FUTPREP_BANK_DETAILS.bankName}</dd></div>
                   <div><dt>Account name</dt><dd>{FUTPREP_BANK_DETAILS.accountName}</dd></div>
                   <div><dt>Account number</dt><dd>{FUTPREP_BANK_DETAILS.accountNumber}</dd></div>
-                  <div><dt>Branch</dt><dd>{FUTPREP_BANK_DETAILS.branch}</dd></div>
-                  <div><dt>Account type</dt><dd>{FUTPREP_BANK_DETAILS.accountType}</dd></div>
+                  <div><dt>SWIFT code</dt><dd>{FUTPREP_BANK_DETAILS.swiftCode}</dd></div>
                 </dl>
               </div>
             )}
@@ -294,8 +310,8 @@ export function RegistrationForm() {
             <legend><span>05</span>Review & consent</legend>
             <div className="registration-review">
               <div><span>Child</span><strong>{form.childName}</strong><small>{form.childDob}</small></div>
-              <div><span>Class</span><strong>{selectedProgram?.name}</strong><small>Saturday · {selectedProgram?.time}</small></div>
-              <div><span>Payment</span><strong>{form.paymentFrequency==="term" ? "Full term" : "Weekly"} · {selectedPrice!==null ? formatMoney(selectedPrice) : ""}</strong><small>{form.paymentMethod==="cash" ? "Cash" : "Bank transfer"}</small></div>
+              <div><span>Class</span><strong>{selectedProgram?.name}</strong><small>Saturday · {selectedProgram ? programTimeRange(selectedProgram) : ""}</small></div>
+              <div><span>Payment</span><strong>{form.paymentFrequency==="term" ? "Full term" : "Weekly"} · {selectedPrice!==null ? formatMoney(selectedPrice) : ""}</strong><small>{paymentMethodLabel(form.paymentMethod)}</small></div>
               <div><span>Parent/guardian</span><strong>{form.parentName}</strong><small>{form.parentEmail}</small></div>
             </div>
 

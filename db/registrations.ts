@@ -9,7 +9,7 @@ import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 export type RegistrationStatus = "pending" | "confirmed" | "cancelled";
 export type PaymentStatus = "pending" | "partial" | "paid" | "overdue" | "waived";
 export type PaymentFrequency = "weekly" | "term";
-export type PaymentMethod = "cash" | "bank_transfer";
+export type PaymentMethod = "cash" | "bank_transfer" | "online_banking";
 
 export type FutprepRegistrationInput = {
   parentName: string;
@@ -98,7 +98,7 @@ async function seedFutprepPilot() {
           role: "coach",
           email: null,
           responsibilities:
-            "Runs Lil Kickers and Rookies; roster, attendance, and in-person cash collection.",
+            "Runs Futprep Lil Kickers and Futprep Kickers; roster, attendance, and in-person cash collection.",
           active: true,
           created_at: now,
         },

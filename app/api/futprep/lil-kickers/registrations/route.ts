@@ -53,8 +53,8 @@ export async function POST(request: Request) {
   }
 
   const paymentMethod = clean(body, "paymentMethod");
-  if (!["cash","bank_transfer"].includes(paymentMethod)) {
-    return NextResponse.json({ error: "Choose Cash or Bank Transfer." }, { status: 400 });
+  if (!["cash","bank_transfer","online_banking"].includes(paymentMethod)) {
+    return NextResponse.json({ error: "Choose Cash, Bank Transfer, or Online Banking Transfer." }, { status: 400 });
   }
 
   const photoConsent = clean(body, "photoConsent");

@@ -7,6 +7,12 @@ function money(cents:number) {
   return new Intl.NumberFormat("en-BS",{style:"currency",currency:"BSD",minimumFractionDigits:0}).format(cents/100);
 }
 
+function paymentMethodLabel(method:string) {
+  if (method==="cash") return "Cash";
+  if (method==="online_banking") return "Online banking transfer";
+  return "Bank transfer";
+}
+
 export function AdminRegistrationManager({ initialRegistrations }: { initialRegistrations: StaffRegistration[] }) {
   const [items,setItems] = useState(initialRegistrations);
   const [filter,setFilter] = useState("all");
@@ -45,7 +51,7 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
     setBusy(item.id);
     const response = await fetch("/api/futprep/lil-kickers/staff/payments",{
       method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({registrationId:item.id,amountCents:Math.round(dollars*100),method:"bank_transfer"})
+      body:JSON.stringify({registrationId:item.id,amountCents:Math.round(dollars*100),method:item.payment_method})
     });
     const data = await response.json() as { paidCents?:number; paymentStatus?:string };
     setBusy(null);
@@ -70,7 +76,7 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
       <div className="staff-filter">
         <button className={filter==="all"?"is-active":""} onClick={()=>setFilter("all")}>All</button>
         <button className={filter==="lil-kickers"?"is-active":""} onClick={()=>setFilter("lil-kickers")}>Lil Kickers</button>
-        <button className={filter==="rookies"?"is-active":""} onClick={()=>setFilter("rookies")}>Rookies</button>
+        <button className={filter==="rookies"?"is-active":""} onClick={()=>setFilter("rookies")}>Kickers</button>
       </div>
 
       <div className="staff-registration-list">
@@ -85,7 +91,7 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
             <div className="staff-info-grid">
               <div><span>Parent / guardian</span><strong>{item.parent_name}</strong><small>{item.parent_email}<br/>{item.parent_phone}</small></div>
               <div><span>Emergency contact</span><strong>{item.emergency_contact_name}</strong><small>{item.emergency_contact_phone}</small></div>
-              <div><span>Payment</span><strong>{item.payment_frequency==="term" ? "Full term" : "Weekly"} · {item.payment_method==="cash" ? "Cash" : "Bank transfer"}</strong><small>Due {money(item.amount_due_cents)} · Recorded {money(item.paid_cents)}</small></div>
+              <div><span>Payment</span><strong>{item.payment_frequency==="term" ? "Full term" : "Weekly"} · {paymentMethodLabel(item.payment_method)}</strong><small>Due {money(item.amount_due_cents)} · Recorded {money(item.paid_cents)}</small></div>
               <div><span>Photo / video</span><strong>{item.photo_consent==="yes" ? "Allowed" : "Not allowed"}</strong></div>
             </div>
 
@@ -94,10 +100,10 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
               <select value={item.payment_status} onChange={(e)=>patch(item.id,{paymentStatus:e.target.value})}>
                 <option value="pending">Not paid / pending</option><option value="partial">Partially paid</option><option value="paid">Paid</option><option value="overdue">Overdue</option><option value="waived">Waived</option>
               </select>
-              {item.payment_method==="bank_transfer" && (
+              {(item.payment_method==="bank_transfer" || item.payment_method==="online_banking") && (
                 <div className="record-payment-inline">
                   <span>$</span><input inputMode="decimal" value={amounts[item.id] ?? String(item.amount_due_cents/100)} onChange={(e)=>setAmounts((current)=>({...current,[item.id]:e.target.value}))} />
-                  <button disabled={busy===item.id} onClick={()=>recordTransfer(item)}>Record bank transfer</button>
+                  <button disabled={busy===item.id} onClick={()=>recordTransfer(item)}>Record transfer</button>
                 </div>
               )}
             </div>

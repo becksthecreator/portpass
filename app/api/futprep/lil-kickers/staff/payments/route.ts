@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   if (!Number.isInteger(body.registrationId) || !Number.isInteger(body.amountCents) || Number(body.amountCents) <= 0) {
     return NextResponse.json({ error: "Enter a valid payment amount." }, { status: 400 });
   }
-  if (body.method !== "cash" && body.method !== "bank_transfer") {
+  if (body.method !== "cash" && body.method !== "bank_transfer" && body.method !== "online_banking") {
     return NextResponse.json({ error: "Invalid payment method." }, { status: 400 });
   }
   if (role === "coach" && body.method !== "cash") {
