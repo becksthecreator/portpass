@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   if (!Number.isInteger(body.sessionId) || !Number.isInteger(body.registrationId)) {
     return NextResponse.json({ error: "Invalid roster entry." }, { status: 400 });
   }
-  if (!["present","absent","excused"].includes(body.status ?? "")) {
+  if (!["present","absent","excused","late"].includes(body.status ?? "")) {
     return NextResponse.json({ error: "Invalid attendance status." }, { status: 400 });
   }
 
@@ -24,11 +24,16 @@ export async function POST(request: Request) {
     role === "ceo" ? "Coach Alex / Futprep CEO" :
     "Coach Bex";
 
-  await markFutprepAttendance({
-    sessionId: Number(body.sessionId),
-    registrationId: Number(body.registrationId),
-    status: body.status as "present" | "absent" | "excused",
-    markedBy,
-  });
-  return NextResponse.json({ ok: true });
+  try {
+    await markFutprepAttendance({
+      sessionId: Number(body.sessionId),
+      registrationId: Number(body.registrationId),
+      status: body.status as "present" | "absent" | "excused" | "late",
+      markedBy,
+    });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Futprep attendance error", error);
+    return NextResponse.json({ error: "Could not save attendance." }, { status: 500 });
+  }
 }

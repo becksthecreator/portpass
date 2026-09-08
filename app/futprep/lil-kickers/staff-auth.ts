@@ -72,6 +72,32 @@ export async function staffAccessConfigured(account: FutprepStaffAccount) {
   return Boolean(await pinHashForAccount(account));
 }
 
+// Lets a signed-in staff account replace the shared demo PIN with their own,
+// without a database console. Requires the current PIN, so a signed-in
+// session alone (e.g. a shared device) can't silently take over an account.
+export async function changeFutprepPin(
+  account: FutprepStaffAccount,
+  currentPin: string,
+  newPin: string,
+): Promise<string | null> {
+  const currentHash = await pinHashForAccount(account);
+  if (!currentHash) return null;
+  if ((await digest(currentPin)) !== currentHash) return null;
+  if (!/^\d{4,}$/.test(newPin)) throw new Error("INVALID_PIN");
+
+  const newHash = await digest(newPin);
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("staff_members")
+    .update({ pin_hash: newHash })
+    .eq("organization_id", FUTPREP_ORG_ID)
+    .eq("account_key", account);
+  throwIfSupabaseError(error, "Could not update PIN");
+
+  pinHashCache = null;
+  return makeStaffToken(account, newPin);
+}
+
 export async function makeStaffToken(account: FutprepStaffAccount, pin: string) {
   const expectedHash = await pinHashForAccount(account);
   if (!expectedHash) return null;

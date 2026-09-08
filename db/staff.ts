@@ -393,7 +393,7 @@ export async function rosterForSession(
 export async function markFutprepAttendance(input: {
   sessionId: number;
   registrationId: number;
-  status: "present" | "absent" | "excused";
+  status: "present" | "absent" | "excused" | "late";
   markedBy: string;
 }) {
   await ensureFutprepPilotData();
