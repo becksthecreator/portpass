@@ -1,4 +1,4 @@
-import { ensureFutprepPilotData } from "./registrations";
+import { ensureFutprepPilotData, type PaymentMethod } from "./registrations";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type StaffRegistration = {
@@ -201,7 +201,7 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
 export async function recordFutprepPayment(input: {
   registrationId: number;
   amountCents: number;
-  method: "cash" | "bank_transfer";
+  method: PaymentMethod;
   recordedBy: string;
   note?: string;
 }) {
