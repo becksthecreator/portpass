@@ -4855,9 +4855,20 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     font-size:.48rem;
   }
   .lilkickers-page .lk-hero-content{
-    bottom:275px;
+    bottom:340px;
     left:20px;
     max-width:calc(100% - 40px);
+  }
+  .lilkickers-page .lk-hero-content h1{
+    font-size:clamp(2.6rem,11vw,3.6rem);
+    line-height:.94;
+  }
+  .lilkickers-page .lk-hero-content>p{
+    font-size:.92rem;
+    margin:16px 0 20px;
+  }
+  .lilkickers-page .lk-eyebrow{
+    margin-bottom:12px;
   }
   .lilkickers-page .lk-term-panel{
     border-radius:14px 14px 0 0;
@@ -4866,8 +4877,14 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
     left:18px;
     right:18px;
   }
+  .lilkickers-page .lk-term-panel>div,
+  .lilkickers-page .lk-term-panel>a{
+    min-height:0;
+    padding:10px 14px;
+  }
   .lilkickers-page .lk-term-count{
-    min-height:60px;
+    min-height:40px;
+    padding:0 14px;
   }
   .lilkickers-page .lk-term-panel>a{
     grid-column:1/-1;
@@ -4896,6 +4913,13 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   }
   .lilkickers-page .lk-coaching-image{
     height:420px;
+    min-height:0;
+  }
+  .lilkickers-page .lk-photo-story{
+    min-height:0;
+  }
+  .lilkickers-page .lk-photo-story-main{
+    height:340px;
     min-height:0;
   }
   .lilkickers-page .lk-coaching-copy{

@@ -101,6 +101,14 @@
   .staff-registration-head{flex-direction:column;gap:12px}
   .staff-status-stack{align-items:flex-start;flex-direction:row}
   .cash-list article{align-items:flex-start;flex-direction:column;gap:12px}
+  .staff-registration-card{padding:16px}
+  .staff-filter{flex-wrap:wrap}
+  .attendance-actions{gap:8px}
+  .attendance-actions button{flex:1;min-height:44px}
+  .cash-section>h2{font-size:1.7rem}
+  .record-payment-inline{flex-wrap:wrap;width:100%}
+  .record-payment-inline input{flex:1;width:auto}
+  .record-payment-inline button{white-space:nowrap}
 }
 
 

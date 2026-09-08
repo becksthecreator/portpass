@@ -25,10 +25,10 @@ const lyfordCayDirections =
   "https://www.google.com/maps/search/?api=1&query=Lyford+Cay+Lower+Campus+Soccer+Field+Nassau+Bahamas";
 
 const futprepPhotos = {
-  hero: "/futprep/lil-kickers/lil-kickers-group.webp",
-  training: "/futprep/lil-kickers/lil-kickers-training.webp",
-  player: "/futprep/lil-kickers/lil-kickers-player.webp",
-  coach: "/futprep/lil-kickers/lil-kickers-coach.webp",
+  hero: "/futprep/lil-kickers/lil-kickers-group.jpg",
+  training: "/futprep/lil-kickers/lil-kickers-training.jpg",
+  player: "/futprep/lil-kickers/lil-kickers-player.jpg",
+  coach: "/futprep/lil-kickers/lil-kickers-coach.jpg",
 };
 
 export default function FutprepLilKickersPage() {
