@@ -74,6 +74,17 @@ function isMissingTable(error: unknown) {
 async function futprepOrganizationId() {
   const db = getSupabaseAdmin();
 
+  const { data: bySlug, error: slugError } = await db
+    .from("organizations")
+    .select("id")
+    .eq("slug", "futprep")
+    .maybeSingle();
+  throwIfSupabaseError(slugError, "Could not locate Futprep organization");
+  if (bySlug?.id) return Number(bySlug.id);
+
+  // Fallback chain below for any environment where the slug backfill
+  // (supabase/migrations/202609092002_organizations_slug_theme.sql) hasn't
+  // run yet, or the organization predates it.
   const { data: namedOrganizations, error: namedOrganizationError } = await db
     .from("organizations")
     .select("id,name")

@@ -11,6 +11,9 @@ export type OrganizationRecord = {
   activity_type: string;
   main_location: string;
   created_at: string;
+  slug: string | null;
+  theme: Record<string, string>;
+  registration_url: string | null;
 };
 
 export type OrganizationStats = {
@@ -78,6 +81,18 @@ export async function getOrganization(id: number) {
     .from("organizations")
     .select("*")
     .eq("id", id)
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load organization");
+  return data as OrganizationRecord | null;
+}
+
+export async function getOrganizationBySlug(slug: string) {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("organizations")
+    .select("*")
+    .eq("slug", slug)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load organization");
   return data as OrganizationRecord | null;

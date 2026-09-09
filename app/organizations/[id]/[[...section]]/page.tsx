@@ -52,7 +52,7 @@ export default async function OrganizationPage({
     getRegistrationCountsByProgram(organizationId),
   ]);
 
-  const isFutprep = /futprep|footprep/i.test(organization.name);
+  const registrationUrl = organization.registration_url;
   const title = navigation.find(([key])=>key===section)?.[1] ?? "Dashboard";
 
   return (
@@ -76,7 +76,7 @@ export default async function OrganizationPage({
         <header className="organization-topbar">
           <div><span className="mobile-organization-label">{organization.name}</span><h1>{title}</h1></div>
           <div className="organization-top-actions">
-            {isFutprep && <Link className="dashboard-secondary-action" href="/futprep/lil-kickers">Parent registration ↗</Link>}
+            {registrationUrl && <Link className="dashboard-secondary-action" href={registrationUrl}>Parent registration ↗</Link>}
             <span className="organization-avatar">{organization.name.slice(0,1).toUpperCase()}</span>
           </div>
         </header>
@@ -95,12 +95,12 @@ export default async function OrganizationPage({
                 <article><span>Pending payments</span><strong>{stats.pendingPayments}</strong><small>Needs follow-up</small></article>
                 <article><span>New registrations</span><strong>{stats.newRegistrations}</strong><small>Past 7 days</small></article>
               </div>
-              {isFutprep && programs.length > 0 ? (
+              {registrationUrl && programs.length > 0 ? (
                 <div className="dashboard-grid">
                   <article className="dashboard-panel dashboard-feature">
                     <div className="panel-head">
                       <div><span className="panel-kicker">Term 1 pilot</span><h3>Lil Kickers is ready for registration.</h3></div>
-                      <Link href="/futprep/lil-kickers/register">Open form ↗</Link>
+                      <Link href={registrationUrl}>Open form ↗</Link>
                     </div>
                     <div className="mini-program-list">
                       {programs.map((program)=>(
@@ -137,7 +137,7 @@ export default async function OrganizationPage({
                   </dl>
                 </article>
               ))}</div> : <Empty text="No programs have been created yet." />}
-              {isFutprep && <Callout title="Share the parent registration link" text="/futprep/lil-kickers/register"><Link className="primary-button" href="/futprep/lil-kickers/register">Open registration →</Link></Callout>}
+              {registrationUrl && <Callout title="Share the parent registration link" text={registrationUrl}><Link className="primary-button" href={registrationUrl}>Open registration →</Link></Callout>}
             </Section>
           )}
 
@@ -162,7 +162,7 @@ export default async function OrganizationPage({
               {registrationCounts.length ? <div className="registration-summary-grid">{registrationCounts.map((item)=>(
                 <article key={item.program_name}><span>{item.program_name}</span><strong>{item.registrations}</strong><small>{Math.max(0,item.capacity-item.registrations)} spots remaining</small><div><span>{item.pending_payments ?? 0} payment pending</span><span>{item.paid ?? 0} paid</span></div></article>
               ))}</div> : <Empty text="No registrations have been received yet." />}
-              {isFutprep && <Callout title="Parent registration is ready." text="Cash and bank transfer are active. Online payment is marked Coming Soon."><Link className="primary-button" href="/futprep/lil-kickers/register">Test registration →</Link></Callout>}
+              {registrationUrl && <Callout title="Parent registration is ready." text="Cash and bank transfer are active. Online payment is marked Coming Soon."><Link className="primary-button" href={registrationUrl}>Test registration →</Link></Callout>}
             </Section>
           )}
 
@@ -174,7 +174,7 @@ export default async function OrganizationPage({
                 <article><span>Bank transfer</span><strong>Active</strong><small>Admin verifies it</small></article>
                 <article><span>Online</span><strong>Soon</strong><small>Coming later</small></article>
               </div>
-              {isFutprep && <Callout title="Admin workspace" text="Detailed payment confirmation and registration actions are the next protected staff module." />}
+              <Callout title="Admin workspace" text="Detailed payment confirmation and registration actions are the next protected staff module." />
             </Section>
           )}
 
