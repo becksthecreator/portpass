@@ -54,8 +54,40 @@ export type FutprepAvailability = {
 let lastSeedAt = 0;
 let seedPromise: Promise<void> | null = null;
 
+// Checked before the (expensive) full seed. Every page that touches Futprep
+// data calls ensureFutprepPilotData() first, but on Vercel each cold
+// serverless instance starts with an empty in-memory cache - so without this
+// fast path, most real requests were paying for the full ~12-round-trip
+// seed chain below just to confirm nothing had changed. This is 2 cheap
+// queries; if anything looks incomplete it falls through to the real seed.
+async function isFutprepAlreadySeeded(): Promise<boolean> {
+  const db = getSupabaseAdmin();
+  const slugs = FUTPREP_PROGRAMS.map((program) => program.slug);
+
+  const { data: programs, error: programsError } = await db
+    .from("programs")
+    .select("id")
+    .in("slug", slugs)
+    .eq("active", true);
+  if (programsError || (programs?.length ?? 0) < slugs.length) return false;
+
+  const { count, error: termsError } = await db
+    .from("program_terms")
+    .select("id", { count: "exact", head: true })
+    .in("program_id", programs!.map((program) => program.id))
+    .eq("name", FUTPREP_TERM.name)
+    .eq("active", true);
+  if (termsError) return false;
+
+  return (count ?? 0) >= slugs.length;
+}
+
 export async function ensureFutprepPilotData() {
   if (Date.now() - lastSeedAt < 60_000) return;
+  if (await isFutprepAlreadySeeded()) {
+    lastSeedAt = Date.now();
+    return;
+  }
   if (!seedPromise) {
     seedPromise = seedFutprepPilot().finally(() => {
       seedPromise = null;
@@ -236,19 +268,48 @@ export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
   throwIfSupabaseError(programsError, "Could not load class availability");
 
   const output: FutprepAvailability[] = [];
+  const programList = programs ?? [];
+  if (programList.length === 0) return output;
 
-  for (const program of programs ?? []) {
-    const { data: term, error: termError } = await db
-      .from("program_terms")
-      .select("id,start_date,weekly_fee_cents,term_fee_cents")
-      .eq("program_id", program.id)
-      .eq("active", true)
-      .order("start_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    throwIfSupabaseError(termError, "Could not load term availability");
+  const programIds = programList.map((program) => program.id);
 
+  // Batched instead of one term lookup + one registration count per program
+  // (was N+1 sequential round trips), so this scales with 2 queries total
+  // regardless of how many programs are active.
+  const [{ data: terms, error: termsError }, { data: activeRegistrations, error: registrationsError }] =
+    await Promise.all([
+      db
+        .from("program_terms")
+        .select("id,program_id,start_date,weekly_fee_cents,term_fee_cents")
+        .in("program_id", programIds)
+        .eq("active", true)
+        .order("start_date", { ascending: false }),
+      db
+        .from("registrations")
+        .select("program_id,term_id")
+        .in("program_id", programIds)
+        .in("registration_status", ["pending", "confirmed"]),
+    ]);
+  throwIfSupabaseError(termsError, "Could not load term availability");
+  throwIfSupabaseError(registrationsError, "Could not count registrations");
+
+  const latestTermByProgram = new Map<number, { id: number; start_date: string; weekly_fee_cents: number; term_fee_cents: number }>();
+  for (const term of terms ?? []) {
+    if (!latestTermByProgram.has(term.program_id)) {
+      latestTermByProgram.set(term.program_id, term);
+    }
+  }
+
+  const registeredCountByKey = new Map<string, number>();
+  for (const registration of activeRegistrations ?? []) {
+    const key = `${registration.program_id}:${registration.term_id}`;
+    registeredCountByKey.set(key, (registeredCountByKey.get(key) ?? 0) + 1);
+  }
+
+  for (const program of programList) {
     const capacity = Number(program.capacity);
+    const term = latestTermByProgram.get(program.id);
+
     if (!term) {
       output.push({
         slug: program.slug,
@@ -269,15 +330,7 @@ export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
       continue;
     }
 
-    const { count, error: countError } = await db
-      .from("registrations")
-      .select("id", { count: "exact", head: true })
-      .eq("program_id", program.id)
-      .eq("term_id", term.id)
-      .in("registration_status", ["pending", "confirmed"]);
-    throwIfSupabaseError(countError, "Could not count registrations");
-
-    const registered = Number(count ?? 0);
+    const registered = registeredCountByKey.get(`${program.id}:${term.id}`) ?? 0;
 
     output.push({
       slug: program.slug,

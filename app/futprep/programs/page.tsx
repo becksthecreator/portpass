@@ -2,7 +2,10 @@ import Link from "next/link";
 import { getFutprepAvailability } from "@/db/registrations";
 import { formatMoney, programTimeRange } from "../lil-kickers/config";
 
-export const dynamic = "force-dynamic";
+// Spot-availability doesn't need to be millisecond-fresh, so this page is
+// cached and re-rendered at most every 30s instead of forcing a fresh
+// render (and DB round trip) on every single visitor.
+export const revalidate = 30;
 
 export const metadata = {
   title: "Programs | Futprep Athletics",

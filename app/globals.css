@@ -3786,7 +3786,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   grid-template-columns:1.05fr .95fr;
   min-height:760px;
 }
-.lk-photo-story-main{margin:0;min-height:680px;overflow:hidden}
+.lk-photo-story-main{margin:0;min-height:680px;overflow:hidden;position:relative}
 .lk-photo-story-main img{height:100%;object-fit:cover;width:100%}
 .lk-photo-story-copy{
   align-self:center;
@@ -4601,6 +4601,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   height:310px;
   margin:0;
   overflow:hidden;
+  position:relative;
 }
 .lilkickers-page .lk-kickoff-gallery img{
   height:100%;

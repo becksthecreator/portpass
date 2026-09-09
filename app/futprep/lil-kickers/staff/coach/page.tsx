@@ -20,9 +20,11 @@ export default async function FutprepCoachPage({
 }) {
   const role = await requireFutprepStaff(["coach","ceo","helper"], "/futprep/lil-kickers/staff/coach");
   const readOnly = role === "helper";
-  const staffName = await currentFutprepStaffName();
-  const sessions = await listFutprepStaffSessions();
-  const { session } = await searchParams;
+  const [staffName, sessions, { session }] = await Promise.all([
+    currentFutprepStaffName(),
+    listFutprepStaffSessions(),
+    searchParams,
+  ]);
   const requested = Number(session);
   const today = new Date().toISOString().slice(0,10);
   const selected = sessions.find((item)=>item.id===requested)

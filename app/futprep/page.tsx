@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export const metadata = {
@@ -31,7 +32,7 @@ export default function FutprepHomePage() {
       </header>
 
       <section className="fp-home-hero">
-        <img src={heroPhoto} alt="Futprep players on the football field" />
+        <Image src={heroPhoto} alt="Futprep players on the football field" fill priority sizes="100vw" />
         <div className="fp-home-hero-shade" aria-hidden="true" />
         <div className="fp-home-hero-copy">
           <span>Futprep Athletics · Nassau, Bahamas</span>
@@ -56,7 +57,7 @@ export default function FutprepHomePage() {
 
       <section className="fp-home-feature-grid">
         <Link className="fp-home-feature fp-home-feature-program" href="/futprep/lil-kickers">
-          <img src={trainingPhoto} alt="Young Futprep player in a training session" />
+          <Image src={trainingPhoto} alt="Young Futprep player in a training session" fill sizes="(max-width: 900px) 100vw, 50vw" />
           <div className="fp-home-feature-shade" aria-hidden="true" />
           <div className="fp-home-feature-copy">
             <small>Current program · Messy Tots × Futprep</small>
@@ -67,7 +68,7 @@ export default function FutprepHomePage() {
         </Link>
 
         <Link className="fp-home-feature fp-home-feature-team" href="/futprep/coaches">
-          <img src={playerPhoto} alt="Futprep coaching on the football field" />
+          <Image src={playerPhoto} alt="Futprep coaching on the football field" fill sizes="(max-width: 900px) 100vw, 50vw" />
           <div className="fp-home-feature-shade" aria-hidden="true" />
           <div className="fp-home-feature-copy">
             <small>Coaches + private training</small>

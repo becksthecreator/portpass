@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   FUTPREP_TERM,
@@ -7,7 +8,10 @@ import {
 } from "./config";
 import { getFutprepAvailability } from "@/db/registrations";
 
-export const dynamic = "force-dynamic";
+// Spot-availability doesn't need to be millisecond-fresh, so this page is
+// cached and re-rendered at most every 30s instead of forcing a fresh
+// render (and DB round trip) on every single visitor.
+export const revalidate = 30;
 
 export const metadata = {
   title: "Futprep Lil Kickers | PortPass",
@@ -59,7 +63,7 @@ export default async function FutprepLilKickersPage() {
       </header>
 
       <section className="lk-hero">
-        <img className="lk-hero-image" src={futprepPhotos.hero} alt="Futprep Lil Kickers players and coaches together on the football field" />
+        <Image className="lk-hero-image" src={futprepPhotos.hero} alt="Futprep Lil Kickers players and coaches together on the football field" fill priority sizes="100vw" />
         <div className="lk-hero-shade" aria-hidden="true" />
 
         <div className="lk-hero-play" aria-hidden="true">
@@ -102,15 +106,15 @@ export default async function FutprepLilKickersPage() {
           <a href="#classes" className="lk-kickoff-link">More about Lil Kickers →</a>
         </div>
         <div className="lk-kickoff-gallery" aria-label="Futprep Lil Kickers sessions">
-          <figure><img src={futprepPhotos.training} alt="Young Futprep player enjoying a football session" loading="lazy" /></figure>
-          <figure><img src={futprepPhotos.player} alt="Young Futprep player practicing during Lil Kickers" loading="lazy" /></figure>
-          <figure><img src={futprepPhotos.hero} alt="Futprep Lil Kickers group on the field" loading="lazy" /></figure>
+          <figure><Image src={futprepPhotos.training} alt="Young Futprep player enjoying a football session" fill sizes="(max-width: 720px) 50vw, 25vw" /></figure>
+          <figure><Image src={futprepPhotos.player} alt="Young Futprep player practicing during Lil Kickers" fill sizes="(max-width: 720px) 50vw, 25vw" /></figure>
+          <figure><Image src={futprepPhotos.hero} alt="Futprep Lil Kickers group on the field" fill sizes="(max-width: 720px) 100vw, 25vw" /></figure>
         </div>
       </section>
 
       <section className="lk-photo-story">
         <figure className="lk-photo-story-main">
-          <img src={futprepPhotos.training} alt="Young Futprep players training during a Lil Kickers session" loading="lazy" />
+          <Image src={futprepPhotos.training} alt="Young Futprep players training during a Lil Kickers session" fill sizes="(max-width: 1000px) 100vw, 55vw" />
         </figure>
         <div className="lk-photo-story-copy">
           <span className="lk-section-label">What Saturdays feel like</span>
@@ -162,7 +166,7 @@ export default async function FutprepLilKickersPage() {
           <Link className="lk-coach-link" href="/futprep/coaches">Meet the team + private lessons →</Link>
         </div>
         <figure className="lk-coaching-image">
-          <img src={futprepPhotos.coach} alt="Futprep coach working with young players during a Lil Kickers session" loading="lazy" />
+          <Image src={futprepPhotos.coach} alt="Futprep coach working with young players during a Lil Kickers session" fill sizes="(max-width: 1000px) 100vw, 45vw" />
           <figcaption className="lk-coaching-caption">
             <span>Coach + kids</span>
             <strong>Connection first. Football follows.</strong>

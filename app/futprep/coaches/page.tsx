@@ -2,7 +2,9 @@ import Link from "next/link";
 import { listPublicCoachProfiles } from "@/db/coaches";
 import { PrivateSessionBooking } from "./PrivateSessionBooking";
 
-export const dynamic="force-dynamic";
+// Coach profiles/availability change rarely (staff-edited), so this page is
+// cached and re-rendered at most every 30s instead of on every visitor.
+export const revalidate=30;
 
 function dayLabel(value:string){
   return new Intl.DateTimeFormat("en-BS",{weekday:"short",month:"short",day:"numeric",timeZone:"UTC"}).format(new Date(`${value}T12:00:00Z`));
