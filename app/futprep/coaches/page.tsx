@@ -2,9 +2,10 @@ import Link from "next/link";
 import { listPublicCoachProfiles } from "@/db/coaches";
 import { PrivateSessionBooking } from "./PrivateSessionBooking";
 
-// Coach profiles/availability change rarely (staff-edited), so this page is
-// cached and re-rendered at most every 30s instead of on every visitor.
-export const revalidate=30;
+// force-dynamic (not ISR/revalidate) because this repo's CI build has no
+// Supabase credentials available at build time, and a numeric revalidate
+// makes Next try to prerender this page's DB-backed data during `next build`.
+export const dynamic = "force-dynamic";
 
 function dayLabel(value:string){
   return new Intl.DateTimeFormat("en-BS",{weekday:"short",month:"short",day:"numeric",timeZone:"UTC"}).format(new Date(`${value}T12:00:00Z`));

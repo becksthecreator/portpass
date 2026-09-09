@@ -8,10 +8,10 @@ import {
 } from "./config";
 import { getFutprepAvailability } from "@/db/registrations";
 
-// Spot-availability doesn't need to be millisecond-fresh, so this page is
-// cached and re-rendered at most every 30s instead of forcing a fresh
-// render (and DB round trip) on every single visitor.
-export const revalidate = 30;
+// force-dynamic (not ISR/revalidate) because this repo's CI build has no
+// Supabase credentials available at build time, and a numeric revalidate
+// makes Next try to prerender this page's DB-backed data during `next build`.
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Futprep Lil Kickers | PortPass",
