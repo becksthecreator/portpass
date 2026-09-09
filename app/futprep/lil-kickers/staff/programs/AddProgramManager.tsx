@@ -15,7 +15,20 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
   const [programs, setPrograms] = useState(initialPrograms);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [toggleError, setToggleError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  async function toggleActive(program: FutprepProgramSummary) {
+    setToggleError("");
+    const response = await fetch("/api/futprep/programs", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: program.id, active: !program.active }),
+    });
+    const data = (await response.json()) as { error?: string; programs?: FutprepProgramSummary[] };
+    if (!response.ok) return setToggleError(data.error ?? "Could not update the program.");
+    if (data.programs) setPrograms(data.programs);
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,6 +82,7 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
 
   return (
     <div className="team-manager">
+      {toggleError && <p className="form-error" role="alert">{toggleError}</p>}
       <div className="team-manager-grid">
         {programs.map((program) => (
           <article className="team-manager-card" key={program.id}>
@@ -82,6 +96,17 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
               {program.spotsRemaining !== null && (
                 <span className="flag-on">{program.spotsRemaining} of {program.capacity} spots open</span>
               )}
+            </div>
+            <div className="team-manager-actions">
+              <button
+                className={program.active ? "danger-action" : ""}
+                onClick={() => {
+                  if (program.active && !confirm(`Hide ${program.name} from the registration page? Existing registrations are kept, and you can reactivate it any time.`)) return;
+                  toggleActive(program);
+                }}
+              >
+                {program.active ? "Deactivate" : "Reactivate"}
+              </button>
             </div>
             <details className="team-profile-details">
               <summary>Term details</summary>

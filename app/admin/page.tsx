@@ -1,16 +1,20 @@
 import Link from "next/link";
 import { listApplications } from "@/db/applications";
+import { requirePortpassAdmin } from "@/lib/admin-session";
 import { AdminApplications } from "./AdminApplications";
+import { AdminLogoutButton } from "./AdminLogoutButton";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
+  await requirePortpassAdmin("/admin");
   const applications = await listApplications();
   return (
     <main className="admin-page">
       <header className="site-header admin-header">
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
         <span className="admin-badge">Super admin</span>
+        <AdminLogoutButton />
       </header>
       <section className="admin-intro">
         <div>

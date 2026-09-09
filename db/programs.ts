@@ -179,6 +179,12 @@ export async function listFutprepPrograms(): Promise<FutprepProgramSummary[]> {
   return output;
 }
 
+export async function setFutprepProgramActive(id: number, active: boolean) {
+  const db = getSupabaseAdmin();
+  const { error } = await db.from("programs").update({ active }).eq("id", id);
+  throwIfSupabaseError(error, "Could not update the program.");
+}
+
 export async function createFutprepProgram(input: FutprepProgramInput) {
   const db = getSupabaseAdmin();
   const now = new Date().toISOString();

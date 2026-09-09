@@ -3,6 +3,7 @@ import { currentFutprepStaffAccount, currentFutprepStaffRole } from "@/app/futpr
 import {
   createFutprepProgram,
   listFutprepPrograms,
+  setFutprepProgramActive,
   type FutprepProgramInput,
 } from "@/db/programs";
 
@@ -98,5 +99,24 @@ export async function POST(request: Request) {
     if (message === "FUTPREP_ORG_NOT_FOUND") return NextResponse.json({ error: "Could not locate the Futprep organization." }, { status: 500 });
     console.error("Futprep program create error", error);
     return NextResponse.json({ error: "Could not create the program." }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  const [account, role] = await Promise.all([currentFutprepStaffAccount(), currentFutprepStaffRole()]);
+  if (!account || role === "helper") return NextResponse.json({ error: "Sign in again." }, { status: 401 });
+
+  const body = await request.json().catch(() => ({})) as { id?: number; active?: boolean };
+  const id = Number(body.id);
+  if (!Number.isInteger(id) || typeof body.active !== "boolean") {
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  try {
+    await setFutprepProgramActive(id, body.active);
+    return NextResponse.json({ ok: true, programs: await listFutprepPrograms() });
+  } catch (error) {
+    console.error("Futprep program active toggle error", error);
+    return NextResponse.json({ error: "Could not update the program." }, { status: 500 });
   }
 }
