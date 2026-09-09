@@ -6,40 +6,50 @@ export const FUTPREP_TERM = {
   location: "Lyford Cay Lower Campus Soccer Field",
 } as const;
 
+// Note: `slug` is the internal/database identifier only — it is never shown to
+// parents or staff and is not part of any URL, so it intentionally stays as
+// "rookies" even though the program is now publicly named "Futprep Kickers".
+// Renaming it would mean migrating the live program/session/registration rows
+// tied to that slug for zero user-visible benefit.
 export const FUTPREP_PROGRAMS = [
   {
     slug: "lil-kickers",
-    name: "Lil Kickers",
+    name: "Futprep Lil Kickers",
     ageMin: 3,
     ageMax: 5,
     day: "Saturday",
     time: "9:00 AM",
+    endTime: "9:35 AM",
     capacity: 20,
     weeklyFeeCents: 3500,
     termFeeCents: 30000,
   },
   {
     slug: "rookies",
-    name: "Rookies",
+    name: "Futprep Kickers",
     ageMin: 5,
     ageMax: 7,
     day: "Saturday",
-    time: "11:00 AM",
+    time: "10:00 AM",
+    endTime: "10:45 AM",
     capacity: 20,
     weeklyFeeCents: 4500,
-    termFeeCents: 33500,
+    termFeeCents: 42000,
   },
 ] as const;
 
 export type FutprepProgramSlug = (typeof FUTPREP_PROGRAMS)[number]["slug"];
 
+export function programTimeRange(program: { time: string; endTime: string }) {
+  return `${program.time}–${program.endTime}`;
+}
+
 export const FUTPREP_BANK_DETAILS = {
-  status: "placeholder",
-  bankName: "Futprep bank name — coming soon",
-  accountName: "Futprep account name — coming soon",
-  accountNumber: "Account number — coming soon",
-  branch: "Branch — coming soon",
-  accountType: "Account type — coming soon",
+  status: "confirmed",
+  bankName: "First Caribbean International Bank (Bahamas) Limited",
+  swiftCode: "FCIBBSNS",
+  accountName: "Futprep Athletics",
+  accountNumber: "07046-2017344879",
 } as const;
 
 export const CONSENT_VERSION = "futprep-lil-kickers-term1-v1";

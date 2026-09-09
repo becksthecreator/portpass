@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const roles = [
@@ -12,15 +13,20 @@ export default function Home() {
     <main className="landing-page">
       <section className="landing-hero" id="home">
         <div className="landing-hero-media" aria-hidden="true">
-          <img
+          <Image
             className="landing-hero-slide landing-hero-slide-one"
             src="https://images.unsplash.com/photo-1661881545067-b15c94c6b7cd?auto=format&fit=crop&w=2200&q=88"
             alt=""
+            fill
+            priority
+            sizes="100vw"
           />
-          <img
+          <Image
             className="landing-hero-slide landing-hero-slide-two"
             src="https://images.unsplash.com/photo-1748606327306-5c518f0a6cfa?auto=format&fit=crop&w=2200&q=88"
             alt=""
+            fill
+            sizes="100vw"
           />
         </div>
         <div className="landing-hero-shade" aria-hidden="true" />
@@ -36,14 +42,15 @@ export default function Home() {
             <a href="#features">Features</a>
             <a href="#live">Live</a>
             <a href="#about">About</a>
+            <Link href="/futprep">Futprep</Link>
             <Link href="/apply">Early access</Link>
           </nav>
         </header>
 
-        <Link className="landing-register-strip" href="/futprep/lil-kickers">
-          <span className="landing-register-label">Now registering</span>
-          <strong>Futprep Lil Kickers · Term 1</strong>
-          <span className="landing-register-action">View program →</span>
+        <Link className="landing-register-strip" href="/futprep">
+          <span className="landing-register-label">Live now</span>
+          <strong>Futprep Athletics on PortPass</strong>
+          <span className="landing-register-action">Explore Futprep →</span>
         </Link>
 
         <div className="landing-hero-content">
@@ -136,10 +143,11 @@ export default function Home() {
 
       <section className="landing-live" id="live">
         <div className="landing-live-image">
-          <img
+          <Image
             src="https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/d69eda54-1539-434e-bb0c-7e122dd03eab/IMG_5805.jpg"
             alt="Futprep Athletics players together on the field"
-            loading="lazy"
+            fill
+            sizes="(max-width: 900px) 100vw, 55vw"
           />
         </div>
         <div className="landing-live-copy">

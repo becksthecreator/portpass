@@ -1,14 +1,21 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
-  FUTPREP_PROGRAMS,
   FUTPREP_TERM,
   activeSessionDates,
   formatMoney,
+  programTimeRange,
 } from "./config";
+import { getFutprepAvailability } from "@/db/registrations";
+
+// force-dynamic (not ISR/revalidate) because this repo's CI build has no
+// Supabase credentials available at build time, and a numeric revalidate
+// makes Next try to prerender this page's DB-backed data during `next build`.
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Futprep Lil Kickers | PortPass",
-  description: "Register for Futprep Lil Kickers and Rookies Term 1 through PortPass.",
+  description: "Register for Futprep Lil Kickers and Futprep Kickers Term 1 through PortPass.",
 };
 
 function readableDate(value: string) {
@@ -24,14 +31,16 @@ const lyfordCayDirections =
   "https://www.google.com/maps/search/?api=1&query=Lyford+Cay+Lower+Campus+Soccer+Field+Nassau+Bahamas";
 
 const futprepPhotos = {
-  hero: "/futprep/lil-kickers/lil-kickers-group.webp",
-  training: "/futprep/lil-kickers/lil-kickers-training.webp",
-  player: "/futprep/lil-kickers/lil-kickers-player.webp",
-  coach: "/futprep/lil-kickers/lil-kickers-coach.webp",
+  hero: "/futprep/lil-kickers/lil-kickers-group.jpg",
+  training: "/futprep/lil-kickers/lil-kickers-training.jpg",
+  player: "/futprep/lil-kickers/lil-kickers-player.jpg",
+  coach: "/futprep/lil-kickers/lil-kickers-coach.jpg",
 };
 
-export default function FutprepLilKickersPage() {
+export default async function FutprepLilKickersPage() {
   const sessions = activeSessionDates();
+  const availability = await getFutprepAvailability();
+  const programs = availability.filter((program) => program.location === FUTPREP_TERM.location);
 
   return (
     <main className="lilkickers-page futprep-theme">
@@ -47,14 +56,14 @@ export default function FutprepLilKickersPage() {
         </Link>
 
         <nav>
-          <Link href="/futprep/messy-tots">Programs</Link>
+          <Link href="/futprep/programs">Programs</Link>
           <Link href="/futprep/coaches">Coaches</Link>
           <Link className="fp-home-login" href="/futprep/lil-kickers/staff/login">Staff login</Link>
         </nav>
       </header>
 
       <section className="lk-hero">
-        <img className="lk-hero-image" src={futprepPhotos.hero} alt="Futprep Lil Kickers players and coaches together on the football field" />
+        <Image className="lk-hero-image" src={futprepPhotos.hero} alt="Futprep Lil Kickers players and coaches together on the football field" fill priority sizes="100vw" />
         <div className="lk-hero-shade" aria-hidden="true" />
 
         <div className="lk-hero-play" aria-hidden="true">
@@ -97,15 +106,15 @@ export default function FutprepLilKickersPage() {
           <a href="#classes" className="lk-kickoff-link">More about Lil Kickers →</a>
         </div>
         <div className="lk-kickoff-gallery" aria-label="Futprep Lil Kickers sessions">
-          <figure><img src={futprepPhotos.training} alt="Young Futprep player enjoying a football session" loading="lazy" /></figure>
-          <figure><img src={futprepPhotos.player} alt="Young Futprep player practicing during Lil Kickers" loading="lazy" /></figure>
-          <figure><img src={futprepPhotos.hero} alt="Futprep Lil Kickers group on the field" loading="lazy" /></figure>
+          <figure><Image src={futprepPhotos.training} alt="Young Futprep player enjoying a football session" fill sizes="(max-width: 720px) 50vw, 25vw" /></figure>
+          <figure><Image src={futprepPhotos.player} alt="Young Futprep player practicing during Lil Kickers" fill sizes="(max-width: 720px) 50vw, 25vw" /></figure>
+          <figure><Image src={futprepPhotos.hero} alt="Futprep Lil Kickers group on the field" fill sizes="(max-width: 720px) 100vw, 25vw" /></figure>
         </div>
       </section>
 
       <section className="lk-photo-story">
         <figure className="lk-photo-story-main">
-          <img src={futprepPhotos.training} alt="Young Futprep players training during a Lil Kickers session" loading="lazy" />
+          <Image src={futprepPhotos.training} alt="Young Futprep players training during a Lil Kickers session" fill sizes="(max-width: 1000px) 100vw, 55vw" />
         </figure>
         <div className="lk-photo-story-copy">
           <span className="lk-section-label">What Saturdays feel like</span>
@@ -123,25 +132,26 @@ export default function FutprepLilKickersPage() {
         <div className="lk-classes-heading">
           <span className="lk-section-label">Choose their Saturday</span>
           <h2>Pick the class <em>that fits your child.</em></h2>
-          <p>Two classes, one fun morning. Each class is capped at {FUTPREP_PROGRAMS[0]?.capacity ?? 20} players so the session can still feel personal.</p>
+          <p>Saturday classes, one fun morning. Each class is capped at {programs[0]?.capacity ?? 20} players so the session can still feel personal.</p>
         </div>
 
         <div className="lk-class-grid">
-          {FUTPREP_PROGRAMS.map((program, index) => (
+          {programs.length === 0 && <p className="form-hint">Classes are loading — check back in a moment.</p>}
+          {programs.map((program, index) => (
             <article className="lk-class-card" key={program.slug}>
               <div className="lk-class-number">0{index + 1}</div>
               <div className="lk-class-top">
                 <span>Ages {program.ageMin}–{program.ageMax}</span>
                 <h3>{program.name}</h3>
-                <p>{program.day}s · <strong>{program.time}</strong></p>
+                <p>{program.day}s · <strong>{programTimeRange(program)}</strong></p>
               </div>
               <div className="lk-class-price">
                 <div><small>Weekly</small><strong>{formatMoney(program.weeklyFeeCents)}</strong><span>per class</span></div>
                 <div><small>Full term</small><strong>{formatMoney(program.termFeeCents)}</strong><span>one payment</span></div>
               </div>
               <div className="lk-class-bottom">
-                <span>{program.capacity} spots</span>
-                <Link href="/futprep/lil-kickers/register">Choose this class →</Link>
+                <span>{program.spotsRemaining} of {program.capacity} spots</span>
+                <Link href={`/futprep/lil-kickers/register?program=${program.slug}`}>Choose this class →</Link>
               </div>
             </article>
           ))}
@@ -156,7 +166,7 @@ export default function FutprepLilKickersPage() {
           <Link className="lk-coach-link" href="/futprep/coaches">Meet the team + private lessons →</Link>
         </div>
         <figure className="lk-coaching-image">
-          <img src={futprepPhotos.coach} alt="Futprep coach working with young players during a Lil Kickers session" loading="lazy" />
+          <Image src={futprepPhotos.coach} alt="Futprep coach working with young players during a Lil Kickers session" fill sizes="(max-width: 1000px) 100vw, 45vw" />
           <figcaption className="lk-coaching-caption">
             <span>Coach + kids</span>
             <strong>Connection first. Football follows.</strong>
@@ -190,13 +200,13 @@ export default function FutprepLilKickersPage() {
         <div className="lk-clarity-card">
           <div>
             <small>Payment</small>
-            <strong>Cash or bank transfer</strong>
+            <strong>Cash, bank transfer or online banking</strong>
             <p>Choose your payment method during registration. Online card payments are coming soon.</p>
           </div>
           <div>
             <small>Registration</small>
             <strong>Free to register</strong>
-            <p>Complete the form once, choose a class and receive your registration confirmation.</p>
+            <p>Complete the form once, choose a class and receive your registration confirmation. Already registered? <Link href="/futprep/my">Check your status →</Link></p>
           </div>
           <div>
             <small>Location</small>

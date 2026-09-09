@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { FUTPREP_PROGRAMS } from "@/app/futprep/lil-kickers/config";
 import {
   createFutprepRegistration,
   type FutprepRegistrationInput,
 } from "@/db/registrations";
+import { sendFutprepRegistrationReceivedEmail } from "@/lib/email";
 
 const limits: Record<string, number> = {
   parentName: 120, parentEmail: 180, parentPhone: 40, relationship: 60,
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   }
 
   const programSlug = clean(body, "programSlug");
-  if (!FUTPREP_PROGRAMS.some((program) => program.slug === programSlug)) {
+  if (!programSlug) {
     return NextResponse.json({ error: "Choose a valid class." }, { status: 400 });
   }
 
@@ -53,8 +53,8 @@ export async function POST(request: Request) {
   }
 
   const paymentMethod = clean(body, "paymentMethod");
-  if (!["cash","bank_transfer"].includes(paymentMethod)) {
-    return NextResponse.json({ error: "Choose Cash or Bank Transfer." }, { status: 400 });
+  if (!["cash","bank_transfer","online_banking"].includes(paymentMethod)) {
+    return NextResponse.json({ error: "Choose Cash, Bank Transfer, or Online Banking Transfer." }, { status: 400 });
   }
 
   const photoConsent = clean(body, "photoConsent");
@@ -92,11 +92,25 @@ export async function POST(request: Request) {
 
   try {
     const registration = await createFutprepRegistration(input);
+    sendFutprepRegistrationReceivedEmail({
+      parentEmail: input.parentEmail,
+      parentName: input.parentName,
+      childName: input.childName,
+      programName: registration.program.name,
+      day: registration.program.day,
+      time: registration.program.time,
+      endTime: registration.program.endTime,
+      location: registration.term.location,
+      amountDueCents: registration.amountDueCents,
+      referenceCode: registration.referenceCode,
+      statusUrl: `${new URL(request.url).origin}/futprep/my/${registration.referenceCode}`,
+    }).catch((error) => console.error("Futprep registration email error", error));
     return NextResponse.json({ registration }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    if (message === "AGE_MISMATCH") return NextResponse.json({ error: "The child’s age does not match the selected class for Term 1." }, { status: 400 });
-    if (message === "PROGRAM_FULL") return NextResponse.json({ error: "That class has reached its 20-player capacity." }, { status: 409 });
+    if (message === "INVALID_PROGRAM" || message === "PROGRAM_NOT_AVAILABLE") return NextResponse.json({ error: "Choose a valid class." }, { status: 400 });
+    if (message === "AGE_MISMATCH") return NextResponse.json({ error: "The child’s age does not match the selected class." }, { status: 400 });
+    if (message === "PROGRAM_FULL") return NextResponse.json({ error: "That class has reached capacity." }, { status: 409 });
     if (message.startsWith("DUPLICATE:")) return NextResponse.json({ error: "A Term 1 registration for this child has already been received.", referenceCode: message.split(":")[1] }, { status: 409 });
     console.error("Futprep registration error", error);
     return NextResponse.json({ error: "We couldn’t complete the registration. Please try again." }, { status: 500 });

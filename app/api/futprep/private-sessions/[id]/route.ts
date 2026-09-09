@@ -4,7 +4,7 @@ import { actOnPrivateSessionRequest, listPrivateSessionRequests } from "@/db/coa
 
 export async function PATCH(request:Request,{params}:{params:Promise<{id:string}>}){
   const [account,role]=await Promise.all([currentFutprepStaffAccount(),currentFutprepStaffRole()]);
-  if(!account||!role) return NextResponse.json({error:"Sign in again."},{status:401});
+  if(!account||!role||role==="helper") return NextResponse.json({error:"Sign in again."},{status:401});
   const {id}=await params;
   const requestId=Number(id);
   const body=await request.json().catch(()=>({})) as any;

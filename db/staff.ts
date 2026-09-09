@@ -1,4 +1,5 @@
-import { ensureFutprepPilotData } from "./registrations";
+import { ensureFutprepPilotData, type PaymentMethod } from "./registrations";
+import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type StaffRegistration = {
@@ -55,11 +56,15 @@ export async function listFutprepStaffRegistrations(): Promise<
 > {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
 
+  // Any active Futprep program (the original Term 1 pilot, or one staff
+  // added later, e.g. a second location) shows up here — not just the two
+  // originally-hardcoded slugs.
   const { data: programs, error: programError } = await db
     .from("programs")
     .select("id,name,slug,start_time")
-    .in("slug", ["lil-kickers", "rookies"])
+    .eq("organization_id", organizationId)
     .order("start_time", { ascending: true });
   throwIfSupabaseError(programError, "Could not load Futprep programs");
 
@@ -148,11 +153,12 @@ export async function listFutprepStaffRegistrations(): Promise<
 export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
 
   const { data: programs, error: programError } = await db
     .from("programs")
     .select("id,name,slug")
-    .in("slug", ["lil-kickers", "rookies"]);
+    .eq("organization_id", organizationId);
   throwIfSupabaseError(programError, "Could not load Futprep session programs");
 
   const programRows = (programs ?? []) as Array<{
@@ -201,7 +207,7 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
 export async function recordFutprepPayment(input: {
   registrationId: number;
   amountCents: number;
-  method: "cash" | "bank_transfer";
+  method: PaymentMethod;
   recordedBy: string;
   note?: string;
 }) {
@@ -210,7 +216,7 @@ export async function recordFutprepPayment(input: {
 
   const { data: registration, error } = await db
     .from("registrations")
-    .select("id,amount_due_cents,payment_frequency")
+    .select("id,amount_due_cents,payment_frequency,parent_name,parent_email,child_name")
     .eq("id", input.registrationId)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load payment registration");
@@ -262,7 +268,14 @@ export async function recordFutprepPayment(input: {
     .eq("id", input.registrationId);
   throwIfSupabaseError(updateError, "Could not update payment status");
 
-  return { paidCents: paid, paymentStatus: nextStatus };
+  return {
+    paidCents: paid,
+    paymentStatus: nextStatus,
+    parentName: registration.parent_name as string,
+    parentEmail: registration.parent_email as string,
+    childName: registration.child_name as string,
+    amountDueCents: Number(registration.amount_due_cents),
+  };
 }
 
 export async function updateFutprepRegistration(input: {
@@ -284,10 +297,26 @@ export async function updateFutprepRegistration(input: {
     .from("registrations")
     .update(updates)
     .eq("id", input.registrationId)
-    .select("id")
+    .select("id,program_id,parent_name,parent_email,child_name")
     .maybeSingle();
   throwIfSupabaseError(error, "Could not update registration");
   if (!data) throw new Error("REGISTRATION_NOT_FOUND");
+
+  if (input.registrationStatus === "confirmed") {
+    const { data: program, error: programError } = await db
+      .from("programs")
+      .select("name")
+      .eq("id", data.program_id)
+      .maybeSingle();
+    throwIfSupabaseError(programError, "Could not load confirmed registration's program");
+    return {
+      parentName: data.parent_name as string,
+      parentEmail: data.parent_email as string,
+      childName: data.child_name as string,
+      programName: program?.name ?? "",
+    };
+  }
+  return null;
 }
 
 export async function rosterForSession(
@@ -364,7 +393,7 @@ export async function rosterForSession(
 export async function markFutprepAttendance(input: {
   sessionId: number;
   registrationId: number;
-  status: "present" | "absent" | "excused";
+  status: "present" | "absent" | "excused" | "late";
   markedBy: string;
 }) {
   await ensureFutprepPilotData();
@@ -423,11 +452,12 @@ async function assertFutprepSession(sessionId: number) {
   throwIfSupabaseError(error, "Could not validate Futprep session");
   if (!session) throw new Error("SESSION_NOT_FOUND");
 
+  const organizationId = await futprepOrganizationId();
   const { data: program, error: programError } = await db
     .from("programs")
     .select("slug")
     .eq("id", session.program_id)
-    .in("slug", ["lil-kickers","rookies"])
+    .eq("organization_id", organizationId)
     .maybeSingle();
   throwIfSupabaseError(programError, "Could not validate Futprep program");
   if (!program) throw new Error("SESSION_NOT_FOUND");
@@ -487,7 +517,7 @@ export async function saveFutprepSessionPlan(input: {
 
 export async function getFutprepWorkLog(
   sessionId: number,
-  staffName = "Coach Bex",
+  staffName: string,
 ): Promise<StaffWorkLog | null> {
   await ensureFutprepPilotData();
   await assertFutprepSession(sessionId);

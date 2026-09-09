@@ -28,7 +28,8 @@
 .staff-summary article{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px;padding:20px}
 .staff-summary span{color:var(--muted);font-size:.68rem;text-transform:uppercase}
 .staff-summary strong{font-family:Georgia,serif;font-size:2.5rem;font-weight:400}
-.staff-filter{display:flex;gap:8px;margin:22px 0}
+.staff-search-input{background:var(--paper);border:1px solid var(--line);font-size:.85rem;height:44px;margin-top:18px;padding:0 14px;width:100%}
+.staff-filter{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0}
 .staff-filter button{background:var(--paper);border:1px solid var(--line);cursor:pointer;font-size:.72rem;font-weight:800;padding:9px 13px}
 .staff-filter button.is-active{background:var(--ink);color:white}
 .staff-registration-list{display:flex;flex-direction:column;gap:14px}
@@ -70,8 +71,15 @@
 .coach-roster>article:last-child{border-bottom:0}
 .coach-player-main{display:flex;flex-direction:column;gap:4px}
 .coach-player-main strong{font-size:.86rem}.coach-player-main span{color:var(--muted);font-size:.7rem}
+.coach-player-name-line{align-items:center;display:flex;gap:8px}
+.coach-medical-flag{background:#ffe5e8;border-radius:999px;color:#8d2330;font-size:.6rem;font-weight:800;padding:2px 8px;text-transform:uppercase}
 .coach-roster details summary{cursor:pointer;font-size:.7rem;font-weight:800}
 .coach-roster details p{color:var(--muted);font-size:.7rem;line-height:1.45;margin:6px 0}
+.coach-unsaved-banner{background:#fff0b8;color:#634d00;font-size:.78rem;font-weight:800;padding:12px 22px;position:sticky;top:0;z-index:5}
+.coach-attendance-retry{align-items:center;display:flex;gap:10px;grid-column:1/-1;justify-content:flex-end}
+.coach-attendance-retry span{color:#8d2330;font-size:.7rem}
+.coach-attendance-retry button{background:var(--ink);border:0;color:#fff;cursor:pointer;font-size:.68rem;font-weight:800;padding:6px 10px}
+.coach-cash-inline{grid-column:1/-1;justify-content:flex-end;margin-left:0}
 .attendance-actions{display:flex;gap:5px}
 .attendance-actions button{background:transparent;border:1px solid var(--line);cursor:pointer;font-size:.64rem;padding:7px 8px;text-transform:capitalize}
 .attendance-actions button.is-active{background:var(--ink);color:white}
@@ -101,12 +109,26 @@
   .staff-registration-head{flex-direction:column;gap:12px}
   .staff-status-stack{align-items:flex-start;flex-direction:row}
   .cash-list article{align-items:flex-start;flex-direction:column;gap:12px}
+  .staff-registration-card{padding:16px}
+  .staff-filter{flex-wrap:wrap}
+  .attendance-actions{gap:8px}
+  .attendance-actions button{flex:1;min-height:44px}
+  .cash-section>h2{font-size:1.7rem}
+  .record-payment-inline{flex-wrap:wrap;width:100%}
+  .record-payment-inline input{flex:1;width:auto}
+  .record-payment-inline button{white-space:nowrap}
 }
 
 
 /* Named Futprep staff accounts and operations */
 .staff-role-choice-three{grid-template-columns:repeat(3,1fr)}
 .staff-logout-button{background:transparent;border:0;color:#d8e0dd;cursor:pointer;font-size:.72rem;font-weight:800;padding:0}
+.staff-nav-actions{align-items:center;display:flex;gap:16px}
+.change-pin-page{max-width:480px}
+.change-pin-form{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:20px;padding:32px}
+.change-pin-form label{display:flex;flex-direction:column;gap:8px}
+.change-pin-form label>span{font-size:.74rem;font-weight:800}
+.change-pin-form input{background:#fff;border:1px solid var(--line);font-size:.92rem;height:46px;padding:0 14px}
 .registration-share-card{align-items:center;background:#e9f8f5;border:1px solid #b9dfd7;display:flex;gap:30px;justify-content:space-between;margin-bottom:18px;padding:22px}
 .registration-share-card>div{display:flex;flex-direction:column;gap:6px}
 .registration-share-card strong{font-family:Georgia,serif;font-size:1.15rem;font-weight:400}
@@ -131,6 +153,9 @@
 .coach-payment-badge.payment-pending,.coach-payment-badge.payment-overdue{background:#ffe5e8;color:#8d2330!important}
 .coach-payment-badge.payment-waived{background:#e8e8e4;color:#555!important}
 .cash-section-note{margin:-10px 0 18px;max-width:720px}
+.attendance-actions-readonly span{background:var(--sand);border:1px solid var(--line);display:inline-block;font-size:.66rem;font-weight:800;padding:6px 10px;text-transform:capitalize}
+.attendance-actions-readonly span.is-active{background:var(--ink);color:#fff}
+.coach-tool-readonly-text{color:var(--ink);font-size:.85rem;line-height:1.6;white-space:pre-wrap}
 
 @media(max-width:900px){
   .staff-role-choice-three,.staff-summary-four,.coach-tools-grid{grid-template-columns:1fr 1fr}

@@ -2,7 +2,7 @@
 
 PortPass is a Bahamas-based sports management platform for clubs, academies, coaches, parents, and players.
 
-The first production pilot is **Futprep**, beginning with its Saturday **Lil Kickers** and **Rookies** programs.
+The first production pilot is **Futprep**, beginning with its Saturday **Futprep Lil Kickers** and **Futprep Kickers** programs.
 
 ## Current production stack
 
@@ -16,21 +16,21 @@ The existing ChatGPT Sites deployment remains live only as the current public ve
 
 ## Futprep Term 1 pilot
 
-### Lil Kickers
+### Futprep Lil Kickers
 - Ages 3–5
 - Co-ed
-- Saturdays at 9:00 AM
+- Saturdays, 9:00–9:35 AM
 - 20 spots
-- BSD $35 weekly
+- BSD $35 daily/weekly
 - BSD $300 full term
 
-### Rookies
+### Futprep Kickers
 - Ages 5–7
 - Co-ed
-- Saturdays at 11:00 AM
+- Saturdays, 10:00–10:45 AM
 - 20 spots
-- BSD $45 weekly
-- BSD $335 full term
+- BSD $45 daily/weekly
+- BSD $420 full term
 
 Location: Lyford Cay Lower Campus Soccer Field.
 
@@ -46,8 +46,9 @@ Term 1: September 5–December 5, 2026, with breaks October 10 and October 17.
 - combined parent/guardian consent and electronic signature
 - cash and bank-transfer payment choice
 - online payment shown as Coming Soon
-- Kiki admin registration/payment workspace
-- Coach Bex roster, safety information, attendance and cash-recording workspace
+- admin registration/payment workspace
+- coach roster, safety information, attendance and cash-recording workspace
+- admin-created staff accounts with admin/coach/ceo/helper roles
 - organization dashboard with programs, locations, coaches, registrations, payments and schedule
 
 ## Local development

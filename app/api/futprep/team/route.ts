@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { currentFutprepStaffAccount, canManageFutprepTeam } from "@/app/futprep/lil-kickers/staff-auth";
+import { currentFutprepStaffAccount, currentFutprepStaffRole, canManageFutprepTeam } from "@/app/futprep/lil-kickers/staff-auth";
 import { listAllCoachProfiles, saveCoachAvailability, saveCoachProfile, softDeleteCoach } from "@/db/coaches";
 
 function csv(value:unknown){return String(value??"").split(",").map((v)=>v.trim()).filter(Boolean);}
 
 export async function POST(request:Request){
   const account=await currentFutprepStaffAccount();
-  if(!account) return NextResponse.json({error:"Sign in again."},{status:401});
-  if(!canManageFutprepTeam(account)) return NextResponse.json({error:"Only the CEO or Head Tech Admin can manage the team."},{status:403});
+  const role=await currentFutprepStaffRole();
+  if(!account||!role) return NextResponse.json({error:"Sign in again."},{status:401});
+  if(!canManageFutprepTeam(role)) return NextResponse.json({error:"Only an admin or CEO can manage the team."},{status:403});
   const body=await request.json().catch(()=>({})) as any;
   try{
     if(body.action==="delete"){

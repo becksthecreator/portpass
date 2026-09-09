@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { currentFutprepStaffRole } from "@/app/futprep/lil-kickers/staff-auth";
+import { currentFutprepStaffRole, currentFutprepStaffName } from "@/app/futprep/lil-kickers/staff-auth";
 import { saveFutprepWorkLog } from "@/db/staff";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -7,6 +7,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (role !== "coach" && role !== "ceo") {
     return NextResponse.json({ error: "Coach or CEO access required." }, { status: 403 });
   }
+  const staffName = (await currentFutprepStaffName()) ?? role;
   const { id } = await context.params;
   const sessionId=Number(id);
   if (!Number.isInteger(sessionId)) return NextResponse.json({ error: "Invalid session." }, { status: 400 });
@@ -22,7 +23,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   try {
     await saveFutprepWorkLog({
       sessionId,
-      staffName:"Coach Bex",
+      staffName,
       workDate,
       startTime:String(body.startTime ?? "").slice(0,8),
       endTime:String(body.endTime ?? "").slice(0,8),

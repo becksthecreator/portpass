@@ -1,13 +1,20 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   FUTPREP_BANK_DETAILS,
-  FUTPREP_PROGRAMS,
   FUTPREP_TERM,
   formatMoney,
-  programBySlug,
+  programTimeRange,
 } from "../config";
+
+function paymentMethodLabel(method: string) {
+  if (method === "cash") return "Cash";
+  if (method === "online_banking") return "Online banking transfer";
+  if (method === "bank_transfer") return "Bank transfer";
+  return "";
+}
 
 type FormState = {
   parentName: string; parentEmail: string; parentPhone: string; relationship: string;
@@ -18,10 +25,26 @@ type FormState = {
   photoConsent: string; signatureName: string; consentAccepted: boolean;
 };
 
-type Availability = { slug: string; registered: number; spotsRemaining: number; capacity: number };
+type Availability = {
+  slug: string;
+  name: string;
+  ageMin: number;
+  ageMax: number;
+  day: string;
+  time: string;
+  endTime: string;
+  location: string;
+  capacity: number;
+  weeklyFeeCents: number;
+  termFeeCents: number;
+  termStartDate: string;
+  registered: number;
+  spotsRemaining: number;
+};
 type RegistrationResult = {
   referenceCode: string;
-  program: (typeof FUTPREP_PROGRAMS)[number];
+  program: { name: string; day: string; time: string; endTime: string };
+  term: { location: string };
   amountDueCents: number;
 };
 
@@ -36,11 +59,11 @@ const initial: FormState = {
 
 const steps = ["Parent","Child","Health & safety","Class & payment","Consent"];
 
-function ageAtStart(dob: string) {
+function ageAt(dob: string, referenceDate: string) {
   if (!dob) return null;
   const birth = new Date(`${dob}T12:00:00Z`);
-  const start = new Date(`${FUTPREP_TERM.startDate}T12:00:00Z`);
-  if (Number.isNaN(birth.valueOf())) return null;
+  const start = new Date(`${referenceDate}T12:00:00Z`);
+  if (Number.isNaN(birth.valueOf()) || Number.isNaN(start.valueOf())) return null;
   let age = start.getUTCFullYear() - birth.getUTCFullYear();
   const delta = start.getUTCMonth() - birth.getUTCMonth();
   if (delta < 0 || (delta === 0 && start.getUTCDate() < birth.getUTCDate())) age--;
@@ -48,17 +71,36 @@ function ageAtStart(dob: string) {
 }
 
 export function RegistrationForm() {
-  const [form, setForm] = useState<FormState>(initial);
+  const searchParams = useSearchParams();
+  const [form, setForm] = useState<FormState>(() => ({
+    ...initial,
+    programSlug: searchParams.get("program") ?? "",
+    parentName: searchParams.get("parentName") ?? "",
+    parentEmail: searchParams.get("parentEmail") ?? "",
+    parentPhone: searchParams.get("parentPhone") ?? "",
+    relationship: searchParams.get("relationship") ?? "",
+  }));
   const [step, setStep] = useState(0);
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<RegistrationResult | null>(null);
 
-  const selectedProgram = useMemo(() => programBySlug(form.programSlug), [form.programSlug]);
+  const selectedProgram = useMemo(
+    () => availability.find((program) => program.slug === form.programSlug),
+    [availability, form.programSlug],
+  );
   const selectedPrice = selectedProgram && form.paymentFrequency
     ? (form.paymentFrequency === "term" ? selectedProgram.termFeeCents : selectedProgram.weeklyFeeCents)
     : null;
+
+  const overallAgeRange = useMemo(() => {
+    if (!availability.length) return { min: 0, max: 99 };
+    return {
+      min: Math.min(...availability.map((program) => program.ageMin)),
+      max: Math.max(...availability.map((program) => program.ageMax)),
+    };
+  }, [availability]);
 
   useEffect(() => {
     fetch("/api/futprep/lil-kickers/availability", { cache: "no-store" })
@@ -79,14 +121,19 @@ export function RegistrationForm() {
     }
     if (step === 1) {
       if (!form.childName || !form.childDob || !form.gender || !form.authorizedPickup) return "Complete the child and pickup details.";
-      const age = ageAtStart(form.childDob);
-      if (age === null || age < 3 || age > 7) return "Term 1 currently serves children ages 3–7.";
+      const referenceDate = availability[0]?.termStartDate ?? FUTPREP_TERM.startDate;
+      const age = ageAt(form.childDob, referenceDate);
+      if (age === null || age < overallAgeRange.min || age > overallAgeRange.max) {
+        return `Our current classes serve children ages ${overallAgeRange.min}–${overallAgeRange.max}.`;
+      }
     }
     if (step === 2 && (!form.emergencyContactName || !form.emergencyContactPhone)) return "Add an emergency contact.";
     if (step === 3) {
       if (!form.programSlug || !form.paymentFrequency || !form.paymentMethod) return "Choose a class, payment plan, and payment method.";
-      const age = ageAtStart(form.childDob);
-      if (selectedProgram && age !== null && (age < selectedProgram.ageMin || age > selectedProgram.ageMax)) return `${selectedProgram.name} is for ages ${selectedProgram.ageMin}–${selectedProgram.ageMax}.`;
+      if (selectedProgram) {
+        const age = ageAt(form.childDob, selectedProgram.termStartDate);
+        if (age !== null && (age < selectedProgram.ageMin || age > selectedProgram.ageMax)) return `${selectedProgram.name} is for ages ${selectedProgram.ageMin}–${selectedProgram.ageMax}.`;
+      }
     }
     return "";
   }
@@ -133,28 +180,32 @@ export function RegistrationForm() {
         <div className="confirmation-reference"><span>Registration reference</span><strong>{result.referenceCode}</strong></div>
         <dl className="confirmation-grid">
           <div><dt>Class</dt><dd>{result.program.name}</dd></div>
-          <div><dt>Time</dt><dd>Saturday · {result.program.time}</dd></div>
-          <div><dt>Location</dt><dd>{FUTPREP_TERM.location}</dd></div>
+          <div><dt>Time</dt><dd>{result.program.day} · {programTimeRange(result.program)}</dd></div>
+          <div><dt>Location</dt><dd>{result.term.location}</dd></div>
           <div><dt>Plan</dt><dd>{form.paymentFrequency === "term" ? "Full term" : "Weekly"}</dd></div>
           <div><dt>Amount</dt><dd>{formatMoney(result.amountDueCents)}{form.paymentFrequency === "weekly" ? " per class" : ""}</dd></div>
           <div><dt>Status</dt><dd><span className="status status-submitted">Payment pending</span></dd></div>
         </dl>
         <div className="payment-instruction">
-          <strong>{form.paymentMethod === "cash" ? "Cash payment" : "Bank transfer"}</strong>
+          <strong>{form.paymentMethod === "cash" ? "Cash payment" : paymentMethodLabel(form.paymentMethod)}</strong>
           {form.paymentMethod === "cash" ? (
-            <p>Please give the cash payment directly to Coach Bex in person. Futprep will update the payment status after it is received.</p>
+            <p>Please give the cash payment directly to your Futprep coach in person. Futprep will update the payment status after it is received.</p>
           ) : (
             <>
-              <p>Use the parent/guardian name and child&apos;s name in the transfer reference so Futprep can match the payment.</p>
+              <p>{form.paymentMethod === "online_banking"
+                ? "Send this from your own bank's online or mobile banking app."
+                : "Visit your bank and transfer to the account below."} Use your registration code as the transfer reference — <strong>{result.referenceCode}</strong> — so Futprep can match the payment automatically.</p>
               <div className="bank-details compact">
                 <span>{FUTPREP_BANK_DETAILS.bankName}</span>
                 <span>{FUTPREP_BANK_DETAILS.accountName}</span>
                 <span>{FUTPREP_BANK_DETAILS.accountNumber}</span>
+                <span>SWIFT {FUTPREP_BANK_DETAILS.swiftCode}</span>
               </div>
             </>
           )}
         </div>
-        <a className="primary-button" href="/futprep/lil-kickers">Back to program details →</a>
+        <a className="primary-button" href={`/futprep/my/${result.referenceCode}`}>Check registration status →</a>
+        <a className="secondary-button" href="/futprep/lil-kickers">Back to program details</a>
       </section>
     );
   }
@@ -165,7 +216,7 @@ export function RegistrationForm() {
         <div>
           <div className="eyebrow"><span className="eyebrow-dot" />Futprep · Term 1 registration</div>
           <h1>Register your child.</h1>
-          <p>Saturday sessions at {FUTPREP_TERM.location}. Registration is free.</p>
+          <p>Choose your child&apos;s class below. Registration is free.</p>
         </div>
         <div className="registration-progress">
           {steps.map((name,index) => (
@@ -222,18 +273,16 @@ export function RegistrationForm() {
             <div className="choice-section">
               <span className="choice-heading">Choose a class *</span>
               <div className="class-choice-grid">
-                {FUTPREP_PROGRAMS.map((program) => {
-                  const open = availability.find((a)=>a.slug===program.slug);
-                  return (
-                    <label className={`choice-card ${form.programSlug===program.slug ? "is-selected" : ""}`} key={program.slug}>
-                      <input type="radio" name="program" checked={form.programSlug===program.slug} onChange={()=>set("programSlug",program.slug)} />
-                      <span className="choice-check" />
-                      <strong>{program.name}</strong>
-                      <span>Ages {program.ageMin}–{program.ageMax} · Saturday {program.time}</span>
-                      <small>{open ? `${open.spotsRemaining} of ${open.capacity} spots remaining` : `${program.capacity} spots`}</small>
-                    </label>
-                  );
-                })}
+                {availability.length === 0 && <p className="form-hint">Loading classes…</p>}
+                {availability.map((program) => (
+                  <label className={`choice-card ${form.programSlug===program.slug ? "is-selected" : ""}`} key={program.slug}>
+                    <input type="radio" name="program" checked={form.programSlug===program.slug} onChange={()=>set("programSlug",program.slug)} />
+                    <span className="choice-check" />
+                    <strong>{program.name}</strong>
+                    <span>Ages {program.ageMin}–{program.ageMax} · {program.day} {programTimeRange(program)}</span>
+                    <small>{program.spotsRemaining} of {program.capacity} spots remaining</small>
+                  </label>
+                ))}
               </div>
             </div>
 
@@ -259,28 +308,33 @@ export function RegistrationForm() {
               <div className="payment-method-grid">
                 <label className={`choice-card ${form.paymentMethod==="cash" ? "is-selected" : ""}`}>
                   <input type="radio" checked={form.paymentMethod==="cash"} onChange={()=>set("paymentMethod","cash")} />
-                  <span className="choice-check" /><strong>Cash</strong><span>Pay Coach Bex in person.</span>
+                  <span className="choice-check" /><strong>Cash</strong><span>Pay your Futprep coach in person.</span>
                 </label>
                 <label className={`choice-card ${form.paymentMethod==="bank_transfer" ? "is-selected" : ""}`}>
                   <input type="radio" checked={form.paymentMethod==="bank_transfer"} onChange={()=>set("paymentMethod","bank_transfer")} />
-                  <span className="choice-check" /><strong>Bank transfer</strong><span>Transfer directly to Futprep.</span>
+                  <span className="choice-check" /><strong>Bank transfer</strong><span>Deposit or wire at your bank.</span>
+                </label>
+                <label className={`choice-card ${form.paymentMethod==="online_banking" ? "is-selected" : ""}`}>
+                  <input type="radio" checked={form.paymentMethod==="online_banking"} onChange={()=>set("paymentMethod","online_banking")} />
+                  <span className="choice-check" /><strong>Online banking transfer</strong><span>Pay from your own bank&apos;s app.</span>
                 </label>
                 <div className="choice-card is-disabled"><span className="coming-soon-pill">Coming soon</span><strong>Online card payment</strong><span>Pay securely through PortPass.</span></div>
               </div>
             </div>
 
-            {form.paymentMethod === "bank_transfer" && (
+            {(form.paymentMethod === "bank_transfer" || form.paymentMethod === "online_banking") && (
               <div className="bank-panel">
                 <div>
-                  <span className="choice-heading">Futprep bank transfer</span>
-                  <p>Final banking details will be added once Futprep confirms them. Include the parent/guardian name and child&apos;s name in the transfer reference.</p>
+                  <span className="choice-heading">{form.paymentMethod === "online_banking" ? "Pay via online banking" : "Futprep bank transfer"}</span>
+                  <p>{form.paymentMethod === "online_banking"
+                    ? "Send this from your own bank's online or mobile banking app."
+                    : "Visit your bank and transfer to the account below."} You'll get a registration code after you submit — use it as the transfer reference so Futprep can match your payment.</p>
                 </div>
                 <dl className="bank-details">
                   <div><dt>Bank</dt><dd>{FUTPREP_BANK_DETAILS.bankName}</dd></div>
                   <div><dt>Account name</dt><dd>{FUTPREP_BANK_DETAILS.accountName}</dd></div>
                   <div><dt>Account number</dt><dd>{FUTPREP_BANK_DETAILS.accountNumber}</dd></div>
-                  <div><dt>Branch</dt><dd>{FUTPREP_BANK_DETAILS.branch}</dd></div>
-                  <div><dt>Account type</dt><dd>{FUTPREP_BANK_DETAILS.accountType}</dd></div>
+                  <div><dt>SWIFT code</dt><dd>{FUTPREP_BANK_DETAILS.swiftCode}</dd></div>
                 </dl>
               </div>
             )}
@@ -294,8 +348,8 @@ export function RegistrationForm() {
             <legend><span>05</span>Review & consent</legend>
             <div className="registration-review">
               <div><span>Child</span><strong>{form.childName}</strong><small>{form.childDob}</small></div>
-              <div><span>Class</span><strong>{selectedProgram?.name}</strong><small>Saturday · {selectedProgram?.time}</small></div>
-              <div><span>Payment</span><strong>{form.paymentFrequency==="term" ? "Full term" : "Weekly"} · {selectedPrice!==null ? formatMoney(selectedPrice) : ""}</strong><small>{form.paymentMethod==="cash" ? "Cash" : "Bank transfer"}</small></div>
+              <div><span>Class</span><strong>{selectedProgram?.name}</strong><small>{selectedProgram ? `${selectedProgram.day} · ${programTimeRange(selectedProgram)}` : ""}</small></div>
+              <div><span>Payment</span><strong>{form.paymentFrequency==="term" ? "Full term" : "Weekly"} · {selectedPrice!==null ? formatMoney(selectedPrice) : ""}</strong><small>{paymentMethodLabel(form.paymentMethod)}</small></div>
               <div><span>Parent/guardian</span><strong>{form.parentName}</strong><small>{form.parentEmail}</small></div>
             </div>
 

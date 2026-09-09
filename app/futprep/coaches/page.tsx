@@ -2,7 +2,10 @@ import Link from "next/link";
 import { listPublicCoachProfiles } from "@/db/coaches";
 import { PrivateSessionBooking } from "./PrivateSessionBooking";
 
-export const dynamic="force-dynamic";
+// force-dynamic (not ISR/revalidate) because this repo's CI build has no
+// Supabase credentials available at build time, and a numeric revalidate
+// makes Next try to prerender this page's DB-backed data during `next build`.
+export const dynamic = "force-dynamic";
 
 function dayLabel(value:string){
   return new Intl.DateTimeFormat("en-BS",{weekday:"short",month:"short",day:"numeric",timeZone:"UTC"}).format(new Date(`${value}T12:00:00Z`));
@@ -16,7 +19,7 @@ export default async function FutprepCoachesPage(){
     <main className="futprep-team-page">
       <header className="futprep-team-header">
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-        <nav><Link href="/futprep">Futprep home</Link><Link href="/futprep/messy-tots">Messy Tots</Link><Link href="/futprep/lil-kickers/staff/login">Staff login</Link></nav>
+        <nav><Link href="/futprep">Futprep home</Link><Link href="/futprep/programs">Programs</Link><Link href="/futprep/lil-kickers/staff/login">Staff login</Link></nav>
       </header>
 
       <section className="futprep-team-hero">

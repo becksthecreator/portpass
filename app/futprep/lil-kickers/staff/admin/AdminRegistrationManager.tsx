@@ -7,17 +7,36 @@ function money(cents:number) {
   return new Intl.NumberFormat("en-BS",{style:"currency",currency:"BSD",minimumFractionDigits:0}).format(cents/100);
 }
 
+function paymentMethodLabel(method:string) {
+  if (method==="cash") return "Cash";
+  if (method==="online_banking") return "Online banking transfer";
+  return "Bank transfer";
+}
+
 export function AdminRegistrationManager({ initialRegistrations }: { initialRegistrations: StaffRegistration[] }) {
   const [items,setItems] = useState(initialRegistrations);
   const [filter,setFilter] = useState("all");
+  const [search,setSearch] = useState("");
   const [busy,setBusy] = useState<number|null>(null);
   const [amounts,setAmounts] = useState<Record<number,string>>({});
   const [copied,setCopied] = useState(false);
 
-  const visible = useMemo(
-    ()=>items.filter((item)=>filter==="all" || item.program_slug===filter),
-    [items,filter]
-  );
+  const visible = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return items.filter((item) => {
+      if (filter !== "all" && item.program_slug !== filter) return false;
+      if (!query) return true;
+      return item.reference_code.toLowerCase().includes(query) || item.child_name.toLowerCase().includes(query);
+    });
+  }, [items,filter,search]);
+
+  // Built from whatever programs actually have registrations, so a newly
+  // added program (e.g. Futprep Out East) gets its own filter automatically.
+  const programFilters = useMemo(() => {
+    const seen = new Map<string,string>();
+    for (const item of items) if (!seen.has(item.program_slug)) seen.set(item.program_slug,item.program_name);
+    return Array.from(seen.entries());
+  }, [items]);
 
   async function copyRegistrationLink() {
     const url=`${window.location.origin}/futprep/lil-kickers/register`;
@@ -45,7 +64,7 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
     setBusy(item.id);
     const response = await fetch("/api/futprep/lil-kickers/staff/payments",{
       method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({registrationId:item.id,amountCents:Math.round(dollars*100),method:"bank_transfer"})
+      body:JSON.stringify({registrationId:item.id,amountCents:Math.round(dollars*100),method:item.payment_method})
     });
     const data = await response.json() as { paidCents?:number; paymentStatus?:string };
     setBusy(null);
@@ -67,10 +86,19 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
         <article><span>Paid</span><strong>{items.filter(i=>i.payment_status==="paid").length}</strong></article>
         <article><span>Awaiting payment</span><strong>{items.filter(i=>["pending","partial","overdue"].includes(i.payment_status)).length}</strong></article>
       </div>
+      <input
+        className="staff-search-input"
+        type="search"
+        placeholder="Search by reference code or child name…"
+        value={search}
+        onChange={(e)=>setSearch(e.target.value)}
+      />
+
       <div className="staff-filter">
         <button className={filter==="all"?"is-active":""} onClick={()=>setFilter("all")}>All</button>
-        <button className={filter==="lil-kickers"?"is-active":""} onClick={()=>setFilter("lil-kickers")}>Lil Kickers</button>
-        <button className={filter==="rookies"?"is-active":""} onClick={()=>setFilter("rookies")}>Rookies</button>
+        {programFilters.map(([slug,name])=>(
+          <button key={slug} className={filter===slug?"is-active":""} onClick={()=>setFilter(slug)}>{name}</button>
+        ))}
       </div>
 
       <div className="staff-registration-list">
@@ -85,7 +113,7 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
             <div className="staff-info-grid">
               <div><span>Parent / guardian</span><strong>{item.parent_name}</strong><small>{item.parent_email}<br/>{item.parent_phone}</small></div>
               <div><span>Emergency contact</span><strong>{item.emergency_contact_name}</strong><small>{item.emergency_contact_phone}</small></div>
-              <div><span>Payment</span><strong>{item.payment_frequency==="term" ? "Full term" : "Weekly"} · {item.payment_method==="cash" ? "Cash" : "Bank transfer"}</strong><small>Due {money(item.amount_due_cents)} · Recorded {money(item.paid_cents)}</small></div>
+              <div><span>Payment</span><strong>{item.payment_frequency==="term" ? "Full term" : "Weekly"} · {paymentMethodLabel(item.payment_method)}</strong><small>Due {money(item.amount_due_cents)} · Recorded {money(item.paid_cents)}</small></div>
               <div><span>Photo / video</span><strong>{item.photo_consent==="yes" ? "Allowed" : "Not allowed"}</strong></div>
             </div>
 
@@ -94,10 +122,10 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
               <select value={item.payment_status} onChange={(e)=>patch(item.id,{paymentStatus:e.target.value})}>
                 <option value="pending">Not paid / pending</option><option value="partial">Partially paid</option><option value="paid">Paid</option><option value="overdue">Overdue</option><option value="waived">Waived</option>
               </select>
-              {item.payment_method==="bank_transfer" && (
+              {(item.payment_method==="bank_transfer" || item.payment_method==="online_banking") && (
                 <div className="record-payment-inline">
                   <span>$</span><input inputMode="decimal" value={amounts[item.id] ?? String(item.amount_due_cents/100)} onChange={(e)=>setAmounts((current)=>({...current,[item.id]:e.target.value}))} />
-                  <button disabled={busy===item.id} onClick={()=>recordTransfer(item)}>Record bank transfer</button>
+                  <button disabled={busy===item.id} onClick={()=>recordTransfer(item)}>Record transfer</button>
                 </div>
               )}
             </div>

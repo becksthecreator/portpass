@@ -41,9 +41,15 @@ Add production environment variables:
 ```
 NEXT_PUBLIC_SUPABASE_URL=<Supabase project URL>
 SUPABASE_SECRET_KEY=<server-only secret key>
-PORTPASS_FUTPREP_ADMIN_PIN=<Kiki staff PIN>
-PORTPASS_FUTPREP_COACH_PIN=<Coach Bex staff PIN>
 ```
+
+Staff accounts are not set through environment variables or a fixed list.
+The first admin account is created through a one-time setup screen at
+`/futprep/lil-kickers/staff/login` (shown whenever no staff account exists
+yet); that admin can then create coach/ceo/helper/admin accounts for
+everyone else from `/futprep/lil-kickers/staff/accounts`. PINs are stored as
+hashes on `staff_members.pin_hash`, keyed by `staff_members.account_key`, so
+they can be reset without a redeploy.
 
 Deploy the Vercel preview first. Do not move the custom domain yet.
 
@@ -55,16 +61,17 @@ Verify:
 - early-access form
 - super-admin review
 - Futprep program page
-- Lil Kickers registration
-- Rookies registration
+- Futprep Lil Kickers registration
+- Futprep Kickers registration
 - class capacity
 - duplicate prevention
 - cash payment selection
 - bank-transfer selection
 - photo/video yes/no
 - combined consent + electronic signature
-- Kiki staff login
-- Coach Bex staff login
+- first-time admin account setup
+- staff login with a created account
+- creating a coach/ceo/helper account from Staff accounts
 - payment recording
 - attendance
 - medical/emergency information is visible only in protected staff views

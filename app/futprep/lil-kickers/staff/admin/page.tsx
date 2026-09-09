@@ -20,14 +20,16 @@ export default async function FutprepStaffAdminPage() {
         <nav>
           {role==="ceo" && <Link href="/futprep/lil-kickers/staff/ceo">CEO overview</Link>}
           <Link href="/futprep/lil-kickers/staff/private-sessions">Private sessions</Link>
+          <Link href="/futprep/lil-kickers/staff/programs">Programs</Link>
+          <Link href="/futprep/lil-kickers/staff/accounts">Staff accounts</Link>
           <Link href="/futprep/lil-kickers">Parent view ↗</Link>
           <StaffLogoutButton />
         </nav>
       </header>
       <section className="staff-workspace-content">
         <div className="staff-page-intro">
-          <div><span className="section-kicker">Kiki · registrations & payments</span><h1>Registration desk.</h1></div>
-          <p>Send parents the registration link, confirm children, and keep payment status current. Coach Bex and Coach Alex see those updates automatically in their own areas.</p>
+          <div><span className="section-kicker">Registrations & payments</span><h1>Registration desk.</h1></div>
+          <p>Send parents the registration link, confirm children, and keep payment status current. Coaches see those updates automatically in their own areas.</p>
         </div>
         <AdminRegistrationManager initialRegistrations={registrations} />
       </section>

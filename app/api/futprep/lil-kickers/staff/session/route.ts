@@ -2,28 +2,25 @@ import { NextResponse } from "next/server";
 import {
   FUTPREP_STAFF_COOKIE,
   makeStaffToken,
-  type FutprepStaffAccount,
 } from "@/app/futprep/lil-kickers/staff-auth";
 
-const validAccounts: FutprepStaffAccount[] = ["admin", "coach", "ceo", "kione", "adon"];
-
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({})) as { account?: string; role?: string; pin?: string };
-  const accountValue = body.account ?? body.role;
-  if (!accountValue || !validAccounts.includes(accountValue as FutprepStaffAccount)) {
-    return NextResponse.json({ error: "Choose a valid staff account." }, { status: 400 });
+  const body = await request.json().catch(() => ({})) as { accountKey?: string; pin?: string };
+  const accountKey = String(body.accountKey ?? "").trim().toLowerCase();
+  if (!accountKey) {
+    return NextResponse.json({ error: "Enter your account name." }, { status: 400 });
   }
 
-  const account = accountValue as FutprepStaffAccount;
-  const token = await makeStaffToken(account, String(body.pin ?? ""));
+  const token = await makeStaffToken(accountKey, String(body.pin ?? ""));
   if (!token) {
     return NextResponse.json(
-      { error: "Staff access is not configured yet or the PIN is incorrect." },
+      { error: "That account name or PIN is incorrect." },
       { status: 401 }
     );
   }
 
-  const response = NextResponse.json({ ok: true, account });
+  const [, role] = token.split(".");
+  const response = NextResponse.json({ ok: true, accountKey, role });
   response.cookies.set(FUTPREP_STAFF_COOKIE, token, {
     httpOnly: true,
     secure: true,
