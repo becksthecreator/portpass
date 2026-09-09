@@ -517,7 +517,7 @@ export async function saveFutprepSessionPlan(input: {
 
 export async function getFutprepWorkLog(
   sessionId: number,
-  staffName = "Coach Bex",
+  staffName: string,
 ): Promise<StaffWorkLog | null> {
   await ensureFutprepPilotData();
   await assertFutprepSession(sessionId);

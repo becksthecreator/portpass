@@ -189,7 +189,7 @@ export function RegistrationForm() {
         <div className="payment-instruction">
           <strong>{form.paymentMethod === "cash" ? "Cash payment" : paymentMethodLabel(form.paymentMethod)}</strong>
           {form.paymentMethod === "cash" ? (
-            <p>Please give the cash payment directly to Coach Bex in person. Futprep will update the payment status after it is received.</p>
+            <p>Please give the cash payment directly to your Futprep coach in person. Futprep will update the payment status after it is received.</p>
           ) : (
             <>
               <p>{form.paymentMethod === "online_banking"
@@ -308,7 +308,7 @@ export function RegistrationForm() {
               <div className="payment-method-grid">
                 <label className={`choice-card ${form.paymentMethod==="cash" ? "is-selected" : ""}`}>
                   <input type="radio" checked={form.paymentMethod==="cash"} onChange={()=>set("paymentMethod","cash")} />
-                  <span className="choice-check" /><strong>Cash</strong><span>Pay Coach Bex in person.</span>
+                  <span className="choice-check" /><strong>Cash</strong><span>Pay your Futprep coach in person.</span>
                 </label>
                 <label className={`choice-card ${form.paymentMethod==="bank_transfer" ? "is-selected" : ""}`}>
                   <input type="radio" checked={form.paymentMethod==="bank_transfer"} onChange={()=>set("paymentMethod","bank_transfer")} />

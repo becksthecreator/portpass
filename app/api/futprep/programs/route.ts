@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { currentFutprepStaffAccount } from "@/app/futprep/lil-kickers/staff-auth";
+import { currentFutprepStaffAccount, currentFutprepStaffRole } from "@/app/futprep/lil-kickers/staff-auth";
 import {
   createFutprepProgram,
   listFutprepPrograms,
@@ -7,8 +7,8 @@ import {
 } from "@/db/programs";
 
 export async function GET() {
-  const account = await currentFutprepStaffAccount();
-  if (!account) return NextResponse.json({ error: "Sign in again." }, { status: 401 });
+  const [account, role] = await Promise.all([currentFutprepStaffAccount(), currentFutprepStaffRole()]);
+  if (!account || role === "helper") return NextResponse.json({ error: "Sign in again." }, { status: 401 });
 
   try {
     return NextResponse.json({ programs: await listFutprepPrograms() });
@@ -28,8 +28,8 @@ function num(body: Record<string, unknown>, field: string) {
 }
 
 export async function POST(request: Request) {
-  const account = await currentFutprepStaffAccount();
-  if (!account) return NextResponse.json({ error: "Sign in again." }, { status: 401 });
+  const [account, role] = await Promise.all([currentFutprepStaffAccount(), currentFutprepStaffRole()]);
+  if (!account || role === "helper") return NextResponse.json({ error: "Sign in again." }, { status: 401 });
 
   let body: Record<string, unknown>;
   try {

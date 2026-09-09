@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { currentFutprepStaffRole } from "@/app/futprep/lil-kickers/staff-auth";
+import { currentFutprepStaffRole, currentFutprepStaffName } from "@/app/futprep/lil-kickers/staff-auth";
 import { markFutprepAttendance } from "@/db/staff";
 
 export async function POST(request: Request) {
   const role = await currentFutprepStaffRole();
-  if (!role) return NextResponse.json({ error: "Staff access required." }, { status: 403 });
+  if (!role || role === "helper") return NextResponse.json({ error: "Staff access required." }, { status: 403 });
 
   const body = await request.json().catch(() => ({})) as {
     sessionId?: number;
@@ -19,10 +19,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid attendance status." }, { status: 400 });
   }
 
-  const markedBy =
-    role === "admin" ? "Kiki / Futprep registration" :
-    role === "ceo" ? "Coach Alex / Futprep CEO" :
-    "Coach Bex";
+  const markedBy = (await currentFutprepStaffName()) ?? role;
 
   try {
     await markFutprepAttendance({

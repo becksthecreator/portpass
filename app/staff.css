@@ -153,6 +153,9 @@
 .coach-payment-badge.payment-pending,.coach-payment-badge.payment-overdue{background:#ffe5e8;color:#8d2330!important}
 .coach-payment-badge.payment-waived{background:#e8e8e4;color:#555!important}
 .cash-section-note{margin:-10px 0 18px;max-width:720px}
+.attendance-actions-readonly span{background:var(--sand);border:1px solid var(--line);display:inline-block;font-size:.66rem;font-weight:800;padding:6px 10px;text-transform:capitalize}
+.attendance-actions-readonly span.is-active{background:var(--ink);color:#fff}
+.coach-tool-readonly-text{color:var(--ink);font-size:.85rem;line-height:1.6;white-space:pre-wrap}
 
 @media(max-width:900px){
   .staff-role-choice-three,.staff-summary-four,.coach-tools-grid{grid-template-columns:1fr 1fr}

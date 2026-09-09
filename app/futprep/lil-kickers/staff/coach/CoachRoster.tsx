@@ -19,10 +19,12 @@ export function CoachRoster({
   session,
   initialRoster,
   registrations,
+  readOnly = false,
 }: {
   session: StaffSession;
   initialRoster: AttendanceRow[];
   registrations: StaffRegistration[];
+  readOnly?: boolean;
 }) {
   const [roster,setRoster] = useState(initialRoster);
   const [payments,setPayments] = useState(registrations);
@@ -123,21 +125,29 @@ export function CoachRoster({
                 <span className={`coach-payment-badge payment-${payment?.payment_status ?? "pending"}`}>Payment: {payment?.payment_status ?? "pending"}</span>
               </div>
               <details><summary>Safety notes</summary><p><b>Emergency:</b> {row.emergency_contact_name} · {row.emergency_contact_phone}</p><p><b>Authorized pickup:</b> {row.authorized_pickup}</p><p><b>Allergies:</b> {row.allergies || "None provided"}</p><p><b>Medical:</b> {row.medical_conditions || "None provided"}</p><p><b>Medications:</b> {row.medications || "None provided"}</p><p><b>Special needs:</b> {row.special_needs || "None provided"}</p></details>
-              <div className="attendance-actions">
-                {(["present","absent","excused","late"] as const).map((status)=><button className={row.attendance_status===status ? "is-active":""} disabled={savingId===row.registration_id} onClick={()=>attendance(row.registration_id,status)} key={status}>{status}</button>)}
-              </div>
-              {failedStatus && (
-                <div className="coach-attendance-retry">
-                  <span>Couldn&apos;t save &quot;{failedStatus}&quot;.</span>
-                  <button type="button" onClick={()=>attendance(row.registration_id,failedStatus)}>Retry now</button>
+              {readOnly ? (
+                <div className="attendance-actions attendance-actions-readonly">
+                  <span className={row.attendance_status ? "is-active" : ""}>{row.attendance_status ?? "Not marked yet"}</span>
                 </div>
-              )}
-              {showCash && (
-                <div className="record-payment-inline coach-cash-inline">
-                  <span>$</span>
-                  <input inputMode="decimal" value={amounts[row.registration_id] ?? String((balanceCents)/100)} onChange={(e)=>setAmounts((current)=>({...current,[row.registration_id]:e.target.value}))} />
-                  <button disabled={cashBusy===payment!.id} onClick={()=>cash(payment!)}>Record cash</button>
-                </div>
+              ) : (
+                <>
+                  <div className="attendance-actions">
+                    {(["present","absent","excused","late"] as const).map((status)=><button className={row.attendance_status===status ? "is-active":""} disabled={savingId===row.registration_id} onClick={()=>attendance(row.registration_id,status)} key={status}>{status}</button>)}
+                  </div>
+                  {failedStatus && (
+                    <div className="coach-attendance-retry">
+                      <span>Couldn&apos;t save &quot;{failedStatus}&quot;.</span>
+                      <button type="button" onClick={()=>attendance(row.registration_id,failedStatus)}>Retry now</button>
+                    </div>
+                  )}
+                  {showCash && (
+                    <div className="record-payment-inline coach-cash-inline">
+                      <span>$</span>
+                      <input inputMode="decimal" value={amounts[row.registration_id] ?? String((balanceCents)/100)} onChange={(e)=>setAmounts((current)=>({...current,[row.registration_id]:e.target.value}))} />
+                      <button disabled={cashBusy===payment!.id} onClick={()=>cash(payment!)}>Record cash</button>
+                    </div>
+                  )}
+                </>
               )}
             </article>
           );

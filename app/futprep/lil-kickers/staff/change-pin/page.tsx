@@ -4,7 +4,7 @@ import { ChangePinForm } from "./ChangePinForm";
 import { StaffLogoutButton } from "../StaffLogoutButton";
 
 export default async function FutprepChangePinPage() {
-  await requireFutprepStaff(["admin", "coach", "ceo"], "/futprep/lil-kickers/staff/change-pin");
+  await requireFutprepStaff(["admin", "coach", "ceo", "helper"], "/futprep/lil-kickers/staff/change-pin");
 
   return (
     <main className="staff-workspace">

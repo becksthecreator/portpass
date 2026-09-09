@@ -7,10 +7,12 @@ export function CoachSessionTools({
   session,
   initialPlan,
   initialWorkLog,
+  readOnly = false,
 }: {
   session: StaffSession;
   initialPlan: StaffSessionPlan | null;
   initialWorkLog: StaffWorkLog | null;
+  readOnly?: boolean;
 }) {
   const [title,setTitle] = useState(initialPlan?.title ?? "");
   const [planText,setPlanText] = useState(initialPlan?.plan_text ?? "");
@@ -65,6 +67,20 @@ export function CoachSessionTools({
     const data=await response.json() as {error?:string};
     setSaving(null);
     setMessage(response.ok ? "Work hours saved." : (data.error ?? "Could not save work hours."));
+  }
+
+  if (readOnly) {
+    return (
+      <section className="coach-tools-grid">
+        <article className="coach-tool-panel">
+          <span className="section-kicker">Session plan</span>
+          <h2>{title || "No plan added yet."}</h2>
+          {planText && <p className="coach-tool-readonly-text">{planText}</p>}
+          {parentNote && <p className="coach-tool-hint">What parents were told: {parentNote}</p>}
+          {attachmentUrl && <a className="header-link" href={attachmentUrl} target="_blank" rel="noreferrer">Open plan link ↗</a>}
+        </article>
+      </section>
+    );
   }
 
   return (

@@ -36,6 +36,7 @@ export default function Home() {
             <a href="#features">Features</a>
             <a href="#live">Live</a>
             <a href="#about">About</a>
+            <Link href="/futprep">Futprep</Link>
             <Link href="/apply">Early access</Link>
           </nav>
         </header>

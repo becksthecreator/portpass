@@ -98,42 +98,8 @@ async function seedFutprepPilot() {
     );
     throwIfSupabaseError(locationError, "Could not seed Futprep location");
 
-    const { error: staffError } = await db.from("staff_members").upsert(
-      [
-        {
-          organization_id: organization.id,
-          name: "Coach Bex",
-          role: "coach",
-          email: null,
-          responsibilities:
-            "Runs Futprep Lil Kickers and Futprep Kickers; roster, attendance, and in-person cash collection.",
-          active: true,
-          created_at: now,
-        },
-        {
-          organization_id: organization.id,
-          name: "Kiki",
-          role: "admin_registrar",
-          email: null,
-          responsibilities:
-            "Registration administration, bank-transfer verification, payment tracking, and parent registration support.",
-          active: true,
-          created_at: now,
-        },
-        {
-          organization_id: organization.id,
-          name: "Coach Alex",
-          role: "ceo",
-          email: null,
-          responsibilities:
-            "CEO oversight with access to registrations, payments, coaching operations, session plans, and staff work logs.",
-          active: true,
-          created_at: now,
-        },
-      ],
-      { onConflict: "organization_id,name,role" },
-    );
-    throwIfSupabaseError(staffError, "Could not seed Futprep staff");
+    // Staff directory rows are no longer seeded with placeholder names here —
+    // accounts are created by an admin through /futprep/lil-kickers/staff/accounts.
   }
 
   for (const configured of FUTPREP_PROGRAMS) {

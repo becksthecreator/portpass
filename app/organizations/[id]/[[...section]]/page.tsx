@@ -167,11 +167,11 @@ export default async function OrganizationPage({
             <Section kicker="Payments" title="Know what has and hasn’t been paid." copy="For the pilot, Futprep accepts cash and bank transfer.">
               <div className="dashboard-stats compact-stats">
                 <article><span>Pending</span><strong>{stats.pendingPayments}</strong><small>Needs confirmation</small></article>
-                <article><span>Cash</span><strong>Active</strong><small>Coach Bex records it</small></article>
-                <article><span>Bank transfer</span><strong>Active</strong><small>Kiki verifies it</small></article>
+                <article><span>Cash</span><strong>Active</strong><small>A coach records it</small></article>
+                <article><span>Bank transfer</span><strong>Active</strong><small>Admin verifies it</small></article>
                 <article><span>Online</span><strong>Soon</strong><small>Coming later</small></article>
               </div>
-              {isFutprep && <Callout title="Kiki admin workspace" text="Detailed payment confirmation and registration actions are the next protected staff module." />}
+              {isFutprep && <Callout title="Admin workspace" text="Detailed payment confirmation and registration actions are the next protected staff module." />}
             </Section>
           )}
 

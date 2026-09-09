@@ -46,8 +46,9 @@ Term 1: September 5–December 5, 2026, with breaks October 10 and October 17.
 - combined parent/guardian consent and electronic signature
 - cash and bank-transfer payment choice
 - online payment shown as Coming Soon
-- Kiki admin registration/payment workspace
-- Coach Bex roster, safety information, attendance and cash-recording workspace
+- admin registration/payment workspace
+- coach roster, safety information, attendance and cash-recording workspace
+- admin-created staff accounts with admin/coach/ceo/helper roles
 - organization dashboard with programs, locations, coaches, registrations, payments and schedule
 
 ## Local development

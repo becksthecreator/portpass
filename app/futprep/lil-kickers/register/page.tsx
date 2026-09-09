@@ -14,6 +14,7 @@ export default function FutprepRegisterPage() {
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
         <div className="registration-header-right">
           <div className="futprep-program-brand compact"><img src="/futprep-logo.png" alt="Futprep Athletics" /><span><b>LIL KICKERS</b><small>by Futprep Athletics</small></span></div>
+          <Link className="header-link" href="/futprep">Futprep home</Link>
           <Link className="header-link" href="/futprep/lil-kickers">Program details</Link>
         </div>
       </header>

@@ -33,26 +33,29 @@ export default async function FutprepCeoPage() {
   const paid=registrations.filter((item)=>item.payment_status==="paid");
   const awaiting=registrations.filter((item)=>["pending","partial","overdue"].includes(item.payment_status));
   const totalRecorded=registrations.reduce((sum,item)=>sum+item.paid_cents,0);
-  const coachHours=workLogs
-    .filter((item)=>item.staff_name==="Coach Bex")
-    .reduce((sum,item)=>sum+Number(item.hours),0);
+  const coachHours=workLogs.reduce((sum,item)=>sum+Number(item.hours),0);
 
   const planBySession=new Map(plans.map((item)=>[item.session_id,item]));
-  const workBySession=new Map(workLogs.filter((item)=>item.staff_name==="Coach Bex").map((item)=>[item.session_id,item]));
+  const workBySession=new Map<number,{hours:number}>();
+  for (const log of workLogs) {
+    const existing = workBySession.get(log.session_id);
+    workBySession.set(log.session_id, { hours: (existing?.hours ?? 0) + Number(log.hours) });
+  }
 
   return (
     <main className="staff-workspace">
       <header className="staff-workspace-header">
         <div>
           <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-          <span className="staff-workspace-label">Futprep · Coach Alex · CEO</span>
+          <span className="staff-workspace-label">Futprep · CEO overview</span>
         </div>
         <nav>
           <Link href="/futprep/lil-kickers/staff/team">Team</Link>
+          <Link href="/futprep/lil-kickers/staff/accounts">Staff accounts</Link>
           <Link href="/futprep/lil-kickers/staff/programs">Programs</Link>
           <Link href="/futprep/lil-kickers/staff/private-sessions">Private sessions</Link>
-          <Link href="/futprep/lil-kickers/staff/admin">Kiki area</Link>
-          <Link href="/futprep/lil-kickers/staff/coach">Coach Bex area</Link>
+          <Link href="/futprep/lil-kickers/staff/admin">Registration desk</Link>
+          <Link href="/futprep/lil-kickers/staff/coach">Coaching area</Link>
           <Link href="/futprep/lil-kickers">Parent view ↗</Link>
           <StaffLogoutButton />
         </nav>
@@ -60,8 +63,8 @@ export default async function FutprepCeoPage() {
 
       <section className="staff-workspace-content">
         <div className="staff-page-intro">
-          <div><span className="section-kicker">Coach Alex · CEO oversight</span><h1>Futprep overview.</h1></div>
-          <p>See registration, payment, session, coaching-plan, attendance-area, and staff-hour activity from one place. You can also enter Kiki or Coach Bex&apos;s workspace when you need the full detail.</p>
+          <div><span className="section-kicker">CEO oversight</span><h1>Futprep overview.</h1></div>
+          <p>See registration, payment, session, coaching-plan, attendance-area, and staff-hour activity from one place. You can also enter the registration desk or coaching workspace when you need the full detail.</p>
         </div>
 
         <div className="ceo-summary-grid">
@@ -69,18 +72,18 @@ export default async function FutprepCeoPage() {
           <article><span>Paid</span><strong>{paid.length}</strong><small>{money(totalRecorded)} recorded</small></article>
           <article><span>Awaiting payment</span><strong>{awaiting.length}</strong><small>Pending, partial or overdue</small></article>
           <article><span>Upcoming sessions</span><strong>{upcoming.length}</strong><small>{upcoming[0]?.session_date ?? "No upcoming date"}</small></article>
-          <article><span>Coach Bex hours</span><strong>{coachHours.toFixed(1)}</strong><small>Hours logged</small></article>
+          <article><span>Coaching hours</span><strong>{coachHours.toFixed(1)}</strong><small>Hours logged</small></article>
         </div>
 
         <div className="ceo-access-grid">
           <Link href="/futprep/lil-kickers/staff/admin">
-            <span className="section-kicker">Kiki</span>
+            <span className="section-kicker">Admin</span>
             <h2>Registration desk</h2>
             <p>Registrations, parent contacts, payment tracking, bank transfers and confirmation.</p>
-            <strong>Open Kiki area →</strong>
+            <strong>Open registration desk →</strong>
           </Link>
           <Link href="/futprep/lil-kickers/staff/coach">
-            <span className="section-kicker">Coach Bex</span>
+            <span className="section-kicker">Coach</span>
             <h2>Coaching area</h2>
             <p>Session plans, parent-day notes, roster safety information, attendance, cash and hours.</p>
             <strong>Open coaching area →</strong>

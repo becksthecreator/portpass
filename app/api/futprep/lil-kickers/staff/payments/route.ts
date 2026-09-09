@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { currentFutprepStaffRole } from "@/app/futprep/lil-kickers/staff-auth";
+import { currentFutprepStaffRole, currentFutprepStaffName } from "@/app/futprep/lil-kickers/staff-auth";
 import { recordFutprepPayment } from "@/db/staff";
 import { sendFutprepPaymentRecordedEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
   const role = await currentFutprepStaffRole();
-  if (!role) return NextResponse.json({ error: "Staff access required." }, { status: 403 });
+  if (!role || role === "helper") return NextResponse.json({ error: "Staff access required." }, { status: 403 });
 
   const body = await request.json().catch(() => ({})) as {
     registrationId?: number;
@@ -21,15 +21,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid payment method." }, { status: 400 });
   }
   if (role === "coach" && body.method !== "cash") {
-    return NextResponse.json({ error: "Coach Bex can record cash payments only." }, { status: 403 });
+    return NextResponse.json({ error: "Coaches can record cash payments only." }, { status: 403 });
   }
 
-  const recordedBy =
-    role === "admin"
-      ? "Kiki / Futprep registration"
-      : role === "ceo"
-        ? "Coach Alex / Futprep CEO"
-        : "Coach Bex";
+  const recordedBy = (await currentFutprepStaffName()) ?? role;
 
   try {
     const result = await recordFutprepPayment({

@@ -43,11 +43,13 @@ NEXT_PUBLIC_SUPABASE_URL=<Supabase project URL>
 SUPABASE_SECRET_KEY=<server-only secret key>
 ```
 
-Staff PINs are no longer set through environment variables. They are stored
-as hashes on `staff_members.pin_hash` in Supabase (see
-`supabase/migrations/202609090002_futprep_staff_pin_storage.sql`), keyed by
-`staff_members.account_key` (`admin`, `coach`, `ceo`, `kione`, `adon`). This
-lets PINs be reset from the database without a redeploy.
+Staff accounts are not set through environment variables or a fixed list.
+The first admin account is created through a one-time setup screen at
+`/futprep/lil-kickers/staff/login` (shown whenever no staff account exists
+yet); that admin can then create coach/ceo/helper/admin accounts for
+everyone else from `/futprep/lil-kickers/staff/accounts`. PINs are stored as
+hashes on `staff_members.pin_hash`, keyed by `staff_members.account_key`, so
+they can be reset without a redeploy.
 
 Deploy the Vercel preview first. Do not move the custom domain yet.
 
@@ -67,8 +69,9 @@ Verify:
 - bank-transfer selection
 - photo/video yes/no
 - combined consent + electronic signature
-- Kiki staff login
-- Coach Bex staff login
+- first-time admin account setup
+- staff login with a created account
+- creating a coach/ceo/helper account from Staff accounts
 - payment recording
 - attendance
 - medical/emergency information is visible only in protected staff views
