@@ -61,12 +61,10 @@ export type PrivateSessionRequest = {
   assigned_coach_name: string | null;
 };
 
-const fallbackProfiles: CoachProfile[] = [
-  {id:-1,organization_id:0,slug:"alexander-thompson",display_name:"Coach Alexander Thompson",position_title:"CEO · Coach",member_type:"coach",bio:"Coach profile details coming soon.",licenses:[],played_at:[],favorite_player:null,favorite_team:null,photo_url:null,intro_video_url:null,testimonial_quote:null,testimonial_name:null,public_visible:true,bookable:true,active:true,sort_order:10,availability:[]},
-  {id:-2,organization_id:0,slug:"ronaldo-greene",display_name:"Coach Ronaldo Greene",position_title:"Coach",member_type:"coach",bio:"Coach profile details coming soon.",licenses:[],played_at:[],favorite_player:null,favorite_team:null,photo_url:null,intro_video_url:null,testimonial_quote:null,testimonial_name:null,public_visible:true,bookable:true,active:true,sort_order:20,availability:[]},
-  {id:-3,organization_id:0,slug:"antonio-beckford-jr",display_name:"Coach Antonio Beckford Jr",position_title:"Coach Bex · Coach",member_type:"coach",bio:"Coach profile details coming soon.",licenses:[],played_at:[],favorite_player:null,favorite_team:null,photo_url:null,intro_video_url:null,testimonial_quote:null,testimonial_name:null,public_visible:true,bookable:true,active:true,sort_order:30,availability:[]},
-  {id:-4,organization_id:0,slug:"keione-rayside",display_name:"Keione Rayside (Kiki)",position_title:"Relations · Brand & Public Experience",member_type:"relations",bio:"Kiki leads how Futprep communicates, presents itself, and builds relationships with families and the public.",licenses:[],played_at:[],favorite_player:null,favorite_team:null,photo_url:null,intro_video_url:null,testimonial_quote:null,testimonial_name:null,public_visible:true,bookable:false,active:true,sort_order:40,availability:[]},
-];
+// No hardcoded placeholder coaches. If the coach_profiles migration hasn't
+// run yet, every read function below falls back to this empty list instead
+// of fake names — real coaches are entered by staff through the Team page.
+const fallbackProfiles: CoachProfile[] = [];
 
 function isMissingTable(error: unknown) {
   const value = error as { code?: string; message?: string } | null;
@@ -180,26 +178,15 @@ async function futprepOrganizationId() {
   return organizationId;
 }
 
+// Confirms the coach_profiles migration has run, without inserting any
+// placeholder data. Real coaches are added by staff through the Team page.
 async function seedProfiles() {
   const organizationId = await futprepOrganizationId();
   if (!organizationId) return false;
   const db = getSupabaseAdmin();
-  const rows = fallbackProfiles.map((profile) => ({
-    organization_id: organizationId,
-    slug: profile.slug,
-    display_name: profile.display_name,
-    position_title: profile.position_title,
-    member_type: profile.member_type,
-    bio: profile.bio,
-    public_visible: profile.public_visible,
-    bookable: profile.bookable,
-    active: true,
-    sort_order: profile.sort_order,
-    updated_at: new Date().toISOString(),
-  }));
-  const { error } = await db.from("coach_profiles").upsert(rows, { onConflict: "organization_id,slug" });
+  const { error } = await db.from("coach_profiles").select("id").eq("organization_id", organizationId).limit(1);
   if (isMissingTable(error)) return false;
-  throwIfSupabaseError(error, "Could not seed Futprep team");
+  throwIfSupabaseError(error, "Could not check Futprep team schema");
   return true;
 }
 
