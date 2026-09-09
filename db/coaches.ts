@@ -242,8 +242,12 @@ export async function listAllCoachProfiles() {
   });
   if (!ready) return { schemaReady:false, coaches:fallbackProfiles };
 
+  // Deliberately no .eq("active", true) here: this is the staff-facing
+  // management list, and it must keep showing soft-deleted coaches (with
+  // active:false) so admins can see what they removed and restore it.
+  // listPublicCoachProfiles() is the one that filters to active-only.
   const db=getSupabaseAdmin();
-  const {data,error}=await db.from("coach_profiles").select("*").eq("active",true).order("sort_order",{ascending:true});
+  const {data,error}=await db.from("coach_profiles").select("*").order("active",{ascending:false}).order("sort_order",{ascending:true});
   throwIfSupabaseError(error,"Could not load coach profiles");
   const profiles=(data ?? []) as Omit<CoachProfile,"availability">[];
   const ids=profiles.map((profile)=>profile.id);
@@ -399,6 +403,16 @@ export async function softDeleteCoach(id:number){
   const {error}=await db.from("coach_profiles").update({active:false,public_visible:false,bookable:false,updated_at:new Date().toISOString()}).eq("id",id);
   if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
   throwIfSupabaseError(error,"Could not delete coach");
+}
+
+// Restores a soft-deleted profile without also making it public again -
+// public_visible/bookable stay off so an admin reviews and re-enables those
+// deliberately instead of a restored coach silently reappearing on the site.
+export async function restoreCoach(id:number){
+  const db=getSupabaseAdmin();
+  const {error}=await db.from("coach_profiles").update({active:true,updated_at:new Date().toISOString()}).eq("id",id);
+  if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
+  throwIfSupabaseError(error,"Could not restore coach");
 }
 
 export async function saveCoachAvailability(input:{

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentFutprepStaffAccount, currentFutprepStaffRole, canManageFutprepTeam } from "@/app/futprep/lil-kickers/staff-auth";
-import { listAllCoachProfiles, saveCoachAvailability, saveCoachProfile, softDeleteCoach } from "@/db/coaches";
+import { listAllCoachProfiles, restoreCoach, saveCoachAvailability, saveCoachProfile, softDeleteCoach } from "@/db/coaches";
 
 function csv(value:unknown){return String(value??"").split(",").map((v)=>v.trim()).filter(Boolean);}
 
@@ -13,6 +13,8 @@ export async function POST(request:Request){
   try{
     if(body.action==="delete"){
       await softDeleteCoach(Number(body.id));
+    }else if(body.action==="restore"){
+      await restoreCoach(Number(body.id));
     }else if(body.action==="availability"){
       if(!body.coachId||!body.date||!body.startTime||!body.endTime) return NextResponse.json({error:"Complete the availability details."},{status:400});
       await saveCoachAvailability({coachId:Number(body.coachId),date:String(body.date),startTime:String(body.startTime),endTime:String(body.endTime),status:["available","blocked","booked"].includes(body.status)?body.status:"available",location:String(body.location??""),note:String(body.note??""),actor:account});

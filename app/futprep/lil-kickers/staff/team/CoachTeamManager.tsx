@@ -34,11 +34,19 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
     <div className="team-manager-grid">
       {coaches.map((coach)=><article className="team-manager-card" key={coach.id}>
         <div><span>{coach.position_title}</span><h2>{coach.display_name}</h2><p>{coach.bio||"Bio not added yet."}</p></div>
-        <div className="team-manager-flags"><span className={coach.public_visible?"flag-on":"flag-off"}>{coach.public_visible?"Visible":"Hidden"}</span><span className={coach.bookable?"flag-on":"flag-off"}>{coach.bookable?"Bookable":"Not bookable"}</span></div>
+        <div className="team-manager-flags">
+          {coach.active
+            ? <><span className={coach.public_visible?"flag-on":"flag-off"}>{coach.public_visible?"Visible":"Hidden"}</span><span className={coach.bookable?"flag-on":"flag-off"}>{coach.bookable?"Bookable":"Not bookable"}</span></>
+            : <span className="flag-off">Deleted</span>}
+        </div>
         <div className="team-manager-actions">
-          <button disabled={!schemaReady} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",photoUrl:coach.photo_url??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:!coach.public_visible,bookable:coach.bookable,sortOrder:coach.sort_order})}>{coach.public_visible?"Hide":"Unhide"}</button>
-          <button disabled={!schemaReady||coach.member_type!=="coach"} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",photoUrl:coach.photo_url??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:coach.public_visible,bookable:!coach.bookable,sortOrder:coach.sort_order})}>{coach.bookable?"Pause bookings":"Allow bookings"}</button>
-          <button className="danger-action" disabled={!schemaReady} onClick={()=>{if(confirm(`Remove ${coach.display_name} from the active team? Booking history will be kept.`))action({action:"delete",id:coach.id});}}>Delete</button>
+          {coach.active ? <>
+            <button disabled={!schemaReady} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",photoUrl:coach.photo_url??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:!coach.public_visible,bookable:coach.bookable,sortOrder:coach.sort_order})}>{coach.public_visible?"Hide":"Unhide"}</button>
+            <button disabled={!schemaReady||coach.member_type!=="coach"} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",photoUrl:coach.photo_url??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:coach.public_visible,bookable:!coach.bookable,sortOrder:coach.sort_order})}>{coach.bookable?"Pause bookings":"Allow bookings"}</button>
+            <button className="danger-action" disabled={!schemaReady} onClick={()=>{if(confirm(`Remove ${coach.display_name} from the active team? Booking history is kept, and you can restore the profile later from this page.`))action({action:"delete",id:coach.id});}}>Delete</button>
+          </> : (
+            <button disabled={!schemaReady} onClick={()=>action({action:"restore",id:coach.id})}>Restore</button>
+          )}
         </div>
         <details className="team-profile-details"><summary>Profile details</summary><dl>
           <div><dt>Licenses</dt><dd>{coach.licenses.join(" · ")||"Not added"}</dd></div>
@@ -64,7 +72,7 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
       </form>
 
       <form className="team-admin-form" onSubmit={availability}><span className="section-kicker">Coach calendar</span><h2>Set availability.</h2>
-        <label><span>Coach</span><select name="coachId">{coaches.filter((c)=>c.member_type==="coach").map((coach)=><option value={coach.id} key={coach.id}>{coach.display_name}</option>)}</select></label>
+        <label><span>Coach</span><select name="coachId">{coaches.filter((c)=>c.member_type==="coach"&&c.active).map((coach)=><option value={coach.id} key={coach.id}>{coach.display_name}</option>)}</select></label>
         <div className="team-form-two"><label><span>Date</span><input name="date" type="date" required /></label><label><span>Status</span><select name="status"><option value="available">Available</option><option value="blocked">Unavailable</option><option value="booked">Booked</option></select></label></div>
         <div className="team-form-two"><label><span>Start</span><input name="startTime" type="time" required /></label><label><span>End</span><input name="endTime" type="time" required /></label></div>
         <label><span>Location</span><input name="location" /></label><label><span>Note</span><textarea name="note" rows={2}/></label>
