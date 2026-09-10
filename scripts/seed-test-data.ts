@@ -8,10 +8,21 @@
 // part-2 plan flags for stage 2.1 to remove) - until that's fixed, tests
 // that exercise anything staff-auth-related need the seeded org to land on
 // id 1.
-import { getSupabaseAdmin } from "../db/supabase";
+// Deliberately does not import db/supabase.ts: it starts with
+// `import "server-only"`, which throws unconditionally when loaded outside
+// Next's own bundler (Next aliases it away at build time; a plain tsx
+// script has no such alias). Constructing the client directly here is the
+// simplest way around that for a script that only ever runs in CI/locally,
+// never inside the app itself.
+import { createClient } from "@supabase/supabase-js";
 
 async function main() {
-  const db = getSupabaseAdmin();
+  const url = process.env.SUPABASE_URL;
+  const secretKey = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !secretKey) {
+    throw new Error("SUPABASE_URL and SUPABASE_SECRET_KEY must be set before running this script.");
+  }
+  const db = createClient(url, secretKey);
   const now = new Date().toISOString();
 
   const { data: application, error: applicationError } = await db

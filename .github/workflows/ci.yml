@@ -44,8 +44,15 @@ jobs:
       - name: Export local Supabase credentials
         run: |
           supabase status -o env > supabase-status.env
-          API_URL=$(grep '^API_URL=' supabase-status.env | cut -d'=' -f2- | tr -d '"')
-          SERVICE_ROLE_KEY=$(grep '^SERVICE_ROLE_KEY=' supabase-status.env | cut -d'=' -f2- | tr -d '"')
+          echo "--- supabase status -o env keys (values redacted) ---"
+          sed -E 's/=.*/=<redacted>/' supabase-status.env
+          echo "------------------------------------------------------"
+          API_URL=$(grep -E '^(API_URL|SUPABASE_URL)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          SERVICE_ROLE_KEY=$(grep -E '^(SERVICE_ROLE_KEY|SUPABASE_SERVICE_ROLE_KEY|SECRET_KEY|SUPABASE_SECRET_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          if [ -z "$API_URL" ] || [ -z "$SERVICE_ROLE_KEY" ]; then
+            echo "::error::Could not find API URL or service role key in supabase status output - see the key list printed above and adjust the grep patterns."
+            exit 1
+          fi
           echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
           echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
       - name: Seed test data
