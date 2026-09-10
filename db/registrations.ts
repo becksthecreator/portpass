@@ -3,6 +3,7 @@ import {
   FUTPREP_PROGRAMS,
   FUTPREP_TERM,
 } from "@/app/futprep/lil-kickers/config";
+import { ageOnDate, generateWeeklySessionDates } from "@/lib/scheduling";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type RegistrationStatus = "pending" | "confirmed" | "cancelled";
@@ -205,26 +206,21 @@ async function seedFutprepPilot() {
     throwIfSupabaseError(termError, "Could not seed Futprep term");
     if (!term) throw new Error("Could not seed Futprep term");
 
-    const breaks = new Set<string>(FUTPREP_TERM.breakDates);
-    const cursor = new Date(`${FUTPREP_TERM.startDate}T12:00:00Z`);
-    const end = new Date(`${FUTPREP_TERM.endDate}T12:00:00Z`);
-    const sessions: Array<Record<string, unknown>> = [];
-
-    while (cursor <= end) {
-      const sessionDate = cursor.toISOString().slice(0, 10);
-      if (!breaks.has(sessionDate)) {
-        sessions.push({
-          program_id: programId,
-          term_id: Number(term.id),
-          session_date: sessionDate,
-          start_time: configured.time,
-          location: FUTPREP_TERM.location,
-          status: "scheduled",
-          created_at: now,
-        });
-      }
-      cursor.setUTCDate(cursor.getUTCDate() + 7);
-    }
+    const sessionDates = generateWeeklySessionDates({
+      startDate: FUTPREP_TERM.startDate,
+      endDate: FUTPREP_TERM.endDate,
+      dayOfWeek: configured.day,
+      breakDates: FUTPREP_TERM.breakDates,
+    });
+    const sessions: Array<Record<string, unknown>> = sessionDates.map((sessionDate) => ({
+      program_id: programId,
+      term_id: Number(term.id),
+      session_date: sessionDate,
+      start_time: configured.time,
+      location: FUTPREP_TERM.location,
+      status: "scheduled",
+      created_at: now,
+    }));
 
     if (sessions.length) {
       const { error: sessionError } = await db
@@ -235,22 +231,6 @@ async function seedFutprepPilot() {
       throwIfSupabaseError(sessionError, "Could not seed Futprep sessions");
     }
   }
-}
-
-function ageOnDate(dateOfBirth: string, onDate: string) {
-  const dob = new Date(`${dateOfBirth}T12:00:00Z`);
-  const date = new Date(`${onDate}T12:00:00Z`);
-  if (Number.isNaN(dob.valueOf()) || Number.isNaN(date.valueOf())) return -1;
-
-  let age = date.getUTCFullYear() - dob.getUTCFullYear();
-  const monthDelta = date.getUTCMonth() - dob.getUTCMonth();
-  if (
-    monthDelta < 0 ||
-    (monthDelta === 0 && date.getUTCDate() < dob.getUTCDate())
-  ) {
-    age -= 1;
-  }
-  return age;
 }
 
 export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {

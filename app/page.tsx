@@ -176,10 +176,7 @@ export default function Home() {
           <span className="landing-brand-mark">P</span><span>PORTPASS</span>
         </Link>
         <p>Made for sport in The Bahamas.</p>
-        <div>
-          <a href="#home">Back to top ↑</a>
-          <Link href="/admin">Admin</Link>
-        </div>
+        <a className="landing-footer-back" href="#home">Back to top ↑</a>
       </footer>
     </main>
   );
