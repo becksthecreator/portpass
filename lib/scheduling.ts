@@ -30,7 +30,7 @@ export function generateWeeklySessionDates(input: {
   startDate: string;
   endDate: string;
   dayOfWeek: string;
-  breakDates: string[];
+  breakDates: readonly string[];
 }): string[] {
   const breaks = new Set(input.breakDates);
   const cursor = nextWeekdayOnOrAfter(input.startDate, input.dayOfWeek);
