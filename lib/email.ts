@@ -1,5 +1,11 @@
 const RESEND_API_URL = "https://api.resend.com/emails";
 
+// Reserved for test/seed data (registrations created by integration tests
+// or scripts/seed-test-data.ts) so it can be bulk-purged and never
+// accidentally emailed - a real address that happens to end in this domain
+// isn't a thing, so refusing it outright has no legitimate downside.
+const TEST_EMAIL_DOMAIN = "@test.portpass.local";
+
 type SendEmailInput = {
   to: string;
   subject: string;
@@ -11,6 +17,11 @@ type SendEmailInput = {
 // Resend's plain HTTP API directly rather than its SDK, since it's a
 // single endpoint and this avoids adding a dependency.
 export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<void> {
+  if (to.trim().toLowerCase().endsWith(TEST_EMAIL_DOMAIN)) {
+    console.warn(`[email] Refusing to send to reserved test domain: ${to}`);
+    return;
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.FUTPREP_FROM_EMAIL;
 

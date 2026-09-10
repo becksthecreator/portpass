@@ -26,3 +26,39 @@ jobs:
         run: npm run test
       - name: Build
         run: npm run build
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase (real Postgres, migrations applied)
+        run: supabase start
+      - name: Export local Supabase credentials
+        run: |
+          supabase status -o env > supabase-status.env
+          echo "--- supabase status -o env keys (values redacted) ---"
+          sed -E 's/=.*/=<redacted>/' supabase-status.env
+          echo "------------------------------------------------------"
+          API_URL=$(grep -E '^(API_URL|SUPABASE_URL)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          SERVICE_ROLE_KEY=$(grep -E '^(SERVICE_ROLE_KEY|SUPABASE_SERVICE_ROLE_KEY|SECRET_KEY|SUPABASE_SECRET_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          if [ -z "$API_URL" ] || [ -z "$SERVICE_ROLE_KEY" ]; then
+            echo "::error::Could not find API URL or service role key in supabase status output - see the key list printed above and adjust the grep patterns."
+            exit 1
+          fi
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+      - name: Seed test data
+        run: npx tsx scripts/seed-test-data.ts
+      - name: Integration tests (security regressions in their own describe blocks)
+        run: npm run test:integration
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop

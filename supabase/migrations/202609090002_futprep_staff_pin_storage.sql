@@ -25,9 +25,19 @@ update public.staff_members
   set account_key = 'ceo', pin_hash = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'
   where organization_id = 1 and name = 'Coach Alex' and role = 'ceo';
 
+-- select ... where exists(...) rather than a plain values() insert: this
+-- migration predates organization_id 1 being guaranteed to exist (it always
+-- did on production, where Futprep's org row was created before this ran,
+-- but replaying every migration from scratch against an empty database -
+-- e.g. the local Postgres instance integration tests run against - hit the
+-- staff_members_organization_id_fkey constraint here otherwise). Identical
+-- effect wherever organization 1 already exists; a safe no-op where it
+-- doesn't yet.
 insert into public.staff_members (organization_id, name, role, email, responsibilities, active, account_key, pin_hash, created_at)
-values
-  (1, 'Coach Kione', 'coach', null, 'Coaching workspace: sessions, roster, attendance, and private-session coaching.', true, 'kione', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', now()),
-  (1, 'Adon', 'admin_registrar', null, 'Head Tech Admin: team/coach profile management and technical operations.', true, 'adon', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', now())
+select 1, 'Coach Kione', 'coach', null, 'Coaching workspace: sessions, roster, attendance, and private-session coaching.', true, 'kione', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', now()
+where exists (select 1 from public.organizations where id = 1)
+union all
+select 1, 'Adon', 'admin_registrar', null, 'Head Tech Admin: team/coach profile management and technical operations.', true, 'adon', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', now()
+where exists (select 1 from public.organizations where id = 1)
 on conflict (organization_id, name, role) do update
   set account_key = excluded.account_key, pin_hash = excluded.pin_hash, active = true;
