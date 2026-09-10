@@ -26,3 +26,32 @@ jobs:
         run: npm run test
       - name: Build
         run: npm run build
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase (real Postgres, migrations applied)
+        run: supabase start
+      - name: Export local Supabase credentials
+        run: |
+          supabase status -o env > supabase-status.env
+          API_URL=$(grep '^API_URL=' supabase-status.env | cut -d'=' -f2- | tr -d '"')
+          SERVICE_ROLE_KEY=$(grep '^SERVICE_ROLE_KEY=' supabase-status.env | cut -d'=' -f2- | tr -d '"')
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+      - name: Seed test data
+        run: npx tsx scripts/seed-test-data.ts
+      - name: Integration tests (security regressions in their own describe blocks)
+        run: npm run test:integration
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop
