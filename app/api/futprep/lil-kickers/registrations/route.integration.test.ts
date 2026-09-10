@@ -89,6 +89,6 @@ describe("POST /api/futprep/lil-kickers/registrations", () => {
     const response = await post(basePayload({ paymentMethod: "cheque" }));
     expect(response.status).toBe(400);
     const body = (await response.json()) as { error?: string };
-    expect(body.error).toMatch(/payment/i);
+    expect(body.error).toMatch(/cash|bank transfer|online banking/i);
   });
 });
