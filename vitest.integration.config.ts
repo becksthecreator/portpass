@@ -13,6 +13,7 @@ export default defineConfig({
     include: ["**/*.integration.test.ts"],
     exclude: ["node_modules", ".next"],
     testTimeout: 15000,
+    setupFiles: ["./vitest.integration.setup.ts"],
   },
   resolve: {
     alias: {
