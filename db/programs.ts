@@ -1,3 +1,5 @@
+import { WEEKDAYS, generateWeeklySessionDates } from "@/lib/scheduling";
+import { slugify } from "@/lib/slug";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type FutprepProgramInput = {
@@ -47,25 +49,6 @@ export type FutprepProgramSummary = {
   spotsRemaining: number | null;
 };
 
-const WEEKDAYS = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
-
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60) || "program";
-}
-
 async function uniqueSlug(base: string) {
   const db = getSupabaseAdmin();
   let candidate = base;
@@ -108,16 +91,6 @@ export async function futprepOrganizationId(): Promise<number> {
   throwIfSupabaseError(error, "Could not locate Futprep organization");
   if (!data) throw new Error("FUTPREP_ORG_NOT_FOUND");
   return Number(data.id);
-}
-
-function nextWeekdayOnOrAfter(dateIso: string, dayOfWeek: string) {
-  const targetIndex = WEEKDAYS.indexOf(dayOfWeek);
-  const cursor = new Date(`${dateIso}T12:00:00Z`);
-  if (targetIndex < 0 || Number.isNaN(cursor.valueOf())) return cursor;
-  while (cursor.getUTCDay() !== targetIndex) {
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-  return cursor;
 }
 
 export async function listFutprepPrograms(): Promise<FutprepProgramSummary[]> {
@@ -268,26 +241,21 @@ export async function createFutprepProgram(input: FutprepProgramInput) {
   if (!term) throw new Error("Could not create the program term");
 
   const termId = Number(term.id);
-  const breaks = new Set<string>(input.breakDates);
-  const cursor = nextWeekdayOnOrAfter(input.termStartDate, input.dayOfWeek);
-  const end = new Date(`${input.termEndDate}T12:00:00Z`);
-  const sessions: Array<Record<string, unknown>> = [];
-
-  while (cursor <= end) {
-    const sessionDate = cursor.toISOString().slice(0, 10);
-    if (!breaks.has(sessionDate)) {
-      sessions.push({
-        program_id: programId,
-        term_id: termId,
-        session_date: sessionDate,
-        start_time: input.startTime,
-        location: input.locationName,
-        status: "scheduled",
-        created_at: now,
-      });
-    }
-    cursor.setUTCDate(cursor.getUTCDate() + 7);
-  }
+  const sessionDates = generateWeeklySessionDates({
+    startDate: input.termStartDate,
+    endDate: input.termEndDate,
+    dayOfWeek: input.dayOfWeek,
+    breakDates: input.breakDates,
+  });
+  const sessions: Array<Record<string, unknown>> = sessionDates.map((sessionDate) => ({
+    program_id: programId,
+    term_id: termId,
+    session_date: sessionDate,
+    start_time: input.startTime,
+    location: input.locationName,
+    status: "scheduled",
+    created_at: now,
+  }));
 
   if (sessions.length) {
     const { error: sessionError } = await db.from("sessions").upsert(sessions, {

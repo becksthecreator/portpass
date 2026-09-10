@@ -22,5 +22,7 @@ jobs:
         run: npm install
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
+      - name: Unit tests
+        run: npm run test
       - name: Build
         run: npm run build

@@ -3453,11 +3453,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   color:#94a19b;
   font-size:.68rem;
 }
-.landing-footer>div{
-  display:flex;
-  gap:20px;
-}
-.landing-footer>div a{
+.landing-footer-back{
   color:#aeb8b3;
   font-size:.65rem;
 }

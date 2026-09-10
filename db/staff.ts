@@ -1,3 +1,4 @@
+import { derivePaymentStatus } from "@/lib/payments";
 import { ensureFutprepPilotData, type PaymentMethod } from "./registrations";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
@@ -251,16 +252,11 @@ export async function recordFutprepPayment(input: {
     0,
   );
 
-  const nextStatus =
-    registration.payment_frequency === "weekly"
-      ? paid > 0
-        ? "paid"
-        : "pending"
-      : paid >= Number(registration.amount_due_cents)
-        ? "paid"
-        : paid > 0
-          ? "partial"
-          : "pending";
+  const nextStatus = derivePaymentStatus({
+    paymentFrequency: registration.payment_frequency,
+    paidCents: paid,
+    amountDueCents: Number(registration.amount_due_cents),
+  });
 
   const { error: updateError } = await db
     .from("registrations")
