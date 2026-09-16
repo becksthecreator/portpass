@@ -5513,3 +5513,60 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .my-status-grid{grid-template-columns:1fr}
   .my-lookup-form,.my-status-card{padding:24px 18px}
 }
+
+/* Bahamas Weddings By The Sea — its own accent palette (deep teal + gold),
+   reusing the same structural classes as the rest of the site (registration
+   shell/steps/choice-cards, primary/secondary buttons) so the interaction
+   patterns stay identical to Futprep and PortPass; only the accent colors
+   scoped under .weddings-theme differ, matching how .futprep-theme works. */
+.weddings-theme{
+  --wed-teal:#0e3b3f;
+  --wed-teal-deep:#082326;
+  --wed-gold:#c9a227;
+  --wed-cream:#faf7f0;
+  --wed-cream-soft:#eef2ee;
+  --wed-line:#ded6c4;
+  background:var(--wed-cream);
+  color:var(--ink);
+}
+.weddings-theme .primary-button{background:var(--wed-teal);color:#fff}
+.weddings-theme .primary-button:hover{background:var(--wed-teal-deep)}
+.weddings-theme .secondary-button{border-color:var(--wed-line)}
+.weddings-theme .eyebrow-dot{background:var(--wed-gold);border-color:var(--wed-teal)}
+.weddings-theme .registration-progress .is-current{border-color:var(--wed-teal);color:var(--wed-teal)}
+.weddings-theme .registration-progress .is-current span,
+.weddings-theme .registration-progress .is-complete span{background:var(--wed-teal);border-color:var(--wed-teal);color:#fff}
+.weddings-theme .choice-card.is-selected{background:var(--wed-cream-soft);border-color:var(--wed-teal)}
+.weddings-theme .choice-card.is-selected .choice-check{background:var(--wed-teal);box-shadow:inset 0 0 0 4px var(--wed-cream-soft)}
+.weddings-theme .confirmation-mark{background:var(--wed-teal)}
+
+.weddings-header{align-items:center;display:flex;justify-content:space-between;padding:24px 7vw}
+.weddings-header nav{display:flex;gap:24px}
+.weddings-header nav a{color:var(--ink);font-size:.78rem;font-weight:800;letter-spacing:.05em;text-decoration:none;text-transform:uppercase}
+
+.weddings-hero{background:var(--wed-teal);color:#fff;overflow:hidden;padding:70px 7vw 90px;position:relative}
+.weddings-hero::after{background:var(--wed-gold);border-radius:50%;content:"";height:250px;opacity:.18;position:absolute;right:-70px;top:-90px;width:250px}
+.weddings-hero>span{color:#d9c98f;font-size:.64rem;font-weight:900;letter-spacing:.13em;text-transform:uppercase}
+.weddings-hero h1{font-family:Georgia,serif;font-size:clamp(3rem,7vw,6.5rem);font-weight:400;letter-spacing:-.06em;line-height:.9;margin:22px 0}
+.weddings-hero h1 em{color:var(--wed-gold);font-style:normal;font-weight:400}
+.weddings-hero>p{color:#d8e4e2;line-height:1.65;margin:0 0 28px;max-width:560px}
+
+.weddings-journey{margin:0 auto;max-width:1040px;padding:80px 24px 20px}
+.weddings-journey .eyebrow{color:var(--wed-teal)}
+.weddings-journey h2{font-family:Georgia,serif;font-size:clamp(1.8rem,3.4vw,2.6rem);font-weight:400;margin:14px 0 40px;max-width:640px}
+.weddings-journey-grid{display:grid;gap:28px;grid-template-columns:repeat(3,1fr)}
+.weddings-journey-grid span{color:var(--wed-gold);font-family:Georgia,serif;font-size:1.6rem}
+.weddings-journey-grid strong{display:block;font-size:1.05rem;margin:8px 0 6px}
+.weddings-journey-grid p{color:var(--muted);line-height:1.55;margin:0}
+
+.weddings-venues{background:#fff;border-top:1px solid var(--wed-line);border-bottom:1px solid var(--wed-line);padding:64px 24px}
+.weddings-venues{margin:0 auto;max-width:1040px}
+.weddings-venues .eyebrow{color:var(--wed-teal)}
+.weddings-venues h2{font-family:Georgia,serif;font-size:clamp(1.6rem,3vw,2.2rem);font-weight:400;margin:14px 0 16px;max-width:640px}
+.weddings-venues p{color:var(--muted);line-height:1.6;max-width:640px}
+
+.weddings-planner-section{padding-bottom:90px}
+.weddings-footer{border-top:1px solid var(--wed-line);color:var(--muted);font-size:.78rem;padding:28px 7vw}
+@media(max-width:720px){
+  .weddings-journey-grid{grid-template-columns:1fr}
+}
