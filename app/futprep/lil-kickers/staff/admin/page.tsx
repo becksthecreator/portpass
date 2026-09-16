@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireFutprepStaff } from "../../staff-auth";
 import { listFutprepStaffRegistrations } from "@/db/staff";
 import { AdminRegistrationManager } from "./AdminRegistrationManager";
+import { AddRegistrationForm } from "./AddRegistrationForm";
 import { StaffLogoutButton } from "../StaffLogoutButton";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,9 @@ export default async function FutprepStaffAdminPage() {
           <p>Send parents the registration link, confirm children, and keep payment status current. Coaches see those updates automatically in their own areas.</p>
         </div>
         <AdminRegistrationManager initialRegistrations={registrations} />
+        <div className="team-admin-panels">
+          <AddRegistrationForm />
+        </div>
       </section>
     </main>
   );
