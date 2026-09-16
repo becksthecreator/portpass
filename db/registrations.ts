@@ -33,6 +33,13 @@ export type FutprepRegistrationInput = {
   photoConsent: "yes" | "no";
   consentAccepted: boolean;
   signatureName: string;
+  // Staff fast-add only (see /staff/registrations): who entered it, and
+  // whether they've confirmed a child's age against the class boundary is
+  // right despite ageOnDate() disagreeing - real enrolled kids shouldn't be
+  // blockable by a DOB mis-key mid-migration the way a parent's own
+  // self-service submission should be.
+  enteredByStaff?: string;
+  ageOverrideConfirmed?: boolean;
 };
 
 export type FutprepAvailability = {
@@ -445,7 +452,9 @@ export async function createFutprepRegistration(
 
   const age = ageOnDate(input.childDob, term.start_date);
   if (age < Number(program.age_min) || age > Number(program.age_max)) {
-    throw new Error("AGE_MISMATCH");
+    if (!input.enteredByStaff || !input.ageOverrideConfirmed) {
+      throw new Error("AGE_MISMATCH");
+    }
   }
 
   const { count, error: countError } = await db
@@ -520,6 +529,7 @@ export async function createFutprepRegistration(
     consent_at: now,
     signature_name: input.signatureName.trim(),
     submitted_at: now,
+    entered_by_staff: input.enteredByStaff?.trim() || null,
   });
   throwIfSupabaseError(insertError, "Could not create Futprep registration");
 
