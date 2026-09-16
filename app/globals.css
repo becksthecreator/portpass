@@ -5514,13 +5514,16 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .my-lookup-form,.my-status-card{padding:24px 18px}
 }
 
+
 /* Bahamas Weddings By The Sea — a fully distinct editorial identity (Cormorant
    Garamond serif + Manrope sans, deep teal/mint/paper palette), adapted from
    the approved reference design (site-source/ handoff) rather than reusing
-   Futprep/PortPass's structural classes. Deliberately its own look, per
-   direction that not every PortPass vertical should read as the same
-   template — only the class prefix (.bws-theme) and asset paths are new;
-   selectors, values and breakpoints otherwise mirror the reference 1:1. */
+   Futprep/PortPass's structural classes. Every class below is bws-prefixed
+   (not just scoped under .bws-theme) because several reference class names
+   (hero, brand, eyebrow, button, field, form-grid, choice-card, site-header,
+   site-footer...) collide by name with existing PortPass/Futprep classes
+   elsewhere in this file; scoping alone does not stop an unrelated unscoped
+   rule for the same class name from also matching these elements. */
 .bws-theme{
   --bws-ink:#153c46;
   --bws-sea:#164b55;
@@ -5549,348 +5552,350 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-theme em{font-weight:400}
 .bws-theme a:focus-visible,.bws-theme button:focus-visible,.bws-theme input:focus-visible,.bws-theme select:focus-visible,.bws-theme textarea:focus-visible,.bws-theme summary:focus-visible{outline:3px solid #cf934c;outline-offset:5px}
 .bws-theme ::selection{background:#b9ddd7;color:var(--bws-ink)}
-.bws-theme .eyebrow{text-transform:uppercase;font-size:.75rem;line-height:1.6;font-weight:700;letter-spacing:.18em;margin-bottom:25px}
+.bws-skip-link{position:fixed;left:20px;top:-100px;z-index:20;padding:10px 20px;background:white}
+.bws-skip-link:focus{top:10px}
+.bws-eyebrow{text-transform:uppercase;font-size:.75rem;line-height:1.6;font-weight:700;letter-spacing:.18em;margin-bottom:25px}
 
-.bws-theme .site-header{position:absolute;top:0;left:0;width:100%;z-index:10;padding:28px 5%;display:flex;justify-content:space-between;align-items:center;gap:30px;color:#fff;border-bottom:1px solid #ffffff35}
-.bws-theme .brand{display:flex;flex-direction:column;align-items:center;line-height:1}
-.bws-theme .brand>span{font-family:var(--bws-serif);font-size:2.7rem;letter-spacing:-.025em}
-.bws-theme .brand>small{font-size:.62rem;letter-spacing:.19em;font-weight:600;margin-top:7px}
-.bws-theme .desktop-nav{display:flex;align-items:center;gap:34px;font-size:.875rem}
-.bws-theme .desktop-nav>a:not(.nav-cta){position:relative}
-.bws-theme .desktop-nav>a:not(.nav-cta):after{content:'';position:absolute;left:0;right:100%;bottom:-6px;height:1px;background:currentColor;transition:right .25s}
-.bws-theme .desktop-nav>a:hover:after{right:0}
-.bws-theme .nav-cta{border:1px solid #ffffff80;padding:12px 21px;display:flex;gap:30px}
-.bws-theme .menu-toggle{display:none;gap:12px;background:none;color:inherit;border:1px solid #ffffff70;padding:8px 12px;font-size:.875rem;align-items:center}
-.bws-theme .mobile-menu{display:none}
-.bws-theme .mobile-menu.is-open{display:flex;position:absolute;top:100%;left:0;right:0;background:var(--bws-ink);flex-direction:column;gap:0;padding:14px 6% 22px;box-shadow:0 15px 20px #0001}
-.bws-theme .mobile-menu a{padding:12px 0;border-bottom:1px solid #ffffff30}
+.bws-site-header{position:absolute;top:0;left:0;width:100%;z-index:10;padding:28px 5%;display:flex;justify-content:space-between;align-items:center;gap:30px;color:#fff;border-bottom:1px solid #ffffff35}
+.bws-brand{display:flex;flex-direction:column;align-items:center;line-height:1}
+.bws-brand>span{font-family:var(--bws-serif);font-size:2.7rem;letter-spacing:-.025em}
+.bws-brand>small{font-size:.62rem;letter-spacing:.19em;font-weight:600;margin-top:7px}
+.bws-desktop-nav{display:flex;align-items:center;gap:34px;font-size:.875rem}
+.bws-desktop-nav>a:not(.bws-nav-cta){position:relative}
+.bws-desktop-nav>a:not(.bws-nav-cta):after{content:"";position:absolute;left:0;right:100%;bottom:-6px;height:1px;background:currentColor;transition:right .25s}
+.bws-desktop-nav>a:hover:after{right:0}
+.bws-nav-cta{border:1px solid #ffffff80;padding:12px 21px;display:flex;gap:30px}
+.bws-menu-toggle{display:none;gap:12px;background:none;color:inherit;border:1px solid #ffffff70;padding:8px 12px;font-size:.875rem;align-items:center}
+.bws-mobile-menu{display:none}
+.bws-mobile-menu.bws-is-open{display:flex;position:absolute;top:100%;left:0;right:0;background:var(--bws-ink);flex-direction:column;gap:0;padding:14px 6% 22px;box-shadow:0 15px 20px #0001}
+.bws-mobile-menu a{padding:12px 0;border-bottom:1px solid #ffffff30}
 
-.bws-theme .hero{height:auto;min-height:max(690px,95svh);position:relative;isolation:isolate;color:#fff;background:var(--bws-sea);overflow:hidden;display:flex;align-items:center}
-.bws-theme .hero-image,.bws-theme .hero-shade{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
-.bws-theme .hero-image{object-position:center 55%}
-.bws-theme .hero-shade{z-index:-1;background:linear-gradient(90deg,rgba(5,32,41,.68),rgba(5,32,41,.23) 70%),linear-gradient(180deg,rgba(5,32,41,.24),transparent 45%,rgba(5,32,41,.32))}
-.bws-theme .hero-content{position:relative;width:87%;margin-left:8%;padding:190px 0 150px}
-.bws-theme .hero h1{font-size:clamp(3.8rem,7.4vw,7.4rem);line-height:.98;letter-spacing:-.035em}
-.bws-theme .hero h1 em{display:inline-block;margin-top:8px;font-style:normal}
-.bws-theme .hero-intro{margin:30px 0;font-size:1.02rem;line-height:1.8;max-width:500px;color:#f5faf8}
-.bws-theme .button{min-height:55px;display:inline-flex;justify-content:center;align-items:center;gap:45px;padding:16px 26px;border:1px solid transparent;font-size:.875rem;font-weight:600;line-height:1.5;transition:background .2s,color .2s,transform .2s}
-.bws-theme .button:hover{transform:translateY(-2px)}
-.bws-theme .button-light{background:var(--bws-paper);color:var(--bws-ink)}
-.bws-theme .button-light:hover{background:#e4f0eb}
-.bws-theme .button-dark{background:var(--bws-ink);color:#fff;border-color:var(--bws-ink)}
-.bws-theme .button-dark:hover{background:#24616a}
-.bws-theme .hero-foot{position:absolute;bottom:30px;left:5%;right:5%;display:flex;justify-content:space-between;font-size:.75rem;letter-spacing:.03em}
-.bws-theme .hero-foot p span{margin:0 12px;opacity:.6}
-.bws-theme .hero-foot a{display:flex;gap:18px}
+.bws-hero{height:auto;min-height:max(690px,95svh);position:relative;isolation:isolate;color:#fff;background:var(--bws-sea);overflow:hidden;display:flex;align-items:center}
+.bws-hero-image,.bws-hero-shade{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.bws-hero-image{object-position:center 55%}
+.bws-hero-shade{z-index:-1;background:linear-gradient(90deg,rgba(5,32,41,.68),rgba(5,32,41,.23) 70%),linear-gradient(180deg,rgba(5,32,41,.24),transparent 45%,rgba(5,32,41,.32))}
+.bws-hero-content{position:relative;width:87%;margin-left:8%;padding:190px 0 150px}
+.bws-hero h1{font-size:clamp(3.8rem,7.4vw,7.4rem);line-height:.98;letter-spacing:-.035em}
+.bws-hero h1 em{display:inline-block;margin-top:8px;font-style:normal}
+.bws-hero-intro{margin:30px 0;font-size:1.02rem;line-height:1.8;max-width:500px;color:#f5faf8}
+.bws-button{min-height:55px;display:inline-flex;justify-content:center;align-items:center;gap:45px;padding:16px 26px;border:1px solid transparent;font-size:.875rem;font-weight:600;line-height:1.5;transition:background .2s,color .2s,transform .2s}
+.bws-button:hover{transform:translateY(-2px)}
+.bws-button-light{background:var(--bws-paper);color:var(--bws-ink)}
+.bws-button-light:hover{background:#e4f0eb}
+.bws-button-dark{background:var(--bws-ink);color:#fff;border-color:var(--bws-ink)}
+.bws-button-dark:hover{background:#24616a}
+.bws-hero-foot{position:absolute;bottom:30px;left:5%;right:5%;display:flex;justify-content:space-between;font-size:.75rem;letter-spacing:.03em}
+.bws-hero-foot p span{margin:0 12px;opacity:.6}
+.bws-hero-foot a{display:flex;gap:18px}
 
-.bws-theme .trust-strip{display:grid;grid-template-columns:1fr 1.2fr 1fr;margin:0 5%;padding:30px 0;border-bottom:1px solid var(--bws-line)}
-.bws-theme .trust-strip>div,.bws-theme .trust-strip>a{display:flex;align-items:center;justify-content:center;gap:14px;flex-direction:column;line-height:1.3;text-align:center;padding:3px 15px}
-.bws-theme .trust-strip>*+*{border-left:1px solid var(--bws-line)}
-.bws-theme .trust-strip strong{font-family:var(--bws-serif);font-weight:500;font-size:1.9rem}
-.bws-theme .trust-strip>*>span{font-size:.75rem;color:var(--bws-muted)}
-.bws-theme .trust-strip .stars{font-family:var(--bws-sans);font-size:.78rem;letter-spacing:.15em;color:#9a6b2c;vertical-align:middle;margin-left:10px}
+.bws-trust-strip{display:grid;grid-template-columns:1fr 1.2fr 1fr;margin:0 5%;padding:30px 0;border-bottom:1px solid var(--bws-line)}
+.bws-trust-strip>div,.bws-trust-strip>a{display:flex;align-items:center;justify-content:center;gap:14px;flex-direction:column;line-height:1.3;text-align:center;padding:3px 15px}
+.bws-trust-strip>*+*{border-left:1px solid var(--bws-line)}
+.bws-trust-strip strong{font-family:var(--bws-serif);font-weight:500;font-size:1.9rem}
+.bws-trust-strip>*>span{font-size:.75rem;color:var(--bws-muted)}
+.bws-trust-strip .bws-stars{font-family:var(--bws-sans);font-size:.78rem;letter-spacing:.15em;color:#9a6b2c;vertical-align:middle;margin-left:10px}
 
-.bws-theme .section-wrap{max-width:1380px;padding:110px 7%;margin:auto}
-.bws-theme .about{display:grid;grid-template-columns:1fr 1.08fr;align-items:center;gap:10%}
-.bws-theme .about-photo{position:relative;max-width:490px;padding:32px 32px 86px;background:#dcece8;width:100%}
-.bws-theme .about-photo img{width:100%;height:auto;max-width:361px;margin:auto;aspect-ratio:1;object-fit:contain}
-.bws-theme .photo-label{position:absolute;right:-20px;bottom:25px;background:var(--bws-mint);padding:16px 26px;font-family:var(--bws-serif);font-size:1.5rem;font-style:italic}
-.bws-theme .about-copy>p:not(.eyebrow):not(.signature-caption){margin-top:23px;max-width:490px;color:var(--bws-muted)}
-.bws-theme .signature{font-family:var(--bws-serif);font-size:2rem;font-style:italic;line-height:1.25;margin-top:30px}
-.bws-theme .signature-caption{font-size:.75rem;margin-top:5px;color:var(--bws-muted)}
-.bws-theme .text-link{display:inline-flex;justify-content:space-between;align-items:center;gap:30px;font-size:.875rem;font-weight:600;border-bottom:1px solid currentColor;padding-bottom:6px;line-height:1.5}
-.bws-theme .about-copy>.text-link{margin-top:28px}
+.bws-section-wrap{max-width:1380px;padding:110px 7%;margin:auto}
+.bws-about{display:grid;grid-template-columns:1fr 1.08fr;align-items:center;gap:10%}
+.bws-about-photo{position:relative;max-width:490px;padding:32px 32px 86px;background:#dcece8;width:100%}
+.bws-about-photo img{width:100%;height:auto;max-width:361px;margin:auto;aspect-ratio:1;object-fit:contain}
+.bws-photo-label{position:absolute;right:-20px;bottom:25px;background:var(--bws-mint);padding:16px 26px;font-family:var(--bws-serif);font-size:1.5rem;font-style:italic}
+.bws-about-copy>p:not(.bws-eyebrow):not(.bws-signature-caption){margin-top:23px;max-width:490px;color:var(--bws-muted)}
+.bws-signature{font-family:var(--bws-serif);font-size:2rem;font-style:italic;line-height:1.25;margin-top:30px}
+.bws-signature-caption{font-size:.75rem;margin-top:5px;color:var(--bws-muted)}
+.bws-text-link{display:inline-flex;justify-content:space-between;align-items:center;gap:30px;font-size:.875rem;font-weight:600;border-bottom:1px solid currentColor;padding-bottom:6px;line-height:1.5}
+.bws-about-copy>.bws-text-link{margin-top:28px}
 
-.bws-theme .ceremonies{padding-top:35px}
-.bws-theme .section-heading{display:flex;align-items:end;justify-content:space-between;gap:60px}
-.bws-theme .section-heading>p{max-width:310px;color:var(--bws-muted);font-size:1rem}
-.bws-theme .ceremony-grid{display:grid;grid-template-columns:repeat(3,1fr);margin-top:50px;border-top:1px solid var(--bws-line)}
-.bws-theme .ceremony-item{padding:30px 32px 0 0;display:flex;flex-direction:column;align-items:start}
-.bws-theme .ceremony-item+.ceremony-item{padding-left:32px;border-left:1px solid var(--bws-line)}
-.bws-theme .item-number{font-size:.75rem;color:var(--bws-teal);margin-bottom:30px}
-.bws-theme .ceremony-item h3{margin-bottom:20px}
-.bws-theme .ceremony-item p{color:var(--bws-muted);font-size:1rem;margin-bottom:30px}
-.bws-theme .ceremony-item .text-link{margin-top:auto}
-.bws-theme .ceremony-item:hover .text-link{color:var(--bws-teal)}
+.bws-ceremonies{padding-top:35px}
+.bws-section-heading{display:flex;align-items:end;justify-content:space-between;gap:60px}
+.bws-section-heading>p{max-width:310px;color:var(--bws-muted);font-size:1rem}
+.bws-ceremony-grid{display:grid;grid-template-columns:repeat(3,1fr);margin-top:50px;border-top:1px solid var(--bws-line)}
+.bws-ceremony-item{padding:30px 32px 0 0;display:flex;flex-direction:column;align-items:start}
+.bws-ceremony-item+.bws-ceremony-item{padding-left:32px;border-left:1px solid var(--bws-line)}
+.bws-item-number{font-size:.75rem;color:var(--bws-teal);margin-bottom:30px}
+.bws-ceremony-item h3{margin-bottom:20px}
+.bws-ceremony-item p{color:var(--bws-muted);font-size:1rem;margin-bottom:30px}
+.bws-ceremony-item .bws-text-link{margin-top:auto}
+.bws-ceremony-item:hover .bws-text-link{color:var(--bws-teal)}
 
-.bws-theme .wedding-desk{background:var(--bws-ink);color:var(--bws-paper)}
-.bws-theme .wedding-desk .section-wrap{padding-top:92px;padding-bottom:92px}
-.bws-theme .desk-heading{display:grid;grid-template-columns:1.05fr .95fr;gap:10%;align-items:end}
-.bws-theme .desk-heading>div:last-child>p{color:#c8dcdd;max-width:520px;margin-bottom:28px}
-.bws-theme .desk-flow{list-style:none;padding:0;margin:58px 0 0;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#ffffff29;border:1px solid #ffffff29}
-.bws-theme .desk-flow li{background:#153c46;padding:30px;min-height:275px}
-.bws-theme .desk-flow li>span{font-size:.72rem;letter-spacing:.14em;color:#79cfd0}
-.bws-theme .desk-flow h3{font-size:1.8rem;margin:48px 0 16px}
-.bws-theme .desk-flow p{font-size:.88rem;line-height:1.75;color:#c8dcdd}
-.bws-theme .desk-note{margin-top:22px;color:#c8dcdd;font-size:.82rem}
+.bws-wedding-desk{background:var(--bws-ink);color:var(--bws-paper)}
+.bws-wedding-desk .bws-section-wrap{padding-top:92px;padding-bottom:92px}
+.bws-desk-heading{display:grid;grid-template-columns:1.05fr .95fr;gap:10%;align-items:end}
+.bws-desk-heading>div:last-child>p{color:#c8dcdd;max-width:520px;margin-bottom:28px}
+.bws-desk-flow{list-style:none;padding:0;margin:58px 0 0;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#ffffff29;border:1px solid #ffffff29}
+.bws-desk-flow li{background:#153c46;padding:30px;min-height:275px}
+.bws-desk-flow li>span{font-size:.72rem;letter-spacing:.14em;color:#79cfd0}
+.bws-desk-flow h3{font-size:1.8rem;margin:48px 0 16px}
+.bws-desk-flow p{font-size:.88rem;line-height:1.75;color:#c8dcdd}
+.bws-desk-note{margin-top:22px;color:#c8dcdd;font-size:.82rem}
 
-.bws-theme .add-ons{background:#dfeeed;padding:15px 0 25px}
-.bws-theme .addon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#aac6c2;margin-top:48px;border:1px solid #aac6c2}
-.bws-theme .addon-card{background:#f8fbf9;min-height:315px;padding:30px;display:flex;flex-direction:column;transition:background .25s,transform .25s}
-.bws-theme .addon-card:hover{background:#fff;transform:translateY(-4px)}
-.bws-theme .addon-card>span{font-size:.75rem;text-transform:uppercase;letter-spacing:.15em;color:var(--bws-teal)}
-.bws-theme .addon-card h3{font-size:2rem;margin:36px 0 17px}
-.bws-theme .addon-card p{color:var(--bws-muted);font-size:.95rem;line-height:1.75}
-.bws-theme .addon-card b{font-size:.8rem;margin-top:auto;padding-top:25px;font-weight:700}
-.bws-theme .photo-card{background:linear-gradient(#f8fbf9d9,#f8fbf9e8),url('/weddings/bahamas-by-the-sea/ceremony.jpg') center/cover}
-.bws-theme .film-card{background:linear-gradient(#0b3543d9,#0b3543e8),url('/weddings/bahamas-by-the-sea/hero.jpg') center/cover;color:#fff}
-.bws-theme .film-card p,.bws-theme .film-card>span{color:#d9eeee}
-.bws-theme .availability-note{font-size:.8rem;color:var(--bws-muted);margin-top:18px;max-width:680px}
+.bws-add-ons{background:#dfeeed;padding:15px 0 25px}
+.bws-addon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#aac6c2;margin-top:48px;border:1px solid #aac6c2}
+.bws-addon-card{background:#f8fbf9;min-height:315px;padding:30px;display:flex;flex-direction:column;transition:background .25s,transform .25s}
+.bws-addon-card:hover{background:#fff;transform:translateY(-4px)}
+.bws-addon-card>span{font-size:.75rem;text-transform:uppercase;letter-spacing:.15em;color:var(--bws-teal)}
+.bws-addon-card h3{font-size:2rem;margin:36px 0 17px}
+.bws-addon-card p{color:var(--bws-muted);font-size:.95rem;line-height:1.75}
+.bws-addon-card b{font-size:.8rem;margin-top:auto;padding-top:25px;font-weight:700}
+.bws-photo-card{background:linear-gradient(#f8fbf9d9,#f8fbf9e8),url(/weddings/bahamas-by-the-sea/ceremony.jpg) center/cover}
+.bws-film-card{background:linear-gradient(#0b3543d9,#0b3543e8),url(/weddings/bahamas-by-the-sea/hero.jpg) center/cover;color:#fff}
+.bws-film-card p,.bws-film-card>span{color:#d9eeee}
+.bws-availability-note{font-size:.8rem;color:var(--bws-muted);margin-top:18px;max-width:680px}
 
-.bws-theme .love-notes{display:grid;grid-template-columns:1fr 1fr;background:var(--bws-ink);color:var(--bws-paper);min-height:570px}
-.bws-theme .love-copy{display:flex;flex-direction:column;justify-content:center;align-items:start;padding:85px 12% 85px 14%}
-.bws-theme .review-stars{font-size:.875rem;letter-spacing:.22em;color:#d8be8d;margin:8px 0 22px}
-.bws-theme .love-copy blockquote{font-family:var(--bws-serif);font-size:clamp(2.6rem,4vw,4.1rem);line-height:1.08;letter-spacing:-.025em;margin:0 0 28px}
-.bws-theme .review-byline{font-size:.95rem}
-.bws-theme .review-byline span{display:block;font-size:.75rem;line-height:1.7;color:#bdd1d4;margin-top:4px;max-width:250px}
-.bws-theme .love-copy .text-link{font-size:.8rem;margin-top:36px;color:#dae8e8}
-.bws-theme .love-photo{position:relative;min-height:500px;overflow:hidden}
-.bws-theme .love-photo img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
-.bws-theme .love-photo:after{content:'';position:absolute;inset:60% 0 0;background:linear-gradient(transparent,#08283275)}
-.bws-theme .love-photo>span{position:absolute;bottom:28px;left:30px;right:20px;z-index:1;font-family:var(--bws-serif);font-size:1.5rem;font-style:italic;line-height:1.3}
-.bws-theme .review-wall{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;padding-top:55px;padding-bottom:80px}
-.bws-theme .review-wall article{border-top:1px solid var(--bws-line);padding:25px 5px}
-.bws-theme .review-wall blockquote{font-family:var(--bws-serif);font-size:1.75rem;line-height:1.25;margin:13px 0 20px}
-.bws-theme .review-wall p{color:var(--bws-muted);font-size:.8rem}
+.bws-love-notes{display:grid;grid-template-columns:1fr 1fr;background:var(--bws-ink);color:var(--bws-paper);min-height:570px}
+.bws-love-copy{display:flex;flex-direction:column;justify-content:center;align-items:start;padding:85px 12% 85px 14%}
+.bws-review-stars{font-size:.875rem;letter-spacing:.22em;color:#d8be8d;margin:8px 0 22px}
+.bws-love-copy blockquote{font-family:var(--bws-serif);font-size:clamp(2.6rem,4vw,4.1rem);line-height:1.08;letter-spacing:-.025em;margin:0 0 28px}
+.bws-review-byline{font-size:.95rem}
+.bws-review-byline span{display:block;font-size:.75rem;line-height:1.7;color:#bdd1d4;margin-top:4px;max-width:250px}
+.bws-love-copy .bws-text-link{font-size:.8rem;margin-top:36px;color:#dae8e8}
+.bws-love-photo{position:relative;min-height:500px;overflow:hidden}
+.bws-love-photo img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.bws-love-photo:after{content:"";position:absolute;inset:60% 0 0;background:linear-gradient(transparent,#08283275)}
+.bws-love-photo>span{position:absolute;bottom:28px;left:30px;right:20px;z-index:1;font-family:var(--bws-serif);font-size:1.5rem;font-style:italic;line-height:1.3}
+.bws-review-wall{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;padding-top:55px;padding-bottom:80px}
+.bws-review-wall article{border-top:1px solid var(--bws-line);padding:25px 5px}
+.bws-review-wall blockquote{font-family:var(--bws-serif);font-size:1.75rem;line-height:1.25;margin:13px 0 20px}
+.bws-review-wall p{color:var(--bws-muted);font-size:.8rem}
 
-.bws-theme .planning-steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:50px;margin:50px 0 0}
-.bws-theme .planning-steps li{border-top:1px solid var(--bws-line);padding-top:25px}
-.bws-theme .planning-steps li>span{font-size:.75rem;letter-spacing:.1em;color:var(--bws-teal)}
-.bws-theme .planning-steps h3{font-size:1.9rem;margin:23px 0 16px}
-.bws-theme .planning-steps p{color:var(--bws-muted);font-size:1rem}
-.bws-theme .planning-cta{margin-top:42px}
+.bws-planning-steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:50px;margin:50px 0 0}
+.bws-planning-steps li{border-top:1px solid var(--bws-line);padding-top:25px}
+.bws-planning-steps li>span{font-size:.75rem;letter-spacing:.1em;color:var(--bws-teal)}
+.bws-planning-steps h3{font-size:1.9rem;margin:23px 0 16px}
+.bws-planning-steps p{color:var(--bws-muted);font-size:1rem}
+.bws-planning-cta{margin-top:42px}
 
-.bws-theme .faq{display:grid;grid-template-columns:.85fr 1.15fr;gap:9%;padding-top:15px;padding-bottom:110px}
-.bws-theme .faq>div>p:not(.eyebrow){color:var(--bws-muted);margin-top:28px}
-.bws-theme .faq-list{border-top:1px solid var(--bws-line)}
-.bws-theme .faq details{border-bottom:1px solid var(--bws-line);padding:23px 0}
-.bws-theme .faq summary{font-size:.95rem;font-weight:500;display:flex;align-items:center;justify-content:space-between;gap:25px;list-style:none;cursor:pointer;line-height:1.5}
-.bws-theme .faq summary::-webkit-details-marker{display:none}
-.bws-theme .faq summary>span{font-size:1.35rem;font-weight:400;transition:transform .2s}
-.bws-theme .faq details[open] summary>span{transform:rotate(45deg)}
-.bws-theme .faq details>p{color:var(--bws-muted);font-size:.95rem;margin-top:18px;line-height:1.8;padding-right:25px}
-.bws-theme .faq details>p a{color:var(--bws-teal);text-decoration:underline;text-underline-offset:3px}
+.bws-faq{display:grid;grid-template-columns:.85fr 1.15fr;gap:9%;padding-top:15px;padding-bottom:110px}
+.bws-faq>div>p:not(.bws-eyebrow){color:var(--bws-muted);margin-top:28px}
+.bws-faq-list{border-top:1px solid var(--bws-line)}
+.bws-faq details{border-bottom:1px solid var(--bws-line);padding:23px 0}
+.bws-faq summary{font-size:.95rem;font-weight:500;display:flex;align-items:center;justify-content:space-between;gap:25px;list-style:none;cursor:pointer;line-height:1.5}
+.bws-faq summary::-webkit-details-marker{display:none}
+.bws-faq summary>span{font-size:1.35rem;font-weight:400;transition:transform .2s}
+.bws-faq details[open] summary>span{transform:rotate(45deg)}
+.bws-faq details>p{color:var(--bws-muted);font-size:.95rem;margin-top:18px;line-height:1.8;padding-right:25px}
+.bws-faq details>p a{color:var(--bws-teal);text-decoration:underline;text-underline-offset:3px}
 
-.bws-theme .enquiry{background:var(--bws-mint);padding:90px 7%}
-.bws-theme .enquiry-inner{max-width:1190px;margin:auto;display:grid;grid-template-columns:.8fr 1.2fr;gap:10%}
-.bws-theme .enquiry-copy h2{font-size:clamp(3.5rem,5.7vw,5.7rem)}
-.bws-theme .enquiry-copy>p:not(.eyebrow):not(.contact-caption){max-width:300px;margin-top:28px;color:var(--bws-muted);font-size:1rem}
-.bws-theme .contact-number{font-family:var(--bws-serif);font-size:1.8rem;display:inline-flex;gap:20px;margin-top:38px;border-bottom:1px solid var(--bws-ink);line-height:1.5}
-.bws-theme .contact-number>span{font-family:var(--bws-sans);font-size:1.2rem}
-.bws-theme .contact-caption{font-size:.8rem;color:var(--bws-muted);margin-top:9px}
-.bws-theme .enquiry-note{border-top:1px solid #b5cbc4;margin-top:48px;padding-top:23px;font-size:.875rem}
-.bws-theme .enquiry-note span{font-size:.75rem;color:var(--bws-muted)}
-.bws-theme .enquiry-form-wrap{padding-top:12px}
-.bws-theme .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:25px 24px}
-.bws-theme .field.full{grid-column:1/-1}
-.bws-theme .field{display:flex;flex-direction:column;min-width:0}
-.bws-theme .field label{font-size:.875rem;font-weight:600;line-height:1.5;margin-bottom:7px}
-.bws-theme .field label span{font-size:.75rem;font-weight:400;color:var(--bws-muted)}
-.bws-theme .field input,.bws-theme .field select,.bws-theme .field textarea{width:100%;max-width:100%;border:0;border-bottom:1px solid #9bb5ad;border-radius:0;background:#ffffff69;color:var(--bws-ink);padding:13px 12px;min-height:49px;font-size:1rem;line-height:1.6}
-.bws-theme .field select{padding-right:12px}
-.bws-theme .field input::placeholder,.bws-theme .field textarea::placeholder{color:#657b76;opacity:1;font-size:.9rem}
-.bws-theme .field textarea{resize:vertical;min-height:110px}
-.bws-theme .field small{font-size:.75rem;color:var(--bws-muted);margin-top:5px}
-.bws-theme .enquiry-form-wrap .button{width:100%;margin-top:28px;justify-content:space-between}
-.bws-theme .form-note{font-size:.75rem;color:var(--bws-muted);margin-top:15px;line-height:1.8}
-.bws-theme .weddingwire-option{display:inline-block;margin-top:25px;font-size:.8rem;border-bottom:1px solid #819d93;padding-bottom:3px}
-.bws-theme .enquiry-status{font-size:.875rem;line-height:1.8;margin-top:12px;color:var(--bws-ink)}
+.bws-enquiry{background:var(--bws-mint);padding:90px 7%}
+.bws-enquiry-inner{max-width:1190px;margin:auto;display:grid;grid-template-columns:.8fr 1.2fr;gap:10%}
+.bws-enquiry-copy h2{font-size:clamp(3.5rem,5.7vw,5.7rem)}
+.bws-enquiry-copy>p:not(.bws-eyebrow):not(.bws-contact-caption){max-width:300px;margin-top:28px;color:var(--bws-muted);font-size:1rem}
+.bws-contact-number{font-family:var(--bws-serif);font-size:1.8rem;display:inline-flex;gap:20px;margin-top:38px;border-bottom:1px solid var(--bws-ink);line-height:1.5}
+.bws-contact-number>span{font-family:var(--bws-sans);font-size:1.2rem}
+.bws-contact-caption{font-size:.8rem;color:var(--bws-muted);margin-top:9px}
+.bws-enquiry-note{border-top:1px solid #b5cbc4;margin-top:48px;padding-top:23px;font-size:.875rem}
+.bws-enquiry-note span{font-size:.75rem;color:var(--bws-muted)}
+.bws-enquiry-form-wrap{padding-top:12px}
+.bws-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:25px 24px}
+.bws-field.bws-full{grid-column:1/-1}
+.bws-field{display:flex;flex-direction:column;min-width:0}
+.bws-field label{font-size:.875rem;font-weight:600;line-height:1.5;margin-bottom:7px}
+.bws-field label span{font-size:.75rem;font-weight:400;color:var(--bws-muted)}
+.bws-field input,.bws-field select,.bws-field textarea{width:100%;max-width:100%;border:0;border-bottom:1px solid #9bb5ad;border-radius:0;background:#ffffff69;color:var(--bws-ink);padding:13px 12px;min-height:49px;font-size:1rem;line-height:1.6}
+.bws-field select{padding-right:12px}
+.bws-field input::placeholder,.bws-field textarea::placeholder{color:#657b76;opacity:1;font-size:.9rem}
+.bws-field textarea{resize:vertical;min-height:110px}
+.bws-field small{font-size:.75rem;color:var(--bws-muted);margin-top:5px}
+.bws-enquiry-form-wrap .bws-button{width:100%;margin-top:28px;justify-content:space-between}
+.bws-form-note{font-size:.75rem;color:var(--bws-muted);margin-top:15px;line-height:1.8}
+.bws-weddingwire-option{display:inline-block;margin-top:25px;font-size:.8rem;border-bottom:1px solid #819d93;padding-bottom:3px}
+.bws-enquiry-status{font-size:.875rem;line-height:1.8;margin-top:12px;color:var(--bws-ink)}
 
-.bws-theme .site-footer{padding:48px 5% 24px;background:var(--bws-paper)}
-.bws-theme .footer-top{display:flex;align-items:center;justify-content:space-between;gap:30px;padding-bottom:35px;border-bottom:1px solid var(--bws-line);flex-wrap:wrap}
-.bws-theme .footer-top>p{font-family:var(--bws-serif);font-size:1.6rem;font-style:italic}
-.bws-theme .back-top{font-size:.75rem}
-.bws-theme .footer-bottom{display:flex;justify-content:space-between;gap:25px;font-size:.75rem;color:var(--bws-muted);margin-top:24px;flex-wrap:wrap}
-.bws-theme .rating-note{font-size:.75rem;margin-top:16px;color:var(--bws-muted);line-height:1.8}
-.bws-theme .mobile-booking{display:none}
+.bws-site-footer{padding:48px 5% 24px;background:var(--bws-paper)}
+.bws-footer-top{display:flex;align-items:center;justify-content:space-between;gap:30px;padding-bottom:35px;border-bottom:1px solid var(--bws-line);flex-wrap:wrap}
+.bws-footer-top>p{font-family:var(--bws-serif);font-size:1.6rem;font-style:italic}
+.bws-back-top{font-size:.75rem}
+.bws-footer-bottom{display:flex;justify-content:space-between;gap:25px;font-size:.75rem;color:var(--bws-muted);margin-top:24px;flex-wrap:wrap}
+.bws-rating-note{font-size:.75rem;margin-top:16px;color:var(--bws-muted);line-height:1.8}
+.bws-mobile-booking{display:none}
 
 /* Planner (/weddings/bahamas-by-the-sea/plan) */
-.bws-theme.planner-body{min-height:100vh;isolation:isolate;background:linear-gradient(100deg,#082b35f0 0 39%,#082b35b0 58%,#082b3566),url('/weddings/bahamas-by-the-sea/hero.jpg') center/cover fixed}
-.bws-theme .inner-header{position:relative;color:#fff;padding:28px 5%;display:flex;justify-content:space-between;align-items:center}
-.bws-theme .planner-home{font-size:.85rem;border-bottom:1px solid #ffffff8c;padding-bottom:3px}
-.bws-theme .planner-main{max-width:1380px;margin:auto;padding:68px 6% 95px;display:grid;grid-template-columns:.72fr 1.28fr;gap:7%;align-items:start;color:#fff}
-.bws-theme .planner-intro{padding-top:54px;position:sticky;top:25px}
-.bws-theme .planner-intro h1{font-size:clamp(3.6rem,6vw,6.4rem);line-height:.94}
-.bws-theme .planner-intro>p:not(.eyebrow){max-width:440px;margin-top:30px;color:#dcebea}
-.bws-theme .planner-trust{display:flex;flex-direction:column;gap:8px;margin-top:43px;padding-top:25px;border-top:1px solid #ffffff52;font-size:.78rem;color:#dcebea}
-.bws-theme .planner-card{background:var(--bws-paper);color:var(--bws-ink);border-radius:3px;padding:42px;box-shadow:0 28px 90px #041b2660;min-height:650px;scroll-margin-top:20px}
-.bws-theme .planner-progress{display:grid;grid-template-columns:1fr;gap:18px;border-bottom:1px solid var(--bws-line);padding-bottom:25px;margin-bottom:34px}
-.bws-theme .planner-progress>div:first-child{display:flex;justify-content:space-between;gap:20px;align-items:center}
-.bws-theme .planner-progress span{font-size:.75rem;color:var(--bws-muted);text-transform:uppercase;letter-spacing:.1em}
-.bws-theme .planner-progress strong{font-family:var(--bws-serif);font-size:1.35rem;font-weight:500}
-.bws-theme .progress-track{height:4px;background:#d8e4e0;overflow:hidden}
-.bws-theme .progress-track span{display:block;height:100%;background:var(--bws-teal);transition:width .3s}
-.bws-theme .planner-step legend{font-family:var(--bws-serif);font-size:clamp(2.2rem,3.5vw,3.35rem);line-height:1.05;letter-spacing:-.03em;padding:0}
-.bws-theme .step-help{color:var(--bws-muted);font-size:.9rem;margin:13px 0 26px;max-width:660px}
-.bws-theme .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.bws-theme .choice-card{position:relative;display:block;cursor:pointer}
-.bws-theme .choice-card input{position:absolute;opacity:0;pointer-events:none}
-.bws-theme .choice-card>span{display:flex;flex-direction:column;min-height:134px;border:1px solid var(--bws-line);padding:20px;background:#fff;transition:border .2s,background .2s,transform .2s}
-.bws-theme .choice-card input:focus-visible+span{outline:3px solid #cf934c;outline-offset:3px}
-.bws-theme .choice-card input:checked+span{border-color:var(--bws-teal);background:var(--bws-mint);box-shadow:inset 0 0 0 1px var(--bws-teal)}
-.bws-theme .choice-card:hover>span{transform:translateY(-2px);border-color:#7da9a2}
-.bws-theme .choice-card b{font-family:var(--bws-serif);font-size:1.55rem;font-weight:500;line-height:1.1}
-.bws-theme .choice-card small{font-size:.78rem;line-height:1.6;color:var(--bws-muted);margin-top:9px}
-.bws-theme .service-choices .choice-card>span{min-height:125px}
-.bws-theme .planner-card .form-grid{margin-top:5px}
-.bws-theme .planner-card .field input,.bws-theme .planner-card .field textarea{background:#fff;border:1px solid #a9bcb7}
-.bws-theme .request-summary{margin-top:24px;padding:20px;background:var(--bws-mint);border-left:3px solid var(--bws-teal)}
-.bws-theme .request-summary h3{font-size:1.6rem;margin-bottom:14px}
-.bws-theme .request-summary dl{margin:0;display:grid;gap:8px}
-.bws-theme .request-summary dl>div{display:grid;grid-template-columns:125px 1fr;gap:15px}
-.bws-theme .request-summary dt{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--bws-muted)}
-.bws-theme .request-summary dd{margin:0;font-size:.85rem;line-height:1.55}
-.bws-theme .request-summary>p{font-size:.8rem;line-height:1.65;color:var(--bws-muted);margin-top:16px;padding-top:13px;border-top:1px solid #b8d0ca}
-.bws-theme .planner-error{min-height:28px;color:#9d2525;font-size:.85rem;margin-top:18px}
-.bws-theme .planner-actions{display:flex;justify-content:flex-end;gap:12px;border-top:1px solid var(--bws-line);padding-top:22px}
-.bws-theme .planner-actions .button{min-width:145px}
-.bws-theme .planner-back{border:1px solid var(--bws-line);background:#fff;color:var(--bws-ink)}
-.bws-theme .planner-footer{display:flex;justify-content:space-between;gap:25px;padding:25px 6%;background:#082b35;color:#dcebea;font-size:.75rem}
-.bws-theme .planner-footer a{border-bottom:1px solid #ffffff50}
-.bws-theme .planner-confirmation{background:var(--bws-paper);color:var(--bws-ink);border-radius:3px;padding:60px 42px;box-shadow:0 28px 90px #041b2660;text-align:center}
-.bws-theme .planner-confirmation h1{font-size:clamp(2.4rem,4vw,3.6rem);margin:18px 0}
-.bws-theme .planner-confirmation p{color:var(--bws-muted);max-width:520px;margin:0 auto 30px}
+.bws-theme.bws-planner-body{min-height:100vh;isolation:isolate;background:linear-gradient(100deg,#082b35f0 0 39%,#082b35b0 58%,#082b3566),url(/weddings/bahamas-by-the-sea/hero.jpg) center/cover fixed}
+.bws-inner-header{position:relative;color:#fff;padding:28px 5%;display:flex;justify-content:space-between;align-items:center}
+.bws-planner-home{font-size:.85rem;border-bottom:1px solid #ffffff8c;padding-bottom:3px}
+.bws-planner-main{max-width:1380px;margin:auto;padding:68px 6% 95px;display:grid;grid-template-columns:.72fr 1.28fr;gap:7%;align-items:start;color:#fff}
+.bws-planner-intro{padding-top:54px;position:sticky;top:25px}
+.bws-planner-intro h1{font-size:clamp(3.6rem,6vw,6.4rem);line-height:.94}
+.bws-planner-intro>p:not(.bws-eyebrow){max-width:440px;margin-top:30px;color:#dcebea}
+.bws-planner-trust{display:flex;flex-direction:column;gap:8px;margin-top:43px;padding-top:25px;border-top:1px solid #ffffff52;font-size:.78rem;color:#dcebea}
+.bws-planner-card{background:var(--bws-paper);color:var(--bws-ink);border-radius:3px;padding:42px;box-shadow:0 28px 90px #041b2660;min-height:650px;scroll-margin-top:20px}
+.bws-planner-progress{display:grid;grid-template-columns:1fr;gap:18px;border-bottom:1px solid var(--bws-line);padding-bottom:25px;margin-bottom:34px}
+.bws-planner-progress>div:first-child{display:flex;justify-content:space-between;gap:20px;align-items:center}
+.bws-planner-progress span{font-size:.75rem;color:var(--bws-muted);text-transform:uppercase;letter-spacing:.1em}
+.bws-planner-progress strong{font-family:var(--bws-serif);font-size:1.35rem;font-weight:500}
+.bws-progress-track{height:4px;background:#d8e4e0;overflow:hidden}
+.bws-progress-track span{display:block;height:100%;background:var(--bws-teal);transition:width .3s}
+.bws-planner-step legend{font-family:var(--bws-serif);font-size:clamp(2.2rem,3.5vw,3.35rem);line-height:1.05;letter-spacing:-.03em;padding:0}
+.bws-step-help{color:var(--bws-muted);font-size:.9rem;margin:13px 0 26px;max-width:660px}
+.bws-choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bws-choice-card{position:relative;display:block;cursor:pointer}
+.bws-choice-card input{position:absolute;opacity:0;pointer-events:none}
+.bws-choice-card>span{display:flex;flex-direction:column;min-height:134px;border:1px solid var(--bws-line);padding:20px;background:#fff;transition:border .2s,background .2s,transform .2s}
+.bws-choice-card input:focus-visible+span{outline:3px solid #cf934c;outline-offset:3px}
+.bws-choice-card input:checked+span{border-color:var(--bws-teal);background:var(--bws-mint);box-shadow:inset 0 0 0 1px var(--bws-teal)}
+.bws-choice-card:hover>span{transform:translateY(-2px);border-color:#7da9a2}
+.bws-choice-card b{font-family:var(--bws-serif);font-size:1.55rem;font-weight:500;line-height:1.1}
+.bws-choice-card small{font-size:.78rem;line-height:1.6;color:var(--bws-muted);margin-top:9px}
+.bws-service-choices .bws-choice-card>span{min-height:125px}
+.bws-planner-card .bws-form-grid{margin-top:5px}
+.bws-planner-card .bws-field input,.bws-planner-card .bws-field textarea{background:#fff;border:1px solid #a9bcb7}
+.bws-request-summary{margin-top:24px;padding:20px;background:var(--bws-mint);border-left:3px solid var(--bws-teal)}
+.bws-request-summary h3{font-size:1.6rem;margin-bottom:14px}
+.bws-request-summary dl{margin:0;display:grid;gap:8px}
+.bws-request-summary dl>div{display:grid;grid-template-columns:125px 1fr;gap:15px}
+.bws-request-summary dt{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--bws-muted)}
+.bws-request-summary dd{margin:0;font-size:.85rem;line-height:1.55}
+.bws-request-summary>p{font-size:.8rem;line-height:1.65;color:var(--bws-muted);margin-top:16px;padding-top:13px;border-top:1px solid #b8d0ca}
+.bws-planner-error{min-height:28px;color:#9d2525;font-size:.85rem;margin-top:18px}
+.bws-planner-actions{display:flex;justify-content:flex-end;gap:12px;border-top:1px solid var(--bws-line);padding-top:22px}
+.bws-planner-actions .bws-button{min-width:145px}
+.bws-planner-back{border:1px solid var(--bws-line);background:#fff;color:var(--bws-ink)}
+.bws-planner-footer{display:flex;justify-content:space-between;gap:25px;padding:25px 6%;background:#082b35;color:#dcebea;font-size:.75rem}
+.bws-planner-footer a{border-bottom:1px solid #ffffff50}
+.bws-planner-confirmation{background:var(--bws-paper);color:var(--bws-ink);border-radius:3px;padding:60px 42px;box-shadow:0 28px 90px #041b2660;text-align:center}
+.bws-planner-confirmation h1{font-size:clamp(2.4rem,4vw,3.6rem);margin:18px 0}
+.bws-planner-confirmation p{color:var(--bws-muted);max-width:520px;margin:0 auto 30px}
 
-.bws-theme .venue-browser{border:1px solid var(--bws-line);background:#fff;margin-bottom:24px}
-.bws-theme .venue-browser-head{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:17px 20px;background:var(--bws-mint);border-bottom:1px solid var(--bws-line)}
-.bws-theme .venue-browser-head>div{display:flex;align-items:baseline;gap:9px}
-.bws-theme .venue-browser-head span{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--bws-muted)}
-.bws-theme .venue-browser-head strong{font-family:var(--bws-serif);font-size:1.35rem;font-weight:500}
-.bws-theme .live-badge{border:1px solid #80aaa4;border-radius:999px;padding:5px 9px;color:var(--bws-teal)}
-.bws-theme .venue-results{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--bws-line)}
-.bws-theme .venue-empty{grid-column:1/-1;background:#fff;padding:24px}
-.bws-theme .venue-empty b{font-family:var(--bws-serif);font-size:1.45rem;font-weight:500}
-.bws-theme .venue-empty p{font-size:.82rem;line-height:1.7;color:var(--bws-muted);margin-top:8px;max-width:580px}
-.bws-theme .venue-preference-title{font-size:.84rem;font-weight:700;margin:8px 0 12px}
-.bws-theme .venue-choices .choice-card>span{min-height:105px}
-.bws-theme .consultation-choices{grid-template-columns:repeat(3,1fr)}
-.bws-theme .consultation-choices .choice-card>span{min-height:145px}
-.bws-theme .consultation-time{margin-top:24px}
-.bws-theme .consultation-note{font-size:.82rem;color:var(--bws-muted);margin-top:18px;padding:15px 18px;border-left:3px solid var(--bws-teal);background:var(--bws-mint)}
+.bws-venue-browser{border:1px solid var(--bws-line);background:#fff;margin-bottom:24px}
+.bws-venue-browser-head{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:17px 20px;background:var(--bws-mint);border-bottom:1px solid var(--bws-line)}
+.bws-venue-browser-head>div{display:flex;align-items:baseline;gap:9px}
+.bws-venue-browser-head span{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--bws-muted)}
+.bws-venue-browser-head strong{font-family:var(--bws-serif);font-size:1.35rem;font-weight:500}
+.bws-live-badge{border:1px solid #80aaa4;border-radius:999px;padding:5px 9px;color:var(--bws-teal)}
+.bws-venue-results{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--bws-line)}
+.bws-venue-empty{grid-column:1/-1;background:#fff;padding:24px}
+.bws-venue-empty b{font-family:var(--bws-serif);font-size:1.45rem;font-weight:500}
+.bws-venue-empty p{font-size:.82rem;line-height:1.7;color:var(--bws-muted);margin-top:8px;max-width:580px}
+.bws-venue-preference-title{font-size:.84rem;font-weight:700;margin:8px 0 12px}
+.bws-venue-choices .bws-choice-card>span{min-height:105px}
+.bws-consultation-choices{grid-template-columns:repeat(3,1fr)}
+.bws-consultation-choices .bws-choice-card>span{min-height:145px}
+.bws-consultation-time{margin-top:24px}
+.bws-consultation-note{font-size:.82rem;color:var(--bws-muted);margin-top:18px;padding:15px 18px;border-left:3px solid var(--bws-teal);background:var(--bws-mint)}
 
 @media(max-width:1200px){
-  .bws-theme .desktop-nav{gap:20px;font-size:.8rem}
-  .bws-theme .nav-cta{gap:15px;padding:11px 15px}
-  .bws-theme .addon-grid{grid-template-columns:1fr 1fr}
-  .bws-theme .planner-main{grid-template-columns:.64fr 1.36fr;gap:5%}
-  .bws-theme .planner-card{padding:35px}
+  .bws-desktop-nav{gap:20px;font-size:.8rem}
+  .bws-nav-cta{gap:15px;padding:11px 15px}
+  .bws-addon-grid{grid-template-columns:1fr 1fr}
+  .bws-planner-main{grid-template-columns:.64fr 1.36fr;gap:5%}
+  .bws-planner-card{padding:35px}
 }
 @media(max-width:1000px){
-  .bws-theme .desktop-nav{gap:22px}
-  .bws-theme .site-header{padding:23px 5%}
-  .bws-theme .section-wrap{padding:80px 6%}
-  .bws-theme .about{gap:7%}
-  .bws-theme .section-heading{gap:30px}
-  .bws-theme .section-heading>p{max-width:270px}
-  .bws-theme .trust-strip strong{font-size:1.7rem}
-  .bws-theme .love-copy{padding:60px 10%}
-  .bws-theme .love-notes{min-height:500px}
-  .bws-theme .planning-steps{gap:30px}
-  .bws-theme .enquiry{padding:75px 6%}
-  .bws-theme .enquiry-inner{gap:7%}
-  .bws-theme .faq{gap:7%}
-  .bws-theme .footer-top>p{font-size:1.35rem}
-  .bws-theme .planner-main{grid-template-columns:1fr;padding-top:38px}
-  .bws-theme .planner-intro{position:relative;top:auto;padding-top:15px}
-  .bws-theme .planner-intro h1{font-size:4.7rem}
-  .bws-theme .planner-trust{flex-direction:row;flex-wrap:wrap;gap:10px 25px;margin-top:28px}
-  .bws-theme .planner-card{margin-top:15px}
-  .bws-theme .desk-flow{grid-template-columns:1fr 1fr}
-  .bws-theme .consultation-choices{grid-template-columns:1fr 1fr}
+  .bws-desktop-nav{gap:22px}
+  .bws-site-header{padding:23px 5%}
+  .bws-section-wrap{padding:80px 6%}
+  .bws-about{gap:7%}
+  .bws-section-heading{gap:30px}
+  .bws-section-heading>p{max-width:270px}
+  .bws-trust-strip strong{font-size:1.7rem}
+  .bws-love-copy{padding:60px 10%}
+  .bws-love-notes{min-height:500px}
+  .bws-planning-steps{gap:30px}
+  .bws-enquiry{padding:75px 6%}
+  .bws-enquiry-inner{gap:7%}
+  .bws-faq{gap:7%}
+  .bws-footer-top>p{font-size:1.35rem}
+  .bws-planner-main{grid-template-columns:1fr;padding-top:38px}
+  .bws-planner-intro{position:relative;top:auto;padding-top:15px}
+  .bws-planner-intro h1{font-size:4.7rem}
+  .bws-planner-trust{flex-direction:row;flex-wrap:wrap;gap:10px 25px;margin-top:28px}
+  .bws-planner-card{margin-top:15px}
+  .bws-desk-flow{grid-template-columns:1fr 1fr}
+  .bws-consultation-choices{grid-template-columns:1fr 1fr}
 }
 @media(max-width:760px){
-  .bws-theme .site-header{padding:22px 6%}
-  .bws-theme .brand>span{font-size:2.15rem}
-  .bws-theme .brand>small{font-size:.56rem}
-  .bws-theme .desktop-nav{display:none}
-  .bws-theme .menu-toggle{display:flex}
-  .bws-theme .hero{min-height:89svh;max-height:none}
-  .bws-theme .hero-content{margin-left:7%;width:87%;padding:180px 0 130px}
-  .bws-theme .hero h1{font-size:clamp(3.25rem,9.5vw,4.75rem);line-height:1.04}
-  .bws-theme .hero .eyebrow{font-size:.75rem;margin-bottom:24px}
-  .bws-theme .hero-intro{font-size:.95rem;margin:27px 0}
-  .bws-theme .hero-foot{bottom:27px;left:7%;right:7%;font-size:.75rem}
-  .bws-theme .hero-foot>a{display:none}
-  .bws-theme .hero-shade{background:linear-gradient(90deg,#052029a8,#05202945),linear-gradient(180deg,#0520293f,transparent 50%,#05202955)}
-  .bws-theme .hero-image{object-position:60% center}
-  .bws-theme .trust-strip{grid-template-columns:1fr 1fr;padding:24px 0;margin:0 6%;row-gap:23px}
-  .bws-theme .trust-strip>*{padding:0 10px!important;gap:8px!important}
-  .bws-theme .trust-strip>*:last-child{grid-column:1/-1;border-left:0;border-top:1px solid var(--bws-line);padding-top:20px!important;flex-direction:row;gap:15px!important}
-  .bws-theme .trust-strip strong{font-size:1.7rem}
-  .bws-theme .trust-strip>*:last-child strong{font-size:1.4rem}
-  .bws-theme .trust-strip>*:last-child>span{max-width:140px;text-align:left}
-  .bws-theme .section-wrap{padding:65px 7%}
-  .bws-theme .about{grid-template-columns:1fr;gap:42px}
-  .bws-theme .about-photo{max-width:420px;justify-self:center;padding:25px 25px 76px;margin:0 auto}
-  .bws-theme .about-photo img{aspect-ratio:1;object-fit:contain}
-  .bws-theme .photo-label{right:-10px;bottom:21px;font-size:1.4rem;padding:12px 20px}
-  .bws-theme .section-heading{display:block}
-  .bws-theme .section-heading>p{margin-top:25px;max-width:none}
-  .bws-theme .ceremony-grid{grid-template-columns:1fr;margin-top:35px}
-  .bws-theme .ceremony-item,.bws-theme .ceremony-item+.bws-theme .ceremony-item{padding:25px 0 30px;border-left:0;border-bottom:1px solid var(--bws-line)}
-  .bws-theme .ceremony-item+.ceremony-item{padding-left:0;border-left:0;border-bottom:1px solid var(--bws-line)}
-  .bws-theme .ceremony-item h3{font-size:2.4rem}
-  .bws-theme .ceremonies{padding-top:20px}
-  .bws-theme .desk-heading{grid-template-columns:1fr;gap:28px}
-  .bws-theme .desk-flow{grid-template-columns:1fr;margin-top:36px}
-  .bws-theme .desk-flow li{min-height:0}
-  .bws-theme .desk-flow h3{margin-top:25px}
-  .bws-theme .add-ons{padding:10px 0}
-  .bws-theme .addon-grid{grid-template-columns:1fr;margin-top:30px}
-  .bws-theme .addon-card{min-height:250px}
-  .bws-theme .love-notes{grid-template-columns:1fr}
-  .bws-theme .love-copy{padding:55px 7%;min-height:420px}
-  .bws-theme .love-copy blockquote{font-size:clamp(2.8rem,9vw,4rem)}
-  .bws-theme .love-photo{min-height:350px;max-height:500px;aspect-ratio:5/4}
-  .bws-theme .love-photo img{object-position:center}
-  .bws-theme .love-photo>span{font-size:1.4rem;bottom:20px;left:7%}
-  .bws-theme .review-wall{grid-template-columns:1fr;padding-top:40px;padding-bottom:55px;gap:5px}
-  .bws-theme .review-wall article{padding:22px 0}
-  .bws-theme .planning-steps{grid-template-columns:1fr;gap:28px;margin-top:35px}
-  .bws-theme .planning-cta{width:100%;justify-content:space-between}
-  .bws-theme .faq{grid-template-columns:1fr;gap:35px;padding-top:10px;padding-bottom:65px}
-  .bws-theme .faq>div>p:not(.eyebrow){margin-top:20px}
-  .bws-theme .faq summary{font-size:1rem}
-  .bws-theme .enquiry{padding:60px 7%}
-  .bws-theme .enquiry-inner{grid-template-columns:1fr;gap:35px}
-  .bws-theme .enquiry-copy h2{font-size:3.9rem}
-  .bws-theme .enquiry-copy>p:not(.eyebrow):not(.contact-caption){max-width:440px}
-  .bws-theme .enquiry-note{display:none}
-  .bws-theme .enquiry-form-wrap{padding-top:0}
-  .bws-theme .form-grid{grid-template-columns:1fr;gap:22px 15px}
-  .bws-theme .field.full{grid-column:1/-1}
-  .bws-theme .field{grid-column:1/-1}
-  .bws-theme .site-footer{padding:38px 7% 98px}
-  .bws-theme .footer-top{gap:25px}
-  .bws-theme .footer-top>.brand{align-items:start}
-  .bws-theme .footer-top>p{width:100%;order:3;font-size:1.6rem}
-  .bws-theme .back-top{margin-left:auto}
-  .bws-theme .footer-bottom{flex-direction:column;gap:10px}
-  .bws-theme .mobile-booking{display:flex;position:fixed;bottom:12px;left:5%;right:5%;justify-content:space-between;align-items:center;z-index:8;background:var(--bws-ink);color:#fff;font-size:.875rem;font-weight:600;min-height:52px;padding:14px 21px;box-shadow:0 5px 20px #051e2535}
-  .bws-theme .planner-body{background:linear-gradient(#082b35d8,#082b35d8),url('/weddings/bahamas-by-the-sea/hero.jpg') center/cover scroll}
-  .bws-theme .inner-header{padding:22px 6%}
-  .bws-theme .planner-home{font-size:.75rem}
-  .bws-theme .planner-main{padding:30px 5% 65px}
-  .bws-theme .planner-intro h1{font-size:clamp(3.25rem,13vw,4.5rem)}
-  .bws-theme .planner-intro>p:not(.eyebrow){margin-top:22px}
-  .bws-theme .planner-trust{font-size:.75rem}
-  .bws-theme .planner-card{padding:25px 19px;min-height:0}
-  .bws-theme .planner-progress{margin-bottom:27px}
-  .bws-theme .planner-progress>div:first-child{align-items:flex-end}
-  .bws-theme .planner-progress strong{font-size:1.15rem}
-  .bws-theme .planner-step legend{font-size:2.45rem}
-  .bws-theme .choice-grid{grid-template-columns:1fr}
-  .bws-theme .choice-card>span,.bws-theme .service-choices .choice-card>span{min-height:105px}
-  .bws-theme .planner-card .form-grid{grid-template-columns:1fr}
-  .bws-theme .planner-actions{justify-content:stretch}
-  .bws-theme .planner-actions .button{min-width:0;flex:1;padding-left:18px;padding-right:18px;gap:10px}
-  .bws-theme .request-summary dl>div{grid-template-columns:1fr;gap:2px}
-  .bws-theme .planner-footer{padding:25px 5% 30px;flex-direction:column;gap:12px}
-  .bws-theme .venue-choices .choice-card>span,.bws-theme .consultation-choices .choice-card>span{min-height:100px}
-  .bws-theme .venue-results{grid-template-columns:1fr}
-  .bws-theme .venue-browser-head{align-items:flex-start}
-  .bws-theme .venue-browser-head>div{display:block}
-  .bws-theme .consultation-choices{grid-template-columns:1fr}
+  .bws-site-header{padding:22px 6%}
+  .bws-brand>span{font-size:2.15rem}
+  .bws-brand>small{font-size:.56rem}
+  .bws-desktop-nav{display:none}
+  .bws-menu-toggle{display:flex}
+  .bws-hero{min-height:89svh;max-height:none}
+  .bws-hero-content{margin-left:7%;width:87%;padding:180px 0 130px}
+  .bws-hero h1{font-size:clamp(3.25rem,9.5vw,4.75rem);line-height:1.04}
+  .bws-hero .bws-eyebrow{font-size:.75rem;margin-bottom:24px}
+  .bws-hero-intro{font-size:.95rem;margin:27px 0}
+  .bws-hero-foot{bottom:27px;left:7%;right:7%;font-size:.75rem}
+  .bws-hero-foot>a{display:none}
+  .bws-hero-shade{background:linear-gradient(90deg,#052029a8,#05202945),linear-gradient(180deg,#0520293f,transparent 50%,#05202955)}
+  .bws-hero-image{object-position:60% center}
+  .bws-trust-strip{grid-template-columns:1fr 1fr;padding:24px 0;margin:0 6%;row-gap:23px}
+  .bws-trust-strip>*{padding:0 10px!important;gap:8px!important}
+  .bws-trust-strip>*:last-child{grid-column:1/-1;border-left:0;border-top:1px solid var(--bws-line);padding-top:20px!important;flex-direction:row;gap:15px!important}
+  .bws-trust-strip strong{font-size:1.7rem}
+  .bws-trust-strip>*:last-child strong{font-size:1.4rem}
+  .bws-trust-strip>*:last-child>span{max-width:140px;text-align:left}
+  .bws-section-wrap{padding:65px 7%}
+  .bws-about{grid-template-columns:1fr;gap:42px}
+  .bws-about-photo{max-width:420px;justify-self:center;padding:25px 25px 76px;margin:0 auto}
+  .bws-about-photo img{aspect-ratio:1;object-fit:contain}
+  .bws-photo-label{right:-10px;bottom:21px;font-size:1.4rem;padding:12px 20px}
+  .bws-section-heading{display:block}
+  .bws-section-heading>p{margin-top:25px;max-width:none}
+  .bws-ceremony-grid{grid-template-columns:1fr;margin-top:35px}
+  .bws-ceremony-item{padding:25px 0 30px;border-left:0;border-bottom:1px solid var(--bws-line)}
+  .bws-ceremony-item+.bws-ceremony-item{padding-left:0}
+  .bws-ceremony-item h3{font-size:2.4rem}
+  .bws-ceremonies{padding-top:20px}
+  .bws-desk-heading{grid-template-columns:1fr;gap:28px}
+  .bws-desk-flow{grid-template-columns:1fr;margin-top:36px}
+  .bws-desk-flow li{min-height:0}
+  .bws-desk-flow h3{margin-top:25px}
+  .bws-add-ons{padding:10px 0}
+  .bws-addon-grid{grid-template-columns:1fr;margin-top:30px}
+  .bws-addon-card{min-height:250px}
+  .bws-love-notes{grid-template-columns:1fr}
+  .bws-love-copy{padding:55px 7%;min-height:420px}
+  .bws-love-copy blockquote{font-size:clamp(2.8rem,9vw,4rem)}
+  .bws-love-photo{min-height:350px;max-height:500px;aspect-ratio:5/4}
+  .bws-love-photo img{object-position:center}
+  .bws-love-photo>span{font-size:1.4rem;bottom:20px;left:7%}
+  .bws-review-wall{grid-template-columns:1fr;padding-top:40px;padding-bottom:55px;gap:5px}
+  .bws-review-wall article{padding:22px 0}
+  .bws-planning-steps{grid-template-columns:1fr;gap:28px;margin-top:35px}
+  .bws-planning-cta{width:100%;justify-content:space-between}
+  .bws-faq{grid-template-columns:1fr;gap:35px;padding-top:10px;padding-bottom:65px}
+  .bws-faq>div>p:not(.bws-eyebrow){margin-top:20px}
+  .bws-faq summary{font-size:1rem}
+  .bws-enquiry{padding:60px 7%}
+  .bws-enquiry-inner{grid-template-columns:1fr;gap:35px}
+  .bws-enquiry-copy h2{font-size:3.9rem}
+  .bws-enquiry-copy>p:not(.bws-eyebrow):not(.bws-contact-caption){max-width:440px}
+  .bws-enquiry-note{display:none}
+  .bws-enquiry-form-wrap{padding-top:0}
+  .bws-form-grid{grid-template-columns:1fr;gap:22px 15px}
+  .bws-field.bws-full{grid-column:1/-1}
+  .bws-field{grid-column:1/-1}
+  .bws-site-footer{padding:38px 7% 98px}
+  .bws-footer-top{gap:25px}
+  .bws-footer-top>.bws-brand{align-items:start}
+  .bws-footer-top>p{width:100%;order:3;font-size:1.6rem}
+  .bws-back-top{margin-left:auto}
+  .bws-footer-bottom{flex-direction:column;gap:10px}
+  .bws-mobile-booking{display:flex;position:fixed;bottom:12px;left:5%;right:5%;justify-content:space-between;align-items:center;z-index:8;background:var(--bws-ink);color:#fff;font-size:.875rem;font-weight:600;min-height:52px;padding:14px 21px;box-shadow:0 5px 20px #051e2535}
+  .bws-theme.bws-planner-body{background:linear-gradient(#082b35d8,#082b35d8),url(/weddings/bahamas-by-the-sea/hero.jpg) center/cover scroll}
+  .bws-inner-header{padding:22px 6%}
+  .bws-planner-home{font-size:.75rem}
+  .bws-planner-main{padding:30px 5% 65px}
+  .bws-planner-intro h1{font-size:clamp(3.25rem,13vw,4.5rem)}
+  .bws-planner-intro>p:not(.bws-eyebrow){margin-top:22px}
+  .bws-planner-trust{font-size:.75rem}
+  .bws-planner-card{padding:25px 19px;min-height:0}
+  .bws-planner-progress{margin-bottom:27px}
+  .bws-planner-progress>div:first-child{align-items:flex-end}
+  .bws-planner-progress strong{font-size:1.15rem}
+  .bws-planner-step legend{font-size:2.45rem}
+  .bws-choice-grid{grid-template-columns:1fr}
+  .bws-choice-card>span,.bws-service-choices .bws-choice-card>span{min-height:105px}
+  .bws-planner-card .bws-form-grid{grid-template-columns:1fr}
+  .bws-planner-actions{justify-content:stretch}
+  .bws-planner-actions .bws-button{min-width:0;flex:1;padding-left:18px;padding-right:18px;gap:10px}
+  .bws-request-summary dl>div{grid-template-columns:1fr;gap:2px}
+  .bws-planner-footer{padding:25px 5% 30px;flex-direction:column;gap:12px}
+  .bws-venue-choices .bws-choice-card>span,.bws-consultation-choices .bws-choice-card>span{min-height:100px}
+  .bws-venue-results{grid-template-columns:1fr}
+  .bws-venue-browser-head{align-items:flex-start}
+  .bws-venue-browser-head>div{display:block}
+  .bws-consultation-choices{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){
   .bws-theme{scroll-behavior:auto}

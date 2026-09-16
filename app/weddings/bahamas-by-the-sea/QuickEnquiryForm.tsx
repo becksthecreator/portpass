@@ -69,12 +69,12 @@ export function QuickEnquiryForm() {
 
   return (
     <form id="wedding-enquiry" onSubmit={onSubmit}>
-      <div className="form-grid">
-        <div className="field full">
+      <div className="bws-form-grid">
+        <div className="bws-field bws-full">
           <label htmlFor="couple">Your names <span aria-hidden="true">*</span></label>
           <input id="couple" type="text" autoComplete="name" maxLength={120} required value={couple} onChange={(e) => setCouple(e.target.value)} />
         </div>
-        <div className="field">
+        <div className="bws-field">
           <label htmlFor="ceremony-type">What are you celebrating?</label>
           <select id="ceremony-type" value={ceremony} onChange={(e) => setCeremony(e.target.value)}>
             <option>Wedding ceremony</option>
@@ -83,27 +83,27 @@ export function QuickEnquiryForm() {
             <option>Still exploring</option>
           </select>
         </div>
-        <div className="field">
+        <div className="bws-field">
           <label htmlFor="wedding-date">Preferred date <span>(optional)</span></label>
           <input id="wedding-date" type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} />
           <small>Still deciding? Leave this blank.</small>
         </div>
-        <div className="field">
+        <div className="bws-field">
           <label htmlFor="guest-count">Number of guests <span>(optional)</span></label>
           <input id="guest-count" type="number" min={0} max={9999} step={1} inputMode="numeric" placeholder="Not including the two of you" value={guests} onChange={(e) => setGuests(e.target.value)} />
         </div>
-        <div className="field">
+        <div className="bws-field">
           <label htmlFor="email">Your email <span>(optional)</span></label>
           <input id="email" type="email" autoComplete="email" maxLength={254} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
-        <div className="field full">
+        <div className="bws-field bws-full">
           <label htmlFor="wedding-story">What do you have in mind? <span>(optional)</span></label>
           <textarea id="wedding-story" rows={3} maxLength={1800} placeholder="A beach you love, your travel dates, a special tradition…" value={story} onChange={(e) => setStory(e.target.value)} />
         </div>
       </div>
-      <button className="button button-dark" type="submit" disabled={busy}>Enquire on WhatsApp <span aria-hidden="true">↗</span></button>
-      <p className="form-note">Opens WhatsApp with your details ready to send. Availability and pricing are confirmed directly with Antonio.</p>
-      <p className="enquiry-status" role="status" aria-live="polite">{status}</p>
+      <button className="bws-button bws-button-dark" type="submit" disabled={busy}>Enquire on WhatsApp <span aria-hidden="true">↗</span></button>
+      <p className="bws-form-note">Opens WhatsApp with your details ready to send. Availability and pricing are confirmed directly with Antonio.</p>
+      <p className="bws-enquiry-status" role="status" aria-live="polite">{status}</p>
     </form>
   );
 }

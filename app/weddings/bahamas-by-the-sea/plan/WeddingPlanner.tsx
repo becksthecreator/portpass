@@ -179,11 +179,11 @@ export function WeddingPlanner() {
   if (done) {
     const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildWhatsAppMessage(form))}`;
     return (
-      <section className="planner-confirmation">
-        <span className="eyebrow">Request received</span>
+      <section className="bws-planner-confirmation">
+        <span className="bws-eyebrow">Request received</span>
         <h1>Your plan is on its way to the Wedding Desk.</h1>
         <p>Thank you, {form.names}. A Beckfords representative will follow up to refine the details before Antonio reviews your complete plan. Prefer to talk now?</p>
-        <a className="button button-dark" href={whatsappHref} target="_blank" rel="noopener noreferrer">Message the Wedding Desk on WhatsApp <span aria-hidden="true">↗</span></a>
+        <a className="bws-button bws-button-dark" href={whatsappHref} target="_blank" rel="noopener noreferrer">Message the Wedding Desk on WhatsApp <span aria-hidden="true">↗</span></a>
       </section>
     );
   }
@@ -191,23 +191,23 @@ export function WeddingPlanner() {
   const progressPct = ((step + 1) / STEP_LABELS.length) * 100;
 
   return (
-    <section className="planner-card" aria-labelledby="planner-title">
-      <div className="planner-progress">
+    <section className="bws-planner-card" aria-labelledby="planner-title">
+      <div className="bws-planner-progress">
         <div>
           <span>Step {step + 1} of {STEP_LABELS.length}</span>
           <strong id="planner-title">{STEP_LABELS[step]}</strong>
         </div>
-        <div className="progress-track" aria-hidden="true"><span style={{ width: `${progressPct}%` }} /></div>
+        <div className="bws-progress-track" aria-hidden="true"><span style={{ width: `${progressPct}%` }} /></div>
       </div>
 
       <form onSubmit={submit}>
         {step === 0 && (
-          <fieldset className="planner-step">
+          <fieldset className="bws-planner-step">
             <legend>What are you celebrating?</legend>
-            <p className="step-help">Choose the option closest to what you have in mind. You can change it later.</p>
-            <div className="choice-grid">
+            <p className="bws-step-help">Choose the option closest to what you have in mind. You can change it later.</p>
+            <div className="bws-choice-grid">
               {CEREMONY_CHOICES.map((option) => (
-                <label className="choice-card" key={option.value}>
+                <label className="bws-choice-card" key={option.value}>
                   <input type="radio" name="ceremony-choice" checked={form.ceremonyChoice === option.value} onChange={() => set("ceremonyChoice", option.value)} />
                   <span><b>{option.label}</b><small>{option.hint}</small></span>
                 </label>
@@ -217,25 +217,25 @@ export function WeddingPlanner() {
         )}
 
         {step === 1 && (
-          <fieldset className="planner-step">
+          <fieldset className="bws-planner-step">
             <legend>Tell us about the day</legend>
-            <p className="step-help">Estimates are welcome. Nothing here reserves your date.</p>
-            <div className="form-grid">
-              <div className="field">
+            <p className="bws-step-help">Estimates are welcome. Nothing here reserves your date.</p>
+            <div className="bws-form-grid">
+              <div className="bws-field">
                 <label htmlFor="plan-date">Preferred date <span>(optional)</span></label>
                 <input id="plan-date" type="date" value={form.weddingDate} onChange={(e) => set("weddingDate", e.target.value)} />
                 <small>Leave blank if you are still deciding.</small>
               </div>
-              <div className="field">
+              <div className="bws-field">
                 <label htmlFor="plan-guests">Estimated guests <span>(optional)</span></label>
                 <input id="plan-guests" type="number" min={0} max={9999} inputMode="numeric" placeholder="Not including the two of you" value={form.guests} onChange={(e) => set("guests", e.target.value)} />
               </div>
-              <div className="field">
+              <div className="bws-field">
                 <label htmlFor="plan-arrival">Arrival date <span>(optional)</span></label>
                 <input id="plan-arrival" type="date" value={form.arrivalDate} onChange={(e) => set("arrivalDate", e.target.value)} />
                 <small>Helpful for marriage-licence timing.</small>
               </div>
-              <div className="field">
+              <div className="bws-field">
                 <label htmlFor="plan-location">Location idea <span>(optional)</span></label>
                 <input id="plan-location" type="text" maxLength={120} placeholder="Beach, resort, church, or still deciding" value={form.locationIdea} onChange={(e) => set("locationIdea", e.target.value)} />
               </div>
@@ -244,25 +244,25 @@ export function WeddingPlanner() {
         )}
 
         {step === 2 && (
-          <fieldset className="planner-step">
+          <fieldset className="bws-planner-step">
             <legend>Explore your venue style</legend>
-            <p className="step-help">Browse wedding-ready places without leaving this page. Venue listings will be supplied by PortPass Bahamas as partners are approved.</p>
-            <div className="venue-browser">
-              <div className="venue-browser-head">
+            <p className="bws-step-help">Browse wedding-ready places without leaving this page. Venue listings will be supplied by PortPass Bahamas as partners are approved.</p>
+            <div className="bws-venue-browser">
+              <div className="bws-venue-browser-head">
                 <div><span>Powered by</span><strong>PortPass Bahamas</strong></div>
-                <span className="live-badge">Venue network</span>
+                <span className="bws-live-badge">Venue network</span>
               </div>
-              <div className="venue-results" aria-live="polite">
-                <div className="venue-empty">
+              <div className="bws-venue-results" aria-live="polite">
+                <div className="bws-venue-empty">
                   <b>Venue listings are being prepared.</b>
                   <p>You can still tell us the atmosphere you want below while wedding-eligible venue partners are approved.</p>
                 </div>
               </div>
             </div>
-            <p className="venue-preference-title">What kind of place should we look for?</p>
-            <div className="choice-grid venue-choices">
+            <p className="bws-venue-preference-title">What kind of place should we look for?</p>
+            <div className="bws-choice-grid bws-venue-choices">
               {VENUE_CHOICES.map((option) => (
-                <label className="choice-card" key={option.value}>
+                <label className="bws-choice-card" key={option.value}>
                   <input type="radio" name="venue-preference" checked={form.venuePreference === option.value} onChange={() => set("venuePreference", option.value)} />
                   <span><b>{option.label}</b><small>{option.hint}</small></span>
                 </label>
@@ -272,12 +272,12 @@ export function WeddingPlanner() {
         )}
 
         {step === 3 && (
-          <fieldset className="planner-step">
+          <fieldset className="bws-planner-step">
             <legend>What support would help?</legend>
-            <p className="step-help">These are requests, not automatic charges. The Wedding Desk will confirm availability and pricing before anything is booked.</p>
-            <div className="choice-grid service-choices">
+            <p className="bws-step-help">These are requests, not automatic charges. The Wedding Desk will confirm availability and pricing before anything is booked.</p>
+            <div className="bws-choice-grid bws-service-choices">
               {SERVICE_CHOICES.map((option) => (
-                <label className="choice-card" key={option.value}>
+                <label className="bws-choice-card" key={option.value}>
                   <input type="checkbox" checked={form.servicesWanted.includes(option.value)} onChange={() => toggleService(option.value)} />
                   <span><b>{option.label}</b><small>{option.hint}</small></span>
                 </label>
@@ -287,58 +287,58 @@ export function WeddingPlanner() {
         )}
 
         {step === 4 && (
-          <fieldset className="planner-step">
+          <fieldset className="bws-planner-step">
             <legend>How should we plan together?</legend>
-            <p className="step-help">Request a pre-consultation with a Beckfords representative. Your time is not confirmed until the Wedding Desk replies.</p>
-            <div className="choice-grid consultation-choices">
+            <p className="bws-step-help">Request a pre-consultation with a Beckfords representative. Your time is not confirmed until the Wedding Desk replies.</p>
+            <div className="bws-choice-grid bws-consultation-choices">
               {CONSULTATION_CHOICES.map((option) => (
-                <label className="choice-card" key={option.value}>
+                <label className="bws-choice-card" key={option.value}>
                   <input type="radio" name="consultation-method" checked={form.consultationMethod === option.value} onChange={() => set("consultationMethod", option.value)} />
                   <span><b>{option.label}</b><small>{option.hint}</small></span>
                 </label>
               ))}
             </div>
-            <div className="form-grid consultation-time">
-              <div className="field">
+            <div className="bws-form-grid bws-consultation-time">
+              <div className="bws-field">
                 <label htmlFor="consultation-date">Preferred consultation date <span>(optional)</span></label>
                 <input id="consultation-date" type="date" value={form.consultationDate} onChange={(e) => set("consultationDate", e.target.value)} />
               </div>
-              <div className="field">
+              <div className="bws-field">
                 <label htmlFor="consultation-time">Preferred time <span>(optional)</span></label>
                 <input id="consultation-time" type="time" value={form.consultationTime} onChange={(e) => set("consultationTime", e.target.value)} />
               </div>
-              <div className="field full">
+              <div className="bws-field bws-full">
                 <label htmlFor="consultation-timezone">Your time zone <span>(optional)</span></label>
                 <input id="consultation-timezone" type="text" maxLength={80} placeholder="Example: Eastern Time or London" value={form.consultationTimezone} onChange={(e) => set("consultationTimezone", e.target.value)} />
               </div>
             </div>
-            <p className="consultation-note">After the consultation, the Wedding Desk prepares the full brief and sends it to Antonio for review.</p>
+            <p className="bws-consultation-note">After the consultation, the Wedding Desk prepares the full brief and sends it to Antonio for review.</p>
           </fieldset>
         )}
 
         {step === 5 && (
-          <fieldset className="planner-step">
+          <fieldset className="bws-planner-step">
             <legend>Where should we reply?</legend>
-            <p className="step-help">Add your details and review the request below before sending it to the Wedding Desk.</p>
-            <div className="form-grid">
-              <div className="field full">
+            <p className="bws-step-help">Add your details and review the request below before sending it to the Wedding Desk.</p>
+            <div className="bws-form-grid">
+              <div className="bws-field bws-full">
                 <label htmlFor="plan-names">Your names <span aria-hidden="true">*</span></label>
                 <input id="plan-names" type="text" autoComplete="name" maxLength={120} placeholder="The two of you" required value={form.names} onChange={(e) => set("names", e.target.value)} />
               </div>
-              <div className="field">
+              <div className="bws-field">
                 <label htmlFor="plan-email">Email <span>(optional)</span></label>
                 <input id="plan-email" type="email" autoComplete="email" maxLength={254} placeholder="you@example.com" value={form.email} onChange={(e) => set("email", e.target.value)} />
               </div>
-              <div className="field">
+              <div className="bws-field">
                 <label htmlFor="plan-country">Where are you travelling from? <span>(optional)</span></label>
                 <input id="plan-country" type="text" maxLength={100} placeholder="Country or city" value={form.travellingFrom} onChange={(e) => set("travellingFrom", e.target.value)} />
               </div>
-              <div className="field full">
+              <div className="bws-field bws-full">
                 <label htmlFor="plan-notes">Anything else we should know? <span>(optional)</span></label>
                 <textarea id="plan-notes" rows={4} maxLength={1600} placeholder="Your story, travel plans, traditions, or questions..." value={form.notes} onChange={(e) => set("notes", e.target.value)} />
               </div>
             </div>
-            <div className="request-summary">
+            <div className="bws-request-summary">
               <h3>Your request so far</h3>
               <dl>
                 {summary.map(([label, value]) => (
@@ -350,13 +350,13 @@ export function WeddingPlanner() {
           </fieldset>
         )}
 
-        <p className="planner-error" role="alert">{error}</p>
+        <p className="bws-planner-error" role="alert">{error}</p>
 
-        <div className="planner-actions">
-          {step > 0 && <button className="button planner-back" type="button" onClick={back} disabled={busy}>Back</button>}
+        <div className="bws-planner-actions">
+          {step > 0 && <button className="bws-button bws-planner-back" type="button" onClick={back} disabled={busy}>Back</button>}
           {step < STEP_LABELS.length - 1
-            ? <button className="button button-dark" type="button" onClick={next}>Continue <span aria-hidden="true">→</span></button>
-            : <button className="button button-dark" type="submit" disabled={busy}>{busy ? "Sending…" : "Send plan to the Wedding Desk"}</button>}
+            ? <button className="bws-button bws-button-dark" type="button" onClick={next}>Continue <span aria-hidden="true">→</span></button>
+            : <button className="bws-button bws-button-dark" type="submit" disabled={busy}>{busy ? "Sending…" : "Send plan to the Wedding Desk"}</button>}
         </div>
       </form>
     </section>
