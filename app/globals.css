@@ -288,18 +288,6 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .organization-sidebar{padding:20px 14px}.organization-nav{grid-template-columns:repeat(2,1fr)}.organization-topbar{height:70px;padding:0 18px}.mobile-organization-label{display:block}.dashboard-secondary-action{display:none}.organization-content{padding:30px 16px 60px}.dashboard-welcome{align-items:flex-start;flex-direction:column;gap:14px}.dashboard-stats,.compact-stats{grid-template-columns:repeat(2,1fr)}.management-grid,.registration-summary-grid{grid-template-columns:1fr}.management-callout{align-items:flex-start;flex-direction:column}.schedule-list article{align-items:flex-start;grid-template-columns:1fr 1fr}.schedule-location{grid-column:1/-1}.settings-list>div{grid-template-columns:1fr;gap:6px}
 }
 
-/* Futprep / Lil Kickers campaign theme */
-.futprep-theme{
-  --fp-blue:#164b9b;
-  --fp-blue-deep:#0b2f67;
-  --fp-blue-soft:#e9f1ff;
-  --fp-orange:#ff7a00;
-  --fp-orange-soft:#fff0df;
-  --fp-cream:#fffaf3;
-  --fp-ink:#10233f;
-  --fp-line:#bfd0e7;
-  --fp-muted:#5a6980;
-}
 .futprep-theme .pilot-header,
 .futprep-theme.registration-page .registration-header{
   background:#fff;
@@ -595,18 +583,15 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .headline-first,.headline-second,.headline-ellipsis,.session-float{animation:none!important;opacity:1!important;transform:none!important}
 }
 
-/* Corrected Futprep / Lil Kickers brand palette from supplied Futprep logo + Lil Kickers artwork */
+/* Futprep palette, part 1 of 2: values still live from this pass (the
+   pink/teal/black tones below were superseded twice more further down -
+   see the consolidated block near the end of the Futprep section, which is
+   the actual source of truth for those). These indirect fp-blue/fp-orange/
+   fp-cream/fp-ink tokens were never redefined again, so they're still what
+   the rest of the Futprep CSS resolves to. */
 .futprep-theme{
-  --fp-pink:#f0245c;
-  --fp-pink-deep:#c91749;
-  --fp-teal:#2cb8a0;
-  --fp-teal-deep:#168a79;
-  --fp-teal-soft:#e5f8f4;
-  --fp-pink-soft:#fff0f4;
-  --fp-black:#080808;
   --fp-white:#ffffff;
   --fp-offwhite:#fbfbf8;
-  --fp-line:#d9d9d4;
   --fp-muted:#666b6a;
   --fp-blue:var(--fp-black);
   --fp-blue-deep:var(--fp-black);
@@ -813,15 +798,9 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 }
 
 
-/* Futprep final balance: white base, teal body, pink accent, light black detail */
+/* Futprep palette, part 2 of 2: still-live values from this pass. */
 .futprep-theme{
   --fp-base:#ffffff;
-  --fp-teal:#2cb8a0;
-  --fp-teal-deep:#168a79;
-  --fp-teal-soft:#e9f8f5;
-  --fp-pink:#f0245c;
-  --fp-pink-soft:#fff1f5;
-  --fp-black:#151515;
   --fp-line:#d9e3e0;
 }
 
@@ -1959,8 +1938,15 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 
 
 
-/* Adon reset: strong Futprep color territories
-   White is reserved for high-clarity cards and controls only. */
+/* Futprep palette, part 3 of 3 (the "Adon reset" pass): the current values
+   for pink/teal/black/charcoal. White is reserved for high-clarity cards
+   and controls only. These three .futprep-theme blocks together (parts 1-3,
+   earlier in this file) replace what used to be four separate,
+   overlapping redefinitions of the same custom properties accumulated
+   across several color passes - some properties only ever got one
+   definition and stayed here as-is; pink/teal/black/pink-soft/teal-soft
+   were each redefined two or three times before landing on the values
+   below, which is what every Futprep page has actually been rendering. */
 .futprep-theme{
   --fp-pink:#f0245c;
   --fp-pink-deep:#c91749;
