@@ -5580,9 +5580,9 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-hero-intro{margin:30px 0;font-size:1.02rem;line-height:1.8;max-width:500px;color:#f5faf8}
 .bws-button{min-height:55px;display:inline-flex;justify-content:center;align-items:center;gap:45px;padding:16px 26px;border:1px solid transparent;font-size:.875rem;font-weight:600;line-height:1.5;transition:background .2s,color .2s,transform .2s}
 .bws-button:hover{transform:translateY(-2px)}
-.bws-button-light{background:var(--bws-paper);color:var(--bws-ink)}
+.bws-theme .bws-button-light{background:var(--bws-paper);color:var(--bws-ink)}
 .bws-button-light:hover{background:#e4f0eb}
-.bws-button-dark{background:var(--bws-ink);color:#fff;border-color:var(--bws-ink)}
+.bws-theme .bws-button-dark{background:var(--bws-ink);color:#fff;border-color:var(--bws-ink)}
 .bws-button-dark:hover{background:#24616a}
 .bws-hero-foot{position:absolute;bottom:30px;left:5%;right:5%;display:flex;justify-content:space-between;font-size:.75rem;letter-spacing:.03em}
 .bws-hero-foot p span{margin:0 12px;opacity:.6}
@@ -5638,7 +5638,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-addon-card p{color:var(--bws-muted);font-size:.95rem;line-height:1.75}
 .bws-addon-card b{font-size:.8rem;margin-top:auto;padding-top:25px;font-weight:700}
 .bws-photo-card{background:linear-gradient(#f8fbf9d9,#f8fbf9e8),url(/weddings/bahamas-by-the-sea/ceremony.jpg) center/cover}
-.bws-film-card{background:linear-gradient(#0b3543d9,#0b3543e8),url(/weddings/bahamas-by-the-sea/hero.jpg) center/cover;color:#fff}
+.bws-theme .bws-film-card{background:linear-gradient(#0b3543d9,#0b3543e8),url(/weddings/bahamas-by-the-sea/hero.jpg) center/cover;color:#fff}
 .bws-film-card p,.bws-film-card>span{color:#d9eeee}
 .bws-availability-note{font-size:.8rem;color:var(--bws-muted);margin-top:18px;max-width:680px}
 
@@ -5871,7 +5871,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .bws-footer-top>p{width:100%;order:3;font-size:1.6rem}
   .bws-back-top{margin-left:auto}
   .bws-footer-bottom{flex-direction:column;gap:10px}
-  .bws-mobile-booking{display:flex;position:fixed;bottom:12px;left:5%;right:5%;justify-content:space-between;align-items:center;z-index:8;background:var(--bws-ink);color:#fff;font-size:.875rem;font-weight:600;min-height:52px;padding:14px 21px;box-shadow:0 5px 20px #051e2535}
+  .bws-theme .bws-mobile-booking{display:flex;position:fixed;bottom:12px;left:5%;right:5%;justify-content:space-between;align-items:center;z-index:8;background:var(--bws-ink);color:#fff;font-size:.875rem;font-weight:600;min-height:52px;padding:14px 21px;box-shadow:0 5px 20px #051e2535}
   .bws-theme.bws-planner-body{background:linear-gradient(#082b35d8,#082b35d8),url(/weddings/bahamas-by-the-sea/hero.jpg) center/cover scroll}
   .bws-inner-header{padding:22px 6%}
   .bws-planner-home{font-size:.75rem}
