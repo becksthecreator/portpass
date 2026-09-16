@@ -1,52 +1,205 @@
 import Link from "next/link";
-import { WeddingPlanner } from "./WeddingPlanner";
+import { bwsSerif, bwsSans } from "./fonts";
+import { MobileMenu } from "./MobileMenu";
+import { QuickEnquiryForm } from "./QuickEnquiryForm";
+
+const ASSET = "/weddings/bahamas-by-the-sea";
+const WEDDINGWIRE_URL = "https://www.weddingwire.com/biz/bahamas-weddings-by-the-sea-nassau/406f00580a64e27e.html";
 
 export const metadata = {
-  title: "Bahamas Weddings By The Sea | PortPass",
-  description: "A calmer planning experience for destination couples in Nassau, The Bahamas.",
+  title: "Bahamas Weddings By The Sea | Antonio Beckford Sr.",
+  description: "A wedding that feels like you, in a place like nowhere else. Plan your Bahamas wedding ceremony or vow renewal with Antonio Beckford Sr.",
 };
 
+const NAV_LINKS = [
+  { href: "#antonio", label: "Meet Antonio" },
+  { href: "#wedding-desk", label: "Wedding Desk" },
+  { href: "#add-ons", label: "Photo & film" },
+  { href: "#love-notes", label: "Love notes" },
+];
+
 export default function BahamasWeddingsByTheSeaPage() {
+  const year = new Date().getFullYear();
   return (
-    <main className="weddings-theme">
-      <header className="weddings-header">
-        <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-        <nav>
-          <a href="#planner">Start planning</a>
-          <a href="#venues">Venues</a>
+    <div className={`bws-theme ${bwsSerif.variable} ${bwsSans.variable}`}>
+      <a className="skip-link" href="#main">Skip to content</a>
+      <header className="site-header" id="site-header">
+        <a className="brand" href="#home" aria-label="Bahamas Weddings By The Sea home"><span>Bahamas</span><small>WEDDINGS BY THE SEA</small></a>
+        <nav className="desktop-nav" aria-label="Main navigation">
+          {NAV_LINKS.map((l) => <a key={l.href} href={l.href}>{l.label}</a>)}
+          <Link className="nav-cta" href="/weddings/bahamas-by-the-sea/plan">Plan your wedding <span aria-hidden="true">↗</span></Link>
         </nav>
+        <MobileMenu links={[...NAV_LINKS, { href: "/weddings/bahamas-by-the-sea/plan", label: "Plan your wedding" }]} />
       </header>
 
-      <section className="weddings-hero">
-        <span>Bahamas Weddings By The Sea · Nassau</span>
-        <h1>Your wedding,<br /><em>by the sea.</em></h1>
-        <p>A calmer planning experience for destination couples — guided by the Beckfords Wedding Desk, personally reviewed by Antonio.</p>
-        <a className="primary-button" href="#planner">Start your plan →</a>
-      </section>
+      <main id="main">
+        <section className="hero" id="home" aria-labelledby="hero-title">
+          <img className="hero-image" src={`${ASSET}/hero.jpg`} alt="A floral wedding arch overlooking turquoise water on Paradise Island" width={1920} height={1280} fetchPriority="high" />
+          <div className="hero-shade" />
+          <div className="hero-content">
+            <p className="eyebrow">Nassau, The Bahamas</p>
+            <h1 id="hero-title">A love like yours.<br /><em>A place like this.</em></h1>
+            <p className="hero-intro">The sea. The moment. The two of you.<br />A personal island ceremony, with Antonio Beckford Sr.</p>
+            <Link className="button button-light" href="/weddings/bahamas-by-the-sea/plan">Plan your wedding <span aria-hidden="true">↗</span></Link>
+          </div>
+          <div className="hero-foot">
+            <p>Destination weddings <span>/</span> Vow renewals</p>
+            <a href="#antonio">A little closer to &ldquo;I do&rdquo; <span aria-hidden="true">↓</span></a>
+          </div>
+        </section>
 
-      <section className="weddings-journey">
-        <span className="eyebrow">How it works</span>
-        <h2>Start from anywhere. We&apos;ll shape the details together.</h2>
-        <div className="weddings-journey-grid">
-          <div><span>01</span><strong>Plan online</strong><p>Tell us about your ceremony, travel, and the services you have in mind.</p></div>
-          <div><span>02</span><strong>Meet the Wedding Desk</strong><p>A call, WhatsApp video, or guided text conversation — whatever is easiest for you.</p></div>
-          <div><span>03</span><strong>Antonio reviews</strong><p>Availability, ceremony details, and your personal quote — reviewed and confirmed by Antonio himself.</p></div>
+        <section className="trust-strip" aria-label="Experience and recognition">
+          <div><strong>26+</strong><span>Years of experience</span></div>
+          <a href={WEDDINGWIRE_URL} target="_blank" rel="noopener noreferrer"><strong>5.0 <span className="stars" aria-label="out of five stars">★★★★★</span></strong><span>99 reviews on WeddingWire ↗</span></a>
+          <div><strong>Couples&rsquo; Choice</strong><span>2026 WeddingWire award winner</span></div>
+        </section>
+
+        <section className="about section-wrap" id="antonio">
+          <div className="about-photo">
+            <img src={`${ASSET}/antonio.jpg`} alt="Antonio Beckford, wedding planner and officiant" width={361} height={361} loading="lazy" />
+            <span className="photo-label">Your person in paradise.</span>
+          </div>
+          <div className="about-copy">
+            <p className="eyebrow">Meet your officiant</p>
+            <h2>A familiar face,<br /> before you even<br /><em>reach the island.</em></h2>
+            <p>Planning a wedding from another country starts with finding someone you can trust.</p>
+            <p>Meet Antonio Beckford Sr., the planner and licensed officiant behind Bahamas Weddings By The Sea. With more than 26 years of experience, he brings a personal touch to your ceremony and clear guidance to the planning.</p>
+            <p>From your first questions to the words you say at the water&rsquo;s edge, there&rsquo;s room for what matters to you.</p>
+            <div className="signature">Antonio Beckford Sr.</div>
+            <p className="signature-caption">Planner. Officiant. Your island connection.</p>
+            <a className="text-link" href="#enquire">Tell Antonio your story <span aria-hidden="true">↗</span></a>
+          </div>
+        </section>
+
+        <section className="wedding-desk" id="wedding-desk">
+          <div className="section-wrap">
+            <div className="desk-heading">
+              <div><p className="eyebrow">Your planning team in The Bahamas</p><h2>Meet the<br /><em>Wedding Desk.</em></h2></div>
+              <div>
+                <p>The Beckfords help you shape the details before Antonio reviews your complete wedding plan.</p>
+                <Link className="button button-light" href="/weddings/bahamas-by-the-sea/plan">Start your pre-consultation <span aria-hidden="true">↗</span></Link>
+              </div>
+            </div>
+            <ol className="desk-flow">
+              <li><span>01</span><h3>Tell us what you imagine</h3><p>Message the Wedding Desk or complete the guided planner from anywhere.</p></li>
+              <li><span>02</span><h3>Explore venues and services</h3><p>Build a shortlist with PortPass venues, photo, film, transport, and ceremony support.</p></li>
+              <li><span>03</span><h3>Meet your representative</h3><p>Request a planning call, WhatsApp video conversation, or guided text consultation.</p></li>
+              <li><span>04</span><h3>Antonio reviews the plan</h3><p>Your organized wedding plan goes to Antonio for approval, availability, and a personal quote.</p></li>
+            </ol>
+            <p className="desk-note">Antonio remains your officiant and the heart of the ceremony. The Wedding Desk handles the planning details around him.</p>
+          </div>
+        </section>
+
+        <section className="ceremonies section-wrap" id="ceremonies">
+          <div className="section-heading">
+            <div><p className="eyebrow">Make it yours</p><h2>However you say it,<br /><em>make it mean everything.</em></h2></div>
+            <p>A few loved ones, a gathering of family, or a promise made all over again. Start with the moment you have in mind.</p>
+          </div>
+          <div className="ceremony-grid">
+            <Link className="ceremony-item" href="/weddings/bahamas-by-the-sea/plan?ceremony=Wedding%20ceremony"><span className="item-number">01 /</span><h3>Your wedding</h3><p>A personalized ceremony with guidance on the marriage process and coordination for your day.</p><span className="text-link">Plan your ceremony <span aria-hidden="true">↗</span></span></Link>
+            <Link className="ceremony-item" href="/weddings/bahamas-by-the-sea/plan?ceremony=Intimate%20wedding"><span className="item-number">02 /</span><h3>Just the two of you</h3><p>Dreaming of something intimate? Tell Antonio about your island escape and the way you want to say &ldquo;I do.&rdquo;</p><span className="text-link">Start something beautiful <span aria-hidden="true">↗</span></span></Link>
+            <Link className="ceremony-item" href="/weddings/bahamas-by-the-sea/plan?ceremony=Vow%20renewal"><span className="item-number">03 /</span><h3>&ldquo;I do.&rdquo; All over again.</h3><p>A vow renewal to celebrate your life together, with an ocean of memories still ahead.</p><span className="text-link">Celebrate your story <span aria-hidden="true">↗</span></span></Link>
+          </div>
+        </section>
+
+        <section className="add-ons" id="add-ons">
+          <div className="section-wrap">
+            <div className="section-heading">
+              <div><p className="eyebrow">Tell the whole story</p><h2>Remember the feeling.<br /><em>Relive the moment.</em></h2></div>
+              <p>Photo, film, travel, and Registrar support can be added to your request. Availability and pricing are confirmed before booking.</p>
+            </div>
+            <div className="addon-grid">
+              <Link className="addon-card photo-card" href="/weddings/bahamas-by-the-sea/plan?service=Cinematic%20photo%20story"><span>Photography</span><h3>Cinematic Photo Story</h3><p>Ask for ceremony photography and the moments around it.</p><b>Request availability ↗</b></Link>
+              <Link className="addon-card film-card" href="/weddings/bahamas-by-the-sea/plan?service=Cinematic%20highlight%20film"><span>Film</span><h3>Cinematic Highlight</h3><p>A short wedding film shaped around the feeling of your day.</p><b>Request availability ↗</b></Link>
+              <Link className="addon-card" href="/weddings/bahamas-by-the-sea/plan?service=Full%20ceremony%20film"><span>Video</span><h3>Full Ceremony Film</h3><p>Request a complete recording so every word is preserved.</p><b>Request availability ↗</b></Link>
+              <Link className="addon-card" href="/weddings/bahamas-by-the-sea/plan?service=Registrar%20appointment%20coordination"><span>Planning</span><h3>Registrar &amp; Transport</h3><p>Ask for help coordinating appointments and island transportation.</p><b>Request support ↗</b></Link>
+            </div>
+            <p className="availability-note">Creative and transport services are quoted according to the date, location, coverage, and available team.</p>
+          </div>
+        </section>
+
+        <section className="love-notes" id="love-notes">
+          <div className="love-copy">
+            <p className="eyebrow">A note from the newlyweds</p>
+            <span className="review-stars" aria-label="Five out of five stars">★★★★★</span>
+            <blockquote>&ldquo;He allowed us to just<br /><em>focus on the joy!</em>&rdquo;</blockquote>
+            <p className="review-byline">Stephanie <span>Married in The Bahamas · Review posted March 2026</span></p>
+            <a className="text-link" href={WEDDINGWIRE_URL} target="_blank" rel="noopener noreferrer">Read the love notes on WeddingWire <span aria-hidden="true">↗</span></a>
+          </div>
+          <div className="love-photo">
+            <img src={`${ASSET}/ceremony.jpg`} alt="A real Bahamas Weddings By The Sea celebration on the beach" width={1920} height={1280} loading="lazy" />
+            <span>From our island wedding collection.</span>
+          </div>
+        </section>
+
+        <section className="review-wall section-wrap" aria-label="More reviews from couples">
+          <article><span className="review-stars" aria-hidden="true">★★★★★</span><blockquote>&ldquo;Everything flowed seamlessly.&rdquo;</blockquote><p>Leslie · July 2026</p></article>
+          <article><span className="review-stars" aria-hidden="true">★★★★★</span><blockquote>&ldquo;He made everything easy.&rdquo;</blockquote><p>Jonathan · May 2026</p></article>
+          <article><span className="review-stars" aria-hidden="true">★★★★★</span><blockquote>&ldquo;Helpful, efficient and tailored to our needs.&rdquo;</blockquote><p>Ngonidzashe · January 2026</p></article>
+        </section>
+
+        <section className="planning section-wrap" id="planning">
+          <div className="section-heading">
+            <div><p className="eyebrow">From wherever you are</p><h2>Your island wedding.<br /><em>One step at a time.</em></h2></div>
+            <p>You don&rsquo;t need every detail figured out to start the conversation.</p>
+          </div>
+          <ol className="planning-steps">
+            <li><span>01</span><h3>Build your request</h3><p>Choose your ceremony, preferred date, venue style, guest count, and support.</p></li>
+            <li><span>02</span><h3>Meet the Wedding Desk</h3><p>Finalize the details by call, WhatsApp video, or a guided text consultation.</p></li>
+            <li><span>03</span><h3>Antonio reviews your plan</h3><p>Antonio confirms his availability, approves the plan, and provides a personal quote.</p></li>
+          </ol>
+          <Link className="button button-dark planning-cta" href="/weddings/bahamas-by-the-sea/plan">Build your wedding plan <span aria-hidden="true">↗</span></Link>
+        </section>
+
+        <section className="faq section-wrap" id="questions">
+          <div>
+            <p className="eyebrow">A little peace of mind</p>
+            <h2>Before you<br /> <em>pack your bags.</em></h2>
+            <p>Planning from overseas?<br /> Let&rsquo;s start with your questions.</p>
+          </div>
+          <div className="faq-list">
+            <details><summary>Can we plan everything before we arrive?<span aria-hidden="true">+</span></summary><p>Start with the Beckfords Wedding Desk from wherever you live. Share your travel plans, ceremony ideas, and questions so the team can prepare your consultation and organize the plan for Antonio.</p></details>
+            <details><summary>What about the marriage licence?<span aria-hidden="true">+</span></summary><p>A legal wedding requires a Bahamian marriage licence. Allow time for the application and approval before your ceremony, and discuss your arrival dates and documents with the team before finalizing travel. Cruise itineraries also need careful timing. <a href="https://www.bahamas.com/plan-your-trip/weddings/marriage-license" target="_blank" rel="noopener noreferrer">Read the official Bahamas marriage requirements ↗</a></p></details>
+            <details><summary>Can our ceremony reflect our beliefs?<span aria-hidden="true">+</span></summary><p>Antonio offers nonreligious and interfaith ceremonies. Tell the Wedding Desk about the traditions, readings, and personal touches you would like included. Optional premarital counselling may also be requested.</p></details>
+            <details><summary>How much does a ceremony cost?<span aria-hidden="true">+</span></summary><p>Ask for a personal quote based on your date, location, guest count, and the services you need. Antonio reviews the completed plan before availability, pricing, inclusions, and booking terms are confirmed.</p></details>
+            <details><summary>Does an enquiry reserve our date?<span aria-hidden="true">+</span></summary><p>No. An enquiry starts the pre-consultation. The Wedding Desk organizes your plan, then Antonio confirms availability and provides the next steps. A date is reserved only after the booking terms are agreed.</p></details>
+          </div>
+        </section>
+
+        <section className="enquiry" id="enquire">
+          <div className="enquiry-inner">
+            <div className="enquiry-copy">
+              <p className="eyebrow">Your next chapter</p>
+              <h2>It starts with<br /><em>a hello.</em></h2>
+              <p>Tell Antonio a little about the two of you and the day you&rsquo;re dreaming of. He&rsquo;ll take the conversation from there.</p>
+              <a className="contact-number" href="tel:+12424241262">+1 (242) 424-1262 <span aria-hidden="true">↗</span></a>
+              <p className="contact-caption">Call or WhatsApp Antonio</p>
+              <div className="enquiry-note">Nassau, The Bahamas<br /><span>Destination ceremonies with a personal touch.</span></div>
+            </div>
+            <div className="enquiry-form-wrap">
+              <QuickEnquiryForm />
+              <a className="weddingwire-option" href={WEDDINGWIRE_URL} target="_blank" rel="noopener noreferrer">Prefer WeddingWire? Enquire through his profile ↗</a>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="site-footer">
+        <div className="footer-top">
+          <a className="brand" href="#home" aria-label="Back to home"><span>Bahamas</span><small>WEDDINGS BY THE SEA</small></a>
+          <p>A love like yours. A place like this.</p>
+          <a href="#home" className="back-top">Back to the top ↑</a>
         </div>
-      </section>
-
-      <section className="weddings-venues" id="venues">
-        <span className="eyebrow">Venues</span>
-        <h2>Our approved venue partners are being confirmed.</h2>
-        <p>We&apos;re building a curated list of Nassau&apos;s best wedding-ready locations. Tell us your preference in the planner below and we&apos;ll match you personally — a venue choice stays a request until availability and terms are confirmed.</p>
-      </section>
-
-      <section className="weddings-planner-section" id="planner">
-        <WeddingPlanner />
-      </section>
-
-      <footer className="weddings-footer">
-        <p>Bahamas Weddings By The Sea · Powered by PortPass Bahamas</p>
+        <div className="footer-bottom">
+          <span>© {year} Bahamas Weddings By The Sea</span>
+          <span>Antonio Beckford Sr. · Nassau, The Bahamas</span>
+          <span>Planning desk managed by The Beckfords</span>
+          <a href={WEDDINGWIRE_URL} target="_blank" rel="noopener noreferrer">Photos &amp; review via WeddingWire ↗</a>
+        </div>
+        <p className="rating-note">WeddingWire rating and review count checked September 2026. Enquiries open in WhatsApp for you to review and send.</p>
       </footer>
-    </main>
+
+      <Link className="mobile-booking" href="/weddings/bahamas-by-the-sea/plan">Plan your wedding <span aria-hidden="true">↗</span></Link>
+    </div>
   );
 }

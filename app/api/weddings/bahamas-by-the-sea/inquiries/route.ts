@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin, throwIfSupabaseError } from "@/db/supabase";
 import { sendEmail } from "@/lib/email";
 
-const CONSULTATION_PREFERENCES = ["call", "whatsapp_video", "guided_text"];
+const CONSULTATION_PREFERENCES = ["Consultation call", "WhatsApp video consultation", "Guided text planning"];
 
 function asTrimmedString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 }
 
 export async function POST(request: NextRequest) {
@@ -13,24 +17,25 @@ export async function POST(request: NextRequest) {
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
+  const b = body as Record<string, unknown>;
 
-  const partnerOneName = asTrimmedString((body as Record<string, unknown>).partnerOneName);
-  const partnerTwoName = asTrimmedString((body as Record<string, unknown>).partnerTwoName);
-  const contactEmail = asTrimmedString((body as Record<string, unknown>).contactEmail);
-  const contactPhone = asTrimmedString((body as Record<string, unknown>).contactPhone);
-  const weddingDatePreference = asTrimmedString((body as Record<string, unknown>).weddingDatePreference);
-  const guestCountRaw = (body as Record<string, unknown>).guestCountEstimate;
-  const ceremonyStyle = asTrimmedString((body as Record<string, unknown>).ceremonyStyle);
-  const venuePreference = asTrimmedString((body as Record<string, unknown>).venuePreference);
-  const servicesWanted = Array.isArray((body as Record<string, unknown>).servicesWanted)
-    ? ((body as Record<string, unknown>).servicesWanted as unknown[]).filter((v): v is string => typeof v === "string")
-    : [];
-  const consultationPreference = asTrimmedString((body as Record<string, unknown>).consultationPreference);
-  const preferredContactTime = asTrimmedString((body as Record<string, unknown>).preferredContactTime);
-  const notes = asTrimmedString((body as Record<string, unknown>).notes);
+  const names = asTrimmedString(b.names);
+  const contactEmail = asTrimmedString(b.contactEmail);
+  const ceremonyChoice = asTrimmedString(b.ceremonyChoice);
+  const weddingDatePreference = asTrimmedString(b.weddingDatePreference);
+  const guestCountRaw = b.guestCountEstimate;
+  const arrivalDate = asTrimmedString(b.arrivalDate);
+  const locationIdea = asTrimmedString(b.locationIdea);
+  const venuePreference = asTrimmedString(b.venuePreference);
+  const servicesWanted = asStringArray(b.servicesWanted);
+  const consultationPreference = asTrimmedString(b.consultationPreference);
+  const consultationDate = asTrimmedString(b.consultationDate);
+  const consultationTime = asTrimmedString(b.consultationTime);
+  const consultationTimezone = asTrimmedString(b.consultationTimezone);
+  const travellingFrom = asTrimmedString(b.travellingFrom);
+  const notes = asTrimmedString(b.notes);
 
-  if (!partnerOneName) return NextResponse.json({ error: "Tell us at least one partner's name." }, { status: 400 });
-  if (!contactEmail || !contactEmail.includes("@")) return NextResponse.json({ error: "A valid email is required." }, { status: 400 });
+  if (!names) return NextResponse.json({ error: "Tell us your names." }, { status: 400 });
   if (consultationPreference && !CONSULTATION_PREFERENCES.includes(consultationPreference)) {
     return NextResponse.json({ error: "Choose a valid consultation preference." }, { status: 400 });
   }
@@ -41,17 +46,20 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase
     .from("wedding_inquiries")
     .insert({
-      partner_one_name: partnerOneName,
-      partner_two_name: partnerTwoName || null,
-      contact_email: contactEmail,
-      contact_phone: contactPhone || null,
+      partner_one_name: names,
+      contact_email: contactEmail || null,
       wedding_date_preference: weddingDatePreference || null,
       guest_count_estimate: guestCountEstimate,
-      ceremony_style: ceremonyStyle || null,
+      ceremony_style: ceremonyChoice || null,
       venue_preference: venuePreference || null,
       services_wanted: servicesWanted,
       consultation_preference: consultationPreference || null,
-      preferred_contact_time: preferredContactTime || null,
+      arrival_date: arrivalDate || null,
+      location_idea: locationIdea || null,
+      travelling_from: travellingFrom || null,
+      consultation_date: consultationDate || null,
+      consultation_time: consultationTime || null,
+      consultation_timezone: consultationTimezone || null,
       notes: notes || null,
     })
     .select("id")
@@ -63,17 +71,16 @@ export async function POST(request: NextRequest) {
   if (notifyTo) {
     await sendEmail({
       to: notifyTo,
-      subject: `New wedding inquiry — ${partnerOneName}${partnerTwoName ? ` & ${partnerTwoName}` : ""}`,
-      html: `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#0e3b3f">
-        <h1 style="font-size:20px;margin:0 0 16px">New wedding inquiry</h1>
-        <p><strong>${partnerOneName}${partnerTwoName ? ` &amp; ${partnerTwoName}` : ""}</strong></p>
-        <p>${contactEmail}${contactPhone ? ` · ${contactPhone}` : ""}</p>
-        <p>Preferred date: ${weddingDatePreference || "Not specified"}</p>
-        <p>Guests: ${guestCountEstimate ?? "Not specified"}</p>
-        <p>Ceremony style: ${ceremonyStyle || "Not specified"}</p>
-        <p>Venue preference: ${venuePreference || "Not specified"}</p>
-        <p>Services wanted: ${servicesWanted.length ? servicesWanted.join(", ") : "Not specified"}</p>
-        <p>Consultation preference: ${consultationPreference || "Not specified"} ${preferredContactTime ? `(${preferredContactTime})` : ""}</p>
+      subject: `New wedding plan request — ${names}`,
+      html: `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#153c46">
+        <h1 style="font-size:20px;margin:0 0 16px">New wedding plan request</h1>
+        <p><strong>${names}</strong>${contactEmail ? ` · ${contactEmail}` : ""}</p>
+        <p>Celebrating: ${ceremonyChoice || "Not specified"}</p>
+        <p>Preferred date: ${weddingDatePreference || "Not specified"} · Arrival: ${arrivalDate || "Not specified"}</p>
+        <p>Guests: ${guestCountEstimate ?? "Not specified"} · Travelling from: ${travellingFrom || "Not specified"}</p>
+        <p>Venue style: ${venuePreference || "Not specified"} (${locationIdea || "no location idea given"})</p>
+        <p>Services requested: ${servicesWanted.length ? servicesWanted.join(", ") : "None selected"}</p>
+        <p>Consultation: ${consultationPreference || "Not specified"} ${consultationDate ? `on ${consultationDate}` : ""} ${consultationTime || ""} ${consultationTimezone ? `(${consultationTimezone})` : ""}</p>
         <p>Notes: ${notes || "—"}</p>
       </div>`,
     });
