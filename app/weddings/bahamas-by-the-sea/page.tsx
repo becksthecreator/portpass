@@ -6,6 +6,11 @@ import { getPublicWeddingVenues } from "@/db/venues";
 
 const VENUE_STYLES = ["Beach", "Garden", "Chapel", "Private estate", "Hotel", "Boat"];
 
+// force-dynamic (not ISR/revalidate) because this repo's CI build has no
+// Supabase credentials, so a statically-prerendered page would fail the
+// build fetching venues.
+export const dynamic = "force-dynamic";
+
 const ASSET = "/weddings/bahamas-by-the-sea";
 const WEDDINGWIRE_URL = "https://www.weddingwire.com/biz/bahamas-weddings-by-the-sea-nassau/406f00580a64e27e.html";
 
