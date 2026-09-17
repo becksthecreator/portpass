@@ -32,11 +32,12 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formEl = event.currentTarget;
     setBusy(true);
     setError("");
     setMessage("");
 
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formEl);
     const breakDates = String(form.get("breakDates") ?? "")
       .split(",")
       .map((value) => value.trim())
@@ -72,7 +73,7 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
       if (!response.ok) throw new Error(data.error ?? "Could not create the program.");
       if (data.programs) setPrograms(data.programs);
       setMessage("Program created — it's live on the registration page now.");
-      event.currentTarget.reset();
+      formEl.reset();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create the program.");
     } finally {
