@@ -81,7 +81,7 @@ export function WeddingPlanner() {
     guests: "",
     arrivalDate: "",
     locationIdea: "",
-    venuePreference: "",
+    venuePreference: searchParams.get("venue") ?? "",
     servicesWanted: searchParams.get("service") ? [searchParams.get("service") as string] : [],
     consultationMethod: "",
     consultationDate: "",

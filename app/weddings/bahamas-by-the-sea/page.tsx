@@ -2,6 +2,9 @@ import Link from "next/link";
 import { bwsSerif, bwsSans } from "./fonts";
 import { MobileMenu } from "./MobileMenu";
 import { QuickEnquiryForm } from "./QuickEnquiryForm";
+import { getPublicWeddingVenues } from "@/db/venues";
+
+const VENUE_STYLES = ["Beach", "Garden", "Chapel", "Private estate", "Hotel", "Boat"];
 
 const ASSET = "/weddings/bahamas-by-the-sea";
 const WEDDINGWIRE_URL = "https://www.weddingwire.com/biz/bahamas-weddings-by-the-sea-nassau/406f00580a64e27e.html";
@@ -18,8 +21,9 @@ const NAV_LINKS = [
   { href: "#love-notes", label: "Love notes" },
 ];
 
-export default function BahamasWeddingsByTheSeaPage() {
+export default async function BahamasWeddingsByTheSeaPage() {
   const year = new Date().getFullYear();
+  const venues = await getPublicWeddingVenues();
   return (
     <div className={`bws-theme ${bwsSerif.variable} ${bwsSans.variable}`}>
       <a className="bws-skip-link" href="#main">Skip to content</a>
@@ -100,6 +104,33 @@ export default function BahamasWeddingsByTheSeaPage() {
             <Link className="bws-ceremony-item" href="/weddings/bahamas-by-the-sea/plan?ceremony=Intimate%20wedding"><span className="bws-item-number">02 /</span><h3>Just the two of you</h3><p>Dreaming of something intimate? Tell Antonio about your island escape and the way you want to say &ldquo;I do.&rdquo;</p><span className="bws-text-link">Start something beautiful <span aria-hidden="true">↗</span></span></Link>
             <Link className="bws-ceremony-item" href="/weddings/bahamas-by-the-sea/plan?ceremony=Vow%20renewal"><span className="bws-item-number">03 /</span><h3>&ldquo;I do.&rdquo; All over again.</h3><p>A vow renewal to celebrate your life together, with an ocean of memories still ahead.</p><span className="bws-text-link">Celebrate your story <span aria-hidden="true">↗</span></span></Link>
           </div>
+        </section>
+
+        <section className="bws-venues bws-section-wrap" id="venues">
+          <div className="bws-section-heading">
+            <div><p className="bws-eyebrow">Where it happens</p><h2>Find the<br /><em>right setting.</em></h2></div>
+            <p>Real venues, reviewed and confirmed for weddings — with honest availability and pricing handled through the Wedding Desk.</p>
+          </div>
+          {venues.length > 0 ? (
+            <div className="bws-venue-grid">
+              {venues.map((venue) => (
+                <div className="bws-venue-card" key={venue.id}>
+                  <h3>{venue.name}</h3>
+                  <p>{venue.shortDescription || venue.area || "Ask the Wedding Desk for details."}</p>
+                  <Link className="bws-text-link" href={`/weddings/bahamas-by-the-sea/plan?venue=${encodeURIComponent(venue.name)}`}>Ask about this venue <span aria-hidden="true">↗</span></Link>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bws-venue-empty">
+              <p>We&rsquo;re preparing our venue collection — tell us the kind of place you have in mind.</p>
+              <div className="bws-style-picker">
+                {VENUE_STYLES.map((style) => (
+                  <Link className="bws-style-chip" key={style} href={`/weddings/bahamas-by-the-sea/plan?venue=${encodeURIComponent(style)}`}>{style}</Link>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="bws-add-ons" id="add-ons">
