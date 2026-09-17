@@ -5863,10 +5863,12 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .bws-love-notes{grid-template-columns:1fr}
   .bws-love-copy{padding:55px 7%;min-height:420px}
   .bws-love-copy blockquote{font-size:clamp(2.8rem,9vw,4rem)}
-  /* min-width:0 overrides the grid item's default min-width:auto, which
-     otherwise sizes this box from aspect-ratio × min-height and overflows
-     the 1fr track on narrow viewports. */
-  .bws-love-photo{min-width:0;min-height:350px;max-height:500px;aspect-ratio:5/4}
+  /* width:100% is required here: a grid item with a preferred aspect-ratio
+     does not stretch to its track under justify-items:normal (the default)
+     the way an aspect-ratio-less item would. Without it this box sizes
+     itself intrinsically from aspect-ratio × min-height and overflows the
+     1fr track on narrow viewports. */
+  .bws-love-photo{width:100%;min-width:0;min-height:350px;max-height:500px;aspect-ratio:5/4}
   .bws-love-photo img{object-position:center}
   .bws-love-photo>span{font-size:1.4rem;bottom:20px;left:7%}
   .bws-review-wall{grid-template-columns:1fr;padding-top:40px;padding-bottom:55px;gap:5px}
