@@ -32,9 +32,19 @@ export function QuickEnquiryForm() {
   const [guests, setGuests] = useState("");
   const [email, setEmail] = useState("");
   const [story, setStory] = useState("");
+  const [contactConsent, setContactConsent] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  // Stable for the life of the mounted form, so a double-click or a retried
+  // request after a network hiccup lands as one lead, not two.
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
   const today = new Date().toISOString().slice(0, 10);
+
+  function whatsAppHref() {
+    const message = buildWhatsAppMessage({ couple: couple.trim(), ceremony, date: formatDate(date), guests, email: email.trim(), story: story.trim() });
+    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -42,28 +52,33 @@ export function QuickEnquiryForm() {
       setStatus("Please enter your names.");
       return;
     }
+    if (!contactConsent) {
+      setStatus("Please confirm we can contact you about this enquiry.");
+      return;
+    }
     setBusy(true);
     setStatus(null);
     try {
-      await fetch("/api/weddings/bahamas-by-the-sea/inquiries", {
+      const response = await fetch("/api/weddings/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          idempotencyKey,
           names: couple.trim(),
-          ceremonyChoice: ceremony,
-          weddingDatePreference: formatDate(date),
-          guestCountEstimate: guests ? Number(guests) : null,
-          contactEmail: email.trim(),
+          ceremonyType: ceremony,
+          preferredWeddingDate: date || null,
+          guestCount: guests ? Number(guests) : null,
+          email: email.trim(),
           notes: story.trim(),
+          contactConsent,
         }),
       });
+      if (!response.ok) throw new Error("save failed");
+      setSubmitted(true);
+      setStatus("Thank you — the Wedding Desk has your enquiry and will reach out. Your date has not been reserved yet.");
     } catch {
-      // The WhatsApp handoff below is the source of truth for this quick form;
-      // a failed background save shouldn't block the couple from reaching out.
+      setStatus("We couldn't save that just now. Please message the Wedding Desk on WhatsApp instead — the button below has your details ready.");
     }
-    const message = buildWhatsAppMessage({ couple: couple.trim(), ceremony, date: formatDate(date), guests, email: email.trim(), story: story.trim() });
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
-    setStatus("Review your message in WhatsApp and tap Send there. The Wedding Desk will reply; your date has not been reserved yet.");
     setBusy(false);
   }
 
@@ -100,10 +115,17 @@ export function QuickEnquiryForm() {
           <label htmlFor="wedding-story">What do you have in mind? <span>(optional)</span></label>
           <textarea id="wedding-story" rows={3} maxLength={1800} placeholder="A beach you love, your travel dates, a special tradition…" value={story} onChange={(e) => setStory(e.target.value)} />
         </div>
+        <div className="bws-field bws-full bws-consent-field">
+          <label>
+            <input type="checkbox" checked={contactConsent} onChange={(e) => setContactConsent(e.target.checked)} />
+            <span>You can contact me about this enquiry <span aria-hidden="true">*</span></span>
+          </label>
+        </div>
       </div>
-      <button className="bws-button bws-button-dark" type="submit" disabled={busy}>Enquire on WhatsApp <span aria-hidden="true">↗</span></button>
-      <p className="bws-form-note">Opens WhatsApp with your details ready to send. Availability and pricing are confirmed directly with Antonio.</p>
+      <button className="bws-button bws-button-dark" type="submit" disabled={busy}>{submitted ? "Sent to the Wedding Desk ✓" : "Send to the Wedding Desk"}</button>
+      <p className="bws-form-note">Availability and pricing are confirmed directly with Antonio. Your date has not been reserved yet.</p>
       <p className="bws-enquiry-status" role="status" aria-live="polite">{status}</p>
+      <a className="bws-text-link bws-whatsapp-fallback" href={whatsAppHref()} target="_blank" rel="noopener noreferrer">Prefer WhatsApp? Message the Wedding Desk directly <span aria-hidden="true">↗</span></a>
     </form>
   );
 }
