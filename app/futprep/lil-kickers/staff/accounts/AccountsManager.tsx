@@ -30,10 +30,11 @@ export function AccountsManager({ initialAccounts, currentAccountKey }: { initia
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formEl = event.currentTarget;
     setError("");
     setMessage("");
     setBusy(true);
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formEl);
     try {
       const response = await fetch("/api/futprep/staff/accounts", {
         method: "POST",
@@ -49,7 +50,7 @@ export function AccountsManager({ initialAccounts, currentAccountKey }: { initia
       if (!response.ok) throw new Error(data.error ?? "Could not create the account.");
       if (data.accounts) setAccounts(data.accounts);
       setMessage("Account created — share the account name and PIN with them directly. They can change the PIN once signed in.");
-      event.currentTarget.reset();
+      formEl.reset();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create the account.");
     } finally {

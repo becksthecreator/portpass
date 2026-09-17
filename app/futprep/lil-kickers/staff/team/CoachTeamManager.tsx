@@ -18,9 +18,10 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
 
   async function add(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
-    const form=new FormData(event.currentTarget);
+    const formEl=event.currentTarget;
+    const form=new FormData(formEl);
     const ok=await action({action:"save",displayName:form.get("displayName"),slug:form.get("slug"),positionTitle:form.get("positionTitle"),memberType:form.get("memberType"),bio:form.get("bio"),licenses:form.get("licenses"),playedAt:form.get("playedAt"),favoritePlayer:form.get("favoritePlayer"),favoriteTeam:form.get("favoriteTeam"),photoUrl:form.get("photoUrl"),introVideoUrl:form.get("introVideoUrl"),testimonialQuote:form.get("testimonialQuote"),testimonialName:form.get("testimonialName"),publicVisible:true,bookable:form.get("memberType")==="coach",sortOrder:100});
-    if(ok) event.currentTarget.reset();
+    if(ok) formEl.reset();
   }
 
   async function availability(event:FormEvent<HTMLFormElement>){
