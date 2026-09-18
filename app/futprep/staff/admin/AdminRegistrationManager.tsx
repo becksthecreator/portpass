@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { missingRegistrationFields, type StaffRegistration } from "@/db/staff";
+import type { StaffRegistration } from "@/db/staff";
+import { missingRegistrationFields } from "@/lib/futprepRegistrations";
 
 function money(cents:number) {
   return new Intl.NumberFormat("en-BS",{style:"currency",currency:"BSD",minimumFractionDigits:0}).format(cents/100);
