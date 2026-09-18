@@ -1,182 +1,169 @@
-import Image from "next/image";
 import Link from "next/link";
+import { ppDisplay, ppSans } from "./fonts";
+import { getFutprepAvailability } from "@/db/registrations";
+import { programTimeRange, formatMoney } from "./futprep/config";
 
-const roles = [
-  ["01", "Club leaders", "Programs, registrations, payments, schedules, locations, and staff in one operating view."],
-  ["02", "Coaches", "Rosters, attendance, session plans, player information, and the details needed on the field."],
-  ["03", "Parents", "Clear registration, payment information, schedules, confirmations, and club updates."],
-  ["04", "Players", "A cleaner path from joining a program to showing up ready to play."],
-];
+export const metadata = {
+  title: "PortPass | Find and book it in The Bahamas",
+  description: "PortPass is where you find and book things in The Bahamas — sports programs, weddings, and more.",
+};
 
-export default function Home() {
+// force-dynamic: the hero and Futprep panel read live program data.
+export const dynamic = "force-dynamic";
+
+const COMING_LANES = [
+  { slug: "venues", title: "Venues", tag: "Coming soon", copy: "Beaches, halls, studios and private estates." },
+  { slug: "events", title: "Events", tag: "Coming soon", copy: "Ticketed nights, with entry and door scanning." },
+  { slug: "entertainment", title: "Entertainment", tag: "Coming soon", copy: "Tours, attractions and nightlife." },
+] as const;
+
+const HOW_IT_WORKS = [
+  { step: "01", title: "Find it.", copy: "Browse what's actually happening — a class, a ceremony, a night out." },
+  { step: "02", title: "Book or enquire.", copy: "Reserve a spot where that's open, or start a conversation where it isn't yet." },
+  { step: "03", title: "Turn up.", copy: "Show your pass, and you're in." },
+] as const;
+
+export default async function Home() {
+  const availability = await getFutprepAvailability();
+  const lilKickers = availability.find((p) => p.slug === "lil-kickers") ?? availability[0];
+  const kickers = availability.find((p) => p.slug === "kickers");
+
+  const heroPasses = [
+    lilKickers && { eyebrow: "Futprep Athletics", title: lilKickers.name, line: `${lilKickers.day}s ${programTimeRange(lilKickers)} · Lyford Cay`, tone: "green" as const },
+    { eyebrow: "Bahamas Weddings By The Sea", title: "Island ceremony", line: "Nassau, The Bahamas · With Antonio Beckford Sr.", tone: "sand" as const },
+    kickers && { eyebrow: "Futprep Athletics", title: kickers.name, line: `${kickers.day}s ${programTimeRange(kickers)} · Lyford Cay`, tone: "ocean" as const },
+  ].filter((pass): pass is { eyebrow: string; title: string; line: string; tone: "green" | "sand" | "ocean" } => Boolean(pass));
+
   return (
-    <main className="landing-page">
-      <section className="landing-hero" id="home">
-        <div className="landing-hero-media" aria-hidden="true">
-          <Image
-            className="landing-hero-slide landing-hero-slide-one"
-            src="https://images.unsplash.com/photo-1661881545067-b15c94c6b7cd?auto=format&fit=crop&w=2200&q=88"
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-          />
-          <Image
-            className="landing-hero-slide landing-hero-slide-two"
-            src="https://images.unsplash.com/photo-1748606327306-5c518f0a6cfa?auto=format&fit=crop&w=2200&q=88"
-            alt=""
-            fill
-            sizes="100vw"
-          />
+    <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`}>
+      <a className="home-skip-link" href="#chooser">Skip to browse</a>
+      <header className="home-header">
+        <Link className="home-brand" href="/" aria-label="PortPass home"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+        <nav aria-label="Primary">
+          <a href="#chooser">Browse</a>
+          <a href="#live">Live now</a>
+          <Link href="/business">For business</Link>
+        </nav>
+      </header>
+
+      <section className="home-hero">
+        <div className="home-hero-copy">
+          <p className="home-eyebrow">The Bahamas, one pass at a time</p>
+          <h1>Your way in,<br /><em>wherever you're headed.</em></h1>
+          <p className="home-hero-lead">A Saturday session. A ceremony by the sea. A night out. PortPass is how you find it and how you get in.</p>
+          <a className="home-button" href="#chooser">Find your pass ↓</a>
         </div>
-        <div className="landing-hero-shade" aria-hidden="true" />
-
-        <header className="landing-nav">
-          <Link className="landing-brand" href="/" aria-label="PortPass home">
-            <span className="landing-brand-mark">P</span>
-            <span>PORTPASS</span>
-          </Link>
-
-          <nav className="landing-nav-links" aria-label="Primary navigation">
-            <a className="is-active" href="#home">Home</a>
-            <a href="#features">Features</a>
-            <a href="#live">Live</a>
-            <a href="#about">About</a>
-            <Link href="/futprep">Futprep</Link>
-            <Link href="/apply">Early access</Link>
-          </nav>
-        </header>
-
-        <Link className="landing-register-strip" href="/futprep">
-          <span className="landing-register-label">Live now</span>
-          <strong>Futprep Athletics on PortPass</strong>
-          <span className="landing-register-action">Explore Futprep →</span>
-        </Link>
-
-        <div className="landing-hero-content">
-          <span className="landing-hero-kicker">Sports management · The Bahamas</span>
-          <h1>Your club.<br/><em>Better connected.</em></h1>
-          <p>One simple place for sports organizations to organize, communicate, register, and grow.</p>
-          <div className="landing-hero-actions">
-            <Link className="landing-button landing-button-primary" href="/apply">Apply for early access →</Link>
-            <a className="landing-text-link" href="#features">Explore PortPass ↓</a>
-          </div>
-        </div>
-
-        <div className="landing-hero-caption" aria-hidden="true">
-          <span>01</span><i />
-          <span>02</span>
-        </div>
-      </section>
-
-      <section className="landing-systems" id="features">
-        <div className="landing-section-heading">
-          <span>What PortPass brings together</span>
-          <h2>One place for your club.</h2>
-        </div>
-
-        <div className="landing-system-grid">
-          <article className="landing-system-card">
-            <div className="landing-system-visual landing-system-visual-ops" aria-hidden="true">
-              <div className="landing-ui-shell">
-                <div className="landing-ui-sidebar">
-                  <span className="landing-ui-logo">P</span>
-                  <i /><i /><i /><i />
-                </div>
-                <div className="landing-ui-main">
-                  <div className="landing-ui-top"><span /><span /></div>
-                  <div className="landing-ui-stats"><b /><b /><b /></div>
-                  <div className="landing-ui-lines"><i /><i /><i /><i /></div>
-                </div>
-              </div>
-            </div>
-            <div className="landing-system-copy">
-              <h3>Run your organization.</h3>
-              <p>Replace scattered forms, chats, spreadsheets, and payment notes with one clear operating system.</p>
-              <div className="landing-tags">
-                <span>Programs</span><span>Registrations</span><span>Payments</span>
-              </div>
-              <a href="#about">Explore operations →</a>
-            </div>
-          </article>
-
-          <article className="landing-system-card">
-            <div className="landing-system-visual landing-system-visual-connect" aria-hidden="true">
-              <div className="landing-connect-board">
-                <div className="landing-connect-person"><span>C</span><small>Coach</small></div>
-                <div className="landing-connect-line landing-connect-line-a" />
-                <div className="landing-connect-person"><span>P</span><small>Parent</small></div>
-                <div className="landing-connect-line landing-connect-line-b" />
-                <div className="landing-connect-person"><span>PL</span><small>Player</small></div>
-              </div>
-            </div>
-            <div className="landing-system-copy">
-              <h3>Keep everyone connected.</h3>
-              <p>Give coaches, parents, players, and club staff the right information without creating more admin.</p>
-              <div className="landing-tags">
-                <span>Schedules</span><span>Attendance</span><span>Updates</span>
-              </div>
-              <a href="#about">Explore the community →</a>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section className="landing-roles" id="about">
-        <div className="landing-roles-intro">
-          <span className="landing-section-label">Built around real sport</span>
-          <h2>The people who make the club happen.</h2>
-          <p>PortPass is designed around how a sports organization actually works—from the office to the sideline to the family at home.</p>
-        </div>
-        <div className="landing-role-grid">
-          {roles.map(([number, title, copy]) => (
-            <article className="landing-role-card" key={number}>
-              <span>{number}</span>
-              <div>
-                <h3>{title}</h3>
-                <p>{copy}</p>
-              </div>
+        <div className="home-pass-stack" aria-hidden="true">
+          {heroPasses.map((pass, index) => (
+            <article className={`home-pass home-pass-${pass.tone}`} key={pass.title} style={{ animationDelay: `${index * 0.15}s` }}>
+              <span className="home-pass-eyebrow">{pass.eyebrow}</span>
+              <strong>{pass.title}</strong>
+              <span className="home-pass-line">{pass.line}</span>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="landing-live" id="live">
-        <div className="landing-live-image">
-          <Image
-            src="https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/d69eda54-1539-434e-bb0c-7e122dd03eab/IMG_5805.jpg"
-            alt="Futprep Athletics players together on the field"
-            fill
-            sizes="(max-width: 900px) 100vw, 55vw"
-          />
+      <section className="home-chooser" id="chooser">
+        <div className="home-section-heading">
+          <span className="home-eyebrow">Where to start</span>
+          <h2>Pick your lane.</h2>
         </div>
-        <div className="landing-live-copy">
-          <span className="landing-live-badge">Live on PortPass</span>
-          <p className="landing-live-overline">First live program</p>
-          <h2>Futprep Athletics<br/>Lil Kickers.</h2>
-          <p>Parents can already view the program, choose a class, register a child, select a payment method, and receive confirmation through PortPass.</p>
-          <div className="landing-live-tags">
-            <span>Term 1</span>
-            <span>Ages 3–7</span>
-            <span>Saturday sessions</span>
-          </div>
-          <Link className="landing-button landing-button-dark" href="/futprep/lil-kickers">View live registration →</Link>
+        <div className="home-lane-grid">
+          <Link className="home-lane home-lane-live" href="/sports-fitness">
+            <span className="home-lane-tag home-lane-tag-live">Live now</span>
+            <h3>Sports &amp; Fitness</h3>
+            <p>Real Saturday sessions, real prices, open now with Futprep Athletics.</p>
+            <span className="home-lane-action">Explore →</span>
+          </Link>
+          <Link className="home-lane home-lane-live" href="/weddings">
+            <span className="home-lane-tag home-lane-tag-live">Live now</span>
+            <h3>Weddings</h3>
+            <p>Plan an island ceremony with Bahamas Weddings By The Sea.</p>
+            <span className="home-lane-action">Explore →</span>
+          </Link>
+          {COMING_LANES.map((lane) => (
+            <Link className="home-lane home-lane-coming" href={`/${lane.slug}`} key={lane.slug}>
+              <span className="home-lane-tag">{lane.tag}</span>
+              <h3>{lane.title}</h3>
+              <p>{lane.copy}</p>
+              <span className="home-lane-action">Tell us what you need →</span>
+            </Link>
+          ))}
         </div>
       </section>
 
-      <section className="landing-final">
-        <span>Early access is open.</span>
-        <h2>Run your club differently.</h2>
-        <p>Bring your organization onto PortPass and help shape the platform being built for sport in The Bahamas.</p>
-        <Link className="landing-button landing-button-lime" href="/apply">Apply for early access →</Link>
+      <section className="home-live" id="live">
+        <div className="home-section-heading">
+          <span className="home-eyebrow">Live on PortPass</span>
+          <h2>Not a mockup. Running right now.</h2>
+        </div>
+        <div className="home-live-grid">
+          <article className="home-live-panel">
+            <span className="home-live-panel-kicker">Sports &amp; Fitness</span>
+            <h3>Futprep Athletics.</h3>
+            <p>Saturday football for young players — real classes, real prices, straight from the database.</p>
+            <ul className="home-live-list">
+              {availability.map((program) => (
+                <li key={program.slug}>
+                  <strong>{program.name}</strong>
+                  <span>Ages {program.ageMin}–{program.ageMax} · {program.day}s {programTimeRange(program)}</span>
+                  <span>{formatMoney(program.weeklyFeeCents)}/week · {program.spotsRemaining} of {program.capacity} spots left</span>
+                </li>
+              ))}
+            </ul>
+            <Link className="home-live-cta" href="/futprep">Register a child →</Link>
+          </article>
+          <article className="home-live-panel">
+            <span className="home-live-panel-kicker">Weddings</span>
+            <h3>Bahamas Weddings By The Sea.</h3>
+            <p>Weddings, intimate ceremonies and vow renewals with officiant Antonio Beckford Sr. — plus a guided planner and a real Wedding Desk behind it.</p>
+            <ul className="home-live-list">
+              <li><strong>Your wedding</strong><span>A personalized legal ceremony</span></li>
+              <li><strong>Just the two of you</strong><span>An intimate island ceremony</span></li>
+              <li><strong>Vow renewal</strong><span>Celebrate your story again</span></li>
+            </ul>
+            <Link className="home-live-cta" href="/weddings">Start planning →</Link>
+          </article>
+        </div>
+        <p className="home-live-note">A children&rsquo;s football academy and a wedding service, running on the same system — that&rsquo;s PortPass.</p>
       </section>
 
-      <footer className="landing-footer">
-        <Link className="landing-brand landing-footer-brand" href="/">
-          <span className="landing-brand-mark">P</span><span>PORTPASS</span>
-        </Link>
-        <p>Made for sport in The Bahamas.</p>
-        <a className="landing-footer-back" href="#home">Back to top ↑</a>
+      <section className="home-how">
+        <div className="home-section-heading">
+          <span className="home-eyebrow">How it works</span>
+          <h2>Three steps. That&rsquo;s it.</h2>
+        </div>
+        <div className="home-how-grid">
+          {HOW_IT_WORKS.map((item) => (
+            <div className="home-how-step" key={item.step}>
+              <span>{item.step}</span>
+              <h3>{item.title}</h3>
+              <p>{item.copy}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-business">
+        <div>
+          <span className="home-eyebrow">Run a club or a business?</span>
+          <h2>List with PortPass.</h2>
+          <p>Bring your organization onto the same system powering Futprep and Bahamas Weddings By The Sea.</p>
+        </div>
+        <Link className="home-button home-button-light" href="/business">Learn more →</Link>
+      </section>
+
+      <footer className="home-footer">
+        <div className="home-footer-brand">
+          <Link className="home-brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+          <p>Made in The Bahamas.</p>
+        </div>
+        <div className="home-footer-links">
+          <a href="tel:+12424241262">+1 (242) 424-1262</a>
+          <Link href="/business">For business →</Link>
+          <Link href="/apply">Apply for early access →</Link>
+        </div>
       </footer>
     </main>
   );

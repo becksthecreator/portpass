@@ -4,9 +4,9 @@ import "./staff.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://portpassbahamas.com"),
-  title: "PortPass | Your club, better connected",
+  title: "PortPass | Find and book it in The Bahamas",
   description:
-    "PortPass helps sports clubs and academies in The Bahamas organize, communicate, and grow.",
+    "PortPass is where you find and book things in The Bahamas — sports programs, weddings, and more.",
   icons: { icon: "/favicon.svg" },
 };
 
