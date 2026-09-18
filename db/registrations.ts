@@ -6,7 +6,11 @@ import {
 import { ageOnDate, generateWeeklySessionDates } from "@/lib/scheduling";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
-export type RegistrationStatus = "pending" | "confirmed" | "cancelled";
+export type RegistrationStatus = "pending_details" | "pending" | "confirmed" | "cancelled";
+// Statuses that occupy a class spot -- everything except cancelled. A
+// pending_details row is a real, physically-attending child, so it must
+// count the same as pending/confirmed everywhere capacity is checked.
+const ACTIVE_REGISTRATION_STATUSES: RegistrationStatus[] = ["pending_details", "pending", "confirmed"];
 export type PaymentStatus = "pending" | "partial" | "paid" | "overdue" | "waived";
 export type PaymentFrequency = "weekly" | "term";
 export type PaymentMethod = "cash" | "bank_transfer" | "online_banking";
@@ -275,7 +279,7 @@ export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
         .from("registrations")
         .select("program_id,term_id")
         .in("program_id", programIds)
-        .in("registration_status", ["pending", "confirmed"]),
+        .in("registration_status", ACTIVE_REGISTRATION_STATUSES),
     ]);
   throwIfSupabaseError(termsError, "Could not load term availability");
   throwIfSupabaseError(registrationsError, "Could not count registrations");
@@ -462,7 +466,7 @@ export async function createFutprepRegistration(
     .select("id", { count: "exact", head: true })
     .eq("program_id", program.id)
     .eq("term_id", term.id)
-    .in("registration_status", ["pending", "confirmed"]);
+    .in("registration_status", ACTIVE_REGISTRATION_STATUSES);
   throwIfSupabaseError(countError, "Could not check program capacity");
 
   if (Number(count ?? 0) >= Number(program.capacity)) {
@@ -477,7 +481,7 @@ export async function createFutprepRegistration(
     .eq("parent_email", normalizedEmail)
     .eq("child_dob", input.childDob)
     .ilike("child_name", input.childName.trim())
-    .in("registration_status", ["pending", "confirmed"])
+    .in("registration_status", ACTIVE_REGISTRATION_STATUSES)
     .limit(1)
     .maybeSingle();
   throwIfSupabaseError(duplicateError, "Could not check duplicate registration");
@@ -558,4 +562,222 @@ export async function createFutprepRegistration(
     paymentStatus: "pending" as const,
     registrationStatus: "pending" as const,
   };
+}
+
+export type FutprepPendingRegistrationInput = {
+  childName: string;
+  programSlug: string;
+  parentName?: string;
+  parentPhone?: string;
+  parentEmail?: string;
+  enteredByStaff: string;
+};
+
+// Staff fast-add for a child who is already attending: only a name and a
+// class. Everything a parent would normally supply -- DOB, emergency
+// contact, medical info, consent, signature -- is left genuinely null
+// (never defaulted or blanked to "") so a coach can tell "not yet asked"
+// apart from "asked, and the answer was none". The parent fills the rest
+// in later at /futprep/my/[code]/complete.
+export async function createFutprepPendingRegistration(input: FutprepPendingRegistrationInput) {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+
+  const { data: program, error: programError } = await db
+    .from("programs")
+    .select("id,organization_id,capacity,name")
+    .eq("slug", input.programSlug)
+    .eq("active", true)
+    .maybeSingle();
+  throwIfSupabaseError(programError, "Could not load selected program");
+  if (!program) throw new Error("INVALID_PROGRAM");
+
+  const { data: term, error: termError } = await db
+    .from("program_terms")
+    .select("id,weekly_fee_cents")
+    .eq("program_id", program.id)
+    .eq("active", true)
+    .order("start_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  throwIfSupabaseError(termError, "Could not load selected term");
+  if (!term) throw new Error("PROGRAM_NOT_AVAILABLE");
+
+  const { count, error: countError } = await db
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("program_id", program.id)
+    .eq("term_id", term.id)
+    .in("registration_status", ACTIVE_REGISTRATION_STATUSES);
+  throwIfSupabaseError(countError, "Could not check program capacity");
+  if (Number(count ?? 0) >= Number(program.capacity)) throw new Error("PROGRAM_FULL");
+
+  const childName = input.childName.trim();
+  const { data: duplicate, error: duplicateError } = await db
+    .from("registrations")
+    .select("reference_code")
+    .eq("term_id", term.id)
+    .ilike("child_name", childName)
+    .in("registration_status", ACTIVE_REGISTRATION_STATUSES)
+    .limit(1)
+    .maybeSingle();
+  throwIfSupabaseError(duplicateError, "Could not check duplicate registration");
+  if (duplicate) throw new Error(`DUPLICATE:${duplicate.reference_code}`);
+
+  const now = new Date().toISOString();
+  const referenceCode = `FP-${new Date().getUTCFullYear()}-${crypto
+    .randomUUID()
+    .replaceAll("-", "")
+    .slice(0, 8)
+    .toUpperCase()}`;
+
+  const { error: insertError } = await db.from("registrations").insert({
+    reference_code: referenceCode,
+    organization_id: program.organization_id,
+    program_id: program.id,
+    term_id: term.id,
+    parent_name: input.parentName?.trim() || null,
+    parent_email: input.parentEmail?.trim().toLowerCase() || null,
+    parent_phone: input.parentPhone?.trim() || null,
+    child_name: childName,
+    // amount_due_cents assumes weekly to start with -- an estimate, not a
+    // commitment. The parent picks the real plan (and this gets
+    // recalculated) at the completion step.
+    payment_frequency: "weekly",
+    amount_due_cents: Number(term.weekly_fee_cents),
+    registration_status: "pending_details",
+    payment_status: "pending",
+    consent_version: CONSENT_VERSION,
+    consent_accepted: false,
+    additional_notes: "",
+    submitted_at: now,
+    entered_by_staff: input.enteredByStaff.trim(),
+  });
+  throwIfSupabaseError(insertError, "Could not create Futprep registration");
+
+  return { referenceCode, programName: program.name };
+}
+
+export type FutprepPendingRegistration = {
+  referenceCode: string;
+  childName: string;
+  programName: string;
+  programSlug: string;
+};
+
+// Read-only lookup for the completion page. Unlike getFutprepRegistrationStatus,
+// this can't require a matching DOB -- there isn't one on file yet -- so the
+// reference code alone (shared with the parent directly, e.g. over WhatsApp
+// by staff) is what gates access here. Only ever returns a pending_details
+// row; a completed registration has nothing left to complete.
+export async function getFutprepPendingRegistration(referenceCode: string): Promise<FutprepPendingRegistration | null> {
+  const db = getSupabaseAdmin();
+  const { data: registration, error } = await db
+    .from("registrations")
+    .select("reference_code,child_name,program_id,registration_status")
+    .ilike("reference_code", referenceCode.trim())
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not look up registration");
+  if (!registration || registration.registration_status !== "pending_details") return null;
+
+  const { data: program, error: programError } = await db
+    .from("programs")
+    .select("name,slug")
+    .eq("id", registration.program_id)
+    .maybeSingle();
+  throwIfSupabaseError(programError, "Could not load registration program");
+
+  return {
+    referenceCode: registration.reference_code,
+    childName: registration.child_name,
+    programName: program?.name ?? "",
+    programSlug: program?.slug ?? "",
+  };
+}
+
+export type FutprepCompletionInput = {
+  referenceCode: string;
+  childDob: string;
+  gender: string;
+  relationship: string;
+  parentName: string;
+  parentEmail: string;
+  parentPhone: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  allergies: string;
+  medicalConditions: string;
+  medications: string;
+  specialNeeds: string;
+  authorizedPickup: string;
+  photoConsent: "yes" | "no";
+  paymentFrequency: PaymentFrequency;
+  paymentMethod: PaymentMethod;
+  signatureName: string;
+};
+
+// The parent's half of the fast-add flow: fills in everything staff didn't
+// ask about, moving the registration from pending_details into the normal
+// pending status. Re-runs the same age check createFutprepRegistration does
+// -- now that a DOB finally exists -- but with no staff present to override
+// it, so a mismatch here is a hard stop pointing the parent to WhatsApp
+// rather than a silent bypass.
+export async function completeFutprepRegistration(input: FutprepCompletionInput) {
+  const db = getSupabaseAdmin();
+
+  const { data: registration, error } = await db
+    .from("registrations")
+    .select("id,program_id,term_id,registration_status")
+    .ilike("reference_code", input.referenceCode.trim())
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not look up registration");
+  if (!registration) throw new Error("NOT_FOUND");
+  if (registration.registration_status !== "pending_details") throw new Error("ALREADY_COMPLETE");
+
+  const [{ data: program, error: programError }, { data: term, error: termError }] = await Promise.all([
+    db.from("programs").select("age_min,age_max").eq("id", registration.program_id).maybeSingle(),
+    db.from("program_terms").select("start_date,weekly_fee_cents,term_fee_cents").eq("id", registration.term_id).maybeSingle(),
+  ]);
+  throwIfSupabaseError(programError, "Could not load program");
+  throwIfSupabaseError(termError, "Could not load term");
+  if (!program || !term) throw new Error("NOT_FOUND");
+
+  const age = ageOnDate(input.childDob, term.start_date);
+  if (age < Number(program.age_min) || age > Number(program.age_max)) {
+    throw new Error("AGE_MISMATCH");
+  }
+
+  const amountDueCents = input.paymentFrequency === "term" ? Number(term.term_fee_cents) : Number(term.weekly_fee_cents);
+  const now = new Date().toISOString();
+
+  const { error: updateError } = await db
+    .from("registrations")
+    .update({
+      child_dob: input.childDob,
+      gender: input.gender,
+      relationship: input.relationship.trim() || null,
+      parent_name: input.parentName.trim() || null,
+      parent_email: input.parentEmail.trim().toLowerCase() || null,
+      parent_phone: input.parentPhone.trim() || null,
+      emergency_contact_name: input.emergencyContactName.trim(),
+      emergency_contact_phone: input.emergencyContactPhone.trim(),
+      allergies: input.allergies.trim(),
+      medical_conditions: input.medicalConditions.trim(),
+      medications: input.medications.trim(),
+      special_needs: input.specialNeeds.trim(),
+      authorized_pickup: input.authorizedPickup.trim(),
+      photo_consent: input.photoConsent,
+      payment_frequency: input.paymentFrequency,
+      payment_method: input.paymentMethod,
+      amount_due_cents: amountDueCents,
+      registration_status: "pending",
+      consent_version: CONSENT_VERSION,
+      consent_accepted: true,
+      consent_at: now,
+      signature_name: input.signatureName.trim(),
+    })
+    .eq("id", registration.id);
+  throwIfSupabaseError(updateError, "Could not complete Futprep registration");
+
+  return { referenceCode: input.referenceCode, amountDueCents };
 }
