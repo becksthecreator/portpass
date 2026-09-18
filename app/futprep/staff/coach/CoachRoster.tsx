@@ -119,12 +119,13 @@ export function CoachRoster({
               <div className="coach-player-main">
                 <div className="coach-player-name-line">
                   <strong>{row.child_name}</strong>
+                  {row.registration_status === "pending_details" && <span className="coach-pending-flag" title="Parent hasn't finished registration yet">● Pending details</span>}
                   {hasMedicalInfo(row) && <span className="coach-medical-flag" title="Has allergy, medical, medication, or special-needs notes">● Medical</span>}
                 </div>
-                <span>{row.parent_name} · {row.parent_phone}</span>
+                <span>{row.parent_name ?? "Parent not on file yet"} · {row.parent_phone ?? ""}</span>
                 <span className={`coach-payment-badge payment-${payment?.payment_status ?? "pending"}`}>Payment: {payment?.payment_status ?? "pending"}</span>
               </div>
-              <details><summary>Safety notes</summary><p><b>Emergency:</b> {row.emergency_contact_name} · {row.emergency_contact_phone}</p><p><b>Authorized pickup:</b> {row.authorized_pickup}</p><p><b>Allergies:</b> {row.allergies || "None provided"}</p><p><b>Medical:</b> {row.medical_conditions || "None provided"}</p><p><b>Medications:</b> {row.medications || "None provided"}</p><p><b>Special needs:</b> {row.special_needs || "None provided"}</p></details>
+              <details><summary>Safety notes</summary><p><b>Emergency:</b> {row.emergency_contact_name ? `${row.emergency_contact_name} · ${row.emergency_contact_phone ?? ""}` : "No information on file yet"}</p><p><b>Authorized pickup:</b> {row.authorized_pickup ?? "No information on file yet"}</p><p><b>Allergies:</b> {row.allergies === null ? "No information on file yet" : row.allergies || "None provided"}</p><p><b>Medical:</b> {row.medical_conditions === null ? "No information on file yet" : row.medical_conditions || "None provided"}</p><p><b>Medications:</b> {row.medications === null ? "No information on file yet" : row.medications || "None provided"}</p><p><b>Special needs:</b> {row.special_needs === null ? "No information on file yet" : row.special_needs || "None provided"}</p></details>
               {readOnly ? (
                 <div className="attendance-actions attendance-actions-readonly">
                   <span className={row.attendance_status ? "is-active" : ""}>{row.attendance_status ?? "Not marked yet"}</span>

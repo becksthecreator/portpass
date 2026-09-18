@@ -9,16 +9,26 @@ export type StaffRegistration = {
   program_name: string;
   program_slug: string;
   child_name: string;
-  child_dob: string;
-  gender: string;
-  parent_name: string;
-  parent_email: string;
-  parent_phone: string;
-  emergency_contact_name: string;
-  emergency_contact_phone: string;
-  photo_consent: string;
+  // Nullable: a pending_details registration (staff fast-add, parent hasn't
+  // completed it yet) genuinely has none of these on file. null must render
+  // as "not yet asked", never as an empty field that could be misread as
+  // "asked, and the answer was none".
+  child_dob: string | null;
+  gender: string | null;
+  parent_name: string | null;
+  parent_email: string | null;
+  parent_phone: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  allergies: string | null;
+  medical_conditions: string | null;
+  medications: string | null;
+  special_needs: string | null;
+  authorized_pickup: string | null;
+  photo_consent: string | null;
+  signature_name: string | null;
   payment_frequency: string;
-  payment_method: string;
+  payment_method: string | null;
   amount_due_cents: number;
   registration_status: string;
   payment_status: string;
@@ -39,16 +49,18 @@ export type StaffSession = {
 
 export type AttendanceRow = {
   registration_id: number;
+  registration_status: string;
   child_name: string;
-  parent_name: string;
-  parent_phone: string;
-  emergency_contact_name: string;
-  emergency_contact_phone: string;
-  authorized_pickup: string;
-  allergies: string;
-  medical_conditions: string;
-  medications: string;
-  special_needs: string;
+  parent_name: string | null;
+  parent_phone: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  authorized_pickup: string | null;
+  // null = not yet asked (pending_details); "" or text = asked and answered.
+  allergies: string | null;
+  medical_conditions: string | null;
+  medications: string | null;
+  special_needs: string | null;
   attendance_status: string | null;
 };
 
@@ -84,7 +96,7 @@ export async function listFutprepStaffRegistrations(): Promise<
     await Promise.all([
       db
         .from("registrations")
-        .select("id,reference_code,program_id,child_name,child_dob,gender,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,photo_consent,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,submitted_at")
+        .select("id,reference_code,program_id,child_name,child_dob,gender,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,authorized_pickup,photo_consent,signature_name,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,submitted_at")
         .in("program_id", programIds)
         .neq("registration_status", "cancelled")
         .order("child_name", { ascending: true }),
@@ -114,22 +126,30 @@ export async function listFutprepStaffRegistrations(): Promise<
     .map((row) => {
       const program = programById.get(Number(row.program_id));
       if (!program) return null;
+      const asNullableString = (value: unknown): string | null =>
+        value === null || value === undefined ? null : String(value);
       return {
         id: Number(row.id),
         reference_code: String(row.reference_code),
         program_name: program.name,
         program_slug: program.slug,
         child_name: String(row.child_name),
-        child_dob: String(row.child_dob),
-        gender: String(row.gender),
-        parent_name: String(row.parent_name),
-        parent_email: String(row.parent_email),
-        parent_phone: String(row.parent_phone),
-        emergency_contact_name: String(row.emergency_contact_name),
-        emergency_contact_phone: String(row.emergency_contact_phone),
-        photo_consent: String(row.photo_consent),
+        child_dob: asNullableString(row.child_dob),
+        gender: asNullableString(row.gender),
+        parent_name: asNullableString(row.parent_name),
+        parent_email: asNullableString(row.parent_email),
+        parent_phone: asNullableString(row.parent_phone),
+        emergency_contact_name: asNullableString(row.emergency_contact_name),
+        emergency_contact_phone: asNullableString(row.emergency_contact_phone),
+        allergies: asNullableString(row.allergies),
+        medical_conditions: asNullableString(row.medical_conditions),
+        medications: asNullableString(row.medications),
+        special_needs: asNullableString(row.special_needs),
+        authorized_pickup: asNullableString(row.authorized_pickup),
+        photo_consent: asNullableString(row.photo_consent),
+        signature_name: asNullableString(row.signature_name),
         payment_frequency: String(row.payment_frequency),
-        payment_method: String(row.payment_method),
+        payment_method: asNullableString(row.payment_method),
         amount_due_cents: Number(row.amount_due_cents),
         registration_status: String(row.registration_status),
         payment_status: String(row.payment_status),
@@ -276,7 +296,7 @@ export async function recordFutprepPayment(input: {
 
 export async function updateFutprepRegistration(input: {
   registrationId: number;
-  registrationStatus?: "pending" | "confirmed" | "cancelled";
+  registrationStatus?: "pending_details" | "pending" | "confirmed" | "cancelled";
   paymentStatus?: "pending" | "partial" | "paid" | "overdue" | "waived";
 }) {
   await ensureFutprepPilotData();
@@ -334,10 +354,10 @@ export async function rosterForSession(
       db
         .from("registrations")
         .select(
-          "id,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs",
+          "id,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs",
         )
         .eq("program_id", session.program_id)
-        .in("registration_status", ["pending", "confirmed"])
+        .in("registration_status", ["pending_details", "pending", "confirmed"])
         .order("child_name", { ascending: true }),
       db
         .from("attendance")
@@ -359,28 +379,30 @@ export async function rosterForSession(
   return (registrations ?? []).map(
     (row: {
       id: number;
+      registration_status: string;
       child_name: string;
-      parent_name: string;
-      parent_phone: string;
-      emergency_contact_name: string;
-      emergency_contact_phone: string;
-      authorized_pickup: string;
-      allergies: string;
-      medical_conditions: string;
-      medications: string;
-      special_needs: string;
+      parent_name: string | null;
+      parent_phone: string | null;
+      emergency_contact_name: string | null;
+      emergency_contact_phone: string | null;
+      authorized_pickup: string | null;
+      allergies: string | null;
+      medical_conditions: string | null;
+      medications: string | null;
+      special_needs: string | null;
     }) => ({
       registration_id: row.id,
+      registration_status: row.registration_status,
       child_name: row.child_name,
       parent_name: row.parent_name,
       parent_phone: row.parent_phone,
       emergency_contact_name: row.emergency_contact_name,
       emergency_contact_phone: row.emergency_contact_phone,
       authorized_pickup: row.authorized_pickup,
-      allergies: row.allergies ?? "",
-      medical_conditions: row.medical_conditions ?? "",
-      medications: row.medications ?? "",
-      special_needs: row.special_needs ?? "",
+      allergies: row.allergies,
+      medical_conditions: row.medical_conditions,
+      medications: row.medications,
+      special_needs: row.special_needs,
       attendance_status: statusByRegistration.get(row.id) ?? null,
     }),
   );

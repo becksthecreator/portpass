@@ -125,7 +125,7 @@ export async function listFutprepPrograms(): Promise<FutprepProgramSummary[]> {
         .select("id", { count: "exact", head: true })
         .eq("program_id", program.id)
         .eq("term_id", term.id)
-        .in("registration_status", ["pending", "confirmed"]);
+        .in("registration_status", ["pending_details", "pending", "confirmed"]);
       throwIfSupabaseError(countError, "Could not count registrations");
       registered = Number(count ?? 0);
       spotsRemaining = Math.max(0, Number(program.capacity) - registered);

@@ -38,6 +38,8 @@
 .staff-registration-head h2{font-family:Georgia,serif;font-size:2rem;font-weight:400;margin:8px 0 4px}
 .staff-registration-head p{color:var(--muted);font-size:.78rem;margin:0}
 .staff-status-stack{align-items:flex-end;display:flex;flex-direction:column;gap:7px}
+.pending-details-flag{align-items:center;background:#fdf3d9;border:1px solid #ecd48a;color:#6b5410;display:flex;flex-wrap:wrap;font-size:.74rem;gap:10px;margin-top:16px;padding:10px 14px}
+.pending-details-flag a,.pending-details-flag button{background:none;border:0;color:#6b5410;cursor:pointer;font-family:inherit;font-size:inherit;font-weight:800;padding:0;text-decoration:underline}
 .staff-info-grid{display:grid;grid-template-columns:repeat(4,1fr);margin-top:24px}
 .staff-info-grid>div{border-left:1px solid var(--line);display:flex;flex-direction:column;gap:5px;padding:2px 14px}
 .staff-info-grid>div:first-child{border-left:0;padding-left:0}
@@ -73,6 +75,7 @@
 .coach-player-main strong{font-size:.86rem}.coach-player-main span{color:var(--muted);font-size:.7rem}
 .coach-player-name-line{align-items:center;display:flex;gap:8px}
 .coach-medical-flag{background:#ffe5e8;border-radius:999px;color:#8d2330;font-size:.6rem;font-weight:800;padding:2px 8px;text-transform:uppercase}
+.coach-pending-flag{background:#fdf3d9;border-radius:999px;color:#6b5410;font-size:.6rem;font-weight:800;padding:2px 8px;text-transform:uppercase}
 .coach-roster details summary{cursor:pointer;font-size:.7rem;font-weight:800}
 .coach-roster details p{color:var(--muted);font-size:.7rem;line-height:1.45;margin:6px 0}
 .coach-unsaved-banner{background:#fff0b8;color:#634d00;font-size:.78rem;font-weight:800;padding:12px 22px;position:sticky;top:0;z-index:5}
