@@ -21,6 +21,13 @@ type FormState = {
   email: string;
   travellingFrom: string;
   notes: string;
+  contactConsent: boolean;
+};
+
+const CONSULTATION_METHOD_VALUES: Record<string, string> = {
+  "Consultation call": "phone",
+  "WhatsApp video consultation": "whatsapp_video",
+  "Guided text planning": "guided_text",
 };
 
 const CEREMONY_CHOICES = [
@@ -91,11 +98,15 @@ export function WeddingPlanner() {
     email: "",
     travellingFrom: "",
     notes: "",
+    contactConsent: false,
   }));
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  // Stable for the life of the mounted planner, so a double-click or a
+  // retried request after a network hiccup lands as one lead, not two.
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -112,6 +123,7 @@ export function WeddingPlanner() {
     if (index === 0 && !form.ceremonyChoice) return "Choose the option closest to what you have in mind.";
     if (index === 4 && !form.consultationMethod) return "Choose how you'd like to meet the Wedding Desk.";
     if (index === 5 && !form.names.trim()) return "Tell us your names.";
+    if (index === 5 && !form.contactConsent) return "Please confirm we can contact you about this request.";
     return null;
   }
 
@@ -143,25 +155,27 @@ export function WeddingPlanner() {
     setError(null);
     setBusy(true);
     try {
-      const response = await fetch("/api/weddings/bahamas-by-the-sea/inquiries", {
+      const response = await fetch("/api/weddings/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          idempotencyKey,
           names: form.names,
-          contactEmail: form.email,
-          ceremonyChoice: form.ceremonyChoice,
-          weddingDatePreference: form.weddingDate,
-          guestCountEstimate: form.guests ? Number(form.guests) : null,
-          arrivalDate: form.arrivalDate,
+          email: form.email,
+          ceremonyType: form.ceremonyChoice,
+          preferredWeddingDate: form.weddingDate || null,
+          guestCount: form.guests ? Number(form.guests) : null,
+          arrivalDate: form.arrivalDate || null,
           locationIdea: form.locationIdea,
           venuePreference: form.venuePreference,
-          servicesWanted: form.servicesWanted,
-          consultationPreference: form.consultationMethod,
-          consultationDate: form.consultationDate,
-          consultationTime: form.consultationTime,
-          consultationTimezone: form.consultationTimezone,
-          travellingFrom: form.travellingFrom,
+          requestedServices: form.servicesWanted,
+          consultationMethod: CONSULTATION_METHOD_VALUES[form.consultationMethod] ?? null,
+          consultationPreferredDate: form.consultationDate || null,
+          consultationPreferredTime: form.consultationTime || null,
+          consultationTimeZone: form.consultationTimezone,
+          travelOrigin: form.travellingFrom,
           notes: form.notes,
+          contactConsent: form.contactConsent,
         }),
       });
       if (!response.ok) {
@@ -336,6 +350,12 @@ export function WeddingPlanner() {
               <div className="bws-field bws-full">
                 <label htmlFor="plan-notes">Anything else we should know? <span>(optional)</span></label>
                 <textarea id="plan-notes" rows={4} maxLength={1600} placeholder="Your story, travel plans, traditions, or questions..." value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+              </div>
+              <div className="bws-field bws-full bws-consent-field">
+                <label>
+                  <input type="checkbox" checked={form.contactConsent} onChange={(e) => set("contactConsent", e.target.checked)} />
+                  <span>You can contact me about this request <span aria-hidden="true">*</span></span>
+                </label>
               </div>
             </div>
             <div className="bws-request-summary">
