@@ -6,7 +6,7 @@ import {
   listStaffAccounts,
   setStaffAccountActive,
   FUTPREP_STAFF_ROLES,
-} from "@/app/futprep/lil-kickers/staff-auth";
+} from "@/app/futprep/staff-auth";
 
 async function requireManager() {
   const role = await currentFutprepStaffRole();

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { currentFutprepStaffAccount, currentFutprepStaffRole, canManageFutprepTeam } from "@/app/futprep/lil-kickers/staff-auth";
+import { currentFutprepStaffAccount, currentFutprepStaffRole, canManageFutprepTeam } from "@/app/futprep/staff-auth";
 import { listAllCoachProfiles, restoreCoach, saveCoachAvailability, saveCoachProfile, softDeleteCoach } from "@/db/coaches";
 
 function csv(value:unknown){return String(value??"").split(",").map((v)=>v.trim()).filter(Boolean);}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { currentFutprepStaffAccount, currentFutprepStaffRole } from "@/app/futprep/lil-kickers/staff-auth";
+import { currentFutprepStaffAccount, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
 import { actOnPrivateSessionRequest, listPrivateSessionRequests } from "@/db/coaches";
 
 export async function PATCH(request:Request,{params}:{params:Promise<{id:string}>}){

@@ -3,7 +3,7 @@
 // `supabase start` on a freshly-migrated, empty database - never against a
 // real project. Because the tables are empty and their identity sequences
 // haven't been touched, the first application/organization inserted here
-// gets id=1, which matters because app/futprep/lil-kickers/staff-auth.ts
+// gets id=1, which matters because app/futprep/staff-auth.ts
 // still hardcodes FUTPREP_ORG_ID = 1 (the "single hardest dependency" the
 // part-2 plan flags for stage 2.1 to remove) - until that's fixed, tests
 // that exercise anything staff-auth-related need the seeded org to land on
@@ -56,7 +56,7 @@ async function main() {
       activity_type: "Football",
       main_location: "Nassau, The Bahamas",
       slug: "futprep",
-      registration_url: "/futprep/lil-kickers/register",
+      registration_url: "/futprep/register",
     })
     .select("id")
     .single();

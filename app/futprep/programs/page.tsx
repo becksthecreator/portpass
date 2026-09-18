@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getFutprepAvailability } from "@/db/registrations";
-import { formatMoney, programTimeRange } from "../lil-kickers/config";
+import { formatMoney, programTimeRange } from "../config";
 
 // force-dynamic (not ISR/revalidate) because this repo's CI build has no
 // Supabase credentials available at build time, and a numeric revalidate
@@ -38,7 +38,7 @@ export default async function FutprepProgramsPage() {
         <nav>
           <Link href="/futprep/programs">Programs</Link>
           <Link href="/futprep/coaches">Coaches</Link>
-          <Link className="fp-home-login" href="/futprep/lil-kickers/staff/login">Staff login</Link>
+          <Link className="fp-home-login" href="/futprep/staff/login">Staff login</Link>
         </nav>
       </header>
 
@@ -76,7 +76,7 @@ export default async function FutprepProgramsPage() {
                   </div>
                   <div className="fpp-card-bottom">
                     <span>{program.spotsRemaining} of {program.capacity} spots left</span>
-                    <Link href={`/futprep/lil-kickers/register?program=${program.slug}`}>Register →</Link>
+                    <Link href={`/futprep/register?program=${program.slug}`}>Register →</Link>
                   </div>
                 </article>
               ))}
