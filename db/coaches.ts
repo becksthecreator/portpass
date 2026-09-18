@@ -97,7 +97,7 @@ async function futprepOrganizationId() {
   const { data: programRows, error: programError } = await db
     .from("programs")
     .select("organization_id,slug")
-    .in("slug", ["lil-kickers", "rookies"])
+    .in("slug", ["lil-kickers", "kickers"])
     .not("organization_id", "is", null)
     .limit(1);
   throwIfSupabaseError(programError, "Could not locate Futprep organization from programs");
@@ -182,7 +182,7 @@ async function futprepOrganizationId() {
   const { error: attachProgramsError } = await db
     .from("programs")
     .update({ organization_id: organizationId })
-    .in("slug", ["lil-kickers", "rookies"])
+    .in("slug", ["lil-kickers", "kickers"])
     .is("organization_id", null);
   throwIfSupabaseError(attachProgramsError, "Could not attach Futprep programs");
 

@@ -2,7 +2,7 @@ import {
   CONSENT_VERSION,
   FUTPREP_PROGRAMS,
   FUTPREP_TERM,
-} from "@/app/futprep/lil-kickers/config";
+} from "@/app/futprep/config";
 import { ageOnDate, generateWeeklySessionDates } from "@/lib/scheduling";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -139,7 +139,7 @@ async function seedFutprepPilot() {
     throwIfSupabaseError(locationError, "Could not seed Futprep location");
 
     // Staff directory rows are no longer seeded with placeholder names here —
-    // accounts are created by an admin through /futprep/lil-kickers/staff/accounts.
+    // accounts are created by an admin through /futprep/staff/accounts.
   }
 
   for (const configured of FUTPREP_PROGRAMS) {

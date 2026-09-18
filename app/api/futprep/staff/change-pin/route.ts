@@ -3,7 +3,7 @@ import {
   FUTPREP_STAFF_COOKIE,
   changeFutprepPin,
   currentFutprepStaffAccount,
-} from "@/app/futprep/lil-kickers/staff-auth";
+} from "@/app/futprep/staff-auth";
 
 export async function POST(request: Request) {
   const account = await currentFutprepStaffAccount();

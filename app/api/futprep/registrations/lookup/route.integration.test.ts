@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { POST as registerPOST } from "../../lil-kickers/registrations/route";
+import { POST as registerPOST } from "../route";
 import { POST as lookupPOST } from "./route";
 
 const SENSITIVE_MARKER = "PEANUT_ALLERGY_MARKER_DO_NOT_LEAK";
@@ -7,7 +7,7 @@ const SENSITIVE_MARKER = "PEANUT_ALLERGY_MARKER_DO_NOT_LEAK";
 async function registerChild() {
   const childDob = "2022-01-01";
   const response = await registerPOST(
-    new Request("https://portpass.test/api/futprep/lil-kickers/registrations", {
+    new Request("https://portpass.test/api/futprep/registrations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

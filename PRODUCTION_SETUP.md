@@ -45,9 +45,9 @@ SUPABASE_SECRET_KEY=<server-only secret key>
 
 Staff accounts are not set through environment variables or a fixed list.
 The first admin account is created through a one-time setup screen at
-`/futprep/lil-kickers/staff/login` (shown whenever no staff account exists
+`/futprep/staff/login` (shown whenever no staff account exists
 yet); that admin can then create coach/ceo/helper/admin accounts for
-everyone else from `/futprep/lil-kickers/staff/accounts`. PINs are stored as
+everyone else from `/futprep/staff/accounts`. PINs are stored as
 hashes on `staff_members.pin_hash`, keyed by `staff_members.account_key`, so
 they can be reset without a redeploy.
 

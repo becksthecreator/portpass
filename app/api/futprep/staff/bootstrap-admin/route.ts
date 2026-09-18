@@ -3,7 +3,7 @@ import {
   FUTPREP_STAFF_COOKIE,
   createBootstrapAdmin,
   makeStaffToken,
-} from "@/app/futprep/lil-kickers/staff-auth";
+} from "@/app/futprep/staff-auth";
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { name?: string; accountKey?: string; pin?: string };

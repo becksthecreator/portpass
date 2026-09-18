@@ -27,7 +27,7 @@ export default function FutprepHomePage() {
         <nav>
           <Link href="/futprep/programs">Programs</Link>
           <Link href="/futprep/coaches">Coaches</Link>
-          <Link className="fp-home-login" href="/futprep/lil-kickers/staff/login">Staff login</Link>
+          <Link className="fp-home-login" href="/futprep/staff/login">Staff login</Link>
         </nav>
       </header>
 
@@ -100,7 +100,7 @@ export default function FutprepHomePage() {
           <p>Coaches and staff can sign in to manage registrations, coaching operations, the team directory and private-session requests.</p>
         </div>
         <div className="fp-home-staff-actions">
-          <Link className="fp-home-staff-primary" href="/futprep/lil-kickers/staff/login">Open staff portal →</Link>
+          <Link className="fp-home-staff-primary" href="/futprep/staff/login">Open staff portal →</Link>
           <p>Staff access opens the operational side of Futprep while the public homepage stays focused on families, players and programs.</p>
         </div>
       </section>

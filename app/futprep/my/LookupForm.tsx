@@ -95,7 +95,7 @@ export function LookupForm({ initialCode = "" }: { initialCode?: string }) {
 
         <a
           className="secondary-button"
-          href={`/futprep/lil-kickers/register?${new URLSearchParams({
+          href={`/futprep/register?${new URLSearchParams({
             parentName: result.parentName,
             parentEmail: result.parentEmail,
             parentPhone: result.parentPhone,
