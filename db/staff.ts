@@ -1,5 +1,5 @@
 import { derivePaymentStatus } from "@/lib/payments";
-import { ensureFutprepPilotData, type PaymentMethod } from "./registrations";
+import { ensureFutprepPilotData, type PaymentFrequency, type PaymentMethod } from "./registrations";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -231,6 +231,8 @@ export async function recordFutprepPayment(input: {
   method: PaymentMethod;
   recordedBy: string;
   note?: string;
+  receivedAt?: string;
+  reference?: string;
 }) {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
@@ -247,6 +249,13 @@ export async function recordFutprepPayment(input: {
   }
 
   const now = new Date().toISOString();
+  let receivedAt = now;
+  if (input.receivedAt) {
+    const parsed = new Date(input.receivedAt);
+    if (Number.isNaN(parsed.getTime())) throw new Error("INVALID_DATE");
+    receivedAt = parsed.toISOString();
+  }
+
   const { error: insertError } = await db.from("payments").insert({
     registration_id: input.registrationId,
     amount_cents: input.amountCents,
@@ -254,7 +263,8 @@ export async function recordFutprepPayment(input: {
     status: "received",
     recorded_by: input.recordedBy,
     note: input.note ?? "",
-    received_at: now,
+    reference: input.reference?.trim() || null,
+    received_at: receivedAt,
     created_at: now,
   });
   throwIfSupabaseError(insertError, "Could not record payment");
@@ -637,4 +647,502 @@ export async function listFutprepWorkLogs(): Promise<StaffWorkLog[]> {
     notes: String(row.notes ?? ""),
     updated_at: String(row.updated_at ?? ""),
   }));
+}
+
+export type FutprepPaymentRecord = {
+  id: number;
+  amount_cents: number;
+  method: string;
+  status: string;
+  recorded_by: string | null;
+  note: string;
+  reference: string | null;
+  received_at: string | null;
+  created_at: string;
+};
+
+export type FutprepRegistrationEdit = {
+  id: number;
+  changed_by: string;
+  changes: Record<string, { from: unknown; to: unknown }>;
+  created_at: string;
+};
+
+export type FutprepRegistrationDetail = {
+  id: number;
+  reference_code: string;
+  program_id: number;
+  term_id: number;
+  program_name: string;
+  program_slug: string;
+  child_name: string;
+  child_dob: string | null;
+  gender: string | null;
+  relationship: string | null;
+  parent_name: string | null;
+  parent_email: string | null;
+  parent_phone: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  allergies: string | null;
+  medical_conditions: string | null;
+  medications: string | null;
+  special_needs: string | null;
+  medical_info_source: "parent" | "staff" | null;
+  authorized_pickup: string | null;
+  photo_consent: string | null;
+  signature_name: string | null;
+  consent_accepted: boolean;
+  consent_at: string | null;
+  payment_frequency: string;
+  payment_method: string | null;
+  amount_due_cents: number;
+  registration_status: string;
+  payment_status: string;
+  additional_notes: string;
+  submitted_at: string;
+  paid_cents: number;
+  payments: FutprepPaymentRecord[];
+  edits: FutprepRegistrationEdit[];
+};
+
+const DETAIL_COLUMNS =
+  "id,reference_code,program_id,term_id,child_name,child_dob,gender,relationship,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,medical_info_source,authorized_pickup,photo_consent,signature_name,consent_accepted,consent_at,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,additional_notes,submitted_at";
+
+function asNullableString(value: unknown): string | null {
+  return value === null || value === undefined ? null : String(value);
+}
+
+// Full staff-editable record for the child detail view: every field on the
+// registration, plus its payment history and edit audit trail, so the page
+// can show "who changed what and when" without a second round trip.
+export async function getFutprepRegistrationDetail(
+  registrationId: number,
+): Promise<FutprepRegistrationDetail | null> {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+
+  const { data: registration, error } = await db
+    .from("registrations")
+    .select(DETAIL_COLUMNS)
+    .eq("id", registrationId)
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load registration");
+  if (!registration) return null;
+
+  const [
+    { data: program, error: programError },
+    { data: payments, error: paymentError },
+    { data: edits, error: editError },
+  ] = await Promise.all([
+    db.from("programs").select("name,slug").eq("id", registration.program_id).maybeSingle(),
+    db
+      .from("payments")
+      .select("id,amount_cents,method,status,recorded_by,note,reference,received_at,created_at")
+      .eq("registration_id", registrationId)
+      .order("received_at", { ascending: false }),
+    db
+      .from("registration_edits")
+      .select("id,changed_by,changes,created_at")
+      .eq("registration_id", registrationId)
+      .order("created_at", { ascending: false }),
+  ]);
+  throwIfSupabaseError(programError, "Could not load registration program");
+  throwIfSupabaseError(paymentError, "Could not load registration payments");
+  throwIfSupabaseError(editError, "Could not load registration edit history");
+
+  const paymentRows = (payments ?? []) as Array<Record<string, unknown>>;
+  const paidCents = paymentRows
+    .filter((row) => row.status === "received")
+    .reduce((sum, row) => sum + Number(row.amount_cents), 0);
+
+  return {
+    id: Number(registration.id),
+    reference_code: String(registration.reference_code),
+    program_id: Number(registration.program_id),
+    term_id: Number(registration.term_id),
+    program_name: program?.name ?? "",
+    program_slug: program?.slug ?? "",
+    child_name: String(registration.child_name),
+    child_dob: asNullableString(registration.child_dob),
+    gender: asNullableString(registration.gender),
+    relationship: asNullableString(registration.relationship),
+    parent_name: asNullableString(registration.parent_name),
+    parent_email: asNullableString(registration.parent_email),
+    parent_phone: asNullableString(registration.parent_phone),
+    emergency_contact_name: asNullableString(registration.emergency_contact_name),
+    emergency_contact_phone: asNullableString(registration.emergency_contact_phone),
+    allergies: asNullableString(registration.allergies),
+    medical_conditions: asNullableString(registration.medical_conditions),
+    medications: asNullableString(registration.medications),
+    special_needs: asNullableString(registration.special_needs),
+    medical_info_source: (registration.medical_info_source as "parent" | "staff" | null) ?? null,
+    authorized_pickup: asNullableString(registration.authorized_pickup),
+    photo_consent: asNullableString(registration.photo_consent),
+    signature_name: asNullableString(registration.signature_name),
+    consent_accepted: Boolean(registration.consent_accepted),
+    consent_at: asNullableString(registration.consent_at),
+    payment_frequency: String(registration.payment_frequency),
+    payment_method: asNullableString(registration.payment_method),
+    amount_due_cents: Number(registration.amount_due_cents),
+    registration_status: String(registration.registration_status),
+    payment_status: String(registration.payment_status),
+    additional_notes: String(registration.additional_notes ?? ""),
+    submitted_at: String(registration.submitted_at),
+    paid_cents: paidCents,
+    payments: paymentRows.map((row) => ({
+      id: Number(row.id),
+      amount_cents: Number(row.amount_cents),
+      method: String(row.method),
+      status: String(row.status),
+      recorded_by: asNullableString(row.recorded_by),
+      note: String(row.note ?? ""),
+      reference: asNullableString(row.reference),
+      received_at: asNullableString(row.received_at),
+      created_at: String(row.created_at),
+    })),
+    edits: ((edits ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      id: Number(row.id),
+      changed_by: String(row.changed_by),
+      changes: (row.changes as Record<string, { from: unknown; to: unknown }>) ?? {},
+      created_at: String(row.created_at),
+    })),
+  };
+}
+
+export type FutprepRegistrationDetailInput = {
+  childName?: string;
+  childDob?: string | null;
+  gender?: string | null;
+  programSlug?: string;
+  relationship?: string | null;
+  parentName?: string | null;
+  parentEmail?: string | null;
+  parentPhone?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  authorizedPickup?: string | null;
+  allergies?: string | null;
+  medicalConditions?: string | null;
+  medications?: string | null;
+  specialNeeds?: string | null;
+  photoConsent?: "yes" | "no" | null;
+  paymentFrequency?: PaymentFrequency;
+  paymentMethod?: PaymentMethod | null;
+  // A staff override for an agreed one-off arrangement. Wins over whatever
+  // the term recalculation above would otherwise have set.
+  amountDueCentsOverride?: number | null;
+  additionalNotes?: string;
+};
+
+const AUDIT_FIELD_LABELS: Record<string, string> = {
+  child_name: "Child name",
+  child_dob: "Date of birth",
+  gender: "Gender",
+  program_id: "Programme",
+  relationship: "Relationship to child",
+  parent_name: "Parent name",
+  parent_email: "Parent email",
+  parent_phone: "Parent phone",
+  emergency_contact_name: "Emergency contact name",
+  emergency_contact_phone: "Emergency contact phone",
+  authorized_pickup: "Authorized pickup",
+  allergies: "Allergies",
+  medical_conditions: "Medical conditions",
+  medications: "Medications",
+  special_needs: "Special needs",
+  photo_consent: "Photo/video consent",
+  payment_frequency: "Payment frequency",
+  payment_method: "Payment method",
+  amount_due_cents: "Amount due",
+  additional_notes: "Notes",
+};
+
+// The full staff edit for a child's record. Deliberately never touches
+// signature_name / consent_accepted / consent_at -- those stay
+// parent-supplied only. A staff acknowledgement of, say, a verbal medical
+// update is recorded as a plain audit-trail note (see registration_edits),
+// never written into the consent columns themselves.
+export async function updateFutprepRegistrationDetail(
+  registrationId: number,
+  input: FutprepRegistrationDetailInput,
+  staffName: string,
+) {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+
+  const { data: current, error } = await db
+    .from("registrations")
+    .select(
+      "id,program_id,term_id,child_name,child_dob,gender,relationship,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,authorized_pickup,photo_consent,payment_frequency,payment_method,amount_due_cents,additional_notes",
+    )
+    .eq("id", registrationId)
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load registration to update");
+  if (!current) throw new Error("REGISTRATION_NOT_FOUND");
+
+  const updates: Record<string, unknown> = {};
+
+  if (input.childName !== undefined) updates.child_name = input.childName.trim();
+  if (input.childDob !== undefined) updates.child_dob = input.childDob || null;
+  if (input.gender !== undefined) updates.gender = input.gender || null;
+  if (input.relationship !== undefined) updates.relationship = input.relationship?.trim() || null;
+  if (input.parentName !== undefined) updates.parent_name = input.parentName?.trim() || null;
+  if (input.parentEmail !== undefined) updates.parent_email = input.parentEmail?.trim().toLowerCase() || null;
+  if (input.parentPhone !== undefined) updates.parent_phone = input.parentPhone?.trim() || null;
+  if (input.emergencyContactName !== undefined) updates.emergency_contact_name = input.emergencyContactName?.trim() || null;
+  if (input.emergencyContactPhone !== undefined) updates.emergency_contact_phone = input.emergencyContactPhone?.trim() || null;
+  if (input.authorizedPickup !== undefined) updates.authorized_pickup = input.authorizedPickup?.trim() || null;
+  if (input.additionalNotes !== undefined) updates.additional_notes = input.additionalNotes;
+
+  // Any medical field touched by staff (even to clear it) marks the whole
+  // medical block as staff-entered -- shown as a clear label in the UI so a
+  // coach knows this wasn't confirmed by the parent directly.
+  let medicalTouched = false;
+  if (input.allergies !== undefined) { updates.allergies = input.allergies?.trim() || null; medicalTouched = true; }
+  if (input.medicalConditions !== undefined) { updates.medical_conditions = input.medicalConditions?.trim() || null; medicalTouched = true; }
+  if (input.medications !== undefined) { updates.medications = input.medications?.trim() || null; medicalTouched = true; }
+  if (input.specialNeeds !== undefined) { updates.special_needs = input.specialNeeds?.trim() || null; medicalTouched = true; }
+  if (medicalTouched) updates.medical_info_source = "staff";
+
+  if (input.photoConsent !== undefined) updates.photo_consent = input.photoConsent;
+
+  let newTermId = Number(current.term_id);
+  let programChanged = false;
+  let programNameChange: { from: string; to: string } | null = null;
+  if (input.programSlug) {
+    const { data: program, error: programError } = await db
+      .from("programs")
+      .select("id,name")
+      .eq("slug", input.programSlug)
+      .eq("active", true)
+      .maybeSingle();
+    throwIfSupabaseError(programError, "Could not load selected programme");
+    if (!program) throw new Error("INVALID_PROGRAM");
+    if (Number(program.id) !== Number(current.program_id)) {
+      const [{ data: term, error: termError }, { data: previousProgram, error: previousProgramError }] = await Promise.all([
+        db
+          .from("program_terms")
+          .select("id")
+          .eq("program_id", program.id)
+          .eq("active", true)
+          .order("start_date", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        db.from("programs").select("name").eq("id", current.program_id).maybeSingle(),
+      ]);
+      throwIfSupabaseError(termError, "Could not load term for selected programme");
+      throwIfSupabaseError(previousProgramError, "Could not load current programme");
+      if (!term) throw new Error("PROGRAM_NOT_AVAILABLE");
+      newTermId = Number(term.id);
+      programChanged = true;
+      updates.program_id = Number(program.id);
+      updates.term_id = newTermId;
+      programNameChange = { from: previousProgram?.name ?? String(current.program_id), to: program.name };
+    }
+  }
+
+  const frequencyChanged = input.paymentFrequency !== undefined && input.paymentFrequency !== current.payment_frequency;
+  if (input.paymentFrequency !== undefined) updates.payment_frequency = input.paymentFrequency;
+  if (input.paymentMethod !== undefined) updates.payment_method = input.paymentMethod;
+
+  // Moving a child between classes, or switching weekly/term billing,
+  // changes which term fee amount_due_cents is based on -- recompute it
+  // from the (possibly new) term rather than leaving a stale figure.
+  if (programChanged || frequencyChanged) {
+    const { data: term, error: termError } = await db
+      .from("program_terms")
+      .select("weekly_fee_cents,term_fee_cents")
+      .eq("id", newTermId)
+      .maybeSingle();
+    throwIfSupabaseError(termError, "Could not load term fees");
+    if (!term) throw new Error("PROGRAM_NOT_AVAILABLE");
+    const frequency = input.paymentFrequency ?? (current.payment_frequency as PaymentFrequency);
+    updates.amount_due_cents = frequency === "term" ? Number(term.term_fee_cents) : Number(term.weekly_fee_cents);
+  }
+
+  if (input.amountDueCentsOverride !== undefined && input.amountDueCentsOverride !== null) {
+    if (!Number.isInteger(input.amountDueCentsOverride) || input.amountDueCentsOverride < 0) {
+      throw new Error("INVALID_AMOUNT");
+    }
+    updates.amount_due_cents = input.amountDueCentsOverride;
+  }
+
+  if (!Object.keys(updates).length) return;
+
+  const changes: Record<string, { from: unknown; to: unknown }> = {};
+  for (const [column, nextValue] of Object.entries(updates)) {
+    // program_id / term_id are logged together as one readable "Programme"
+    // entry (below) rather than raw ids.
+    if (column === "term_id" || column === "program_id") continue;
+    const previousValue = (current as Record<string, unknown>)[column] ?? null;
+    if (previousValue !== nextValue) {
+      changes[AUDIT_FIELD_LABELS[column] ?? column] = { from: previousValue, to: nextValue };
+    }
+  }
+  if (programNameChange) changes.Programme = programNameChange;
+
+  const { error: updateError } = await db.from("registrations").update(updates).eq("id", registrationId);
+  throwIfSupabaseError(updateError, "Could not update registration");
+
+  if (Object.keys(changes).length) {
+    const { error: auditError } = await db.from("registration_edits").insert({
+      registration_id: registrationId,
+      changed_by: staffName,
+      changes,
+    });
+    throwIfSupabaseError(auditError, "Could not record edit history");
+  }
+
+  // The amount due (or how it's billed) may have just changed underneath an
+  // existing balance -- e.g. a family moved from an incorrect "weekly" flag
+  // to "term" now needs their $210 re-evaluated against the real term fee,
+  // not silently left "paid".
+  if (updates.amount_due_cents !== undefined || updates.payment_frequency !== undefined) {
+    const { data: payments, error: paymentError } = await db
+      .from("payments")
+      .select("amount_cents")
+      .eq("registration_id", registrationId)
+      .eq("status", "received");
+    throwIfSupabaseError(paymentError, "Could not total payments");
+    const paid = (payments ?? []).reduce((sum: number, row: { amount_cents: number }) => sum + Number(row.amount_cents), 0);
+    const nextStatus = derivePaymentStatus({
+      paymentFrequency: (updates.payment_frequency as PaymentFrequency | undefined) ?? (current.payment_frequency as PaymentFrequency),
+      paidCents: paid,
+      amountDueCents: Number(updates.amount_due_cents ?? current.amount_due_cents),
+    });
+    const { error: statusError } = await db
+      .from("registrations")
+      .update({ payment_status: nextStatus })
+      .eq("id", registrationId);
+    throwIfSupabaseError(statusError, "Could not update payment status");
+  }
+}
+
+// Corrects a mistaken payment entry. Rather than editing amounts in place
+// (which would make the audit trail ambiguous about what was actually
+// received), a void removes the entry and recomputes the balance -- staff
+// re-record the correct payment separately if one is still owed.
+export async function voidFutprepPayment(input: {
+  paymentId: number;
+  voidedBy: string;
+  reason?: string;
+}) {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+
+  const { data: payment, error } = await db
+    .from("payments")
+    .select("id,registration_id,amount_cents,method,received_at")
+    .eq("id", input.paymentId)
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load payment");
+  if (!payment) throw new Error("PAYMENT_NOT_FOUND");
+
+  const { error: deleteError } = await db.from("payments").delete().eq("id", input.paymentId);
+  throwIfSupabaseError(deleteError, "Could not remove payment");
+
+  const { data: registration, error: registrationError } = await db
+    .from("registrations")
+    .select("payment_frequency,amount_due_cents")
+    .eq("id", payment.registration_id)
+    .maybeSingle();
+  throwIfSupabaseError(registrationError, "Could not load registration for payment void");
+
+  const { data: remaining, error: remainingError } = await db
+    .from("payments")
+    .select("amount_cents")
+    .eq("registration_id", payment.registration_id)
+    .eq("status", "received");
+  throwIfSupabaseError(remainingError, "Could not total remaining payments");
+  const paidCents = (remaining ?? []).reduce((sum: number, row: { amount_cents: number }) => sum + Number(row.amount_cents), 0);
+
+  const paymentStatus = registration
+    ? derivePaymentStatus({
+        paymentFrequency: registration.payment_frequency,
+        paidCents,
+        amountDueCents: Number(registration.amount_due_cents),
+      })
+    : "pending";
+
+  const { error: statusError } = await db
+    .from("registrations")
+    .update({ payment_status: paymentStatus })
+    .eq("id", payment.registration_id);
+  throwIfSupabaseError(statusError, "Could not update payment status after void");
+
+  const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const { error: auditError } = await db.from("registration_edits").insert({
+    registration_id: payment.registration_id,
+    changed_by: input.voidedBy,
+    changes: {
+      Payment: {
+        from: `${money(Number(payment.amount_cents))} recorded ${payment.received_at ? `on ${String(payment.received_at).slice(0, 10)}` : ""}`.trim(),
+        to: `Voided${input.reason ? ` — ${input.reason}` : ""}`,
+      },
+    },
+  });
+  throwIfSupabaseError(auditError, "Could not record payment void");
+
+  return { registrationId: Number(payment.registration_id), paidCents, paymentStatus };
+}
+
+export type FutprepMoneySummaryBucket = {
+  programSlug: string;
+  programName: string;
+  expectedCents: number;
+  collectedCents: number;
+  outstandingCents: number;
+  countWithBalance: number;
+  count: number;
+};
+
+export type FutprepMoneySummary = {
+  combined: FutprepMoneySummaryBucket;
+  byProgram: FutprepMoneySummaryBucket[];
+};
+
+// Built directly from the same rows the roster shows (registrations +
+// summed received payments) so the strip's totals can never drift from
+// what a direct sum of those two tables would produce.
+export async function getFutprepMoneySummary(): Promise<FutprepMoneySummary> {
+  const registrations = await listFutprepStaffRegistrations();
+
+  const byProgramMap = new Map<string, FutprepMoneySummaryBucket>();
+  for (const registration of registrations) {
+    const bucket = byProgramMap.get(registration.program_slug) ?? {
+      programSlug: registration.program_slug,
+      programName: registration.program_name,
+      expectedCents: 0,
+      collectedCents: 0,
+      outstandingCents: 0,
+      countWithBalance: 0,
+      count: 0,
+    };
+    bucket.expectedCents += registration.amount_due_cents;
+    bucket.collectedCents += registration.paid_cents;
+    bucket.count += 1;
+    if (registration.amount_due_cents - registration.paid_cents > 0) bucket.countWithBalance += 1;
+    byProgramMap.set(registration.program_slug, bucket);
+  }
+
+  const byProgram = Array.from(byProgramMap.values()).map((bucket) => ({
+    ...bucket,
+    outstandingCents: Math.max(0, bucket.expectedCents - bucket.collectedCents),
+  }));
+
+  const combined = byProgram.reduce<FutprepMoneySummaryBucket>(
+    (acc, bucket) => ({
+      programSlug: "combined",
+      programName: "All programmes",
+      expectedCents: acc.expectedCents + bucket.expectedCents,
+      collectedCents: acc.collectedCents + bucket.collectedCents,
+      outstandingCents: acc.outstandingCents + bucket.outstandingCents,
+      countWithBalance: acc.countWithBalance + bucket.countWithBalance,
+      count: acc.count + bucket.count,
+    }),
+    { programSlug: "combined", programName: "All programmes", expectedCents: 0, collectedCents: 0, outstandingCents: 0, countWithBalance: 0, count: 0 },
+  );
+
+  return { combined, byProgram };
 }
