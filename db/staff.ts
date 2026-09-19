@@ -897,12 +897,24 @@ export async function updateFutprepRegistrationDetail(
 
   // Any medical field touched by staff (even to clear it) marks the whole
   // medical block as staff-entered -- shown as a clear label in the UI so a
-  // coach knows this wasn't confirmed by the parent directly.
+  // coach knows this wasn't confirmed by the parent directly. The editor
+  // always submits all four fields, so "touched" is decided by whether the
+  // normalized value actually changed, not merely whether it was present in
+  // the request -- otherwise every save (even one that never opens the
+  // medical section) would relabel it as staff-entered.
+  const normalizeMedical = (value: string | null | undefined) => value?.trim() || null;
   let medicalTouched = false;
-  if (input.allergies !== undefined) { updates.allergies = input.allergies?.trim() || null; medicalTouched = true; }
-  if (input.medicalConditions !== undefined) { updates.medical_conditions = input.medicalConditions?.trim() || null; medicalTouched = true; }
-  if (input.medications !== undefined) { updates.medications = input.medications?.trim() || null; medicalTouched = true; }
-  if (input.specialNeeds !== undefined) { updates.special_needs = input.specialNeeds?.trim() || null; medicalTouched = true; }
+  const applyMedicalField = (column: "allergies" | "medical_conditions" | "medications" | "special_needs", incoming: string | null | undefined, previous: string | null) => {
+    if (incoming === undefined) return;
+    const next = normalizeMedical(incoming);
+    if (next === normalizeMedical(previous)) return;
+    updates[column] = next;
+    medicalTouched = true;
+  };
+  applyMedicalField("allergies", input.allergies, current.allergies);
+  applyMedicalField("medical_conditions", input.medicalConditions, current.medical_conditions);
+  applyMedicalField("medications", input.medications, current.medications);
+  applyMedicalField("special_needs", input.specialNeeds, current.special_needs);
   if (medicalTouched) updates.medical_info_source = "staff";
 
   if (input.photoConsent !== undefined) updates.photo_consent = input.photoConsent;
