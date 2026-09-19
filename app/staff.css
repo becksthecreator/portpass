@@ -288,6 +288,22 @@
 
 .staff-registration-head a{align-self:flex-end;font-size:.68rem;font-weight:800}
 
+.wedding-lead-card{display:block;text-decoration:none;color:inherit}
+.wedding-lead-card:hover{border-color:var(--ink)}
+.wedding-admin-panel{background:var(--paper);border:1px solid var(--line);padding:26px;margin-bottom:18px}
+.wedding-admin-panel h2{font-family:Georgia,serif;font-size:1.6rem;font-weight:400;margin:0 0 6px}
+.wedding-admin-field-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px}
+.wedding-admin-field-grid label{display:flex;flex-direction:column;gap:6px;font-size:.78rem}
+.wedding-admin-field-grid label span{color:var(--muted);font-size:.68rem;text-transform:uppercase}
+.wedding-admin-field-grid input,.wedding-admin-field-grid textarea,.wedding-admin-field-grid select{border:1px solid var(--line);padding:8px 10px;font-size:.85rem;font-family:inherit}
+.wedding-admin-field-full{grid-column:1/-1}
+.wedding-notes-list{display:flex;flex-direction:column;gap:12px;margin:16px 0}
+.wedding-notes-list li{border-left:3px solid var(--line);padding:6px 0 6px 14px}
+.wedding-notes-list strong{font-size:.78rem}
+.wedding-notes-list span{color:var(--muted);font-size:.68rem;margin-left:8px}
+.wedding-notes-list p{margin:4px 0 0;font-size:.82rem}
+.staff-actions button.danger-action{background:#8f3026}
+
 .detail-editor{display:flex;flex-direction:column;gap:26px}
 .detail-small-stat{font-size:1.1rem !important}
 .detail-grid{display:grid;gap:16px;grid-template-columns:repeat(2,1fr)}

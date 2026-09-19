@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { bwsSerif, bwsSans } from "../fonts";
 import { WeddingPlanner } from "./WeddingPlanner";
 import { getPublicWeddingPackages } from "@/db/weddingPackages";
+import { getPublicUnavailableDates } from "@/db/weddingAvailability";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export const metadata = {
 };
 
 export default async function PlanPage() {
-  const packages = await getPublicWeddingPackages();
+  const [packages, unavailableDates] = await Promise.all([getPublicWeddingPackages(), getPublicUnavailableDates()]);
   return (
     <div className={`bws-theme bws-planner-body ${bwsSerif.variable} ${bwsSans.variable}`}>
       <a className="bws-skip-link" href="#planner-main">Skip to planner</a>
@@ -32,7 +33,7 @@ export default async function PlanPage() {
           </div>
         </section>
         <Suspense fallback={null}>
-          <WeddingPlanner packages={packages} />
+          <WeddingPlanner packages={packages} unavailableDates={unavailableDates} />
         </Suspense>
       </main>
       <footer className="bws-planner-footer">

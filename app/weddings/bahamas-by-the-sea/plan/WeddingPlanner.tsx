@@ -83,7 +83,7 @@ function buildWhatsAppMessage(form: FormState) {
   return lines.join("\n");
 }
 
-export function WeddingPlanner({ packages }: { packages: PublicWeddingPackage[] }) {
+export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: PublicWeddingPackage[]; unavailableDates?: string[] }) {
   const searchParams = useSearchParams();
   const [form, setForm] = useState<FormState>(() => ({
     ceremonyChoice: searchParams.get("ceremony") ?? "",
@@ -264,6 +264,9 @@ export function WeddingPlanner({ packages }: { packages: PublicWeddingPackage[] 
                 <label htmlFor="plan-date">Preferred date <span>(optional)</span></label>
                 <input id="plan-date" type="date" value={form.weddingDate} onChange={(e) => set("weddingDate", e.target.value)} />
                 <small>Leave blank if you are still deciding.</small>
+                {form.weddingDate && unavailableDates.includes(form.weddingDate) && (
+                  <p className="bws-step-help" style={{ color: "#8d2330" }}>Antonio is already unavailable on this date — the Wedding Desk will confirm alternatives with you. You can still continue.</p>
+                )}
               </div>
               <div className="bws-field">
                 <label htmlFor="plan-guests">Estimated guests <span>(optional)</span></label>
