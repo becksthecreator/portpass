@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { bwsSerif, bwsSans } from "../fonts";
 import { WeddingPlanner } from "./WeddingPlanner";
 import { getPublicWeddingPackages } from "@/db/weddingPackages";
+import { getPublicUnavailableDates } from "@/db/weddingAvailability";
 
 export const dynamic = "force-dynamic";
 
@@ -12,13 +13,16 @@ export const metadata = {
 };
 
 export default async function PlanPage() {
-  const packages = await getPublicWeddingPackages();
+  const [packages, unavailableDates] = await Promise.all([getPublicWeddingPackages(), getPublicUnavailableDates()]);
   return (
     <div className={`bws-theme bws-planner-body ${bwsSerif.variable} ${bwsSans.variable}`}>
       <a className="bws-skip-link" href="#planner-main">Skip to planner</a>
       <header className="bws-site-header bws-inner-header">
         <Link className="bws-brand" href="/weddings/bahamas-by-the-sea" aria-label="Bahamas Weddings By The Sea home"><span>Bahamas</span><small>WEDDINGS BY THE SEA</small></Link>
-        <Link className="bws-planner-home" href="/weddings/bahamas-by-the-sea">Back to the main site <span aria-hidden="true">↗</span></Link>
+        <nav className="bws-desktop-nav" aria-label="Main navigation">
+          <Link className="bws-portpass-link" href="/"><span aria-hidden="true">←</span> PortPass</Link>
+          <Link className="bws-planner-home" href="/weddings/bahamas-by-the-sea">Back to the main site <span aria-hidden="true">↗</span></Link>
+        </nav>
       </header>
       <main className="bws-planner-main" id="planner-main">
         <section className="bws-planner-intro">
@@ -32,7 +36,7 @@ export default async function PlanPage() {
           </div>
         </section>
         <Suspense fallback={null}>
-          <WeddingPlanner packages={packages} />
+          <WeddingPlanner packages={packages} unavailableDates={unavailableDates} />
         </Suspense>
       </main>
       <footer className="bws-planner-footer">

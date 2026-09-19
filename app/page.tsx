@@ -30,7 +30,7 @@ export default async function Home() {
 
   const heroPasses = [
     lilKickers && { eyebrow: "Futprep Athletics", title: lilKickers.name, line: `${lilKickers.day}s ${programTimeRange(lilKickers)} · Lyford Cay`, tone: "green" as const },
-    { eyebrow: "Bahamas Weddings By The Sea", title: "Island ceremony", line: "Nassau, The Bahamas · With Antonio Beckford Sr.", tone: "sand" as const },
+    { eyebrow: "Bahamas Weddings By The Sea", title: "Island ceremony", line: "Nassau, The Bahamas · With Antonio Beckford", tone: "sand" as const },
     kickers && { eyebrow: "Futprep Athletics", title: kickers.name, line: `${kickers.day}s ${programTimeRange(kickers)} · Lyford Cay`, tone: "ocean" as const },
   ].filter((pass): pass is { eyebrow: string; title: string; line: string; tone: "green" | "sand" | "ocean" } => Boolean(pass));
 
@@ -117,7 +117,7 @@ export default async function Home() {
           <article className="home-live-panel">
             <span className="home-live-panel-kicker">Weddings</span>
             <h3>Bahamas Weddings By The Sea.</h3>
-            <p>Weddings, intimate ceremonies and vow renewals with officiant Antonio Beckford Sr. — plus a guided planner and a real Wedding Desk behind it.</p>
+            <p>Weddings, intimate ceremonies and vow renewals with officiant Antonio Beckford — plus a guided planner and a real Wedding Desk behind it.</p>
             <ul className="home-live-list">
               <li><strong>Your wedding</strong><span>A personalized legal ceremony</span></li>
               <li><strong>Just the two of you</strong><span>An intimate island ceremony</span></li>
