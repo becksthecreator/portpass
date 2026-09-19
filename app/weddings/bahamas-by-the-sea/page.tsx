@@ -5,6 +5,11 @@ import { QuickEnquiryForm } from "./QuickEnquiryForm";
 import { Gallery } from "./Gallery";
 import { getPublicWeddingVenues } from "@/db/venues";
 import { getPublicWeddingGallery, getWeddingSiteSettings } from "@/db/weddingSite";
+import { getPublicWeddingPackages } from "@/db/weddingPackages";
+
+function money(cents: number, currency: string) {
+  return new Intl.NumberFormat("en-BS", { style: "currency", currency, minimumFractionDigits: 0 }).format(cents / 100);
+}
 
 const VENUE_STYLES = ["Beach", "Garden", "Chapel", "Private estate", "Hotel", "Boat"];
 
@@ -30,10 +35,11 @@ const NAV_LINKS = [
 
 export default async function BahamasWeddingsByTheSeaPage() {
   const year = new Date().getFullYear();
-  const [venues, gallery, siteSettings] = await Promise.all([
+  const [venues, gallery, siteSettings, packages] = await Promise.all([
     getPublicWeddingVenues(),
     getPublicWeddingGallery(),
     getWeddingSiteSettings(),
+    getPublicWeddingPackages(),
   ]);
   return (
     <div className={`bws-theme ${bwsSerif.variable} ${bwsSans.variable}`}>
@@ -116,6 +122,32 @@ export default async function BahamasWeddingsByTheSeaPage() {
             <Link className="bws-ceremony-item" href="/weddings/bahamas-by-the-sea/plan?ceremony=Wedding%20ceremony"><span className="bws-item-number">01 /</span><h3>Your wedding</h3><p>A personalized ceremony with guidance on the marriage process and coordination for your day.</p><span className="bws-text-link">Plan your ceremony <span aria-hidden="true">↗</span></span></Link>
             <Link className="bws-ceremony-item" href="/weddings/bahamas-by-the-sea/plan?ceremony=Intimate%20wedding"><span className="bws-item-number">02 /</span><h3>Just the two of you</h3><p>Dreaming of something intimate? Tell Antonio about your island escape and the way you want to say &ldquo;I do.&rdquo;</p><span className="bws-text-link">Start something beautiful <span aria-hidden="true">↗</span></span></Link>
             <Link className="bws-ceremony-item" href="/weddings/bahamas-by-the-sea/plan?ceremony=Vow%20renewal"><span className="bws-item-number">03 /</span><h3>&ldquo;I do.&rdquo; All over again.</h3><p>A vow renewal to celebrate your life together, with an ocean of memories still ahead.</p><span className="bws-text-link">Celebrate your story <span aria-hidden="true">↗</span></span></Link>
+          </div>
+        </section>
+
+        <section className="bws-tiers bws-section-wrap" id="packages">
+          <div className="bws-section-heading">
+            <div><p className="bws-eyebrow">How much should we handle?</p><h2>Choose your<br /><em>level of service.</em></h2></div>
+            <p>Any ceremony above can be as hands-off or as fully planned as you want it to be. Choosing one here doesn&rsquo;t confirm or book anything — it just tells the Wedding Desk where to start.</p>
+          </div>
+          <div className="bws-tier-grid">
+            {packages.map((pkg) => (
+              <div className="bws-tier-card" key={pkg.id}>
+                <h3>{pkg.name}</h3>
+                {pkg.tagline && <p className="bws-tier-tagline">{pkg.tagline}</p>}
+                <p className="bws-tier-price">
+                  {pkg.priceFromCents !== null
+                    ? <>{pkg.priceNote === "from" ? "From " : ""}{money(pkg.priceFromCents, pkg.currency)}</>
+                    : "Ask the Wedding Desk"}
+                </p>
+                {pkg.includes.length > 0 && (
+                  <ul className="bws-tier-includes">
+                    {pkg.includes.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                )}
+                <Link className="bws-text-link" href={`/weddings/bahamas-by-the-sea/plan?tier=${encodeURIComponent(pkg.slug)}`}>Start with this level <span aria-hidden="true">↗</span></Link>
+              </div>
+            ))}
           </div>
         </section>
 

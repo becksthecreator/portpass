@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createWeddingLead } from "@/db/weddingLeads";
+import { getWeddingPackageBySlug } from "@/db/weddingPackages";
 import { sendEmail } from "@/lib/email";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -69,6 +70,9 @@ export async function POST(request: NextRequest) {
   const venueIdRaw = b.venueId;
   const venueId = typeof venueIdRaw === "number" && Number.isFinite(venueIdRaw) ? Math.round(venueIdRaw) : null;
 
+  const packageSlug = str(b.packageSlug, 60);
+  const packageId = packageSlug ? (await getWeddingPackageBySlug(packageSlug))?.id ?? null : null;
+
   try {
     const lead = await createWeddingLead({
       idempotencyKey,
@@ -83,6 +87,7 @@ export async function POST(request: NextRequest) {
       locationIdea: str(b.locationIdea, 500),
       venueId,
       venuePreference: str(b.venuePreference, 120),
+      packageId,
       requestedServices: strArray(b.requestedServices, 120),
       consultationMethod: (consultationMethodRaw as "phone" | "whatsapp_video" | "guided_text") || null,
       consultationPreferredDate: str(b.consultationPreferredDate, 20),

@@ -22,6 +22,7 @@ export type WeddingLeadInput = {
   contactConsent: boolean;
   marketingConsent: boolean;
   utm?: Record<string, string>;
+  packageId?: number | null;
 };
 
 export type WeddingLead = {
@@ -52,6 +53,7 @@ export async function createWeddingLead(input: WeddingLeadInput): Promise<Weddin
       location_idea: input.locationIdea || null,
       venue_id: input.venueId ?? null,
       venue_preference: input.venuePreference || null,
+      package_id: input.packageId ?? null,
       requested_services: input.requestedServices ?? [],
       consultation_method: input.consultationMethod ?? null,
       consultation_preferred_date: input.consultationPreferredDate || null,
