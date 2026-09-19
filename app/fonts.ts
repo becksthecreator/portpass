@@ -1,8 +1,8 @@
 import { Fraunces, Inter } from "next/font/google";
 
-// Display face with real character for the homepage's headline moments —
-// distinct from the wedding site's Cormorant Garamond so the two don't
-// read as the same sub-brand.
+// Display face with real character for the homepage's headline moments.
+// The wedding site (app/weddings/bahamas-by-the-sea/fonts.ts) intentionally
+// loads the same Fraunces/Inter pairing at Antonio's request.
 export const ppDisplay = Fraunces({
   subsets: ["latin"],
   weight: ["400", "500", "600"],

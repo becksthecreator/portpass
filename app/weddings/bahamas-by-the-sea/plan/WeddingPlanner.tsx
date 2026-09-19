@@ -66,7 +66,7 @@ const STEP_LABELS = ["Your ceremony", "The day", "Venue style", "Services", "Con
 
 function buildWhatsAppMessage(form: FormState) {
   const lines = [
-    "Hello Beckfords Wedding Desk! I'd like to start planning through Bahamas Weddings By The Sea.",
+    "Hello Wedding Desk! I'd like to start planning through Bahamas Weddings By The Sea.",
     "",
     `Names: ${form.names}`,
     `Celebrating: ${form.ceremonyChoice || "Still exploring"}`,
@@ -196,7 +196,7 @@ export function WeddingPlanner() {
       <section className="bws-planner-confirmation">
         <span className="bws-eyebrow">Request received</span>
         <h1>Your plan is on its way to the Wedding Desk.</h1>
-        <p>Thank you, {form.names}. A Beckfords representative will follow up to refine the details before Antonio reviews your complete plan. Prefer to talk now?</p>
+        <p>Thank you, {form.names}. A Wedding Desk representative will follow up to refine the details before Antonio reviews your complete plan. Prefer to talk now?</p>
         <a className="bws-button bws-button-dark" href={whatsappHref} target="_blank" rel="noopener noreferrer">Message the Wedding Desk on WhatsApp <span aria-hidden="true">↗</span></a>
       </section>
     );
@@ -303,7 +303,7 @@ export function WeddingPlanner() {
         {step === 4 && (
           <fieldset className="bws-planner-step">
             <legend>How should we plan together?</legend>
-            <p className="bws-step-help">Request a pre-consultation with a Beckfords representative. Your time is not confirmed until the Wedding Desk replies.</p>
+            <p className="bws-step-help">Request a pre-consultation with a Wedding Desk representative. Your time is not confirmed until the Wedding Desk replies.</p>
             <div className="bws-choice-grid bws-consultation-choices">
               {CONSULTATION_CHOICES.map((option) => (
                 <label className="bws-choice-card" key={option.value}>
@@ -365,7 +365,7 @@ export function WeddingPlanner() {
                   <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
                 ))}
               </dl>
-              <p>This starts an enquiry, not a booking. The Beckfords Wedding Desk confirms your consultation, prepares the plan, and sends it to Antonio for review.</p>
+              <p>This starts an enquiry, not a booking. The Wedding Desk confirms your consultation, prepares the plan, and sends it to Antonio for review.</p>
             </div>
           </fieldset>
         )}
