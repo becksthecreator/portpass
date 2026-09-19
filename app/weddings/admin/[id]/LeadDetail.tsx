@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { WeddingLeadDetail, WeddingLeadStatus } from "@/db/weddingAdmin";
-import { WEDDING_LEAD_STATUSES } from "@/db/weddingAdmin";
+import type { WeddingLeadDetail } from "@/db/weddingAdmin";
+import { WEDDING_LEAD_STATUSES, type WeddingLeadStatus } from "@/lib/weddingLeads";
 
 const STATUS_LABEL: Record<WeddingLeadStatus, string> = {
   new: "New",

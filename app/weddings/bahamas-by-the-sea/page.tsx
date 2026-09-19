@@ -47,10 +47,11 @@ export default async function BahamasWeddingsByTheSeaPage() {
       <header className="bws-site-header" id="site-header">
         <a className="bws-brand" href="#home" aria-label="Bahamas Weddings By The Sea home"><span>Bahamas</span><small>WEDDINGS BY THE SEA</small></a>
         <nav className="bws-desktop-nav" aria-label="Main navigation">
+          <Link className="bws-portpass-link" href="/"><span aria-hidden="true">←</span> PortPass</Link>
           {NAV_LINKS.map((l) => <a key={l.href} href={l.href}>{l.label}</a>)}
           <Link className="bws-nav-cta" href="/weddings/bahamas-by-the-sea/plan">Plan your wedding <span aria-hidden="true">↗</span></Link>
         </nav>
-        <MobileMenu links={[...NAV_LINKS, { href: "/weddings/bahamas-by-the-sea/plan", label: "Plan your wedding" }]} />
+        <MobileMenu links={[{ href: "/", label: "← Back to PortPass" }, ...NAV_LINKS, { href: "/weddings/bahamas-by-the-sea/plan", label: "Plan your wedding" }]} />
       </header>
 
       <main id="main">
@@ -58,11 +59,9 @@ export default async function BahamasWeddingsByTheSeaPage() {
           <img className="bws-hero-image" src={`${ASSET}/hero.jpg`} alt="A floral wedding arch overlooking turquoise water on Paradise Island" width={1920} height={1280} fetchPriority="high" />
           <div className="bws-hero-shade" />
           <div className="bws-hero-content">
-            <div className="bws-hero-textscrim">
-              <p className="bws-eyebrow">Nassau, The Bahamas</p>
-              <h1 id="hero-title">A love like yours.<br /><em>A place like this.</em></h1>
-              <p className="bws-hero-intro">The sea. The moment. The two of you.<br />A personal island ceremony, with Antonio Beckford.</p>
-            </div>
+            <span className="bws-hero-badge">Nassau, The Bahamas</span>
+            <h1 id="hero-title">A love like yours.<br /><em>A place like this.</em></h1>
+            <p className="bws-hero-intro">The sea. The moment. The two of you.<br />A personal island ceremony, with Antonio Beckford.</p>
             <Link className="bws-hero-cta bws-button bws-button-light" href="/weddings/bahamas-by-the-sea/plan">Plan your wedding <span aria-hidden="true">↗</span></Link>
           </div>
           <div className="bws-hero-foot">

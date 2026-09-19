@@ -1,17 +1,8 @@
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
+import { WEDDING_LEAD_STATUSES, type WeddingLeadStatus } from "@/lib/weddingLeads";
 
-export const WEDDING_LEAD_STATUSES = [
-  "new",
-  "pre_consultation",
-  "consultation_requested",
-  "planning",
-  "ready_for_antonio",
-  "antonio_review",
-  "quoted",
-  "booked",
-  "closed",
-] as const;
-export type WeddingLeadStatus = (typeof WEDDING_LEAD_STATUSES)[number];
+export { WEDDING_LEAD_STATUSES };
+export type { WeddingLeadStatus };
 
 const LEAD_LIST_COLUMNS =
   "id,names,email,phone,ceremony_type,package_id,preferred_wedding_date,guest_count,travel_origin,status,created_at,updated_at,wedding_packages(name)";
