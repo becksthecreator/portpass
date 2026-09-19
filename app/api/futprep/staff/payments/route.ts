@@ -12,6 +12,8 @@ export async function POST(request: Request) {
     amountCents?: number;
     method?: string;
     note?: string;
+    receivedAt?: string;
+    reference?: string;
   };
 
   if (!Number.isInteger(body.registrationId) || !Number.isInteger(body.amountCents) || Number(body.amountCents) <= 0) {
@@ -33,6 +35,8 @@ export async function POST(request: Request) {
       method: body.method,
       recordedBy,
       note: typeof body.note === "string" ? body.note.slice(0,500) : "",
+      receivedAt: typeof body.receivedAt === "string" && body.receivedAt.trim() ? body.receivedAt.trim() : undefined,
+      reference: typeof body.reference === "string" ? body.reference.slice(0,120) : undefined,
     });
     sendFutprepPaymentRecordedEmail({
       parentEmail: result.parentEmail,

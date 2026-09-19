@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { StaffRegistration } from "@/db/staff";
 import { missingRegistrationFields } from "@/lib/futprepRegistrations";
@@ -25,6 +26,8 @@ function openCompletionWhatsApp(item: StaffRegistration) {
 export function AdminRegistrationManager({ initialRegistrations }: { initialRegistrations: StaffRegistration[] }) {
   const [items,setItems] = useState(initialRegistrations);
   const [filter,setFilter] = useState("all");
+  const [onlyBalance,setOnlyBalance] = useState(false);
+  const [onlyIncomplete,setOnlyIncomplete] = useState(false);
   const [search,setSearch] = useState("");
   const [busy,setBusy] = useState<number|null>(null);
   const [amounts,setAmounts] = useState<Record<number,string>>({});
@@ -34,10 +37,12 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
     const query = search.trim().toLowerCase();
     return items.filter((item) => {
       if (filter !== "all" && item.program_slug !== filter) return false;
+      if (onlyBalance && item.amount_due_cents - item.paid_cents <= 0) return false;
+      if (onlyIncomplete && missingRegistrationFields(item).length === 0) return false;
       if (!query) return true;
       return item.reference_code.toLowerCase().includes(query) || item.child_name.toLowerCase().includes(query);
     });
-  }, [items,filter,search]);
+  }, [items,filter,onlyBalance,onlyIncomplete,search]);
 
   // Built from whatever programs actually have registrations, so a newly
   // added program (e.g. Futprep Out East) gets its own filter automatically.
@@ -108,6 +113,8 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
         {programFilters.map(([slug,name])=>(
           <button key={slug} className={filter===slug?"is-active":""} onClick={()=>setFilter(slug)}>{name}</button>
         ))}
+        <button className={onlyBalance?"is-active":""} onClick={()=>setOnlyBalance((v)=>!v)}>Has a balance</button>
+        <button className={onlyIncomplete?"is-active":""} onClick={()=>setOnlyIncomplete((v)=>!v)}>Details incomplete</button>
       </div>
 
       <div className="staff-registration-list">
@@ -118,7 +125,11 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
           <article className="staff-registration-card" key={item.id}>
             <div className="staff-registration-head">
               <div><span className="panel-kicker">{item.reference_code}</span><h2>{item.child_name}</h2><p>{item.program_name} · {item.child_dob ?? "Date of birth pending"}</p></div>
-              <div className="staff-status-stack"><span className="status status-submitted">{item.registration_status}</span><span className="status status-approved">{item.payment_status}</span></div>
+              <div className="staff-status-stack">
+                <span className="status status-submitted">{item.registration_status}</span>
+                <span className="status status-approved">{item.payment_status}</span>
+                <Link href={`/futprep/staff/admin/${item.id}`}>Open child →</Link>
+              </div>
             </div>
 
             {missing.length > 0 && (
@@ -131,7 +142,7 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
             <div className="staff-info-grid">
               <div><span>Parent / guardian</span><strong>{item.parent_name ?? "Not on file yet"}</strong><small>{item.parent_email ?? ""}<br/>{item.parent_phone ?? ""}</small></div>
               <div><span>Emergency contact</span><strong>{item.emergency_contact_name ?? "Not on file yet"}</strong><small>{item.emergency_contact_phone ?? ""}</small></div>
-              <div><span>Payment</span><strong>{item.payment_frequency==="term" ? "Full term" : "Weekly"} · {paymentMethodLabel(item.payment_method)}</strong><small>Due {money(item.amount_due_cents)} · Recorded {money(item.paid_cents)}</small></div>
+              <div><span>Payment</span><strong>{item.payment_frequency==="term" ? "Full term" : "Weekly"} · {paymentMethodLabel(item.payment_method)}</strong><small>Due {money(item.amount_due_cents)} · Recorded {money(item.paid_cents)} · <span className={item.amount_due_cents-item.paid_cents>0 ? "money-outstanding" : "money-settled"}>Balance {money(Math.max(0,item.amount_due_cents-item.paid_cents))}</span></small></div>
               <div><span>Photo / video</span><strong>{item.photo_consent === "yes" ? "Allowed" : item.photo_consent === "no" ? "Not allowed" : "No information on file yet"}</strong></div>
             </div>
 
