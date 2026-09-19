@@ -640,6 +640,15 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
     parent_email: input.parentEmail?.trim().toLowerCase() || null,
     parent_phone: input.parentPhone?.trim() || null,
     child_name: childName,
+    // These four columns default to '' at the schema level (left over from
+    // when they were NOT NULL), which would silently defeat the whole
+    // point here -- an empty string reads as "asked, and the answer was
+    // none", not "never asked". Must be set to null explicitly; omitting
+    // them from the insert is not enough.
+    allergies: null,
+    medical_conditions: null,
+    medications: null,
+    special_needs: null,
     // amount_due_cents assumes weekly to start with -- an estimate, not a
     // commitment. The parent picks the real plan (and this gets
     // recalculated) at the completion step.
