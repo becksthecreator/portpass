@@ -5620,6 +5620,16 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-ceremony-item .bws-text-link{margin-top:auto}
 .bws-ceremony-item:hover .bws-text-link{color:var(--bws-teal)}
 
+.bws-tier-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:50px}
+.bws-tier-card{display:flex;flex-direction:column;align-items:start;padding:36px 30px;border:1px solid var(--bws-line);border-radius:4px}
+.bws-tier-card h3{font-size:1.6rem;margin-bottom:8px}
+.bws-tier-tagline{color:var(--bws-muted);font-size:.92rem;margin-bottom:20px}
+.bws-tier-price{font-family:var(--bws-serif);font-weight:500;font-size:1.5rem;margin-bottom:22px}
+.bws-tier-includes{list-style:none;margin:0 0 26px;padding:0;font-size:.88rem;color:var(--bws-muted)}
+.bws-tier-includes li{padding:8px 0;border-top:1px solid var(--bws-line)}
+.bws-tier-includes li:first-child{border-top:0}
+.bws-tier-card .bws-text-link{margin-top:auto}
+
 .bws-venues{padding-top:35px}
 .bws-venue-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bws-line);margin-top:48px;border:1px solid var(--bws-line)}
 .bws-venue-card{background:var(--bws-paper);padding:28px;display:flex;flex-direction:column}
@@ -5849,6 +5859,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .bws-ceremony-item{padding:25px 0 30px;border-left:0;border-bottom:1px solid var(--bws-line)}
   .bws-ceremony-item+.bws-ceremony-item{padding-left:0}
   .bws-ceremony-item h3{font-size:2.4rem}
+  .bws-tier-grid{grid-template-columns:1fr;gap:20px;margin-top:35px}
   .bws-ceremonies{padding-top:20px}
   .bws-venue-grid{grid-template-columns:1fr;margin-top:30px}
   .bws-venue-empty{padding:36px 20px}

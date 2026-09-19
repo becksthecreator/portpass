@@ -2,11 +2,13 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import type { PublicWeddingPackage } from "@/db/weddingPackages";
 
 const WHATSAPP_NUMBER = "12424241262";
 
 type FormState = {
   ceremonyChoice: string;
+  packageSlug: string;
   weddingDate: string;
   guests: string;
   arrivalDate: string;
@@ -62,7 +64,7 @@ const CONSULTATION_CHOICES = [
   { value: "Guided text planning", label: "Guided text planning", hint: "Work through each decision in messages." },
 ];
 
-const STEP_LABELS = ["Your ceremony", "The day", "Venue style", "Services", "Consultation", "Your details"];
+const STEP_LABELS = ["Your ceremony", "Level of service", "The day", "Venue style", "Services", "Consultation", "Your details"];
 
 function buildWhatsAppMessage(form: FormState) {
   const lines = [
@@ -73,6 +75,7 @@ function buildWhatsAppMessage(form: FormState) {
     `Preferred date: ${form.weddingDate || "Still deciding"}`,
     `Venue style: ${form.venuePreference || "Still deciding"}`,
   ];
+  if (form.packageSlug) lines.push(`Level of service: ${form.packageSlug}`);
   if (form.servicesWanted.length) lines.push(`Services: ${form.servicesWanted.join(", ")}`);
   if (form.consultationMethod) lines.push(`Consultation preference: ${form.consultationMethod}`);
   if (form.notes) lines.push("", `Notes: ${form.notes}`);
@@ -80,10 +83,11 @@ function buildWhatsAppMessage(form: FormState) {
   return lines.join("\n");
 }
 
-export function WeddingPlanner() {
+export function WeddingPlanner({ packages }: { packages: PublicWeddingPackage[] }) {
   const searchParams = useSearchParams();
   const [form, setForm] = useState<FormState>(() => ({
     ceremonyChoice: searchParams.get("ceremony") ?? "",
+    packageSlug: searchParams.get("tier") ?? "",
     weddingDate: "",
     guests: "",
     arrivalDate: "",
@@ -121,9 +125,9 @@ export function WeddingPlanner() {
 
   function validate(index: number): string | null {
     if (index === 0 && !form.ceremonyChoice) return "Choose the option closest to what you have in mind.";
-    if (index === 4 && !form.consultationMethod) return "Choose how you'd like to meet the Wedding Desk.";
-    if (index === 5 && !form.names.trim()) return "Tell us your names.";
-    if (index === 5 && !form.contactConsent) return "Please confirm we can contact you about this request.";
+    if (index === 5 && !form.consultationMethod) return "Choose how you'd like to meet the Wedding Desk.";
+    if (index === 6 && !form.names.trim()) return "Tell us your names.";
+    if (index === 6 && !form.contactConsent) return "Please confirm we can contact you about this request.";
     return null;
   }
 
@@ -141,6 +145,7 @@ export function WeddingPlanner() {
 
   const summary = useMemo(() => [
     ["Celebrating", form.ceremonyChoice || "Still deciding"],
+    ["Level of service", packages.find((p) => p.slug === form.packageSlug)?.name || "Not chosen yet"],
     ["Preferred date", form.weddingDate || "Still deciding"],
     ["Guests", form.guests || "Not specified"],
     ["Venue style", form.venuePreference || "Still deciding"],
@@ -150,7 +155,7 @@ export function WeddingPlanner() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const message = validate(5) || validate(0) || validate(4);
+    const message = validate(6) || validate(0) || validate(5);
     if (message) { setError(message); return; }
     setError(null);
     setBusy(true);
@@ -163,6 +168,7 @@ export function WeddingPlanner() {
           names: form.names,
           email: form.email,
           ceremonyType: form.ceremonyChoice,
+          packageSlug: form.packageSlug || null,
           preferredWeddingDate: form.weddingDate || null,
           guestCount: form.guests ? Number(form.guests) : null,
           arrivalDate: form.arrivalDate || null,
@@ -232,6 +238,25 @@ export function WeddingPlanner() {
 
         {step === 1 && (
           <fieldset className="bws-planner-step">
+            <legend>How much should we handle?</legend>
+            <p className="bws-step-help">Choose whichever fits — this doesn&rsquo;t confirm or book anything, it just tells the Wedding Desk where to start. You can change it later.</p>
+            <div className="bws-choice-grid">
+              {packages.map((pkg) => (
+                <label className="bws-choice-card" key={pkg.slug}>
+                  <input type="radio" name="package-slug" checked={form.packageSlug === pkg.slug} onChange={() => set("packageSlug", pkg.slug)} />
+                  <span><b>{pkg.name}</b><small>{pkg.tagline}</small></span>
+                </label>
+              ))}
+              <label className="bws-choice-card">
+                <input type="radio" name="package-slug" checked={form.packageSlug === ""} onChange={() => set("packageSlug", "")} />
+                <span><b>Not sure yet</b><small>Let the Wedding Desk suggest the right level once they know more.</small></span>
+              </label>
+            </div>
+          </fieldset>
+        )}
+
+        {step === 2 && (
+          <fieldset className="bws-planner-step">
             <legend>Tell us about the day</legend>
             <p className="bws-step-help">Estimates are welcome. Nothing here reserves your date.</p>
             <div className="bws-form-grid">
@@ -257,7 +282,7 @@ export function WeddingPlanner() {
           </fieldset>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <fieldset className="bws-planner-step">
             <legend>Explore your venue style</legend>
             <p className="bws-step-help">Browse wedding-ready places without leaving this page. Venue listings will be supplied by PortPass Bahamas as partners are approved.</p>
@@ -285,7 +310,7 @@ export function WeddingPlanner() {
           </fieldset>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <fieldset className="bws-planner-step">
             <legend>What support would help?</legend>
             <p className="bws-step-help">These are requests, not automatic charges. The Wedding Desk will confirm availability and pricing before anything is booked.</p>
@@ -300,7 +325,7 @@ export function WeddingPlanner() {
           </fieldset>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <fieldset className="bws-planner-step">
             <legend>How should we plan together?</legend>
             <p className="bws-step-help">Request a pre-consultation with a Wedding Desk representative. Your time is not confirmed until the Wedding Desk replies.</p>
@@ -330,7 +355,7 @@ export function WeddingPlanner() {
           </fieldset>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <fieldset className="bws-planner-step">
             <legend>Where should we reply?</legend>
             <p className="bws-step-help">Add your details and review the request below before sending it to the Wedding Desk.</p>

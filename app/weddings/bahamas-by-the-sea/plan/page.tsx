@@ -2,13 +2,17 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { bwsSerif, bwsSans } from "../fonts";
 import { WeddingPlanner } from "./WeddingPlanner";
+import { getPublicWeddingPackages } from "@/db/weddingPackages";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Plan Your Bahamas Wedding | Bahamas Weddings By The Sea",
   description: "Plan a Bahamas wedding with the Wedding Desk. Explore venue preferences, choose services, request a consultation, and prepare a complete plan for Antonio Beckford to review.",
 };
 
-export default function PlanPage() {
+export default async function PlanPage() {
+  const packages = await getPublicWeddingPackages();
   return (
     <div className={`bws-theme bws-planner-body ${bwsSerif.variable} ${bwsSans.variable}`}>
       <a className="bws-skip-link" href="#planner-main">Skip to planner</a>
@@ -28,7 +32,7 @@ export default function PlanPage() {
           </div>
         </section>
         <Suspense fallback={null}>
-          <WeddingPlanner />
+          <WeddingPlanner packages={packages} />
         </Suspense>
       </main>
       <footer className="bws-planner-footer">
