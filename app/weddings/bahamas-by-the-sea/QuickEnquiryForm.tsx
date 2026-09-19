@@ -12,7 +12,7 @@ function formatDate(iso: string) {
 
 function buildWhatsAppMessage(input: { couple: string; ceremony: string; date: string; guests: string; email: string; story: string }) {
   const lines = [
-    "Hello Beckfords Wedding Desk! We found Bahamas Weddings By The Sea and would like to start a pre-consultation.",
+    "Hello Wedding Desk! We found Bahamas Weddings By The Sea and would like to start a pre-consultation.",
     "",
     `Our names: ${input.couple}`,
     `Celebration: ${input.ceremony}`,

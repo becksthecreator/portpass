@@ -5,7 +5,7 @@ import { WeddingPlanner } from "./WeddingPlanner";
 
 export const metadata = {
   title: "Plan Your Bahamas Wedding | Bahamas Weddings By The Sea",
-  description: "Plan a Bahamas wedding with the Beckfords Wedding Desk. Explore venue preferences, choose services, request a consultation, and prepare a complete plan for Antonio Beckford Sr. to review.",
+  description: "Plan a Bahamas wedding with the Wedding Desk. Explore venue preferences, choose services, request a consultation, and prepare a complete plan for Antonio Beckford to review.",
 };
 
 export default function PlanPage() {
@@ -20,7 +20,7 @@ export default function PlanPage() {
         <section className="bws-planner-intro">
           <p className="bws-eyebrow">Plan from anywhere</p>
           <h1>Let&rsquo;s shape your<br /><em>island wedding.</em></h1>
-          <p>Tell the Beckfords Wedding Desk what you&rsquo;re imagining. A representative will help refine the details, then send one organized plan to Antonio for review.</p>
+          <p>Tell the Wedding Desk what you&rsquo;re imagining. A representative will help refine the details, then send one organized plan to Antonio for review.</p>
           <div className="bws-planner-trust">
             <span>Pre-consultation planning</span>
             <span>26+ years&rsquo; ceremony experience</span>
@@ -32,7 +32,7 @@ export default function PlanPage() {
         </Suspense>
       </main>
       <footer className="bws-planner-footer">
-        <span>Bahamas Weddings By The Sea · Planning desk managed by The Beckfords</span>
+        <span>Bahamas Weddings By The Sea · Planning desk managed by the Wedding Desk</span>
         <a href="tel:+12424241262">Call +1 (242) 424-1262</a>
         <Link href="/weddings/bahamas-by-the-sea">Return to main site</Link>
       </footer>

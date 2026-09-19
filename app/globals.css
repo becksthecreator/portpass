@@ -5573,8 +5573,10 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-hero{height:auto;min-height:max(690px,95svh);position:relative;isolation:isolate;color:#fff;background:var(--bws-sea);overflow:hidden;display:flex;align-items:center}
 .bws-hero-image,.bws-hero-shade{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
 .bws-hero-image{object-position:center 55%}
-.bws-hero-shade{z-index:-1;background:linear-gradient(90deg,rgba(5,32,41,.68),rgba(5,32,41,.23) 70%),linear-gradient(180deg,rgba(5,32,41,.24),transparent 45%,rgba(5,32,41,.32))}
+.bws-hero-shade{z-index:-1;background:linear-gradient(180deg,rgba(5,32,41,.05),rgba(5,32,41,.02) 45%,rgba(5,32,41,.28) 100%)}
 .bws-hero-content{position:relative;width:87%;margin-left:8%;padding:190px 0 150px}
+.bws-hero-textscrim{display:inline-block;margin-bottom:36px;padding:24px 30px;border-radius:20px;background:linear-gradient(135deg,rgba(5,32,41,.58),rgba(5,32,41,.34));backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.bws-hero-cta{display:flex;width:fit-content}
 .bws-hero h1{font-size:clamp(3.8rem,7.4vw,7.4rem);line-height:.98;letter-spacing:-.035em}
 .bws-hero h1 em{display:inline-block;margin-top:8px;font-style:normal}
 .bws-hero-intro{margin:30px 0;font-size:1.02rem;line-height:1.8;max-width:500px;color:#f5faf8}
@@ -5654,21 +5656,19 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-film-card p,.bws-film-card>span{color:#d9eeee}
 .bws-availability-note{font-size:.8rem;color:var(--bws-muted);margin-top:18px;max-width:680px}
 
-.bws-love-notes{display:grid;grid-template-columns:1fr 1fr;background:var(--bws-ink);color:var(--bws-paper);min-height:570px}
-.bws-love-copy{display:flex;flex-direction:column;justify-content:center;align-items:start;padding:85px 12% 85px 14%}
-.bws-review-stars{font-size:.875rem;letter-spacing:.22em;color:#d8be8d;margin:8px 0 22px}
-.bws-love-copy blockquote{font-family:var(--bws-serif);font-size:clamp(2.6rem,4vw,4.1rem);line-height:1.08;letter-spacing:-.025em;margin:0 0 28px}
-.bws-review-byline{font-size:.95rem}
-.bws-review-byline span{display:block;font-size:.75rem;line-height:1.7;color:#bdd1d4;margin-top:4px;max-width:250px}
-.bws-love-copy .bws-text-link{font-size:.8rem;margin-top:36px;color:#dae8e8}
-.bws-love-photo{position:relative;min-height:500px;overflow:hidden}
-.bws-love-photo img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
-.bws-love-photo:after{content:"";position:absolute;inset:60% 0 0;background:linear-gradient(transparent,#08283275)}
-.bws-love-photo>span{position:absolute;bottom:28px;left:30px;right:20px;z-index:1;font-family:var(--bws-serif);font-size:1.5rem;font-style:italic;line-height:1.3}
-.bws-review-wall{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;padding-top:55px;padding-bottom:80px}
-.bws-review-wall article{border-top:1px solid var(--bws-line);padding:25px 5px}
-.bws-review-wall blockquote{font-family:var(--bws-serif);font-size:1.75rem;line-height:1.25;margin:13px 0 20px}
-.bws-review-wall p{color:var(--bws-muted);font-size:.8rem}
+.bws-gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}
+.bws-gallery-tile{position:relative;display:block;aspect-ratio:4/5;overflow:hidden;border:0;padding:0;cursor:zoom-in;background:var(--bws-line)}
+.bws-gallery-tile img{width:100%;height:100%;object-fit:cover;transition:transform .35s}
+.bws-gallery-tile:hover img{transform:scale(1.04)}
+.bws-gallery-credit{position:absolute;left:10px;bottom:10px;font-size:.7rem;background:#052029b0;color:#fff;padding:4px 9px;border-radius:20px}
+.bws-gallery-lightbox{position:fixed;inset:0;z-index:80;background:#020c0fe6;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5vh 5vw;cursor:zoom-out}
+.bws-gallery-lightbox img{max-width:100%;max-height:78vh;object-fit:contain;cursor:default}
+.bws-gallery-close{position:absolute;top:20px;right:24px;background:none;border:0;color:#fff;font-size:1.4rem;cursor:pointer}
+.bws-gallery-caption{color:#fff;text-align:center;margin-top:16px;font-size:.85rem;max-width:600px}
+.bws-gallery-credit-line{color:#bdd1d4;margin-top:4px}
+.bws-gallery-credit-line a{color:inherit}
+
+.bws-reviews-widget{padding-top:0}
 
 .bws-planning-steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:50px;margin:50px 0 0}
 .bws-planning-steps li{border-top:1px solid var(--bws-line);padding-top:25px}
@@ -5803,8 +5803,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .bws-section-heading{gap:30px}
   .bws-section-heading>p{max-width:270px}
   .bws-trust-strip strong{font-size:1.7rem}
-  .bws-love-copy{padding:60px 10%}
-  .bws-love-notes{min-height:500px}
+  .bws-gallery-grid{gap:14px}
   .bws-planning-steps{gap:30px}
   .bws-enquiry{padding:75px 6%}
   .bws-enquiry-inner{gap:7%}
@@ -5831,7 +5830,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .bws-hero-intro{font-size:.95rem;margin:27px 0}
   .bws-hero-foot{bottom:27px;left:7%;right:7%;font-size:.75rem}
   .bws-hero-foot>a{display:none}
-  .bws-hero-shade{background:linear-gradient(90deg,#052029a8,#05202945),linear-gradient(180deg,#0520293f,transparent 50%,#05202955)}
+  .bws-hero-textscrim{padding:18px 22px;border-radius:16px}
   .bws-hero-image{object-position:60% center}
   .bws-trust-strip{grid-template-columns:1fr 1fr;padding:24px 0;margin:0 6%;row-gap:23px}
   .bws-trust-strip>*{padding:0 10px!important;gap:8px!important}
@@ -5860,19 +5859,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .bws-add-ons{padding:10px 0}
   .bws-addon-grid{grid-template-columns:1fr;margin-top:30px}
   .bws-addon-card{min-height:250px}
-  .bws-love-notes{grid-template-columns:1fr}
-  .bws-love-copy{padding:55px 7%;min-height:420px}
-  .bws-love-copy blockquote{font-size:clamp(2.8rem,9vw,4rem)}
-  /* width:100% is required here: a grid item with a preferred aspect-ratio
-     does not stretch to its track under justify-items:normal (the default)
-     the way an aspect-ratio-less item would. Without it this box sizes
-     itself intrinsically from aspect-ratio × min-height and overflows the
-     1fr track on narrow viewports. */
-  .bws-love-photo{width:100%;min-width:0;min-height:350px;max-height:500px;aspect-ratio:5/4}
-  .bws-love-photo img{object-position:center}
-  .bws-love-photo>span{font-size:1.4rem;bottom:20px;left:7%}
-  .bws-review-wall{grid-template-columns:1fr;padding-top:40px;padding-bottom:55px;gap:5px}
-  .bws-review-wall article{padding:22px 0}
+  .bws-gallery-grid{grid-template-columns:1fr 1fr}
   .bws-planning-steps{grid-template-columns:1fr;gap:28px;margin-top:35px}
   .bws-planning-cta{width:100%;justify-content:space-between}
   .bws-faq{grid-template-columns:1fr;gap:35px;padding-top:10px;padding-bottom:65px}
