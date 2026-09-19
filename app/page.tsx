@@ -42,7 +42,7 @@ export default async function Home() {
         <nav aria-label="Primary">
           <a href="#chooser">Browse</a>
           <a href="#live">Live now</a>
-          <Link href="/business">For business</Link>
+          <Link href="/apply">For business</Link>
         </nav>
       </header>
 
@@ -151,7 +151,7 @@ export default async function Home() {
           <h2>List with PortPass.</h2>
           <p>Bring your organization onto the same system powering Futprep and Bahamas Weddings By The Sea.</p>
         </div>
-        <Link className="home-button home-button-light" href="/business">Learn more →</Link>
+        <Link className="home-button home-button-light" href="/apply">Learn more →</Link>
       </section>
 
       <footer className="home-footer">
@@ -161,7 +161,6 @@ export default async function Home() {
         </div>
         <div className="home-footer-links">
           <a href="tel:+12424241262">+1 (242) 424-1262</a>
-          <Link href="/business">For business →</Link>
           <Link href="/apply">Apply for early access →</Link>
         </div>
       </footer>
