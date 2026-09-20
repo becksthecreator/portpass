@@ -5629,7 +5629,6 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 }
 .bws-theme .bws-button{border-radius:999px}
 .bws-theme .bws-choice-card,.bws-theme .bws-tier-card,.bws-theme .bws-venue-card,.bws-theme .bws-addon-card,.bws-theme .detail-panel{border-radius:16px}
-.bws-theme .bws-gallery-tile{border-radius:14px}
 .bws-theme *{box-sizing:border-box}
 .bws-theme a{color:inherit;text-decoration:none}
 .bws-theme button,.bws-theme input,.bws-theme select,.bws-theme textarea{font:inherit}
@@ -5758,17 +5757,19 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-film-card p,.bws-film-card>span{color:#d9eeee}
 .bws-availability-note{font-size:.8rem;color:var(--bws-muted);margin-top:18px;max-width:680px}
 
-.bws-gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}
-.bws-gallery-tile{position:relative;display:block;aspect-ratio:4/5;overflow:hidden;border:0;padding:0;cursor:zoom-in;background:var(--bws-line)}
-.bws-gallery-tile img{width:100%;height:100%;object-fit:cover;transition:transform .35s}
-.bws-gallery-tile:hover img{transform:scale(1.04)}
-.bws-gallery-credit{position:absolute;left:10px;bottom:10px;font-size:.7rem;background:rgba(18,33,28,.78);color:#fff;padding:4px 9px;border-radius:20px}
-.bws-gallery-lightbox{position:fixed;inset:0;z-index:80;background:#020c0fe6;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5vh 5vw;cursor:zoom-out}
-.bws-gallery-lightbox img{max-width:100%;max-height:78vh;object-fit:contain;cursor:default}
-.bws-gallery-close{position:absolute;top:20px;right:24px;background:none;border:0;color:#fff;font-size:1.4rem;cursor:pointer}
-.bws-gallery-caption{color:#fff;text-align:center;margin-top:16px;font-size:.85rem;max-width:600px}
-.bws-gallery-credit-line{color:#bdd1d4;margin-top:4px}
-.bws-gallery-credit-line a{color:inherit}
+/* Gallery: full-bleed cross-fading photo cycle, same concept as the
+   homepage hero -- real photos take turns filling the background rather
+   than sitting in a static grid. */
+.bws-gallery-cycle-section{position:relative;isolation:isolate;overflow:hidden;min-height:min(70svh,620px)}
+.bws-gallery-cycle{position:absolute;inset:0}
+.bws-gallery-cycle-frame{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition-property:opacity;transition-timing-function:ease}
+.bws-gallery-cycle-frame-on{opacity:1}
+.bws-gallery-cycle:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,33,28,.1),rgba(18,33,28,.02) 40%,rgba(18,33,28,.45) 100%)}
+.bws-gallery-credit{position:absolute;left:16px;bottom:16px;z-index:1;font-size:.7rem;background:rgba(18,33,28,.78);color:#fff;padding:4px 9px;border-radius:20px}
+.bws-gallery-credit a{color:inherit}
+.bws-gallery-cycle-caption{position:relative;z-index:1;color:#fff;text-align:center;padding:70px 6vw;max-width:640px;margin:0 auto}
+.bws-gallery-cycle-caption h2 em{color:var(--bws-lime)}
+@media(prefers-reduced-motion:reduce){.bws-gallery-cycle-frame{transition:none}}
 
 .bws-reviews-widget{padding-top:0}
 
@@ -5912,7 +5913,6 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .bws-section-heading{gap:30px}
   .bws-section-heading>p{max-width:270px}
   .bws-trust-strip strong{font-size:1.7rem}
-  .bws-gallery-grid{gap:14px}
   .bws-planning-steps{gap:30px}
   .bws-enquiry{padding:75px 6%}
   .bws-enquiry-inner{gap:7%}
@@ -5969,7 +5969,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .bws-add-ons{padding:10px 0}
   .bws-addon-grid{grid-template-columns:1fr;margin-top:30px}
   .bws-addon-card{min-height:250px}
-  .bws-gallery-grid{grid-template-columns:1fr 1fr}
+  .bws-gallery-cycle-caption{padding:50px 6vw}
   .bws-planning-steps{grid-template-columns:1fr;gap:28px;margin-top:35px}
   .bws-planning-cta{width:100%;justify-content:space-between}
   .bws-faq{grid-template-columns:1fr;gap:35px;padding-top:10px;padding-bottom:65px}
