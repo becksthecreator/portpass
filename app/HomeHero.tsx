@@ -12,7 +12,7 @@ export type HeroFrame = {
   href: string;
 };
 
-const CYCLE_MS = 7000;
+const CYCLE_MS = 4000;
 const FADE_MS = 1200;
 
 export function HomeHero({ frames }: { frames: HeroFrame[] }) {
@@ -80,33 +80,21 @@ export function HomeHero({ frames }: { frames: HeroFrame[] }) {
         </nav>
       </div>
 
-      <div className="pp-hero-centre">
-        <p className="pp-hero-kicker">The Bahamas, one pass at a time</p>
-        <h1>Your way in,<br /><em>wherever you&rsquo;re headed.</em></h1>
-      </div>
-
-      <div className="pp-hero-dots" role="tablist" aria-label="Choose a featured business">
-        {frames.map((frame, i) => (
-          <button
-            key={frame.world + frame.name}
-            type="button"
-            role="tab"
-            aria-selected={i === index}
-            aria-label={frame.name}
-            className={`pp-hero-dot${i === index ? " pp-hero-dot-on" : ""}`}
-            onClick={() => setIndex(i)}
-          />
-        ))}
-      </div>
-
-      <div className="pp-hero-bottom">
-        <div className="pp-hero-who">
-          <span className="pp-hero-chip">{active.chip}</span>
-          <b>{active.name}</b>
-          <span className="pp-hero-meta">{active.meta}</span>
+      <Link className="pp-hero-clickzone" href={active.href} aria-label={`${active.cta} — ${active.name}`}>
+        <div className="pp-hero-centre">
+          <p className="pp-hero-kicker">The Bahamas, one pass at a time</p>
+          <h1>Your way in,<br /><em>wherever you&rsquo;re headed.</em></h1>
         </div>
-        <Link className="pp-hero-go" href={active.href}>{active.cta}</Link>
-      </div>
+
+        <div className="pp-hero-bottom">
+          <div className="pp-hero-who">
+            <span className="pp-hero-chip">{active.chip}</span>
+            <b>{active.name}</b>
+            <span className="pp-hero-meta">{active.meta}</span>
+          </div>
+          <span className="pp-hero-go">{active.cta}</span>
+        </div>
+      </Link>
     </section>
   );
 }
