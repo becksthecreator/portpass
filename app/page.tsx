@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { ppDisplay, ppSans } from "./fonts";
+import { ArrivalPlate } from "./ArrivalPlate";
+import { HomeHero, type HeroFrame } from "./HomeHero";
 import { getFutprepAvailability } from "@/db/registrations";
-import { programTimeRange, formatMoney } from "./futprep/config";
+import { getWeddingSiteSettings } from "@/db/weddingSite";
+import { programTimeRange } from "./futprep/config";
 
 export const metadata = {
   title: "PortPass | Find and book it in The Bahamas",
   description: "PortPass is where you find and book things in The Bahamas — sports programs, weddings, and more.",
 };
 
-// force-dynamic: the hero and Futprep panel read live program data.
+// force-dynamic: the hero reads live program and wedding-site data.
 export const dynamic = "force-dynamic";
 
 const COMING_LANES = [
@@ -17,69 +20,57 @@ const COMING_LANES = [
   { slug: "entertainment", title: "Entertainment", tag: "Coming soon", copy: "Tours, attractions and nightlife." },
 ] as const;
 
-const HOW_IT_WORKS = [
-  { step: "01", title: "Find it.", copy: "Browse what's actually happening — a class, a ceremony, a night out." },
-  { step: "02", title: "Book or enquire.", copy: "Reserve a spot where that's open, or start a conversation where it isn't yet." },
-  { step: "03", title: "Turn up.", copy: "Show your pass, and you're in." },
-] as const;
-
 export default async function Home() {
-  const availability = await getFutprepAvailability();
-  const lilKickers = availability.find((p) => p.slug === "lil-kickers") ?? availability[0];
-  const kickers = availability.find((p) => p.slug === "kickers");
+  const [availability, weddingSettings] = await Promise.all([
+    getFutprepAvailability(),
+    getWeddingSiteSettings(),
+  ]);
+  const futprepProgram = availability[0];
 
-  const heroPasses = [
-    lilKickers && { eyebrow: "Futprep Athletics", title: lilKickers.name, line: `${lilKickers.day}s ${programTimeRange(lilKickers)} · Lyford Cay`, tone: "green" as const },
-    { eyebrow: "Bahamas Weddings By The Sea", title: "Island ceremony", line: "Nassau, The Bahamas · With Antonio Beckford", tone: "sand" as const },
-    kickers && { eyebrow: "Futprep Athletics", title: kickers.name, line: `${kickers.day}s ${programTimeRange(kickers)} · Lyford Cay`, tone: "ocean" as const },
-  ].filter((pass): pass is { eyebrow: string; title: string; line: string; tone: "green" | "sand" | "ocean" } => Boolean(pass));
+  const frames: HeroFrame[] = [
+    futprepProgram && {
+      world: "futprep" as const,
+      chip: "Live now · Sports & Fitness",
+      name: "Futprep Athletics",
+      meta: `${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location}`,
+      cta: "Register a child",
+      href: "/futprep",
+    },
+    {
+      world: "portpass" as const,
+      chip: "Live now · Weddings",
+      name: "Bahamas Weddings By The Sea",
+      meta: `${weddingSettings.yearsExperience} years · ${weddingSettings.reviewCount} five-star reviews · Nassau`,
+      cta: "Plan a wedding",
+      href: "/weddings/bahamas-by-the-sea",
+    },
+  ].filter((frame): frame is HeroFrame => Boolean(frame));
+
+  const spotsThisWeek = availability.reduce((sum, program) => sum + program.spotsRemaining, 0);
 
   return (
-    <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`}>
+    <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`} data-world="portpass">
+      <ArrivalPlate />
       <a className="home-skip-link" href="#chooser">Skip to browse</a>
-      <header className="home-header">
-        <Link className="home-brand" href="/" aria-label="PortPass home"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-        <nav aria-label="Primary">
-          <a href="#chooser">Browse</a>
-          <a href="#live">Live now</a>
-          <Link href="/apply">For business</Link>
-        </nav>
-      </header>
 
-      <section className="home-hero">
-        <div className="home-hero-copy">
-          <p className="home-eyebrow">The Bahamas, one pass at a time</p>
-          <h1>Your way in,<br /><em>wherever you're headed.</em></h1>
-          <p className="home-hero-lead">A Saturday session. A ceremony by the sea. A night out. PortPass is how you find it and how you get in.</p>
-          <a className="home-button" href="#chooser">Find your pass ↓</a>
-        </div>
-        <div className="home-pass-stack" aria-hidden="true">
-          {heroPasses.map((pass, index) => (
-            <article className={`home-pass home-pass-${pass.tone}`} key={pass.title} style={{ animationDelay: `${index * 0.15}s` }}>
-              <span className="home-pass-eyebrow">{pass.eyebrow}</span>
-              <strong>{pass.title}</strong>
-              <span className="home-pass-line">{pass.line}</span>
-            </article>
-          ))}
-        </div>
-      </section>
+      <HomeHero frames={frames} />
 
       <section className="home-chooser" id="chooser">
         <div className="home-section-heading">
-          <span className="home-eyebrow">Where to start</span>
+          <span className="home-eyebrow">What PortPass covers</span>
           <h2>Pick your lane.</h2>
         </div>
         <div className="home-lane-grid">
           <Link className="home-lane home-lane-live" href="/sports-fitness">
             <span className="home-lane-tag home-lane-tag-live">Live now</span>
             <h3>Sports &amp; Fitness</h3>
-            <p>Real Saturday sessions, real prices, open now with Futprep Athletics.</p>
+            <p>Real Saturday sessions, real prices, open now.</p>
             <span className="home-lane-action">Explore →</span>
           </Link>
           <Link className="home-lane home-lane-live" href="/weddings">
             <span className="home-lane-tag home-lane-tag-live">Live now</span>
             <h3>Weddings</h3>
-            <p>Plan an island ceremony with Bahamas Weddings By The Sea.</p>
+            <p>Plan an island ceremony, start to finish.</p>
             <span className="home-lane-action">Explore →</span>
           </Link>
           {COMING_LANES.map((lane) => (
@@ -93,55 +84,24 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="home-live" id="live">
+      <section className="home-editorial">
         <div className="home-section-heading">
-          <span className="home-eyebrow">Live on PortPass</span>
-          <h2>Not a mockup. Running right now.</h2>
+          <span className="home-eyebrow">Not a mockup</span>
+          <h2>Running right now, side by side.</h2>
         </div>
-        <div className="home-live-grid">
-          <article className="home-live-panel">
-            <span className="home-live-panel-kicker">Sports &amp; Fitness</span>
-            <h3>Futprep Athletics.</h3>
-            <p>Saturday football for young players — real classes, real prices, straight from the database.</p>
-            <ul className="home-live-list">
-              {availability.map((program) => (
-                <li key={program.slug}>
-                  <strong>{program.name}</strong>
-                  <span>Ages {program.ageMin}–{program.ageMax} · {program.day}s {programTimeRange(program)}</span>
-                  <span>{formatMoney(program.weeklyFeeCents)}/week · {program.spotsRemaining} of {program.capacity} spots left</span>
-                </li>
-              ))}
-            </ul>
-            <Link className="home-live-cta" href="/futprep">Register a child →</Link>
-          </article>
-          <article className="home-live-panel">
-            <span className="home-live-panel-kicker">Weddings</span>
-            <h3>Bahamas Weddings By The Sea.</h3>
-            <p>Weddings, intimate ceremonies and vow renewals with officiant Antonio Beckford — plus a guided planner and a real Wedding Desk behind it.</p>
-            <ul className="home-live-list">
-              <li><strong>Your wedding</strong><span>A personalized legal ceremony</span></li>
-              <li><strong>Just the two of you</strong><span>An intimate island ceremony</span></li>
-              <li><strong>Vow renewal</strong><span>Celebrate your story again</span></li>
-            </ul>
-            <Link className="home-live-cta" href="/weddings">Start planning →</Link>
-          </article>
-        </div>
-        <p className="home-live-note">A children&rsquo;s football academy and a wedding service, running on the same system — that&rsquo;s PortPass.</p>
-      </section>
-
-      <section className="home-how">
-        <div className="home-section-heading">
-          <span className="home-eyebrow">How it works</span>
-          <h2>Three steps. That&rsquo;s it.</h2>
-        </div>
-        <div className="home-how-grid">
-          {HOW_IT_WORKS.map((item) => (
-            <div className="home-how-step" key={item.step}>
-              <span>{item.step}</span>
-              <h3>{item.title}</h3>
-              <p>{item.copy}</p>
-            </div>
-          ))}
+        <div className="home-editorial-grid">
+          <div className="home-editorial-col">
+            <span>Sports &amp; Fitness</span>
+            <strong>{spotsThisWeek} spots open this Saturday</strong>
+            <p>{futprepProgram ? `${futprepProgram.name}, ${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location}` : "Real Saturday football, straight from the database."}</p>
+            <Link href="/futprep">Register a child →</Link>
+          </div>
+          <div className="home-editorial-col">
+            <span>Weddings</span>
+            <strong>{weddingSettings.reviewCount} five-star reviews</strong>
+            <p>{weddingSettings.yearsExperience} years officiating island ceremonies in Nassau, The Bahamas.</p>
+            <Link href="/weddings/bahamas-by-the-sea">Plan a wedding →</Link>
+          </div>
         </div>
       </section>
 
