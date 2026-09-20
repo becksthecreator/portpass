@@ -2,7 +2,7 @@ import Link from "next/link";
 import { bwsSerif, bwsSans } from "./fonts";
 import { MobileMenu } from "./MobileMenu";
 import { QuickEnquiryForm } from "./QuickEnquiryForm";
-import { Gallery } from "./Gallery";
+import { GalleryCycle } from "./GalleryCycle";
 import { getPublicWeddingVenues } from "@/db/venues";
 import { getPublicWeddingGallery, getWeddingSiteSettings } from "@/db/weddingSite";
 import { getPublicWeddingPackages } from "@/db/weddingPackages";
@@ -193,12 +193,12 @@ export default async function BahamasWeddingsByTheSeaPage() {
           </div>
         </section>
 
-        <section className="bws-gallery-section bws-section-wrap" id="love-notes">
-          <div className="bws-section-heading">
-            <div><p className="bws-eyebrow">Real island weddings</p><h2>A little colour<br /><em>from the water&rsquo;s edge.</em></h2></div>
-            <p>Tap any photo to see it larger.</p>
+        <section className="bws-gallery-cycle-section" id="love-notes">
+          <GalleryCycle images={gallery} />
+          <div className="bws-gallery-cycle-caption">
+            <p className="bws-eyebrow">Real island weddings</p>
+            <h2>A little colour<br /><em>from the water&rsquo;s edge.</em></h2>
           </div>
-          <Gallery images={gallery} />
         </section>
 
         {/*
