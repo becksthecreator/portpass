@@ -10,6 +10,7 @@ export type PublicWeddingPackage = {
   priceFromCents: number | null;
   priceNote: string | null;
   currency: string;
+  isFeatured: boolean;
 };
 
 function toPublicPackage(row: Record<string, unknown>): PublicWeddingPackage {
@@ -23,6 +24,7 @@ function toPublicPackage(row: Record<string, unknown>): PublicWeddingPackage {
     priceFromCents: row.price_from_cents === null || row.price_from_cents === undefined ? null : Number(row.price_from_cents),
     priceNote: row.price_note as string | null,
     currency: (row.currency as string) ?? "BSD",
+    isFeatured: Boolean(row.is_featured),
   };
 }
 
@@ -30,7 +32,7 @@ export async function getPublicWeddingPackages(): Promise<PublicWeddingPackage[]
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("wedding_packages")
-    .select("id,slug,name,tagline,description,includes,price_from_cents,price_note,currency")
+    .select("id,slug,name,tagline,description,includes,price_from_cents,price_note,currency,is_featured")
     .eq("visibility", "live")
     .order("sort_order", { ascending: true });
   throwIfSupabaseError(error, "Could not load wedding packages");
@@ -41,7 +43,7 @@ export async function getWeddingPackageBySlug(slug: string): Promise<PublicWeddi
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("wedding_packages")
-    .select("id,slug,name,tagline,description,includes,price_from_cents,price_note,currency")
+    .select("id,slug,name,tagline,description,includes,price_from_cents,price_note,currency,is_featured")
     .eq("slug", slug)
     .eq("visibility", "live")
     .maybeSingle();
@@ -59,7 +61,7 @@ export async function listAllWeddingPackages(): Promise<AdminWeddingPackage[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("wedding_packages")
-    .select("id,slug,name,tagline,description,includes,price_from_cents,price_note,currency,visibility,sort_order")
+    .select("id,slug,name,tagline,description,includes,price_from_cents,price_note,currency,visibility,is_featured,sort_order")
     .order("sort_order", { ascending: true });
   throwIfSupabaseError(error, "Could not load wedding packages");
   return (data ?? []).map(toAdminPackage);
@@ -74,6 +76,7 @@ export type WeddingPackageInput = {
   priceFromCents: number | null;
   priceNote: string | null;
   visibility: "draft" | "unlisted" | "live";
+  isFeatured: boolean;
   sortOrder: number;
 };
 
@@ -97,9 +100,18 @@ export async function upsertWeddingPackage(id: number | null, input: WeddingPack
     price_note: input.priceNote?.trim() || null,
     currency,
     visibility: input.visibility,
+    is_featured: input.isFeatured,
     sort_order: input.sortOrder,
     updated_at: new Date().toISOString(),
   };
+
+  // Only one package can be "Most chosen" at a time -- a partial unique
+  // index on is_featured enforces this at the DB level, so the previous
+  // holder has to be cleared first or this insert/update would 23505.
+  if (input.isFeatured) {
+    const { error: clearError } = await supabase.from("wedding_packages").update({ is_featured: false }).eq("is_featured", true);
+    throwIfSupabaseError(clearError, "Could not update the featured package");
+  }
 
   if (id === null) {
     const { error } = await supabase.from("wedding_packages").insert(record);
