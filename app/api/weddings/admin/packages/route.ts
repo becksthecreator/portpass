@@ -17,6 +17,7 @@ export async function POST(request: Request) {
     priceNote?: string;
     visibility?: string;
     isFeatured?: boolean;
+    imageUrl?: string | null;
     sortOrder?: number;
   };
 
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
       priceNote: body.priceNote ?? null,
       visibility: (body.visibility as "draft" | "unlisted" | "live") ?? "draft",
       isFeatured: Boolean(body.isFeatured),
+      imageUrl: body.imageUrl ?? null,
       sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : 0,
     });
     return NextResponse.json({ packages: await listAllWeddingPackages() });

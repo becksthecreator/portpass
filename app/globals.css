@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --ink:#14251f;
+  --ink:#14303d;
   --green:#173f34;
   --lime:#d9ff5d;
   --sand:#f2efe6;
@@ -5697,12 +5697,12 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
    measured out at points where white headline strokes sat directly over
    near-white photo pixels (illegible) and the dark kicker sat over a
    scrim that had already faded out (also illegible). */
-.bws-hero{display:grid;grid-template-columns:1.02fr 1fr;align-items:stretch;min-height:620px;height:auto;background:var(--bws-paper);color:var(--bws-ink);overflow:hidden}
-.bws-hero-image{grid-column:2;width:100%;height:100%;min-height:620px;object-fit:cover;object-position:center 55%}
-.bws-hero-content{grid-column:1;position:relative;width:auto;margin-left:0;display:flex;flex-direction:column;justify-content:center;padding:64px 64px 56px 114px;background:var(--bws-paper)}
+.bws-hero{display:grid;grid-template-columns:1.02fr 1fr;grid-template-rows:1fr auto;align-items:stretch;min-height:620px;max-height:720px;background:var(--bws-paper);color:var(--bws-ink);overflow:hidden}
+.bws-hero-image{grid-column:2;grid-row:1;width:100%;height:100%;min-height:620px;object-fit:cover;object-position:center 55%}
+.bws-hero-content{grid-column:1;grid-row:1;position:relative;width:auto;margin-left:0;display:flex;flex-direction:column;justify-content:center;padding:48px 56px 44px 114px;background:var(--bws-paper)}
 .bws-hero-badge{display:inline-flex;align-items:center;gap:9px;background:var(--bws-lime);color:#2b1c10;border-radius:999px;padding:8px 16px;font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:28px;width:fit-content}
 .bws-hero-cta{display:flex;width:fit-content}
-.bws-hero h1{color:var(--bws-ink);font-size:clamp(2.8rem,4.6vw,4.6rem);line-height:1.05;letter-spacing:-.03em;max-width:13ch;text-shadow:none}
+.bws-hero h1{color:var(--bws-ink);font-size:clamp(2.6rem,4vw,3.75rem);line-height:1.05;letter-spacing:-.03em;max-width:13ch;text-shadow:none}
 .bws-hero h1 em{display:inline-block;margin-top:6px;font-style:italic;color:var(--bws-lime)}
 .bws-hero-intro{margin:26px 0 34px;font-size:1.04rem;line-height:1.75;max-width:44ch;color:var(--bws-muted)}
 .bws-button{min-height:55px;display:inline-flex;justify-content:center;align-items:center;gap:14px;padding:16px 28px;border:1px solid transparent;border-radius:999px;font-size:.875rem;font-weight:700;line-height:1.5;transition:background .2s,color .2s,transform .2s}
@@ -5711,17 +5711,17 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-button-light:hover{opacity:.88}
 .bws-theme .bws-button-dark{background:var(--bws-sea);color:#fff;border-color:var(--bws-sea)}
 .bws-button-dark:hover{background:#0e2b23}
-.bws-hero-foot{position:relative;display:flex;justify-content:space-between;font-size:.75rem;letter-spacing:.03em;color:var(--bws-muted);padding:0 114px 26px}
+.bws-hero-foot{grid-column:1/-1;grid-row:2;align-self:end;position:relative;display:flex;justify-content:space-between;font-size:.75rem;letter-spacing:.03em;color:var(--bws-muted);padding:14px 114px 26px}
 .bws-hero-foot p span{margin:0 12px;opacity:.7}
 .bws-hero-foot a{display:flex;gap:18px;color:var(--bws-ink)}
 .bws-hero-signpost{margin-top:30px;padding-top:24px;border-top:1px solid var(--bws-line);display:flex;gap:30px;flex-wrap:wrap;font-size:.9rem;color:var(--bws-muted)}
 .bws-hero-signpost b{display:block;font-family:var(--bws-serif);font-size:1.35rem;font-weight:400;color:var(--bws-ink)}
 @media(max-width:900px){
-  .bws-hero{grid-template-columns:1fr;min-height:0}
-  .bws-hero-content{grid-column:1;order:1;padding:48px 24px 40px}
+  .bws-hero{grid-template-columns:1fr;grid-template-rows:none;max-height:none;min-height:0}
+  .bws-hero-content{grid-column:1;grid-row:auto;order:1;padding:48px 24px 40px}
   .bws-hero h1{font-size:clamp(2.4rem,9vw,2.9rem);max-width:none}
-  .bws-hero-image{grid-column:1;order:2;min-height:320px;height:320px}
-  .bws-hero-foot{padding:0 24px 24px}
+  .bws-hero-image{grid-column:1;grid-row:auto;order:2;min-height:320px;height:320px}
+  .bws-hero-foot{grid-column:1;grid-row:auto;order:3;align-self:auto;padding:0 24px 24px}
 }
 
 .bws-trust-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:0;padding:44px 5%;background:var(--bws-sea);color:#fff}
@@ -5753,16 +5753,17 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-tier-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:36px;align-items:stretch}
 .bws-tier-card{position:relative;display:flex;flex-direction:column;align-items:start;padding:36px 26px;border:1px solid var(--bws-line);border-radius:4px}
 .bws-tier-featured{border-color:var(--bws-teal);border-width:2px;background:var(--bws-mint)}
-.bws-tier-badge{position:absolute;top:-13px;left:26px;background:var(--bws-teal);color:#fff;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 14px;border-radius:999px}
+.bws-tier-badge{position:absolute;top:-13px;left:26px;z-index:1;background:var(--bws-teal);color:#fff;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 14px;border-radius:999px}
+.bws-tier-image{width:calc(100% + 52px);height:160px;margin:-36px -26px 20px;object-fit:cover;border-radius:16px 16px 0 0}
 .bws-tier-card h3{font-size:1.5rem;margin-bottom:8px}
 .bws-tier-tagline{color:var(--bws-muted);font-size:.9rem;margin-bottom:18px}
-.bws-tier-price{font-family:var(--bws-serif);font-weight:500;font-size:1.5rem;margin-bottom:4px}
-.bws-tier-price-note{font-size:.72rem;color:var(--bws-muted);margin-bottom:20px}
+.bws-tier-price{font-family:var(--bws-serif);font-weight:500;font-size:1.5rem;margin-bottom:20px}
 .bws-tier-includes{list-style:none;margin:0 0 26px;padding:0;font-size:.85rem;color:var(--bws-muted)}
 .bws-tier-includes li{padding:8px 0;border-top:1px solid var(--bws-line)}
 .bws-tier-includes li:first-child{border-top:0}
 .bws-tier-card .bws-text-link{margin-top:auto}
 .bws-tier-fineprint{margin-top:28px;color:var(--bws-muted);font-size:.85rem}
+.bws-tier-price-note{margin-top:8px;color:var(--bws-muted);font-size:.85rem}
 .bws-tier-bespoke{margin-top:10px;font-size:.95rem}
 
 .bws-venue-empty{margin-top:48px;padding:48px 40px;background:var(--bws-mint);border-radius:4px;text-align:center}
@@ -5787,9 +5788,14 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-addon-card h3{font-size:2rem;margin:36px 0 17px}
 .bws-addon-card p{color:var(--bws-muted);font-size:.95rem;line-height:1.75}
 .bws-addon-card b{font-size:.8rem;margin-top:auto;padding-top:25px;font-weight:700}
-.bws-photo-card{background:linear-gradient(#f8fbf9d9,#f8fbf9e8),url(/weddings/bahamas-by-the-sea/ceremony.jpg) center/cover}
-.bws-theme .bws-film-card{background:linear-gradient(#0b3543d9,#0b3543e8),url(/weddings/bahamas-by-the-sea/hero.jpg) center/cover;color:#fff}
+/* Overlay gradients kept light enough that the photo underneath actually
+   reads as a photo -- an earlier pass had these near-opaque (.85/.91),
+   which visually washed the image out to nothing. */
+.bws-photo-card{background:linear-gradient(rgba(248,251,249,.5),rgba(248,251,249,.72)),url(/weddings/bahamas-by-the-sea/ceremony.jpg) center/cover}
+.bws-theme .bws-film-card{background:linear-gradient(rgba(11,53,67,.5),rgba(11,53,67,.72)),url(/weddings/bahamas-by-the-sea/hero.jpg) center/cover;color:#fff}
 .bws-film-card p,.bws-film-card>span{color:#d9eeee}
+.bws-video-card{background:linear-gradient(rgba(248,251,249,.5),rgba(248,251,249,.72)),url(/weddings/bahamas-by-the-sea/catalogue-11.webp) center/cover}
+.bws-registrar-card{background:linear-gradient(rgba(248,251,249,.5),rgba(248,251,249,.72)),url(/weddings/bahamas-by-the-sea/catalogue-18.webp) center/cover}
 .bws-availability-note{font-size:.8rem;color:var(--bws-muted);margin-top:18px;max-width:680px}
 
 /* Gallery: full-bleed cross-fading photo cycle, same concept as the

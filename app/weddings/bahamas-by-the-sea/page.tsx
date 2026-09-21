@@ -156,8 +156,8 @@ export default async function BahamasWeddingsByTheSeaPage() {
             <div className="bws-addon-grid">
               <Link className="bws-addon-card bws-photo-card" href="/weddings/bahamas-by-the-sea/plan?service=Cinematic%20photo%20story"><span>Photography</span><h3>Cinematic Photo Story</h3><p>Ask for ceremony photography and the moments around it.</p><b>Request availability ↗</b></Link>
               <Link className="bws-addon-card bws-film-card" href="/weddings/bahamas-by-the-sea/plan?service=Cinematic%20highlight%20film"><span>Film</span><h3>Cinematic Highlight</h3><p>A short wedding film shaped around the feeling of your day.</p><b>Request availability ↗</b></Link>
-              <Link className="bws-addon-card" href="/weddings/bahamas-by-the-sea/plan?service=Full%20ceremony%20film"><span>Video</span><h3>Full Ceremony Film</h3><p>Request a complete recording so every word is preserved.</p><b>Request availability ↗</b></Link>
-              <Link className="bws-addon-card" href="/weddings/bahamas-by-the-sea/plan?service=Registrar%20appointment%20coordination"><span>Planning</span><h3>Registrar &amp; Transport</h3><p>Ask for help coordinating appointments and island transportation.</p><b>Request support ↗</b></Link>
+              <Link className="bws-addon-card bws-video-card" href="/weddings/bahamas-by-the-sea/plan?service=Full%20ceremony%20film"><span>Video</span><h3>Full Ceremony Film</h3><p>Request a complete recording so every word is preserved.</p><b>Request availability ↗</b></Link>
+              <Link className="bws-addon-card bws-registrar-card" href="/weddings/bahamas-by-the-sea/plan?service=Registrar%20appointment%20coordination"><span>Planning</span><h3>Registrar &amp; Transport</h3><p>Ask for help coordinating appointments and island transportation.</p><b>Request support ↗</b></Link>
             </div>
             <p className="bws-availability-note">Creative and transport services are quoted according to the date, location, coverage, and available team.</p>
           </div>
