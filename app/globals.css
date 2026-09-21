@@ -109,7 +109,7 @@ dd{margin:6px 0 0}
 
 .site-header{align-items:center;display:flex;height:84px;justify-content:space-between;padding:0 5vw}
 .brand{align-items:center;display:inline-flex;font-size:.78rem;font-weight:800;gap:10px;letter-spacing:.13em}
-.brand-mark{align-items:center;background:var(--ink);border-radius:50% 50% 47% 53%;color:var(--lime);display:inline-flex;font-family:Georgia,serif;font-size:1rem;font-style:italic;height:32px;justify-content:center;transform:rotate(-7deg);width:32px}
+.brand-mark{align-items:center;background:var(--coral);border-radius:50% 50% 47% 53%;color:#fff;display:inline-flex;font-family:Georgia,serif;font-size:1rem;font-style:italic;height:32px;justify-content:center;transform:rotate(-7deg);width:32px}
 .header-link{border-bottom:1px solid var(--ink);font-size:.78rem;font-weight:700;padding-bottom:4px}
 .primary-button,.light-button,.secondary-button,.application-actions button{align-items:center;border:0;border-radius:2px;cursor:pointer;display:inline-flex;font-size:.8rem;font-weight:800;gap:24px;justify-content:center;min-height:52px;padding:0 20px}
 .primary-button{background:var(--ink);color:white}
@@ -4350,8 +4350,6 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .home-theme a{color:inherit;text-decoration:none}
 .home-theme :focus-visible{outline:3px solid var(--coral);outline-offset:2px}
 
-.home-brand{align-items:center;display:inline-flex;font-weight:800;gap:9px;letter-spacing:.02em}
-
 .home-eyebrow{color:var(--hp-green);font-size:.72rem;font-weight:800;letter-spacing:.14em;margin:0 0 14px;text-transform:uppercase}
 .home-button{background:var(--coral);border-radius:999px;color:#fff;display:inline-block;font-size:.9rem;font-weight:700;padding:15px 28px}
 .home-button-light{background:#fff;color:var(--ink);border:1px solid var(--line)}
@@ -4369,10 +4367,6 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .pp-hero-frame[data-frame-world="portpass"]{background:linear-gradient(200deg,#d6ecea 0%,#efe7d9 52%,#e2d1ba 100%),url(/weddings/bahamas-by-the-sea/hero.jpg) center/cover;background-blend-mode:soft-light}
 .pp-hero-scrim{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(10,26,34,.55) 0%,rgba(10,26,34,.42) 45%,rgba(10,26,34,.72) 100%)}
 .pp-hero[data-world="portpass"] .pp-hero-scrim{background:linear-gradient(180deg,rgba(255,253,248,.35) 0%,rgba(255,253,248,0) 32%,rgba(96,74,48,.3) 100%)}
-.pp-hero-top{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:24px 5vw}
-.pp-hero-brand{display:inline-flex;align-items:center;gap:9px;font-weight:800;letter-spacing:.16em;font-size:.78rem;color:var(--ink);transition:color .9s ease}
-.pp-hero-mark{width:30px;height:30px;border-radius:50% 50% 47% 53%;background:var(--coral);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--hp-font-display);font-style:italic;font-weight:700;font-size:15px;transform:rotate(-7deg);flex:0 0 auto}
-.pp-hero-nav{display:flex;gap:22px;font-size:.8rem;font-weight:700;color:var(--ink-soft);transition:color .9s ease}
 .pp-hero-centre{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 6vw}
 .pp-hero-kicker{color:var(--ink-soft);font-size:.72rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;margin:0 0 16px;transition:color .9s ease}
 .pp-hero-centre h1{color:var(--ink);font-family:var(--hp-font-display);font-weight:500;font-size:clamp(2.3rem,5.6vw,4.4rem);line-height:1.04;letter-spacing:-.02em;margin:0;max-width:16ch;transition:color .9s ease}
@@ -4419,13 +4413,6 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .home-business h2{font-family:var(--hp-font-display);font-size:clamp(1.6rem,3vw,2.2rem);font-weight:500;margin:8px 0}
 .home-business p{color:rgba(255,255,255,.75);font-size:.9rem;margin:0;max-width:420px}
 
-.home-footer{border-top:1px solid var(--hp-line);display:flex;flex-direction:column;gap:18px;padding:32px 5vw}
-.home-footer-top{align-items:center;display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between}
-.home-footer-brand p{color:var(--hp-muted);font-size:.78rem;margin:6px 0 0}
-.home-footer-links{display:flex;flex-wrap:wrap;gap:22px;font-size:.85rem;font-weight:600}
-.home-footer-legal{border-top:1px solid var(--hp-line);color:var(--hp-muted);display:flex;flex-wrap:wrap;gap:18px;font-size:.75rem;padding-top:16px}
-.home-footer-legal a{color:var(--hp-muted);text-decoration:underline;text-underline-offset:3px}
-
 @media(max-width:900px){
   .home-trust-strip{grid-template-columns:1fr 1fr;row-gap:22px}
   .home-trust-strip>div:nth-child(odd){border-left:0}
@@ -4434,17 +4421,14 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .home-lane-grid{grid-template-columns:repeat(2,1fr)}
   .home-editorial-grid{grid-template-columns:1fr}
   .home-business{flex-direction:column;text-align:center}
-  .home-footer-top{flex-direction:column;text-align:center}
-  .home-footer-legal{justify-content:center;text-align:center}
-  .pp-hero-nav{display:none}
 }
 @media(max-width:600px){
   .home-chooser{padding:50px 16px}
   .home-lane-grid{grid-template-columns:1fr}
   .home-section-heading{padding:0 16px}
-  .home-business,.home-footer{padding:32px 16px}
+  .home-business{padding:32px 16px}
   .home-editorial-col{padding:28px 22px}
-  .pp-hero-top,.pp-hero-bottom{padding-left:16px;padding-right:16px}
+  .pp-hero-bottom{padding-left:16px;padding-right:16px}
 }
 @media(prefers-reduced-motion:reduce){
   .home-theme{scroll-behavior:auto}
@@ -4462,18 +4446,6 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
    not a change here. See claude/PortPass_Site_Architecture.md.
    ============================================================ */
 .tpl-page{background:var(--ground);color:var(--ink);font-family:var(--font-pp-sans),Arial,sans-serif}
-
-.tpl-header{display:flex;align-items:center;justify-content:space-between;padding:20px 5vw;background:var(--surface);border-bottom:1px solid var(--line)}
-.tpl-header-brand{display:inline-flex;align-items:center;gap:9px;font-size:.78rem;font-weight:800;letter-spacing:.13em;color:var(--ink)}
-.tpl-header-org{font-family:var(--font-pp-display),Georgia,serif;font-size:1.05rem;font-weight:500;color:var(--ink)}
-
-.tpl-footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding:30px 5vw;background:var(--surface);border-top:1px solid var(--line);font-size:.8rem;color:var(--ink-soft)}
-.tpl-footer-links{display:flex;gap:20px;font-weight:600}
-.tpl-footer-links a{color:var(--ink-soft)}
-
-@media(max-width:600px){
-  .tpl-footer{flex-direction:column;align-items:flex-start;text-align:left}
-}
 
 .tpl-identity{position:relative;padding:90px 5vw 60px;background:var(--surface);background-size:cover;background-position:center}
 .tpl-identity-photo{padding:140px 5vw 60px;color:#fff}
@@ -4537,4 +4509,40 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .tpl-people{flex-direction:column;text-align:center}
   .tpl-action{display:none}
   .tpl-action-sticky{display:flex;position:fixed;left:16px;right:16px;bottom:16px;z-index:40;justify-content:center;align-items:center;gap:12px;background:var(--coral);color:#fff;font-weight:700;font-size:.95rem;padding:16px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.25);text-align:center}
+}
+
+/* ============================================================
+   Site shell (site-shell-*): the one header and footer every
+   PortPass-branded page renders, homepage included. BWS
+   (app/weddings/bahamas-by-the-sea and its children) is the one
+   exception, keeping its own chrome until it moves to its own
+   domain -- see claude/PortPass_Site_Architecture.md.
+   ============================================================ */
+.site-shell-header{background:var(--paper);border-bottom:1px solid var(--line);position:relative;z-index:10}
+.site-shell-header-top{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:18px 5vw}
+.site-shell-brand{display:inline-flex;align-items:center;gap:9px;font-size:.78rem;font-weight:800;letter-spacing:.13em;color:var(--ink);flex:0 0 auto}
+.site-shell-nav{display:flex;gap:22px;font-size:.8rem;font-weight:700;flex-wrap:wrap;color:var(--ink)}
+.site-shell-nav a:hover{color:var(--coral)}
+.site-shell-business{font-size:.8rem;font-weight:700;color:var(--coral);flex:0 0 auto;white-space:nowrap}
+.site-shell-breadcrumb{padding:10px 5vw;font-size:.75rem;color:var(--muted);border-top:1px solid var(--line)}
+.site-shell-breadcrumb a{color:var(--muted);font-weight:600}
+.site-shell-breadcrumb a:hover{color:var(--ink)}
+
+.site-shell-footer{background:var(--sand);border-top:1px solid var(--line);padding:40px 5vw 28px}
+.site-shell-footer-org{font-size:.85rem;font-weight:700;color:var(--ink);margin:0 0 22px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.site-shell-footer-main{display:flex;flex-wrap:wrap;justify-content:space-between;gap:24px;margin-bottom:24px}
+.site-shell-footer-name{font-size:.85rem;font-weight:700;color:var(--ink);margin:0 0 6px}
+.site-shell-footer-contact{font-size:.8rem;color:var(--muted);margin:0}
+.site-shell-footer-contact a{color:var(--muted)}
+.site-shell-footer-categories{display:flex;flex-wrap:wrap;gap:16px;font-size:.8rem;font-weight:600}
+.site-shell-footer-categories a{color:var(--ink)}
+.site-shell-footer-legal{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-top:18px;border-top:1px solid var(--line);font-size:.75rem;color:var(--muted)}
+.site-shell-footer-legal nav{display:flex;flex-wrap:wrap;gap:16px}
+.site-shell-footer-legal a{color:var(--muted);font-weight:600}
+
+@media(max-width:760px){
+  .site-shell-header-top{flex-wrap:wrap;gap:14px}
+  .site-shell-nav{order:3;width:100%;gap:14px}
+  .site-shell-footer-main{flex-direction:column}
+  .site-shell-footer-legal{flex-direction:column;align-items:flex-start}
 }

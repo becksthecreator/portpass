@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import Script from "next/script";
 import { getOfferingListingBySlug } from "@/db/organizations";
 import { ProgramTemplate } from "@/app/_components/blocks/OfferingTemplate";
-import { TemplateHeader } from "@/app/_components/blocks/TemplateHeader";
-import { TemplateFooter } from "@/app/_components/blocks/TemplateFooter";
+import { SiteHeader } from "@/app/_components/SiteHeader";
+import { SiteFooter } from "@/app/_components/SiteFooter";
 import { ppDisplay, ppSans } from "@/app/fonts";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ const ORG_URL = "https://portpassbahamas.com/sports-fitness/futprep-athletics";
 export async function generateMetadata({ params }: { params: Promise<{ offeringSlug: string }> }) {
   const { offeringSlug } = await params;
   const listing = await getOfferingListingBySlug(ORG_SLUG, offeringSlug);
-  if (!listing) return { title: "Futprep Athletics | PortPass" };
+  if (!listing) return { title: "Futprep Athletics | PortPass Bahamas" };
   const { offering } = listing;
   const ages = offering.ageMin !== null && offering.ageMax !== null ? `Ages ${offering.ageMin}-${offering.ageMax}` : "";
   const title = `Kids Football Classes ${ages ? `${ages} ` : ""}in Nassau, The Bahamas | Futprep ${offering.name.replace("Futprep ", "")}`;
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: { params: Promise<{ offeringS
   return {
     title,
     description,
-    openGraph: { type: "website", title, description, url: `${ORG_URL}/${offeringSlug}` },
+    openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url: `${ORG_URL}/${offeringSlug}` },
     twitter: { card: "summary_large_image", title, description },
   };
 }
@@ -55,9 +55,9 @@ export default async function FutprepOfferingPage({ params }: { params: Promise<
           {JSON.stringify(courseSchema)}
         </Script>
       )}
-      <TemplateHeader orgName={organization.name} orgHref="/sports-fitness/futprep-athletics" />
+      <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: organization.name, href: "/sports-fitness/futprep-athletics" }, { label: offering.name, href: `/sports-fitness/futprep-athletics/${offering.slug}` }]} />
       <ProgramTemplate listing={listing} />
-      <TemplateFooter orgName={organization.name} staffHref="/futprep/staff/login" />
+      <SiteFooter orgLine={`${organization.name} · Booking and payments powered by PortPass`} />
     </div>
   );
 }

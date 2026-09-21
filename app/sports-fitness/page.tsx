@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { getFutprepAvailability } from "@/db/registrations";
 import { programTimeRange, formatMoney } from "@/app/futprep/config";
+import { SiteHeader } from "@/app/_components/SiteHeader";
+import { SiteFooter } from "@/app/_components/SiteFooter";
 
 // force-dynamic: reads live program/pricing data at request time.
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Sports & Fitness | PortPass",
+  title: "Sports & Fitness in Nassau, The Bahamas | PortPass Bahamas",
   description: "Real Saturday sessions, ages and prices for sports and fitness programs on PortPass.",
 };
 
@@ -15,13 +17,10 @@ export default async function SportsFitnessPage() {
 
   return (
     <main className="form-page">
-      <header className="site-header form-header">
-        <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-        <Link className="header-link" href="/">Back home</Link>
-      </header>
+      <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }]} />
       <section className="form-intro">
         <div className="eyebrow"><span className="eyebrow-dot" />Sports & Fitness</div>
-        <h1>Live on PortPass now.</h1>
+        <h1>Sports &amp; Fitness in Nassau, The Bahamas.</h1>
         <p>Futprep Athletics runs its Saturday football programs through PortPass — real classes, real prices, real registration.</p>
       </section>
 
@@ -40,6 +39,7 @@ export default async function SportsFitnessPage() {
           <Link className="primary-button" href="/sports-fitness/futprep-athletics">Explore Futprep →</Link>
         </div>
       </div>
+      <SiteFooter />
     </main>
   );
 }

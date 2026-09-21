@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { SiteHeader } from "@/app/_components/SiteHeader";
+import { SiteFooter } from "@/app/_components/SiteFooter";
 
 export const metadata = {
   title: "Terms of Service | PortPass Bahamas",
@@ -8,10 +9,7 @@ export const metadata = {
 export default function TermsPage() {
   return (
     <main className="form-page">
-      <header className="site-header form-header">
-        <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-        <Link className="header-link" href="/">Back home</Link>
-      </header>
+      <SiteHeader breadcrumb={[{ label: "Terms", href: "/terms" }]} />
       <section className="form-intro">
         <div className="eyebrow"><span className="eyebrow-dot" />Effective September 2026</div>
         <h1>Terms of Service.</h1>
@@ -53,6 +51,7 @@ export default function TermsPage() {
           Phone: <a href="tel:+12424241262">+1 (242) 424-1262</a>
         </p>
       </article>
+      <SiteFooter />
     </main>
   );
 }

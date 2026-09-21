@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { getOrganizationListingBySlug } from "@/db/organizations";
 import { OrganizationTemplate } from "@/app/_components/blocks/OrganizationTemplate";
-import { TemplateHeader } from "@/app/_components/blocks/TemplateHeader";
-import { TemplateFooter } from "@/app/_components/blocks/TemplateFooter";
+import { SiteHeader } from "@/app/_components/SiteHeader";
+import { SiteFooter } from "@/app/_components/SiteFooter";
 import { ppDisplay, ppSans } from "@/app/fonts";
 
 // force-dynamic: reads live organization/offering data at request time.
@@ -12,14 +12,14 @@ const ORG_SLUG = "futprep";
 
 export async function generateMetadata() {
   const listing = await getOrganizationListingBySlug(ORG_SLUG);
-  if (!listing) return { title: "Futprep Athletics | PortPass" };
+  if (!listing) return { title: "Futprep Athletics | PortPass Bahamas" };
   const { organization } = listing;
-  const title = `${organization.name} | PortPass`;
+  const title = `${organization.name} | PortPass Bahamas`;
   const description = organization.oneLiner ?? organization.description ?? undefined;
   return {
     title,
     description,
-    openGraph: { type: "website", title, description, url: "https://portpassbahamas.com/sports-fitness/futprep-athletics" },
+    openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url: "https://portpassbahamas.com/sports-fitness/futprep-athletics" },
     twitter: { card: "summary_large_image", title, description },
   };
 }
@@ -30,9 +30,9 @@ export default async function FutprepOrganizationPage() {
 
   return (
     <div className={`tpl-page ${ppDisplay.variable} ${ppSans.variable}`} data-world="futprep">
-      <TemplateHeader orgName={listing.organization.name} orgHref="/sports-fitness/futprep-athletics" />
+      <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: listing.organization.name, href: "/sports-fitness/futprep-athletics" }]} />
       <OrganizationTemplate listing={listing} />
-      <TemplateFooter orgName={listing.organization.name} staffHref="/futprep/staff/login" />
+      <SiteFooter orgLine={`${listing.organization.name} · Booking and payments powered by PortPass`} />
     </div>
   );
 }

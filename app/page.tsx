@@ -5,6 +5,8 @@ import { HomeHero, type HeroFrame } from "./HomeHero";
 import { getFutprepAvailability } from "@/db/registrations";
 import { getWeddingSiteSettings } from "@/db/weddingSite";
 import { programTimeRange } from "./futprep/config";
+import { SiteHeader } from "./_components/SiteHeader";
+import { SiteFooter } from "./_components/SiteFooter";
 
 // Title, description, and Open Graph/Twitter tags are inherited from the
 // root layout -- they're identical for "/", so there's nothing to override.
@@ -41,7 +43,7 @@ export default async function Home() {
       name: "Bahamas Weddings By The Sea",
       meta: `${weddingSettings.yearsExperience} years · ${weddingSettings.reviewCount} five-star reviews · Nassau`,
       cta: "Plan a wedding",
-      href: "/weddings/bahamas-by-the-sea",
+      href: "/weddings/bahamas-weddings-by-the-sea",
     },
   ].filter((frame): frame is HeroFrame => Boolean(frame));
 
@@ -50,6 +52,7 @@ export default async function Home() {
       <ArrivalPlate />
       <a className="home-skip-link" href="#chooser">Skip to browse</a>
 
+      <SiteHeader />
       <HomeHero frames={frames} />
 
       <section className="home-trust-strip" aria-label="PortPass by the numbers">
@@ -122,24 +125,7 @@ export default async function Home() {
         <Link className="home-button home-button-light" href="/apply">Learn more →</Link>
       </section>
 
-      <footer className="home-footer">
-        <div className="home-footer-top">
-          <div className="home-footer-brand">
-            <Link className="home-brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-            <p>PortPass Bahamas Technologies · Nassau, The Bahamas</p>
-          </div>
-          <div className="home-footer-links">
-            <a href="mailto:portpassbahamas@outlook.com">portpassbahamas@outlook.com</a>
-            <a href="tel:+12424241262">+1 (242) 424-1262</a>
-            <Link href="/apply">Apply for early access →</Link>
-          </div>
-        </div>
-        <div className="home-footer-legal">
-          <span>© {new Date().getFullYear()} PortPass Bahamas Technologies</span>
-          <Link href="/privacy">Privacy</Link>
-          <Link href="/terms">Terms</Link>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
