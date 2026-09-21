@@ -15,9 +15,9 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 const COMING_LANES = [
-  { slug: "venues", title: "Venues", tag: "Coming soon", copy: "Beaches, halls, studios and private estates." },
-  { slug: "events", title: "Events", tag: "Coming soon", copy: "Ticketed nights, with entry and door scanning." },
-  { slug: "entertainment", title: "Entertainment", tag: "Coming soon", copy: "Tours, attractions and nightlife." },
+  { slug: "venues", title: "Venues", tag: "Coming soon", copy: "Beaches, halls, studios and private estates, held by the hour or the day.", now: "Add-ons priced as you build the booking." },
+  { slug: "events", title: "Events", tag: "Coming soon", copy: "Ticketed nights with scanning at the door.", now: "You see who is in the room and what came through the gate." },
+  { slug: "entertainment", title: "Entertainment", tag: "Coming soon", copy: "Tours, attractions and nightlife.", now: "Booked the same way as everything else on PortPass." },
 ] as const;
 
 export default async function Home() {
@@ -26,27 +26,26 @@ export default async function Home() {
     getWeddingSiteSettings(),
   ]);
   const futprepProgram = availability[0];
+  const spotsThisWeek = availability.reduce((sum, program) => sum + program.spotsRemaining, 0);
 
   const frames: HeroFrame[] = [
     futprepProgram && {
       world: "futprep" as const,
-      chip: "Live now · Sports & Fitness",
+      chip: "Open now",
       name: "Futprep Athletics",
-      meta: `${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location}`,
-      cta: "Register a child",
+      meta: `${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location} · ${spotsThisWeek} spots open`,
+      cta: "Register a child →",
       href: "/futprep",
     },
     {
       world: "portpass" as const,
-      chip: "Live now · Weddings",
+      chip: "Open now",
       name: "Bahamas Weddings By The Sea",
       meta: `${weddingSettings.yearsExperience} years · ${weddingSettings.reviewCount} five-star reviews · Nassau`,
-      cta: "Plan a wedding",
+      cta: "Plan a wedding →",
       href: "/weddings/bahamas-by-the-sea",
     },
   ].filter((frame): frame is HeroFrame => Boolean(frame));
-
-  const spotsThisWeek = availability.reduce((sum, program) => sum + program.spotsRemaining, 0);
 
   return (
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`} data-world="portpass">
@@ -58,50 +57,29 @@ export default async function Home() {
       <section className="home-chooser" id="chooser">
         <div className="home-section-heading">
           <span className="home-eyebrow">What PortPass covers</span>
-          <h2>Pick your lane.</h2>
+          <h2>Where do you want to go?</h2>
         </div>
         <div className="home-lane-grid">
           <Link className="home-lane home-lane-live" href="/sports-fitness">
             <span className="home-lane-tag home-lane-tag-live">Live now</span>
             <h3>Sports &amp; Fitness</h3>
-            <p>Real Saturday sessions, real prices, open now.</p>
+            <p>Youth training, camps and weekend sessions you register and pay for online.<span className="home-lane-now">Open now — Futprep Athletics, {spotsThisWeek} spots this Saturday.</span></p>
             <span className="home-lane-action">Explore →</span>
           </Link>
           <Link className="home-lane home-lane-live" href="/weddings">
             <span className="home-lane-tag home-lane-tag-live">Live now</span>
             <h3>Weddings</h3>
-            <p>Plan an island ceremony, start to finish.</p>
+            <p>Island ceremonies planned end to end: officiant, venue, photography, paperwork.<span className="home-lane-now">Open now — Bahamas Weddings By The Sea, {weddingSettings.yearsExperience} years, {weddingSettings.reviewCount} five-star reviews.</span></p>
             <span className="home-lane-action">Explore →</span>
           </Link>
           {COMING_LANES.map((lane) => (
             <Link className="home-lane home-lane-coming" href={`/${lane.slug}`} key={lane.slug}>
               <span className="home-lane-tag">{lane.tag}</span>
               <h3>{lane.title}</h3>
-              <p>{lane.copy}</p>
+              <p>{lane.copy}<span className="home-lane-now">{lane.now}</span></p>
               <span className="home-lane-action">Tell us what you need →</span>
             </Link>
           ))}
-        </div>
-      </section>
-
-      <section className="home-editorial">
-        <div className="home-section-heading">
-          <span className="home-eyebrow">Not a mockup</span>
-          <h2>Running right now, side by side.</h2>
-        </div>
-        <div className="home-editorial-grid">
-          <div className="home-editorial-col">
-            <span>Sports &amp; Fitness</span>
-            <strong>{spotsThisWeek} spots open this Saturday</strong>
-            <p>{futprepProgram ? `${futprepProgram.name}, ${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location}` : "Real Saturday football, straight from the database."}</p>
-            <Link href="/futprep">Register a child →</Link>
-          </div>
-          <div className="home-editorial-col">
-            <span>Weddings</span>
-            <strong>{weddingSettings.reviewCount} five-star reviews</strong>
-            <p>{weddingSettings.yearsExperience} years officiating island ceremonies in Nassau, The Bahamas.</p>
-            <Link href="/weddings/bahamas-by-the-sea">Plan a wedding →</Link>
-          </div>
         </div>
       </section>
 
