@@ -27,6 +27,10 @@ const OG_IMAGE = `${ASSET}/hero.jpg`;
 export const metadata = {
   title: "Bahamas Weddings By The Sea | Antonio Beckford",
   description: "A wedding that feels like you, in a place like nowhere else. Plan your Bahamas wedding ceremony or vow renewal with Antonio Beckford.",
+  // Explicit override: the root layout sets a static `icons` field for
+  // PortPass's own favicon, which otherwise wins over this route's
+  // icon.tsx file convention in Next.js metadata merging.
+  icons: { icon: `${ASSET}/icon` },
   openGraph: {
     title: "Bahamas Weddings By The Sea | Antonio Beckford",
     description: "A wedding that feels like you, in a place like nowhere else. Plan your Bahamas wedding ceremony or vow renewal with Antonio Beckford.",
