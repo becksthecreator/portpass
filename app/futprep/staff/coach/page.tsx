@@ -52,7 +52,7 @@ export default async function FutprepCoachPage({
           {role==="ceo" && <Link href="/futprep/staff/ceo">CEO overview</Link>}
           {!readOnly && <Link href="/futprep/staff/private-sessions">Private sessions</Link>}
           {!readOnly && <Link href="/futprep/staff/programs">Programs</Link>}
-          <Link href="/futprep/lil-kickers">Parent view ↗</Link>
+          <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
           <StaffLogoutButton />
         </nav>
       </header>

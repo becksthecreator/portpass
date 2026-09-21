@@ -19,7 +19,7 @@ export default async function FutprepStaffAccountsPage() {
         <nav>
           <Link href="/futprep/staff/team">Team profiles</Link>
           {role === "ceo" && <Link href="/futprep/staff/ceo">CEO overview</Link>}
-          <Link href="/futprep/lil-kickers">Parent view ↗</Link>
+          <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
           <StaffLogoutButton />
         </nav>
       </header>

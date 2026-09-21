@@ -14,7 +14,7 @@ export default async function FutprepChangePinPage() {
           <span className="staff-workspace-label">Futprep · Change PIN</span>
         </div>
         <nav>
-          <Link href="/futprep/lil-kickers">Parent view ↗</Link>
+          <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
           <StaffLogoutButton />
         </nav>
       </header>

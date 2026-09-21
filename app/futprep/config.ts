@@ -53,12 +53,14 @@ export const FUTPREP_BANK_DETAILS = {
 
 export const CONSENT_VERSION = "futprep-lil-kickers-term1-v1";
 
+// Fixed "$" rather than derived from a currency code: Intl's currency
+// formatter doesn't carry a "$" glyph for BSD in every runtime and can fall
+// back to printing "BSD 35" -- see the wedding package price fix earlier in
+// this project for the bug this avoids repeating.
 export function formatMoney(cents: number) {
-  return new Intl.NumberFormat("en-BS", {
-    style: "currency",
-    currency: "BSD",
-    minimumFractionDigits: 0,
-  }).format(cents / 100);
+  return `$${new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 0,
+  }).format(cents / 100)}`;
 }
 
 export function programBySlug(slug: string) {

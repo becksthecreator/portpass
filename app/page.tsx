@@ -33,7 +33,7 @@ export default async function Home() {
       name: "Futprep Athletics",
       meta: `${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location} · ${spotsThisWeek} spots open`,
       cta: "Register a child",
-      href: "/futprep",
+      href: "/sports-fitness/futprep-athletics",
     },
     {
       world: "portpass" as const,

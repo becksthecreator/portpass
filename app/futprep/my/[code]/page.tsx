@@ -18,8 +18,8 @@ export default async function FutprepMyRegistrationCodePage({
       <header className="site-header form-header registration-header">
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
         <div className="registration-header-right">
-          <Link className="header-link" href="/futprep">Futprep home</Link>
-          <Link className="header-link" href="/futprep/lil-kickers">Program details</Link>
+          <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>
+          <Link className="header-link" href="/sports-fitness/futprep-athletics/lil-kickers">Program details</Link>
         </div>
       </header>
       <section className="my-status-intro">

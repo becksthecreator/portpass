@@ -10,7 +10,7 @@ export function StaffLogoutButton() {
 
   return (
     <span className="staff-nav-actions">
-      <Link href="/futprep">Futprep home</Link>
+      <Link href="/sports-fitness/futprep-athletics">Futprep home</Link>
       <Link href="/futprep/staff/change-pin">Change PIN</Link>
       <button className="staff-logout-button" type="button" onClick={logout}>Sign out</button>
     </span>

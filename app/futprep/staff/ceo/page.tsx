@@ -56,7 +56,7 @@ export default async function FutprepCeoPage() {
           <Link href="/futprep/staff/private-sessions">Private sessions</Link>
           <Link href="/futprep/staff/admin">Registration desk</Link>
           <Link href="/futprep/staff/coach">Coaching area</Link>
-          <Link href="/futprep/lil-kickers">Parent view ↗</Link>
+          <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
           <StaffLogoutButton />
         </nav>
       </header>

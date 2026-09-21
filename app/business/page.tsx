@@ -47,12 +47,12 @@ export default function BusinessLandingPage() {
             <a href="#features">Features</a>
             <a href="#live">Live</a>
             <a href="#about">About</a>
-            <Link href="/futprep">Futprep</Link>
+            <Link href="/sports-fitness/futprep-athletics">Futprep</Link>
             <Link href="/apply">Early access</Link>
           </nav>
         </header>
 
-        <Link className="landing-register-strip" href="/futprep">
+        <Link className="landing-register-strip" href="/sports-fitness/futprep-athletics">
           <span className="landing-register-label">Live now</span>
           <strong>Futprep Athletics on PortPass</strong>
           <span className="landing-register-action">Explore Futprep →</span>
@@ -165,7 +165,7 @@ export default function BusinessLandingPage() {
             <span>Ages 3–7</span>
             <span>Saturday sessions</span>
           </div>
-          <Link className="landing-button landing-button-dark" href="/futprep/lil-kickers">View live registration →</Link>
+          <Link className="landing-button landing-button-dark" href="/sports-fitness/futprep-athletics/lil-kickers">View live registration →</Link>
         </div>
       </section>
 
