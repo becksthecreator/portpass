@@ -20,7 +20,6 @@ export default async function PlanPage() {
       <header className="bws-site-header bws-inner-header">
         <Link className="bws-brand" href="/weddings/bahamas-by-the-sea" aria-label="Bahamas Weddings By The Sea home"><span>Bahamas</span><small>WEDDINGS BY THE SEA</small></Link>
         <nav className="bws-desktop-nav" aria-label="Main navigation">
-          <Link className="bws-portpass-link" href="/"><span aria-hidden="true">←</span> PortPass</Link>
           <Link className="bws-planner-home" href="/weddings/bahamas-by-the-sea">Back to the main site <span aria-hidden="true">↗</span></Link>
         </nav>
       </header>

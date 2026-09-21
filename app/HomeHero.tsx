@@ -71,15 +71,6 @@ export function HomeHero({ frames }: { frames: HeroFrame[] }) {
       ))}
       <div className="pp-hero-scrim" />
 
-      <div className="pp-hero-top">
-        <Link className="pp-hero-brand" href="/" aria-label="PortPass home"><span className="pp-hero-mark">P</span><span>PORTPASS</span></Link>
-        <nav className="pp-hero-nav" aria-label="Primary">
-          <a href="#chooser">Browse</a>
-          <a href="#chooser">Live now</a>
-          <Link href="/apply">For business</Link>
-        </nav>
-      </div>
-
       <div className="pp-hero-centre">
         <p className="pp-hero-kicker">The Bahamas, one pass at a time</p>
         <h1>Everything worth booking in The Bahamas.</h1>

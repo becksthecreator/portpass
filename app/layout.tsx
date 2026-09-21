@@ -3,7 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import "./staff.css";
 
-const TITLE = "PortPass | Find and book it in The Bahamas";
+const TITLE = "PortPass Bahamas | Find and Book Sports, Weddings, Venues & Events in Nassau";
 const DESCRIPTION = "Sports sessions, weddings, venues and events — found, booked and paid for in one place.";
 
 export const metadata: Metadata = {
