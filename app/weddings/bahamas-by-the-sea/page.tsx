@@ -3,6 +3,7 @@ import { bwsSerif, bwsSans } from "./fonts";
 import { MobileMenu } from "./MobileMenu";
 import { QuickEnquiryForm } from "./QuickEnquiryForm";
 import { GalleryCycle } from "./GalleryCycle";
+import { BwsArrival } from "./BwsArrival";
 import { getPublicWeddingVenues } from "@/db/venues";
 import { getPublicWeddingGallery, getWeddingSiteSettings } from "@/db/weddingSite";
 import { getPublicWeddingPackages } from "@/db/weddingPackages";
@@ -21,9 +22,24 @@ export const dynamic = "force-dynamic";
 const ASSET = "/weddings/bahamas-by-the-sea";
 const WEDDINGWIRE_URL = "https://www.weddingwire.com/biz/bahamas-weddings-by-the-sea-nassau/406f00580a64e27e.html";
 
+const OG_IMAGE = `${ASSET}/hero.jpg`;
+
 export const metadata = {
   title: "Bahamas Weddings By The Sea | Antonio Beckford",
   description: "A wedding that feels like you, in a place like nowhere else. Plan your Bahamas wedding ceremony or vow renewal with Antonio Beckford.",
+  openGraph: {
+    title: "Bahamas Weddings By The Sea | Antonio Beckford",
+    description: "A wedding that feels like you, in a place like nowhere else. Plan your Bahamas wedding ceremony or vow renewal with Antonio Beckford.",
+    url: "/weddings/bahamas-by-the-sea",
+    siteName: "Bahamas Weddings By The Sea",
+    images: [{ url: OG_IMAGE, width: 1920, height: 1280 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Bahamas Weddings By The Sea | Antonio Beckford",
+    description: "A wedding that feels like you, in a place like nowhere else.",
+    images: [OG_IMAGE],
+  },
 };
 
 const NAV_LINKS = [
@@ -42,27 +58,36 @@ export default async function BahamasWeddingsByTheSeaPage() {
     getPublicWeddingPackages(),
   ]);
   return (
-    <div className={`bws-theme ${bwsSerif.variable} ${bwsSans.variable}`}>
+    <div className={`bws-theme ${bwsSerif.variable} ${bwsSans.variable}`} data-world="weddings">
+      <BwsArrival />
       <a className="bws-skip-link" href="#main">Skip to content</a>
       <header className="bws-site-header" id="site-header">
-        <a className="bws-brand" href="#home" aria-label="Bahamas Weddings By The Sea home"><span>Bahamas</span><small>WEDDINGS BY THE SEA</small></a>
         <nav className="bws-desktop-nav" aria-label="Main navigation">
-          <Link className="bws-portpass-link" href="/"><span aria-hidden="true">←</span> PortPass</Link>
           {NAV_LINKS.map((l) => <a key={l.href} href={l.href}>{l.label}</a>)}
-          <Link className="bws-nav-cta" href="/weddings/bahamas-by-the-sea/plan">Plan your wedding <span aria-hidden="true">↗</span></Link>
         </nav>
-        <MobileMenu links={[{ href: "/", label: "← Back to PortPass" }, ...NAV_LINKS, { href: "/weddings/bahamas-by-the-sea/plan", label: "Plan your wedding" }]} />
+        <a className="bws-brand" href="#home" aria-label="Bahamas Weddings By The Sea home">
+          <span className="bws-brand-mark" aria-hidden="true">🌴</span>
+          <span>Bahamas</span><small>WEDDINGS BY THE SEA</small>
+        </a>
+        <div className="bws-header-cta">
+          <Link className="bws-nav-cta" href="/weddings/bahamas-by-the-sea/plan">Plan your wedding <span aria-hidden="true">↗</span></Link>
+        </div>
+        <MobileMenu links={[...NAV_LINKS, { href: "/weddings/bahamas-by-the-sea/plan", label: "Plan your wedding" }]} />
       </header>
 
       <main id="main">
         <section className="bws-hero" id="home" aria-labelledby="hero-title">
           <img className="bws-hero-image" src={`${ASSET}/hero.jpg`} alt="A floral wedding arch overlooking turquoise water on Paradise Island" width={1920} height={1280} fetchPriority="high" />
-          <div className="bws-hero-shade" />
           <div className="bws-hero-content">
             <span className="bws-hero-badge">Nassau, The Bahamas</span>
             <h1 id="hero-title">A love like yours.<br /><em>A place like this.</em></h1>
             <p className="bws-hero-intro">The sea. The moment. The two of you.<br />A personal island ceremony, with Antonio Beckford.</p>
             <Link className="bws-hero-cta bws-button bws-button-light" href="/weddings/bahamas-by-the-sea/plan">Plan your wedding <span aria-hidden="true">↗</span></Link>
+            <div className="bws-hero-signpost">
+              <span><b>{siteSettings.yearsExperience}</b>years officiating</span>
+              <span><b>{siteSettings.reviewCount}</b>five-star reviews</span>
+              <span><b>Nassau</b>ceremonies &amp; vow renewals</span>
+            </div>
           </div>
           <div className="bws-hero-foot">
             <p>Destination weddings <span>/</span> Vow renewals</p>
@@ -104,7 +129,7 @@ export default async function BahamasWeddingsByTheSeaPage() {
             </div>
             <ol className="bws-desk-flow">
               <li><span>01</span><h3>Tell us what you imagine</h3><p>Message the Wedding Desk or complete the guided planner from anywhere.</p></li>
-              <li><span>02</span><h3>Explore venues and services</h3><p>Build a shortlist with PortPass venues, photo, film, transport, and ceremony support.</p></li>
+              <li><span>02</span><h3>Explore venues and services</h3><p>Build a shortlist of venues, photo, film, transport, and ceremony support.</p></li>
               <li><span>03</span><h3>Meet your representative</h3><p>Request a planning call, WhatsApp video conversation, or guided text consultation.</p></li>
               <li><span>04</span><h3>Antonio reviews the plan</h3><p>Your organized wedding plan goes to Antonio for approval, availability, and a personal quote.</p></li>
             </ol>
@@ -276,6 +301,7 @@ export default async function BahamasWeddingsByTheSeaPage() {
           <a href={WEDDINGWIRE_URL} target="_blank" rel="noopener noreferrer">Photos &amp; review via WeddingWire ↗</a>
         </div>
         <p className="bws-rating-note">WeddingWire rating and review count checked September 2026. Enquiries open in WhatsApp for you to review and send.</p>
+        <p className="bws-vendor-credit">Booking and planning desk powered by <Link href="/">PortPass Bahamas</Link>.</p>
       </footer>
 
       <Link className="bws-mobile-booking" href="/weddings/bahamas-by-the-sea/plan">Plan your wedding <span aria-hidden="true">↗</span></Link>
