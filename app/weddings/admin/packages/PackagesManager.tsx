@@ -17,6 +17,7 @@ type Draft = {
   priceDollars: string;
   priceNote: string;
   visibility: "draft" | "unlisted" | "live";
+  isFeatured: boolean;
   sortOrder: number;
 };
 
@@ -30,11 +31,12 @@ function toDraft(pkg: AdminWeddingPackage): Draft {
     priceDollars: money(pkg.priceFromCents),
     priceNote: pkg.priceNote ?? "from",
     visibility: pkg.visibility,
+    isFeatured: pkg.isFeatured,
     sortOrder: pkg.sortOrder,
   };
 }
 
-const BLANK_DRAFT: Draft = { slug: "", name: "", tagline: "", description: "", includes: "", priceDollars: "", priceNote: "from", visibility: "draft", sortOrder: 99 };
+const BLANK_DRAFT: Draft = { slug: "", name: "", tagline: "", description: "", includes: "", priceDollars: "", priceNote: "from", visibility: "draft", isFeatured: false, sortOrder: 99 };
 
 function PackageEditor({ id, initial, onSaved }: { id: number | null; initial: Draft; onSaved: (packages: AdminWeddingPackage[]) => void }) {
   const [draft, setDraft] = useState(initial);
@@ -63,6 +65,7 @@ function PackageEditor({ id, initial, onSaved }: { id: number | null; initial: D
         priceDollars: draft.priceDollars.trim() ? Number(draft.priceDollars) : null,
         priceNote: draft.priceNote,
         visibility: draft.visibility,
+        isFeatured: draft.isFeatured,
         sortOrder: draft.sortOrder,
       }),
     });
@@ -98,6 +101,12 @@ function PackageEditor({ id, initial, onSaved }: { id: number | null; initial: D
           </select>
         </label>
         <label><span>Sort order</span><input type="number" value={draft.sortOrder} onChange={(e) => set("sortOrder", Number(e.target.value))} /></label>
+        <label><span>Most chosen badge</span>
+          <select value={draft.isFeatured ? "yes" : "no"} onChange={(e) => set("isFeatured", e.target.value === "yes")}>
+            <option value="no">No</option>
+            <option value="yes">Yes — saving this clears it from any other package</option>
+          </select>
+        </label>
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="staff-actions">

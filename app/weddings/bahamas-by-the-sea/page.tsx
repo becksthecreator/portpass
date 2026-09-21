@@ -4,19 +4,13 @@ import { MobileMenu } from "./MobileMenu";
 import { QuickEnquiryForm } from "./QuickEnquiryForm";
 import { GalleryCycle } from "./GalleryCycle";
 import { BwsArrival } from "./BwsArrival";
-import { getPublicWeddingVenues } from "@/db/venues";
+import { PackageTiers } from "./PackageTiers";
 import { getPublicWeddingGallery, getWeddingSiteSettings } from "@/db/weddingSite";
 import { getPublicWeddingPackages } from "@/db/weddingPackages";
 
-function money(cents: number, currency: string) {
-  return new Intl.NumberFormat("en-BS", { style: "currency", currency, minimumFractionDigits: 0 }).format(cents / 100);
-}
-
-const VENUE_STYLES = ["Beach", "Garden", "Chapel", "Private estate", "Hotel", "Boat"];
-
 // force-dynamic (not ISR/revalidate) because this repo's CI build has no
 // Supabase credentials, so a statically-prerendered page would fail the
-// build fetching venues.
+// build fetching the gallery, site settings, and packages.
 export const dynamic = "force-dynamic";
 
 const ASSET = "/weddings/bahamas-by-the-sea";
@@ -55,8 +49,7 @@ const NAV_LINKS = [
 
 export default async function BahamasWeddingsByTheSeaPage() {
   const year = new Date().getFullYear();
-  const [venues, gallery, siteSettings, packages] = await Promise.all([
-    getPublicWeddingVenues(),
+  const [gallery, siteSettings, packages] = await Promise.all([
     getPublicWeddingGallery(),
     getWeddingSiteSettings(),
     getPublicWeddingPackages(),
@@ -105,6 +98,14 @@ export default async function BahamasWeddingsByTheSeaPage() {
           <div><strong>{siteSettings.awardYears.length || 6} Couples&rsquo; Choice Awards</strong><span>WeddingWire, {siteSettings.awardYears.length ? [...siteSettings.awardYears].sort((a, b) => a - b).join(", ") : "2019–2026"}</span></div>
         </section>
 
+        <section className="bws-gallery-cycle-section" id="love-notes">
+          <GalleryCycle images={gallery} />
+          <div className="bws-gallery-cycle-caption">
+            <p className="bws-eyebrow">Real island weddings</p>
+            <h2>A little colour<br /><em>from the water&rsquo;s edge.</em></h2>
+          </div>
+        </section>
+
         <section className="bws-about bws-section-wrap" id="antonio">
           <div className="bws-about-photo">
             <img src={`${ASSET}/antonio.jpg`} alt="Antonio Beckford, wedding planner and officiant" width={361} height={361} loading="lazy" />
@@ -122,112 +123,12 @@ export default async function BahamasWeddingsByTheSeaPage() {
           </div>
         </section>
 
-        <section className="bws-wedding-desk" id="wedding-desk">
-          <div className="bws-section-wrap">
-            <div className="bws-desk-heading">
-              <div><p className="bws-eyebrow">Your planning team in The Bahamas</p><h2>Meet the<br /><em>Wedding Desk.</em></h2></div>
-              <div>
-                <p>The Wedding Desk helps you shape the details before Antonio reviews your complete wedding plan.</p>
-                <Link className="bws-button bws-button-light" href="/weddings/bahamas-by-the-sea/plan">Start your pre-consultation <span aria-hidden="true">↗</span></Link>
-              </div>
-            </div>
-            <ol className="bws-desk-flow">
-              <li><span>01</span><h3>Tell us what you imagine</h3><p>Message the Wedding Desk or complete the guided planner from anywhere.</p></li>
-              <li><span>02</span><h3>Explore venues and services</h3><p>Build a shortlist of venues, photo, film, transport, and ceremony support.</p></li>
-              <li><span>03</span><h3>Meet your representative</h3><p>Request a planning call, WhatsApp video conversation, or guided text consultation.</p></li>
-              <li><span>04</span><h3>Antonio reviews the plan</h3><p>Your organized wedding plan goes to Antonio for approval, availability, and a personal quote.</p></li>
-            </ol>
-            <p className="bws-desk-note">Antonio remains your officiant and the heart of the ceremony. The Wedding Desk handles the planning details around him.</p>
-          </div>
-        </section>
-
-        <section className="bws-ceremonies bws-section-wrap" id="ceremonies">
-          <div className="bws-section-heading">
-            <div><p className="bws-eyebrow">Make it yours</p><h2>However you say it,<br /><em>make it mean everything.</em></h2></div>
-            <p>A few loved ones, a gathering of family, or a promise made all over again. Start with the moment you have in mind.</p>
-          </div>
-          <div className="bws-ceremony-grid">
-            <Link className="bws-ceremony-item" href="/weddings/bahamas-by-the-sea/plan?ceremony=Wedding%20ceremony"><span className="bws-item-number">01 /</span><h3>Your wedding</h3><p>A personalized ceremony with guidance on the marriage process and coordination for your day.</p><span className="bws-text-link">Plan your ceremony <span aria-hidden="true">↗</span></span></Link>
-            <Link className="bws-ceremony-item" href="/weddings/bahamas-by-the-sea/plan?ceremony=Intimate%20wedding"><span className="bws-item-number">02 /</span><h3>Just the two of you</h3><p>Dreaming of something intimate? Tell Antonio about your island escape and the way you want to say &ldquo;I do.&rdquo;</p><span className="bws-text-link">Start something beautiful <span aria-hidden="true">↗</span></span></Link>
-            <Link className="bws-ceremony-item" href="/weddings/bahamas-by-the-sea/plan?ceremony=Vow%20renewal"><span className="bws-item-number">03 /</span><h3>&ldquo;I do.&rdquo; All over again.</h3><p>A vow renewal to celebrate your life together, with an ocean of memories still ahead.</p><span className="bws-text-link">Celebrate your story <span aria-hidden="true">↗</span></span></Link>
-          </div>
-        </section>
-
         <section className="bws-tiers bws-section-wrap" id="packages">
           <div className="bws-section-heading">
-            <div><p className="bws-eyebrow">How much should we handle?</p><h2>Choose your<br /><em>level of service.</em></h2></div>
-            <p>Any ceremony above can be as hands-off or as fully planned as you want it to be. Choosing one here doesn&rsquo;t confirm or book anything — it just tells the Wedding Desk where to start.</p>
+            <div><p className="bws-eyebrow">How much should we handle?</p><h2>Choose your<br /><em>package.</em></h2></div>
+            <p>Real prices, published by Antonio. Choosing one here doesn&rsquo;t confirm or book anything — it just tells the Wedding Desk where to start.</p>
           </div>
-          <div className="bws-tier-grid">
-            {packages.map((pkg) => (
-              <div className="bws-tier-card" key={pkg.id}>
-                <h3>{pkg.name}</h3>
-                {pkg.tagline && <p className="bws-tier-tagline">{pkg.tagline}</p>}
-                <p className="bws-tier-price">
-                  {pkg.priceFromCents !== null
-                    ? <>{pkg.priceNote === "from" ? "From " : ""}{money(pkg.priceFromCents, pkg.currency)}</>
-                    : "Ask the Wedding Desk"}
-                </p>
-                {pkg.includes.length > 0 && (
-                  <ul className="bws-tier-includes">
-                    {pkg.includes.map((item) => <li key={item}>{item}</li>)}
-                  </ul>
-                )}
-                <Link className="bws-text-link" href={`/weddings/bahamas-by-the-sea/plan?tier=${encodeURIComponent(pkg.slug)}`}>Start with this level <span aria-hidden="true">↗</span></Link>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="bws-venues bws-section-wrap" id="venues">
-          <div className="bws-section-heading">
-            <div><p className="bws-eyebrow">Where it happens</p><h2>Find the<br /><em>right setting.</em></h2></div>
-            <p>Real venues, reviewed and confirmed for weddings — with honest availability and pricing handled through the Wedding Desk.</p>
-          </div>
-          {venues.length > 0 ? (
-            <div className="bws-venue-grid">
-              {venues.map((venue) => (
-                <div className="bws-venue-card" key={venue.id}>
-                  <h3>{venue.name}</h3>
-                  <p>{venue.shortDescription || venue.area || "Ask the Wedding Desk for details."}</p>
-                  <Link className="bws-text-link" href={`/weddings/bahamas-by-the-sea/plan?venue=${encodeURIComponent(venue.name)}`}>Ask about this venue <span aria-hidden="true">↗</span></Link>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bws-venue-empty">
-              <p>We&rsquo;re preparing our venue collection — tell us the kind of place you have in mind.</p>
-              <div className="bws-style-picker">
-                {VENUE_STYLES.map((style) => (
-                  <Link className="bws-style-chip" key={style} href={`/weddings/bahamas-by-the-sea/plan?venue=${encodeURIComponent(style)}`}>{style}</Link>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
-
-        <section className="bws-add-ons" id="add-ons">
-          <div className="bws-section-wrap">
-            <div className="bws-section-heading">
-              <div><p className="bws-eyebrow">Tell the whole story</p><h2>Remember the feeling.<br /><em>Relive the moment.</em></h2></div>
-              <p>Photo, film, travel, and Registrar support can be added to your request. Availability and pricing are confirmed before booking.</p>
-            </div>
-            <div className="bws-addon-grid">
-              <Link className="bws-addon-card bws-photo-card" href="/weddings/bahamas-by-the-sea/plan?service=Cinematic%20photo%20story"><span>Photography</span><h3>Cinematic Photo Story</h3><p>Ask for ceremony photography and the moments around it.</p><b>Request availability ↗</b></Link>
-              <Link className="bws-addon-card bws-film-card" href="/weddings/bahamas-by-the-sea/plan?service=Cinematic%20highlight%20film"><span>Film</span><h3>Cinematic Highlight</h3><p>A short wedding film shaped around the feeling of your day.</p><b>Request availability ↗</b></Link>
-              <Link className="bws-addon-card" href="/weddings/bahamas-by-the-sea/plan?service=Full%20ceremony%20film"><span>Video</span><h3>Full Ceremony Film</h3><p>Request a complete recording so every word is preserved.</p><b>Request availability ↗</b></Link>
-              <Link className="bws-addon-card" href="/weddings/bahamas-by-the-sea/plan?service=Registrar%20appointment%20coordination"><span>Planning</span><h3>Registrar &amp; Transport</h3><p>Ask for help coordinating appointments and island transportation.</p><b>Request support ↗</b></Link>
-            </div>
-            <p className="bws-availability-note">Creative and transport services are quoted according to the date, location, coverage, and available team.</p>
-          </div>
-        </section>
-
-        <section className="bws-gallery-cycle-section" id="love-notes">
-          <GalleryCycle images={gallery} />
-          <div className="bws-gallery-cycle-caption">
-            <p className="bws-eyebrow">Real island weddings</p>
-            <h2>A little colour<br /><em>from the water&rsquo;s edge.</em></h2>
-          </div>
+          <PackageTiers packages={packages} />
         </section>
 
         {/*
@@ -246,17 +147,39 @@ export default async function BahamasWeddingsByTheSeaPage() {
           </section>
         )}
 
-        <section className="bws-planning bws-section-wrap" id="planning">
-          <div className="bws-section-heading">
-            <div><p className="bws-eyebrow">From wherever you are</p><h2>Your island wedding.<br /><em>One step at a time.</em></h2></div>
-            <p>You don&rsquo;t need every detail figured out to start the conversation.</p>
+        <section className="bws-add-ons" id="add-ons">
+          <div className="bws-section-wrap">
+            <div className="bws-section-heading">
+              <div><p className="bws-eyebrow">Tell the whole story</p><h2>Remember the feeling.<br /><em>Relive the moment.</em></h2></div>
+              <p>Photo, film, travel, and Registrar support can be added to your request. Availability and pricing are confirmed before booking.</p>
+            </div>
+            <div className="bws-addon-grid">
+              <Link className="bws-addon-card bws-photo-card" href="/weddings/bahamas-by-the-sea/plan?service=Cinematic%20photo%20story"><span>Photography</span><h3>Cinematic Photo Story</h3><p>Ask for ceremony photography and the moments around it.</p><b>Request availability ↗</b></Link>
+              <Link className="bws-addon-card bws-film-card" href="/weddings/bahamas-by-the-sea/plan?service=Cinematic%20highlight%20film"><span>Film</span><h3>Cinematic Highlight</h3><p>A short wedding film shaped around the feeling of your day.</p><b>Request availability ↗</b></Link>
+              <Link className="bws-addon-card" href="/weddings/bahamas-by-the-sea/plan?service=Full%20ceremony%20film"><span>Video</span><h3>Full Ceremony Film</h3><p>Request a complete recording so every word is preserved.</p><b>Request availability ↗</b></Link>
+              <Link className="bws-addon-card" href="/weddings/bahamas-by-the-sea/plan?service=Registrar%20appointment%20coordination"><span>Planning</span><h3>Registrar &amp; Transport</h3><p>Ask for help coordinating appointments and island transportation.</p><b>Request support ↗</b></Link>
+            </div>
+            <p className="bws-availability-note">Creative and transport services are quoted according to the date, location, coverage, and available team.</p>
           </div>
-          <ol className="bws-planning-steps">
-            <li><span>01</span><h3>Build your request</h3><p>Choose your ceremony, preferred date, venue style, guest count, and support.</p></li>
-            <li><span>02</span><h3>Meet the Wedding Desk</h3><p>Finalize the details by call, WhatsApp video, or a guided text consultation.</p></li>
-            <li><span>03</span><h3>Antonio reviews your plan</h3><p>Antonio confirms his availability, approves the plan, and provides a personal quote.</p></li>
-          </ol>
-          <Link className="bws-button bws-button-dark bws-planning-cta" href="/weddings/bahamas-by-the-sea/plan">Build your wedding plan <span aria-hidden="true">↗</span></Link>
+        </section>
+
+        <section className="bws-wedding-desk" id="wedding-desk">
+          <div className="bws-section-wrap">
+            <div className="bws-desk-heading">
+              <div><p className="bws-eyebrow">Your planning team in The Bahamas</p><h2>How the<br /><em>Wedding Desk</em> works.</h2></div>
+              <div>
+                <p>You don&rsquo;t need every detail figured out to start. The Wedding Desk shapes the details before Antonio reviews your complete wedding plan.</p>
+                <Link className="bws-button bws-button-light" href="/weddings/bahamas-by-the-sea/plan">Start your pre-consultation <span aria-hidden="true">↗</span></Link>
+              </div>
+            </div>
+            <ol className="bws-desk-flow">
+              <li><span>01</span><h3>Tell us what you imagine</h3><p>Choose your ceremony, preferred date, guest count, and support — message the Wedding Desk or use the guided planner from anywhere.</p></li>
+              <li><span>02</span><h3>Build your shortlist</h3><p>Explore packages, venues, photo, film, transport, and ceremony support.</p></li>
+              <li><span>03</span><h3>Meet your representative</h3><p>Request a planning call, WhatsApp video conversation, or guided text consultation.</p></li>
+              <li><span>04</span><h3>Antonio reviews the plan</h3><p>Your organized wedding plan goes to Antonio for approval, availability, and a personal quote.</p></li>
+            </ol>
+            <p className="bws-desk-note">Antonio remains your officiant and the heart of the ceremony. The Wedding Desk handles the planning details around him.</p>
+          </div>
         </section>
 
         <section className="bws-faq bws-section-wrap" id="questions">
