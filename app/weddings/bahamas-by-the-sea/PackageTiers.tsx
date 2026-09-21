@@ -10,8 +10,13 @@ const CEREMONY_TYPES = [
   { value: "Vow renewal", label: "Vow renewal" },
 ];
 
-function money(cents: number, currency: string) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(cents / 100);
+// Antonio's prices are dollar amounts (BSD is pegged 1:1 to USD and uses
+// the same "$" glyph), but Intl's currency formatter doesn't ship a "$"
+// mapping for the less-common BSD code in every runtime -- it falls back
+// to printing "BSD 500" instead of "$500". These are always dollars, so
+// the symbol is fixed rather than derived from the currency code.
+function money(cents: number) {
+  return `$${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(cents / 100)}`;
 }
 
 // A vow renewal isn't a legal ceremony, so licence-specific inclusions
@@ -48,7 +53,7 @@ export function PackageTiers({ packages }: { packages: PublicWeddingPackage[] })
             {pkg.tagline && <p className="bws-tier-tagline">{pkg.tagline}</p>}
             <p className="bws-tier-price">
               {pkg.priceFromCents !== null
-                ? <>{pkg.priceNote === "from" ? "From " : ""}{money(pkg.priceFromCents, pkg.currency)}</>
+                ? <>{pkg.priceNote === "from" ? "From " : ""}{money(pkg.priceFromCents)}</>
                 : "Ask the Wedding Desk"}
             </p>
             {pkg.priceFromCents !== null && !isVowRenewal && <p className="bws-tier-price-note">Marriage licence government fee not included.</p>}
