@@ -37,7 +37,7 @@ export default async function SportsFitnessPage() {
         </div>
         <div className="form-submit">
           <p>More sports and fitness organizations join PortPass as they come on board.</p>
-          <Link className="primary-button" href="/futprep">Explore Futprep →</Link>
+          <Link className="primary-button" href="/sports-fitness/futprep-athletics">Explore Futprep →</Link>
         </div>
       </div>
     </main>

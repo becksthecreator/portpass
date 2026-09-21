@@ -385,7 +385,7 @@ export function RegistrationForm() {
         {error && <p className="form-error registration-error" role="alert">{error}</p>}
 
         <div className="registration-actions">
-          {step > 0 ? <button className="secondary-button" type="button" onClick={()=>setStep((s)=>s-1)} disabled={busy}>← Back</button> : <a className="secondary-button" href={selectedProgram ? `/futprep/${selectedProgram.slug}` : "/futprep/programs"}>← Program details</a>}
+          {step > 0 ? <button className="secondary-button" type="button" onClick={()=>setStep((s)=>s-1)} disabled={busy}>← Back</button> : <a className="secondary-button" href={selectedProgram ? `/sports-fitness/futprep-athletics/${selectedProgram.slug}` : "/sports-fitness/futprep-athletics"}>← Program details</a>}
           {step < steps.length - 1
             ? <button className="primary-button" type="button" onClick={next}>Continue →</button>
             : <button className="primary-button" type="submit" disabled={busy}>{busy ? "Submitting…" : "Submit registration →"}</button>}

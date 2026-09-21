@@ -420,3 +420,170 @@ export async function getRegistrationCountsByProgram(
     };
   });
 }
+
+// ============================================================
+// Shared template system: the Organization + Offering listing
+// content every public template page (Organization, Program,
+// Event, Venue, Service) reads from. Separate from everything
+// above, which is the internal org-admin dashboard's own data
+// access -- this is the public marketing/listing layer built on
+// the SAME organizations table (extended with listing columns in
+// migration 202609211001) plus the new offerings/organization_images/
+// organization_faqs tables.
+// ============================================================
+
+export type OfferingType = "program" | "event" | "venue" | "service";
+
+export type Offering = {
+  id: number;
+  organizationId: number;
+  type: OfferingType;
+  slug: string;
+  name: string;
+  summary: string | null;
+  priceCents: number | null;
+  priceUnit: string | null;
+  inclusions: string[];
+  scheduleText: string | null;
+  ageMin: number | null;
+  ageMax: number | null;
+  termStart: string | null;
+  termEnd: string | null;
+  eventDate: string | null;
+  doorsTime: string | null;
+  ticketUrl: string | null;
+  capacity: number | null;
+  hourlyRateCents: number | null;
+  dayRateCents: number | null;
+  amenities: string[];
+  leadTimeText: string | null;
+  imageUrl: string | null;
+  actionUrl: string | null;
+  isFeatured: boolean;
+};
+
+export type OrganizationImage = { id: number; url: string; alt: string | null };
+export type OrganizationFaq = { id: number; question: string; answer: string };
+
+export type Organization = {
+  id: number;
+  slug: string;
+  name: string;
+  primaryCategory: string | null;
+  island: string | null;
+  area: string | null;
+  oneLiner: string | null;
+  description: string | null;
+  yearsInBusiness: number | null;
+  rating: number | null;
+  reviewCount: number | null;
+  awards: string[];
+  ownerName: string | null;
+  ownerBio: string | null;
+  ownerImageUrl: string | null;
+  websiteUrl: string | null;
+  heroImageUrl: string | null;
+};
+
+export type OrganizationListing = {
+  organization: Organization;
+  offerings: Offering[];
+  images: OrganizationImage[];
+  faqs: OrganizationFaq[];
+};
+
+const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url";
+
+const LISTING_OFFERING_COLUMNS = "id,organization_id,type,slug,name,summary,price_cents,price_unit,inclusions,schedule_text,age_min,age_max,term_start,term_end,event_date,doors_time,ticket_url,capacity,hourly_rate_cents,day_rate_cents,amenities,lead_time_text,image_url,action_url,is_featured";
+
+function toListingOrganization(row: Record<string, unknown>): Organization {
+  return {
+    id: Number(row.id),
+    slug: row.slug as string,
+    name: row.name as string,
+    primaryCategory: row.primary_category as string | null,
+    island: row.island as string | null,
+    area: row.area as string | null,
+    oneLiner: row.one_liner as string | null,
+    description: row.description as string | null,
+    yearsInBusiness: row.years_in_business === null ? null : Number(row.years_in_business),
+    rating: row.rating === null ? null : Number(row.rating),
+    reviewCount: row.review_count === null ? null : Number(row.review_count),
+    awards: Array.isArray(row.awards) ? row.awards.filter((v): v is string => typeof v === "string") : [],
+    ownerName: row.owner_name as string | null,
+    ownerBio: row.owner_bio as string | null,
+    ownerImageUrl: row.owner_image_url as string | null,
+    websiteUrl: row.website_url as string | null,
+    heroImageUrl: row.hero_image_url as string | null,
+  };
+}
+
+function toListingOffering(row: Record<string, unknown>): Offering {
+  return {
+    id: Number(row.id),
+    organizationId: Number(row.organization_id),
+    type: row.type as OfferingType,
+    slug: row.slug as string,
+    name: row.name as string,
+    summary: row.summary as string | null,
+    priceCents: row.price_cents === null || row.price_cents === undefined ? null : Number(row.price_cents),
+    priceUnit: row.price_unit as string | null,
+    inclusions: Array.isArray(row.inclusions) ? row.inclusions.filter((v): v is string => typeof v === "string") : [],
+    scheduleText: row.schedule_text as string | null,
+    ageMin: row.age_min === null || row.age_min === undefined ? null : Number(row.age_min),
+    ageMax: row.age_max === null || row.age_max === undefined ? null : Number(row.age_max),
+    termStart: row.term_start as string | null,
+    termEnd: row.term_end as string | null,
+    eventDate: row.event_date as string | null,
+    doorsTime: row.doors_time as string | null,
+    ticketUrl: row.ticket_url as string | null,
+    capacity: row.capacity === null || row.capacity === undefined ? null : Number(row.capacity),
+    hourlyRateCents: row.hourly_rate_cents === null || row.hourly_rate_cents === undefined ? null : Number(row.hourly_rate_cents),
+    dayRateCents: row.day_rate_cents === null || row.day_rate_cents === undefined ? null : Number(row.day_rate_cents),
+    amenities: Array.isArray(row.amenities) ? row.amenities.filter((v): v is string => typeof v === "string") : [],
+    leadTimeText: row.lead_time_text as string | null,
+    imageUrl: row.image_url as string | null,
+    actionUrl: row.action_url as string | null,
+    isFeatured: Boolean(row.is_featured),
+  };
+}
+
+export async function getOrganizationListingBySlug(slug: string): Promise<OrganizationListing | null> {
+  const supabase = getSupabaseAdmin();
+  const { data: orgRow, error: orgError } = await supabase
+    .from("organizations")
+    .select(LISTING_ORGANIZATION_COLUMNS)
+    .eq("slug", slug)
+    .eq("is_published", true)
+    .maybeSingle();
+  throwIfSupabaseError(orgError, "Could not load organization");
+  if (!orgRow) return null;
+
+  const organization = toListingOrganization(orgRow);
+
+  const [offeringsResult, imagesResult, faqsResult] = await Promise.all([
+    supabase.from("offerings").select(LISTING_OFFERING_COLUMNS).eq("organization_id", organization.id).eq("is_published", true).order("sort_order", { ascending: true }),
+    supabase.from("organization_images").select("id,url,alt").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
+    supabase.from("organization_faqs").select("id,question,answer").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
+  ]);
+  throwIfSupabaseError(offeringsResult.error, "Could not load offerings");
+  throwIfSupabaseError(imagesResult.error, "Could not load organization images");
+  throwIfSupabaseError(faqsResult.error, "Could not load organization FAQs");
+
+  return {
+    organization,
+    offerings: (offeringsResult.data ?? []).map(toListingOffering),
+    images: (imagesResult.data ?? []).map((row) => ({ id: Number(row.id), url: row.url as string, alt: row.alt as string | null })),
+    faqs: (faqsResult.data ?? []).map((row) => ({ id: Number(row.id), question: row.question as string, answer: row.answer as string })),
+  };
+}
+
+export type OfferingListing = OrganizationListing & { offering: Offering };
+
+export async function getOfferingListingBySlug(organizationSlug: string, offeringSlug: string): Promise<OfferingListing | null> {
+  const listing = await getOrganizationListingBySlug(organizationSlug);
+  if (!listing) return null;
+  const offering = listing.offerings.find((o) => o.slug === offeringSlug);
+  if (!offering) return null;
+  return { ...listing, offering };
+}

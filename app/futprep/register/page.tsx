@@ -31,7 +31,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
 
 export default async function FutprepRegisterPage({ searchParams }: { searchParams: SearchParams }) {
   const program = await resolveProgram(searchParams);
-  const programDetailsHref = program ? `/futprep/${program.slug}` : "/futprep/programs";
+  const programDetailsHref = program ? `/sports-fitness/futprep-athletics/${program.slug}` : "/sports-fitness/futprep-athletics";
 
   return (
     <main className="registration-page futprep-theme">
@@ -39,7 +39,7 @@ export default async function FutprepRegisterPage({ searchParams }: { searchPara
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
         <div className="registration-header-right">
           <div className="futprep-program-brand compact"><img src="/futprep-logo.png" alt="Futprep Athletics" /><span><b>{program ? program.name.toUpperCase() : "FUTPREP ATHLETICS"}</b><small>by Futprep Athletics</small></span></div>
-          <Link className="header-link" href="/futprep">Futprep home</Link>
+          <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>
           <Link className="header-link" href={programDetailsHref}>Program details</Link>
         </div>
       </header>

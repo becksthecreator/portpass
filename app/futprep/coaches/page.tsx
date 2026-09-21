@@ -19,7 +19,7 @@ export default async function FutprepCoachesPage(){
     <main className="futprep-team-page">
       <header className="futprep-team-header">
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-        <nav><Link href="/futprep">Futprep home</Link><Link href="/futprep/programs">Programs</Link><Link href="/futprep/staff/login">Staff login</Link></nav>
+        <nav><Link href="/sports-fitness/futprep-athletics">Futprep home</Link></nav>
       </header>
 
       <section className="futprep-team-hero">
@@ -69,6 +69,11 @@ export default async function FutprepCoachesPage(){
         <p>A request is not confirmed until a coach accepts it. If a coach needs to refer the session, Futprep tracks the handoff and the parent must be informed.</p>
         <PrivateSessionBooking coaches={bookable.map(({id,display_name})=>({id,displayName:display_name}))} schemaReady={schemaReady} triggerLabel="Start a request →" />
       </section>
+
+      <footer className="futprep-team-footer">
+        <span>Futprep Athletics · Booking and payments powered by PortPass</span>
+        <Link href="/futprep/staff/login">Staff login</Link>
+      </footer>
     </main>
   );
 }

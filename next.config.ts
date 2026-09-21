@@ -9,9 +9,34 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // Futprep rebuilt on the shared Organization/Offering template --
+      // its marketing pages now live under the sports-fitness category hub,
+      // the same URL shape every future organization will use. The
+      // registration flow itself (/futprep/register, /futprep/my/*) and the
+      // staff portal (/futprep/staff/*) are unaffected and stay where they are.
+      {
+        source: "/futprep",
+        destination: "/sports-fitness/futprep-athletics",
+        permanent: true,
+      },
+      {
+        source: "/futprep/programs",
+        destination: "/sports-fitness/futprep-athletics",
+        permanent: true,
+      },
+      {
+        source: "/futprep/lil-kickers",
+        destination: "/sports-fitness/futprep-athletics/lil-kickers",
+        permanent: true,
+      },
+      {
+        source: "/futprep/kickers",
+        destination: "/sports-fitness/futprep-athletics/kickers",
+        permanent: true,
+      },
       {
         source: "/futprep/messy-tots",
-        destination: "/futprep/programs",
+        destination: "/sports-fitness/futprep-athletics",
         permanent: true,
       },
       // Organization-level surfaces moved out from under the lil-kickers
