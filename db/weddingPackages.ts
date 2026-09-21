@@ -11,6 +11,7 @@ export type PublicWeddingPackage = {
   priceNote: string | null;
   currency: string;
   isFeatured: boolean;
+  imageUrl: string | null;
 };
 
 function toPublicPackage(row: Record<string, unknown>): PublicWeddingPackage {
@@ -25,6 +26,7 @@ function toPublicPackage(row: Record<string, unknown>): PublicWeddingPackage {
     priceNote: row.price_note as string | null,
     currency: (row.currency as string) ?? "BSD",
     isFeatured: Boolean(row.is_featured),
+    imageUrl: row.image_url as string | null,
   };
 }
 
@@ -32,7 +34,7 @@ export async function getPublicWeddingPackages(): Promise<PublicWeddingPackage[]
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("wedding_packages")
-    .select("id,slug,name,tagline,description,includes,price_from_cents,price_note,currency,is_featured")
+    .select("id,slug,name,tagline,description,includes,price_from_cents,price_note,currency,is_featured,image_url")
     .eq("visibility", "live")
     .order("sort_order", { ascending: true });
   throwIfSupabaseError(error, "Could not load wedding packages");
@@ -43,7 +45,7 @@ export async function getWeddingPackageBySlug(slug: string): Promise<PublicWeddi
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("wedding_packages")
-    .select("id,slug,name,tagline,description,includes,price_from_cents,price_note,currency,is_featured")
+    .select("id,slug,name,tagline,description,includes,price_from_cents,price_note,currency,is_featured,image_url")
     .eq("slug", slug)
     .eq("visibility", "live")
     .maybeSingle();
@@ -61,7 +63,7 @@ export async function listAllWeddingPackages(): Promise<AdminWeddingPackage[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("wedding_packages")
-    .select("id,slug,name,tagline,description,includes,price_from_cents,price_note,currency,visibility,is_featured,sort_order")
+    .select("id,slug,name,tagline,description,includes,price_from_cents,price_note,currency,visibility,is_featured,image_url,sort_order")
     .order("sort_order", { ascending: true });
   throwIfSupabaseError(error, "Could not load wedding packages");
   return (data ?? []).map(toAdminPackage);
@@ -77,6 +79,7 @@ export type WeddingPackageInput = {
   priceNote: string | null;
   visibility: "draft" | "unlisted" | "live";
   isFeatured: boolean;
+  imageUrl: string | null;
   sortOrder: number;
 };
 
@@ -101,6 +104,7 @@ export async function upsertWeddingPackage(id: number | null, input: WeddingPack
     currency,
     visibility: input.visibility,
     is_featured: input.isFeatured,
+    image_url: input.imageUrl?.trim() || null,
     sort_order: input.sortOrder,
     updated_at: new Date().toISOString(),
   };
