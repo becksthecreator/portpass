@@ -6,10 +6,8 @@ import { getFutprepAvailability } from "@/db/registrations";
 import { getWeddingSiteSettings } from "@/db/weddingSite";
 import { programTimeRange } from "./futprep/config";
 
-export const metadata = {
-  title: "PortPass | Find and book it in The Bahamas",
-  description: "PortPass is where you find and book things in The Bahamas — sports programs, weddings, and more.",
-};
+// Title, description, and Open Graph/Twitter tags are inherited from the
+// root layout -- they're identical for "/", so there's nothing to override.
 
 // force-dynamic: the hero reads live program and wedding-site data.
 export const dynamic = "force-dynamic";
@@ -34,7 +32,7 @@ export default async function Home() {
       chip: "Open now",
       name: "Futprep Athletics",
       meta: `${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location} · ${spotsThisWeek} spots open`,
-      cta: "Register a child →",
+      cta: "Register a child",
       href: "/futprep",
     },
     {
@@ -42,7 +40,7 @@ export default async function Home() {
       chip: "Open now",
       name: "Bahamas Weddings By The Sea",
       meta: `${weddingSettings.yearsExperience} years · ${weddingSettings.reviewCount} five-star reviews · Nassau`,
-      cta: "Plan a wedding →",
+      cta: "Plan a wedding",
       href: "/weddings/bahamas-by-the-sea",
     },
   ].filter((frame): frame is HeroFrame => Boolean(frame));
@@ -53,6 +51,38 @@ export default async function Home() {
       <a className="home-skip-link" href="#chooser">Skip to browse</a>
 
       <HomeHero frames={frames} />
+
+      <section className="home-trust-strip" aria-label="PortPass by the numbers">
+        <div><strong>2</strong><span>Bahamian businesses running on PortPass today</span></div>
+        <div><strong>26 years</strong><span>The longest-running business on the platform</span></div>
+        <div><strong>100</strong><span>Five-star reviews across our clients</span></div>
+        <div><strong>Nassau</strong><span>Built and run in The Bahamas</span></div>
+      </section>
+
+      <section className="home-how" id="how-it-works">
+        <div className="home-section-heading">
+          <span className="home-eyebrow">How PortPass works</span>
+          <h2>Two ways to use it.</h2>
+        </div>
+        <div className="home-how-grid">
+          <div className="home-how-track">
+            <h3>If you&rsquo;re booking</h3>
+            <ol>
+              <li>Find what you&rsquo;re looking for — sessions, ceremonies, venues</li>
+              <li>Book and pay online, no phone tag</li>
+              <li>Your confirmation and details live in one place</li>
+            </ol>
+          </div>
+          <div className="home-how-track">
+            <h3>If you run a business</h3>
+            <ol>
+              <li>Your listing goes live with real availability and prices</li>
+              <li>Customers register and pay themselves</li>
+              <li>You see who&rsquo;s coming and what&rsquo;s been collected, on one screen</li>
+            </ol>
+          </div>
+        </div>
+      </section>
 
       <section className="home-chooser" id="chooser">
         <div className="home-section-heading">
@@ -93,13 +123,21 @@ export default async function Home() {
       </section>
 
       <footer className="home-footer">
-        <div className="home-footer-brand">
-          <Link className="home-brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
-          <p>Made in The Bahamas.</p>
+        <div className="home-footer-top">
+          <div className="home-footer-brand">
+            <Link className="home-brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+            <p>PortPass Bahamas Technologies · Nassau, The Bahamas</p>
+          </div>
+          <div className="home-footer-links">
+            <a href="mailto:portpassbahamas@outlook.com">portpassbahamas@outlook.com</a>
+            <a href="tel:+12424241262">+1 (242) 424-1262</a>
+            <Link href="/apply">Apply for early access →</Link>
+          </div>
         </div>
-        <div className="home-footer-links">
-          <a href="tel:+12424241262">+1 (242) 424-1262</a>
-          <Link href="/apply">Apply for early access →</Link>
+        <div className="home-footer-legal">
+          <span>© {new Date().getFullYear()} PortPass Bahamas Technologies</span>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
         </div>
       </footer>
     </main>

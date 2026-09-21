@@ -1,9 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
 
+const FUTPREP_TITLE = "Futprep Athletics | PortPass";
+const FUTPREP_DESCRIPTION = "Explore Futprep programs, coaches, private sessions, and the Futprep staff portal powered by PortPass.";
+
 export const metadata = {
-  title: "Futprep Athletics | PortPass",
-  description: "Explore Futprep programs, coaches, private sessions, and the Futprep staff portal powered by PortPass.",
+  title: FUTPREP_TITLE,
+  description: FUTPREP_DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: "Futprep Athletics",
+    title: FUTPREP_TITLE,
+    description: FUTPREP_DESCRIPTION,
+    url: "https://portpassbahamas.com/futprep",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: FUTPREP_TITLE,
+    description: FUTPREP_DESCRIPTION,
+  },
 };
 
 const heroPhoto = "https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/d69eda54-1539-434e-bb0c-7e122dd03eab/IMG_5805.jpg";

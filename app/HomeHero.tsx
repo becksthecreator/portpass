@@ -80,20 +80,18 @@ export function HomeHero({ frames }: { frames: HeroFrame[] }) {
         </nav>
       </div>
 
-      <Link className="pp-hero-clickzone" href={active.href} aria-label={`${active.cta} — ${active.name}`}>
-        <div className="pp-hero-centre">
-          <p className="pp-hero-kicker">The Bahamas, one pass at a time</p>
-          <h1>Everything worth booking in The Bahamas.</h1>
-          <p className="pp-hero-lede">Sports sessions, weddings, venues and events — found, booked and paid for in one place. Two are open right now.</p>
-        </div>
+      <div className="pp-hero-centre">
+        <p className="pp-hero-kicker">The Bahamas, one pass at a time</p>
+        <h1>Everything worth booking in The Bahamas.</h1>
+        <p className="pp-hero-lede">Sports sessions, weddings, venues and events — found, booked and paid for in one place. Two are open right now.</p>
+      </div>
 
-        <div className="pp-hero-bottom">
-          <span className="pp-hero-chip">{active.chip}</span>
-          <span className="pp-hero-name">{active.name}</span>
-          <span className="pp-hero-meta">{active.meta}</span>
-          <span className="pp-hero-go">{active.cta}</span>
-        </div>
-      </Link>
+      <div className="pp-hero-bottom">
+        <span className="pp-hero-chip">{active.chip}</span>
+        <span className="pp-hero-name">{active.name}</span>
+        <span className="pp-hero-meta">{active.meta}</span>
+        <Link className="pp-hero-go" href={active.href}>{active.cta} <span aria-hidden="true">→</span></Link>
+      </div>
     </section>
   );
 }
