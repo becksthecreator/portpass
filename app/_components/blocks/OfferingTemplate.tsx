@@ -9,6 +9,7 @@ import { QuestionsBlock } from "./QuestionsBlock";
 import { ActionBlock } from "./ActionBlock";
 import { categoryLabel } from "./categoryLabel";
 import { OFFERING_ACTION_LABEL, formatAgeRange, formatDate } from "./format";
+import { computeBrandTokens } from "./brand";
 
 // Renders a single offering's own page. The brief names four separate
 // templates here -- Program, Event, Venue, Service -- but all four are the
@@ -39,8 +40,10 @@ export function OfferingTemplate({ listing }: { listing: OfferingListing }) {
   if (offering.doorsTime) practicalFacts.push({ label: "Doors", value: offering.doorsTime });
   if (offering.leadTimeText) practicalFacts.push({ label: "Lead time", value: offering.leadTimeText });
 
+  const { brand, brandText } = computeBrandTokens(org.brandColor);
+
   return (
-    <main className="tpl-page">
+    <main className="tpl-page" style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}>
       <IdentityBlock
         name={offering.name}
         category={categoryLabel(org.primaryCategory)}

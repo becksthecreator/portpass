@@ -8,7 +8,14 @@ import { OfferingsBlock } from "@/app/_components/blocks/OfferingsBlock";
 import { ActionBlock } from "@/app/_components/blocks/ActionBlock";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
+import { computeBrandTokens } from "@/app/_components/blocks/brand";
 import { ppDisplay, ppSans } from "@/app/fonts";
+
+// The full bespoke site's own accent (its --bws-accent) -- reused here only
+// as the one permitted --brand value, in the same four spots every
+// template page allows, not as a wider re-skin of this PortPass-branded
+// summary page.
+const BWS_BRAND_COLOR = "#c08a5e";
 
 // force-dynamic (not ISR/revalidate) because this repo's CI build has no
 // Supabase credentials, so a statically-prerendered page would fail the
@@ -65,26 +72,29 @@ export default async function BahamasWeddingsListingPage() {
   }));
 
   const images = gallery.slice(0, 6).map((image) => ({ url: image.imageUrl, alt: image.caption }));
+  const { brand, brandText } = computeBrandTokens(BWS_BRAND_COLOR);
 
   return (
-    <div className={`tpl-page ${ppDisplay.variable} ${ppSans.variable}`} data-world="portpass">
+    <div className={`${ppDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "Weddings", href: "/weddings" }, { label: "Bahamas Weddings By The Sea", href: "/weddings/bahamas-weddings-by-the-sea" }]} />
-      <IdentityBlock
-        name="Bahamas Weddings By The Sea"
-        category="Weddings"
-        location="Nassau, New Providence"
-        isOpen
-        heroImageUrl="/weddings/bahamas-by-the-sea/hero.jpg"
-      />
-      <ProofBlock
-        yearsInBusiness={settings.yearsExperience}
-        rating={5.0}
-        reviewCount={settings.reviewCount}
-        awards={settings.awardYears.length ? [`${settings.awardYears.length} WeddingWire Couples' Choice Awards`] : []}
-      />
-      <GalleryBlock images={images} />
-      <OfferingsBlock offerings={offerings} />
-      <ActionBlock label="Visit the full wedding site" href="/weddings/bahamas-by-the-sea" />
+      <main className="tpl-page" style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}>
+        <IdentityBlock
+          name="Bahamas Weddings By The Sea"
+          category="Weddings"
+          location="Nassau, New Providence"
+          isOpen
+          heroImageUrl="/weddings/bahamas-by-the-sea/hero.jpg"
+        />
+        <ProofBlock
+          yearsInBusiness={settings.yearsExperience}
+          rating={5.0}
+          reviewCount={settings.reviewCount}
+          awards={settings.awardYears.length ? [`${settings.awardYears.length} WeddingWire Couples' Choice Awards`] : []}
+        />
+        <GalleryBlock images={images} />
+        <OfferingsBlock offerings={offerings} />
+        <ActionBlock label="Visit the full wedding site" href="/weddings/bahamas-by-the-sea" />
+      </main>
       <SiteFooter orgLine="Bahamas Weddings By The Sea · Booking and payments powered by PortPass" />
     </div>
   );
