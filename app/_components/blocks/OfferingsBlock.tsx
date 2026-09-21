@@ -29,7 +29,7 @@ export function OfferingsBlock({ offerings }: { offerings: Offering[] }) {
               </ul>
             )}
             {offering.actionUrl && (
-              <Link className="tpl-text-link" href={offering.actionUrl}>
+              <Link className="tpl-offering-cta" href={offering.actionUrl}>
                 {OFFERING_ACTION_LABEL[offering.type]} {offering.name} <span aria-hidden="true">→</span>
               </Link>
             )}

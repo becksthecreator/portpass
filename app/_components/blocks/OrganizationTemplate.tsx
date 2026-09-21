@@ -9,6 +9,7 @@ import { QuestionsBlock } from "./QuestionsBlock";
 import { ActionBlock } from "./ActionBlock";
 import { categoryLabel } from "./categoryLabel";
 import { formatAgeRange } from "./format";
+import { computeBrandTokens } from "./brand";
 
 // Renders any Organization page -- Futprep today, any future business
 // tomorrow -- from the same eight blocks in the same fixed order: proof,
@@ -27,9 +28,10 @@ export function OrganizationTemplate({ listing }: { listing: OrganizationListing
     }));
 
   const hasPricedOffering = offerings.some((offering) => offering.priceCents !== null);
+  const { brand, brandText } = computeBrandTokens(org.brandColor);
 
   return (
-    <main className="tpl-page">
+    <main className="tpl-page" style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}>
       <IdentityBlock
         name={org.name}
         category={categoryLabel(org.primaryCategory)}

@@ -49,7 +49,7 @@ export default async function FutprepOfferingPage({ params }: { params: Promise<
   } : null;
 
   return (
-    <div className={`tpl-page ${ppDisplay.variable} ${ppSans.variable}`} data-world="futprep">
+    <div className={`${ppDisplay.variable} ${ppSans.variable}`}>
       {courseSchema && (
         <Script id="offering-course-schema" type="application/ld+json">
           {JSON.stringify(courseSchema)}

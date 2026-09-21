@@ -29,7 +29,7 @@ export default async function FutprepOrganizationPage() {
   if (!listing) notFound();
 
   return (
-    <div className={`tpl-page ${ppDisplay.variable} ${ppSans.variable}`} data-world="futprep">
+    <div className={`${ppDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: listing.organization.name, href: "/sports-fitness/futprep-athletics" }]} />
       <OrganizationTemplate listing={listing} />
       <SiteFooter orgLine={`${listing.organization.name} · Booking and payments powered by PortPass`} />

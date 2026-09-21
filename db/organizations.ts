@@ -483,6 +483,7 @@ export type Organization = {
   ownerImageUrl: string | null;
   websiteUrl: string | null;
   heroImageUrl: string | null;
+  brandColor: string | null;
 };
 
 export type OrganizationListing = {
@@ -492,7 +493,7 @@ export type OrganizationListing = {
   faqs: OrganizationFaq[];
 };
 
-const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url";
+const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color";
 
 const LISTING_OFFERING_COLUMNS = "id,organization_id,type,slug,name,summary,price_cents,price_unit,inclusions,schedule_text,age_min,age_max,term_start,term_end,event_date,doors_time,ticket_url,capacity,hourly_rate_cents,day_rate_cents,amenities,lead_time_text,image_url,action_url,is_featured";
 
@@ -515,6 +516,7 @@ function toListingOrganization(row: Record<string, unknown>): Organization {
     ownerImageUrl: row.owner_image_url as string | null,
     websiteUrl: row.website_url as string | null,
     heroImageUrl: row.hero_image_url as string | null,
+    brandColor: row.brand_color as string | null,
   };
 }
 
