@@ -1,14 +1,29 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import "./staff.css";
 
+const TITLE = "PortPass | Find and book it in The Bahamas";
+const DESCRIPTION = "Sports sessions, weddings, venues and events — found, booked and paid for in one place.";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://portpassbahamas.com"),
-  title: "PortPass | Find and book it in The Bahamas",
-  description:
-    "PortPass is where you find and book things in The Bahamas — sports programs, weddings, and more.",
+  title: TITLE,
+  description: DESCRIPTION,
   icons: { icon: "/favicon.svg" },
+  openGraph: {
+    type: "website",
+    siteName: "PortPass Bahamas",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: "https://portpassbahamas.com/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 // Bahamas Weddings By The Sea's arrival-plate no-flash guard. next/script's
@@ -40,6 +55,7 @@ export default function RootLayout({
       <body>
         <Script id="bws-arrival-guard" strategy="beforeInteractive">{BWS_ARRIVAL_GUARD}</Script>
         {children}
+        <Analytics />
       </body>
     </html>
   );

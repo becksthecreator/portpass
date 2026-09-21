@@ -26,6 +26,7 @@ export const metadata = {
   // icon.tsx file convention in Next.js metadata merging.
   icons: { icon: `${ASSET}/icon` },
   openGraph: {
+    type: "website",
     title: "Bahamas Weddings By The Sea | Antonio Beckford",
     description: "A wedding that feels like you, in a place like nowhere else. Plan your Bahamas wedding ceremony or vow renewal with Antonio Beckford.",
     url: "/weddings/bahamas-by-the-sea",
