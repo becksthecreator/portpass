@@ -50,8 +50,16 @@ export function OfferingTemplate({ listing }: { listing: OfferingListing }) {
         location={[org.area, org.island].filter(Boolean).join(", ") || null}
         isOpen
         heroImageUrl={offering.imageUrl ?? org.heroImageUrl}
+        layout={org.identityLayout ?? "overlay"}
       />
-      <ProofBlock yearsInBusiness={org.yearsInBusiness} rating={org.rating} reviewCount={org.reviewCount} awards={org.awards} />
+      <ProofBlock
+        yearsInBusiness={org.yearsInBusiness}
+        rating={org.rating}
+        reviewCount={org.reviewCount}
+        awards={org.awards}
+        reviewsUrl={org.reviewsUrl}
+        reviewsPlatform={org.reviewsPlatform}
+      />
       <GalleryBlock images={images} />
       <OfferingsBlock offerings={[offering]} />
       <PracticalBlock facts={practicalFacts} />
