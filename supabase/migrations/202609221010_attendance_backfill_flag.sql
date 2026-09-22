@@ -1,0 +1,14 @@
+-- Records whether an attendance mark was entered after the fact (the
+-- session's date had already passed at the time it was marked), per the
+-- 22 September brief: "Mark a past session, with the row recording that
+-- it was entered late." Computed server-side from the session's date at
+-- write time (app/api/futprep/staff/attendance/route.ts), never trusted
+-- from the client. Purely additive -- existing rows (there are none in
+-- production yet; this table is still empty) default to false.
+--
+-- marked_by stays free text for now, per the brief: "keep writing the
+-- staff account key and note the migration in a comment." It will become
+-- a real foreign key to auth.users once block C (the auth foundation)
+-- lands. check_ins (block E) generalises this whole table later; this
+-- migration only hardens what's here today.
+alter table public.attendance add column if not exists is_backfill boolean not null default false;

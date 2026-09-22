@@ -79,13 +79,24 @@
 .coach-roster details summary{cursor:pointer;font-size:.7rem;font-weight:800}
 .coach-roster details p{color:var(--muted);font-size:.7rem;line-height:1.45;margin:6px 0}
 .coach-unsaved-banner{background:#fff0b8;color:#634d00;font-size:.78rem;font-weight:800;padding:12px 22px;position:sticky;top:0;z-index:5}
+.coach-backfill-banner{background:var(--sand);border:1px solid var(--line);color:var(--muted);font-size:.76rem;padding:10px 16px;margin-bottom:14px}
 .coach-attendance-retry{align-items:center;display:flex;gap:10px;grid-column:1/-1;justify-content:flex-end}
 .coach-attendance-retry span{color:#8d2330;font-size:.7rem}
 .coach-attendance-retry button{background:var(--ink);border:0;color:#fff;cursor:pointer;font-size:.68rem;font-weight:800;padding:6px 10px}
 .coach-cash-inline{grid-column:1/-1;justify-content:flex-end;margin-left:0}
+.coach-attendance-state{color:var(--muted);font-size:.66rem;margin:6px 0 0}
 .attendance-actions{display:flex;gap:5px}
 .attendance-actions button{background:transparent;border:1px solid var(--line);cursor:pointer;font-size:.64rem;padding:7px 8px;text-transform:capitalize}
 .attendance-actions button.is-active{background:var(--ink);color:white}
+.coach-walkin{align-items:center;background:var(--paper);border:1px dashed var(--line);display:flex;gap:10px;margin-bottom:16px;padding:12px 14px}
+.coach-walkin input{border:1px solid var(--line);flex:1;font-size:.8rem;padding:9px 12px}
+.coach-walkin button{background:var(--ink);border:0;color:#fff;cursor:pointer;font-size:.72rem;font-weight:800;padding:9px 16px;white-space:nowrap}
+.coach-walkin button:disabled{opacity:.6;cursor:default}
+.coach-walkin-error{color:#8d2330;font-size:.7rem}
+@media(max-width:600px){
+  .coach-walkin{flex-wrap:wrap}
+  .coach-walkin input{flex-basis:100%}
+}
 .cash-section{margin-top:46px}
 .cash-section>.section-kicker{margin-bottom:8px}
 .cash-section>h2{font-family:Georgia,serif;font-size:2.6rem;font-weight:400;margin:0 0 20px}

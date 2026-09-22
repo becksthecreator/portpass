@@ -15,10 +15,14 @@ function clean(body: Record<string, unknown>, field: string) {
 // to get them onto the roster. Nothing else is asked or defaulted here -
 // the parent supplies everything else (DOB, emergency contact, medical
 // info, consent) at /futprep/my/[code]/complete.
+//
+// coach is allowed here (not just admin/ceo) so a coach standing on the
+// field can add a walk-in directly from the roster screen -- the "someone
+// turns up who isn't on the list" case the 22 September brief calls out.
 export async function POST(request: Request) {
   const role = await currentFutprepStaffRole();
-  if (role !== "admin" && role !== "ceo") {
-    return NextResponse.json({ error: "Registration admin access required." }, { status: 403 });
+  if (role !== "admin" && role !== "ceo" && role !== "coach") {
+    return NextResponse.json({ error: "Staff access required." }, { status: 403 });
   }
   const staffName = await currentFutprepStaffName();
 
@@ -41,7 +45,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { referenceCode } = await createFutprepPendingRegistration({
+    const { referenceCode, registrationId } = await createFutprepPendingRegistration({
       childName,
       programSlug,
       parentName: clean(body, "parentName") || undefined,
@@ -49,7 +53,7 @@ export async function POST(request: Request) {
       parentEmail: parentEmail || undefined,
       enteredByStaff: staffName ?? "unknown staff",
     });
-    return NextResponse.json({ referenceCode }, { status: 201 });
+    return NextResponse.json({ referenceCode, registrationId }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "INVALID_PROGRAM" || message === "PROGRAM_NOT_AVAILABLE") return NextResponse.json({ error: "Choose a valid class." }, { status: 400 });

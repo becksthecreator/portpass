@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import type { AttendanceRow, StaffRegistration, StaffSession } from "@/db/staff";
 
 type AttendanceStatus = "present" | "absent" | "excused" | "late";
+// Sentinel stored alongside real statuses in the offline queue: "clear the
+// mark" isn't a fifth attendance status, it's a delete, but the queue map
+// needs one shape for both kinds of pending change.
+const CLEAR = "__clear__" as const;
+type QueuedChange = AttendanceStatus | typeof CLEAR;
 
 function money(cents:number){return new Intl.NumberFormat("en-BS",{style:"currency",currency:"BSD",minimumFractionDigits:0}).format(cents/100)}
 
@@ -13,6 +18,37 @@ function hasMedicalInfo(row: AttendanceRow) {
     const trimmed = (value ?? "").trim();
     return trimmed.length > 0 && !/^(none|no|n\/a|na)$/i.test(trimmed);
   });
+}
+
+// Queued changes are persisted to localStorage (not just component state)
+// so a mark made with no connection survives a phone lock, a backgrounded
+// tab, or a refresh -- not only the brief connectivity blip the old
+// in-memory-only queue tolerated. This does not make a cold page LOAD
+// work with zero connectivity (that needs real service-worker/PWA
+// infrastructure this repo doesn't have); it makes everything AFTER the
+// roster has loaded once tolerate losing the connection for the rest of
+// the session, which is the case a coach on a field actually hits.
+function queueKeyFor(sessionId: number) {
+  return `fp_attendance_queue_${sessionId}`;
+}
+function readQueue(sessionId: number): Record<number, QueuedChange> {
+  try {
+    const raw = localStorage.getItem(queueKeyFor(sessionId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, QueuedChange>;
+    return Object.fromEntries(Object.entries(parsed).map(([id, change]) => [Number(id), change]));
+  } catch {
+    return {};
+  }
+}
+function writeQueue(sessionId: number, queue: Record<number, QueuedChange>) {
+  try {
+    if (Object.keys(queue).length === 0) localStorage.removeItem(queueKeyFor(sessionId));
+    else localStorage.setItem(queueKeyFor(sessionId), JSON.stringify(queue));
+  } catch {
+    // Private browsing / storage disabled: the in-memory queue still
+    // works for this tab session, it just won't survive a reload.
+  }
 }
 
 export function CoachRoster({
@@ -29,29 +65,39 @@ export function CoachRoster({
   const [roster,setRoster] = useState(initialRoster);
   const [payments,setPayments] = useState(registrations);
   const [savingId,setSavingId] = useState<number|null>(null);
-  const [failedIds,setFailedIds] = useState<Record<number,AttendanceStatus>>({});
+  const [failedIds,setFailedIds] = useState<Record<number,QueuedChange>>({});
   const [amounts,setAmounts] = useState<Record<number,string>>({});
   const [cashBusy,setCashBusy] = useState<number|null>(null);
+  const [addingWalkIn,setAddingWalkIn] = useState(false);
+  const [walkInName,setWalkInName] = useState("");
+  const [walkInError,setWalkInError] = useState<string|null>(null);
   const paymentById = new Map(payments.map((item)=>[item.id,item]));
-  const failedQueue = useRef<Record<number,AttendanceStatus>>({});
+  const failedQueue = useRef<Record<number,QueuedChange>>({});
   const rosterRef = useRef(roster);
 
   useEffect(() => {
     rosterRef.current = roster;
   }, [roster]);
 
-  async function attendance(registrationId:number,status:AttendanceStatus) {
+  async function applyChange(registrationId:number, change:QueuedChange) {
     const previous = rosterRef.current.find((row)=>row.registration_id===registrationId)?.attendance_status ?? null;
-    setRoster((current)=>current.map((row)=>row.registration_id===registrationId ? {...row,attendance_status:status}:row));
+    const optimistic = change === CLEAR ? null : change;
+    setRoster((current)=>current.map((row)=>row.registration_id===registrationId ? {...row,attendance_status:optimistic}:row));
     setSavingId(registrationId);
 
     try {
-      const response = await fetch("/api/futprep/staff/attendance",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({sessionId:session.id,registrationId,status}),
-      });
+      const response = change === CLEAR
+        ? await fetch("/api/futprep/staff/attendance",{
+            method:"DELETE",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({sessionId:session.id,registrationId}),
+          })
+        : await fetch("/api/futprep/staff/attendance",{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({sessionId:session.id,registrationId,status:change}),
+          });
       if (!response.ok) throw new Error("Attendance save failed");
       delete failedQueue.current[registrationId];
+      writeQueue(session.id, failedQueue.current);
       setFailedIds((current)=>{
         if (!(registrationId in current)) return current;
         const next = {...current};
@@ -60,24 +106,88 @@ export function CoachRoster({
       });
     } catch {
       setRoster((current)=>current.map((row)=>row.registration_id===registrationId ? {...row,attendance_status:previous}:row));
-      failedQueue.current[registrationId] = status;
-      setFailedIds((current)=>({...current,[registrationId]:status}));
+      failedQueue.current[registrationId] = change;
+      writeQueue(session.id, failedQueue.current);
+      setFailedIds((current)=>({...current,[registrationId]:change}));
     } finally {
       setSavingId(null);
     }
   }
 
+  function tap(registrationId:number, status:AttendanceStatus) {
+    const current = rosterRef.current.find((row)=>row.registration_id===registrationId)?.attendance_status;
+    applyChange(registrationId, current===status ? CLEAR : status);
+  }
+
+  // Load anything queued from a previous visit (offline marks that never
+  // made it out) before this component ever painted a button, and try to
+  // flush it right away in case connectivity is already back.
+  useEffect(() => {
+    const saved = readQueue(session.id);
+    const entries = Object.entries(saved);
+    if (entries.length === 0) return;
+    failedQueue.current = Object.fromEntries(entries.map(([id, change]) => [Number(id), change]));
+    setFailedIds({...failedQueue.current});
+    setRoster((current)=>current.map((row)=>{
+      const queued = failedQueue.current[row.registration_id];
+      if (queued === undefined) return row;
+      return {...row, attendance_status: queued===CLEAR ? null : queued};
+    }));
+    for (const [id, change] of entries) applyChange(Number(id), change as QueuedChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.id]);
+
   useEffect(() => {
     function flushQueue() {
       const entries = Object.entries(failedQueue.current);
-      for (const [id, status] of entries) {
-        attendance(Number(id), status as AttendanceStatus);
+      for (const [id, change] of entries) {
+        applyChange(Number(id), change as QueuedChange);
       }
     }
     window.addEventListener("online", flushQueue);
     return () => window.removeEventListener("online", flushQueue);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function addWalkIn() {
+    const childName = walkInName.trim();
+    if (!childName) return;
+    setWalkInError(null);
+    setAddingWalkIn(true);
+    try {
+      const response = await fetch("/api/futprep/staff/registrations", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ childName, programSlug: session.program_slug }),
+      });
+      const data = await response.json() as { registrationId?: number; error?: string };
+      if (!response.ok || !data.registrationId) {
+        setWalkInError(data.error ?? "Could not add this child.");
+        return;
+      }
+      const newRow: AttendanceRow = {
+        registration_id: data.registrationId,
+        registration_status: "pending_details",
+        child_name: childName,
+        parent_name: null,
+        parent_phone: null,
+        emergency_contact_name: null,
+        emergency_contact_phone: null,
+        authorized_pickup: null,
+        allergies: null,
+        medical_conditions: null,
+        medications: null,
+        special_needs: null,
+        attendance_status: null,
+        is_backfill: false,
+      };
+      setRoster((current)=>[...current, newRow].sort((a,b)=>a.child_name.localeCompare(b.child_name)));
+      setWalkInName("");
+    } catch {
+      setWalkInError("Could not add this child -- check your connection and try again.");
+    } finally {
+      setAddingWalkIn(false);
+    }
+  }
 
   async function cash(item:StaffRegistration) {
     const dollars = Number(amounts[item.id] || item.amount_due_cents/100);
@@ -93,6 +203,7 @@ export function CoachRoster({
   }
 
   const failedCount = Object.keys(failedIds).length;
+  const sessionIsPast = session.session_date < new Date().toISOString().slice(0,10);
 
   return (
     <>
@@ -101,9 +212,28 @@ export function CoachRoster({
         <strong>{roster.length} players</strong>
       </div>
 
+      {sessionIsPast && !readOnly && (
+        <div className="coach-backfill-banner">This session already happened -- marks made here are recorded as entered late.</div>
+      )}
+
       {failedCount > 0 && (
         <div className="coach-unsaved-banner">
           {failedCount} {failedCount === 1 ? "change" : "changes"} not saved — will retry automatically when you're back online.
+        </div>
+      )}
+
+      {!readOnly && (
+        <div className="coach-walkin">
+          <input
+            placeholder="Add a walk-in by name"
+            value={walkInName}
+            onChange={(e)=>setWalkInName(e.target.value)}
+            onKeyDown={(e)=>{ if (e.key==="Enter") addWalkIn(); }}
+          />
+          <button type="button" disabled={addingWalkIn || !walkInName.trim()} onClick={addWalkIn}>
+            {addingWalkIn ? "Adding…" : "Add to roster"}
+          </button>
+          {walkInError && <span className="coach-walkin-error">{walkInError}</span>}
         </div>
       )}
 
@@ -113,7 +243,7 @@ export function CoachRoster({
           const payment=paymentById.get(row.registration_id);
           const balanceCents = payment ? Math.max(0, payment.amount_due_cents - payment.paid_cents) : 0;
           const showCash = payment?.payment_method === "cash" && balanceCents > 0;
-          const failedStatus = failedIds[row.registration_id];
+          const failedChange = failedIds[row.registration_id];
           return (
             <article key={row.registration_id}>
               <div className="coach-player-main">
@@ -133,12 +263,16 @@ export function CoachRoster({
               ) : (
                 <>
                   <div className="attendance-actions">
-                    {(["present","absent","excused","late"] as const).map((status)=><button className={row.attendance_status===status ? "is-active":""} disabled={savingId===row.registration_id} onClick={()=>attendance(row.registration_id,status)} key={status}>{status}</button>)}
+                    {(["present","absent","excused","late"] as const).map((status)=><button className={row.attendance_status===status ? "is-active":""} disabled={savingId===row.registration_id} onClick={()=>tap(row.registration_id,status)} key={status}>{status}</button>)}
                   </div>
-                  {failedStatus && (
+                  <p className="coach-attendance-state">
+                    {row.attendance_status ? "Tap the highlighted status again to undo." : "Not marked yet."}
+                    {row.is_backfill && " · Entered late."}
+                  </p>
+                  {failedChange && (
                     <div className="coach-attendance-retry">
-                      <span>Couldn&apos;t save &quot;{failedStatus}&quot;.</span>
-                      <button type="button" onClick={()=>attendance(row.registration_id,failedStatus)}>Retry now</button>
+                      <span>Couldn&apos;t save {failedChange===CLEAR ? "the undo" : `"${failedChange}"`}.</span>
+                      <button type="button" onClick={()=>applyChange(row.registration_id,failedChange)}>Retry now</button>
                     </div>
                   )}
                   {showCash && (
