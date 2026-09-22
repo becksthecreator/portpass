@@ -20,7 +20,7 @@ export function SiteFooter({ orgLine }: { orgLine?: string }) {
         <div>
           <p className="site-shell-footer-name">PortPass Bahamas Technologies · Nassau, The Bahamas</p>
           <p className="site-shell-footer-contact">
-            <a href="mailto:portpassbahamas@outlook.com">portpassbahamas@outlook.com</a> · <a href="tel:+12424241262">+1 (242) 424-1262</a>
+            <a href="mailto:portpassbahamas@outlook.com">portpassbahamas@outlook.com</a> · <a href="tel:+12424238161">+1 (242) 423-8161</a>
           </p>
         </div>
         <nav className="site-shell-footer-categories" aria-label="Categories">

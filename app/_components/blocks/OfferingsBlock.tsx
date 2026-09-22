@@ -11,13 +11,14 @@ export function OfferingsBlock({ offerings }: { offerings: Offering[] }) {
   if (priced.length === 0) return null;
 
   return (
-    <section className="tpl-offerings" id="offerings" aria-label="Prices">
+    <section className={`tpl-offerings${priced.length === 4 ? " tpl-offerings-grid-4" : ""}`} id="offerings" aria-label="Prices">
       {priced.map((offering) => {
         const ageRange = formatAgeRange(offering.ageMin, offering.ageMax);
+        const imageAlt = offering.summary ? `${offering.name} — ${offering.summary}` : offering.name;
         return (
           <div className={`tpl-offering-card${offering.isFeatured ? " tpl-offering-featured" : ""}`} key={offering.id}>
-            {offering.isFeatured && <span className="tpl-offering-badge">Most popular</span>}
-            {offering.imageUrl && <img className="tpl-offering-image" src={offering.imageUrl} alt="" loading="lazy" />}
+            {offering.isFeatured && <span className="tpl-offering-badge">Most chosen</span>}
+            {offering.imageUrl && <img className="tpl-offering-image" src={offering.imageUrl} alt={imageAlt} loading="lazy" />}
             <h3>{offering.name}</h3>
             {offering.summary && <p className="tpl-offering-summary">{offering.summary}</p>}
             <p className="tpl-offering-price">{formatPrice(offering.priceCents as number, offering.priceUnit)}</p>

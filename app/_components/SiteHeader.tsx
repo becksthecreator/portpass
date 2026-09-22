@@ -10,12 +10,29 @@ const CATEGORY_LINKS: Crumb[] = [
   { label: "Entertainment", href: "/entertainment" },
 ];
 
+const SITE_URL = "https://portpassbahamas.com";
+
 // The one header every PortPass-branded page renders -- homepage included.
 // Category links always go to the category hub, never to an in-page
 // anchor, so every category is one click from anywhere on the site. The
 // only exception is BWS (app/weddings/bahamas-by-the-sea and its
 // children), which keeps its own chrome until it moves to its own domain.
 export function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
+  // The full trail ("PortPass / Weddings / Bahamas Weddings By The Sea")
+  // reads like a file path, so only a single link back to the immediate
+  // parent is shown -- the offering page's parent is its organization, an
+  // organization's parent is Home, matching breadcrumb[length-2] (or Home
+  // when there's nothing before the current page). The full trail still
+  // goes out as BreadcrumbList schema so search results can show it.
+  const back =
+    breadcrumb && breadcrumb.length > 0
+      ? breadcrumb.length > 1
+        ? breadcrumb[breadcrumb.length - 2]
+        : { label: "PortPass", href: "/" }
+      : null;
+
+  const schemaTrail = breadcrumb && breadcrumb.length > 0 ? [{ label: "PortPass", href: "/" }, ...breadcrumb] : [];
+
   return (
     <header className="site-shell-header">
       <div className="site-shell-header-top">
@@ -25,13 +42,27 @@ export function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
         </nav>
         <Link className="site-shell-business" href="/apply">For business</Link>
       </div>
-      {breadcrumb && breadcrumb.length > 0 && (
+      {back && (
         <nav className="site-shell-breadcrumb" aria-label="Breadcrumb">
-          <Link href="/">PortPass</Link>
-          {breadcrumb.map((crumb) => (
-            <span key={crumb.href}> / <Link href={crumb.href}>{crumb.label}</Link></span>
-          ))}
+          <Link href={back.href}><span aria-hidden="true">←</span> {back.label}</Link>
         </nav>
+      )}
+      {schemaTrail.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "BreadcrumbList",
+              itemListElement: schemaTrail.map((crumb, i) => ({
+                "@type": "ListItem",
+                position: i + 1,
+                name: crumb.label,
+                item: `${SITE_URL}${crumb.href}`,
+              })),
+            }),
+          }}
+        />
       )}
     </header>
   );
