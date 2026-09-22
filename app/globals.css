@@ -3847,24 +3847,25 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
    elsewhere in this file; scoping alone does not stop an unrelated unscoped
    rule for the same class name from also matching these elements. */
 .bws-theme{
-  /* Warm/airy PortPass-style palette, refined per direct feedback: the
-     original green-leaning ink and PortPass's own lime accent read as
-     "borrowed platform chrome" rather than an independent wedding brand.
-     --bws-ink shifts warmer/neutraler and --bws-lime is aliased to a
-     champagne accent so every existing reference (badges, em accents,
-     trust-strip numbers) stops rendering PortPass's lime without having
-     to hunt down and rename each usage individually. */
-  --bws-ink:#241f1b;
-  --bws-sea:#173f34;
-  --bws-teal:#173f34;
-  --bws-accent:#c08a5e;
-  --bws-lime:#c08a5e;
-  --bws-mint:#f4ecd8;
-  --bws-sand-deep:#e3d3a9;
-  --bws-ocean:#0b3d55;
-  --bws-paper:#fbfaf5;
-  --bws-muted:#5a6b64;
-  --bws-line:#dbd6c6;
+  /* Deep Sea repaint (22 September 2026 brief): the previous champagne/tan
+     accent (--bws-lime and --bws-accent both aliased to #c08a5e) read as
+     borrowed platform warmth rather than an independent wedding identity.
+     --bws-lime becomes turquoise -- the badge/em-accent role -- and
+     --bws-accent (now actually wired into the primary CTA button below,
+     where it was previously unused) becomes coral, used sparingly for
+     buttons and focus rings. --bws-sea/--bws-teal move to a real deep-sea
+     teal. Copy, layout and imagery are unchanged; this is a repaint. */
+  --bws-ink:#0E3138;
+  --bws-sea:#0E4D55;
+  --bws-teal:#0E4D55;
+  --bws-accent:#E9705A;
+  --bws-lime:#3FBFB3;
+  --bws-mint:#D8F0EC;
+  --bws-sand-deep:#EADFC8;
+  --bws-ocean:#0E4D55;
+  --bws-paper:#FCFAF6;
+  --bws-muted:#6C7B79;
+  --bws-line:#DCCFC0;
   --bws-serif:var(--font-bws-serif),Georgia,serif;
   --bws-sans:var(--font-bws-sans),Arial,sans-serif;
   color:var(--bws-ink);
@@ -3885,7 +3886,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-theme h2{font-size:clamp(2.65rem,4.5vw,4.65rem)}
 .bws-theme h3{font-size:2.15rem}
 .bws-theme em{font-weight:400}
-.bws-theme a:focus-visible,.bws-theme button:focus-visible,.bws-theme input:focus-visible,.bws-theme select:focus-visible,.bws-theme textarea:focus-visible,.bws-theme summary:focus-visible{outline:3px solid #cf934c;outline-offset:5px}
+.bws-theme a:focus-visible,.bws-theme button:focus-visible,.bws-theme input:focus-visible,.bws-theme select:focus-visible,.bws-theme textarea:focus-visible,.bws-theme summary:focus-visible{outline:3px solid var(--bws-accent);outline-offset:5px}
 .bws-theme ::selection{background:#b9ddd7;color:var(--bws-ink)}
 .bws-skip-link{position:fixed;left:20px;top:-100px;z-index:20;padding:10px 20px;background:white}
 .bws-skip-link:focus{top:10px}
@@ -3901,11 +3902,11 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
    template's business-shell wrapper (app/_components/BusinessShell.tsx) --
    listed alongside .bws-theme so both the old bespoke page and the new
    templated one fade in the same way. */
-.bws-plate{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#fbfaf5;opacity:1;transition:opacity 700ms ease-out;pointer-events:none}
+.bws-plate{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--bws-paper, #FCFAF6);opacity:1;transition:opacity 700ms ease-out;pointer-events:none}
 .bws-plate-mark{font-size:64px;line-height:1}
-.bws-plate-word{font-family:var(--bws-serif,Fraunces,Georgia,serif);font-size:54px;font-weight:400;color:#241f1b;letter-spacing:-.01em}
-.bws-plate-rule{width:72px;height:1px;background:#dbd6c6}
-.bws-plate-sub{font-family:var(--bws-sans,Inter,Arial,sans-serif);font-size:14px;letter-spacing:.34em;text-transform:uppercase;color:#5a6b64}
+.bws-plate-word{font-family:var(--bws-serif,Fraunces,Georgia,serif);font-size:54px;font-weight:400;color:var(--bws-ink, #0E3138);letter-spacing:-.01em}
+.bws-plate-rule{width:72px;height:1px;background:var(--bws-line, #DCCFC0)}
+.bws-plate-sub{font-family:var(--bws-sans,Inter,Arial,sans-serif);font-size:14px;letter-spacing:.34em;text-transform:uppercase;color:var(--bws-muted, #6C7B79)}
 :root[data-bws-arriving="holding"] .bws-theme,:root[data-bws-arriving="holding"] .site-shell-business{opacity:0}
 :root[data-bws-arriving="leaving"] .bws-plate{opacity:0}
 :root[data-bws-arriving="leaving"] .bws-theme,:root[data-bws-arriving="leaving"] .site-shell-business{opacity:1;transition:opacity 500ms ease-in}
@@ -3946,17 +3947,22 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-hero{display:grid;grid-template-columns:1.02fr 1fr;grid-template-rows:1fr auto;align-items:stretch;min-height:620px;max-height:720px;background:var(--bws-paper);color:var(--bws-ink);overflow:hidden}
 .bws-hero-image{grid-column:2;grid-row:1;width:100%;height:100%;min-height:620px;object-fit:cover;object-position:center 55%}
 .bws-hero-content{grid-column:1;grid-row:1;position:relative;width:auto;margin-left:0;display:flex;flex-direction:column;justify-content:center;padding:48px 56px 44px 114px;background:var(--bws-paper)}
-.bws-hero-badge{display:inline-flex;align-items:center;gap:9px;background:var(--bws-lime);color:#2b1c10;border-radius:999px;padding:8px 16px;font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:28px;width:fit-content}
+.bws-hero-badge{display:inline-flex;align-items:center;gap:9px;background:var(--bws-lime);color:var(--bws-ink);border-radius:999px;padding:8px 16px;font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:28px;width:fit-content}
 .bws-hero-cta{display:flex;width:fit-content}
 .bws-hero h1{color:var(--bws-ink);font-size:clamp(2.6rem,4vw,3.75rem);line-height:1.05;letter-spacing:-.03em;max-width:13ch;text-shadow:none}
-.bws-hero h1 em{display:inline-block;margin-top:6px;font-style:italic;color:var(--bws-lime)}
+/* Not var(--bws-lime) directly: the bright turquoise reads fine on the
+   badge fill and on the dark sections elsewhere in this file, but at
+   ~2.1:1 against --bws-paper it fails contrast here (this is the one
+   --bws-lime-as-text spot that sits on the light hero panel, not a dark
+   section) -- this is a darkened one-off, not a second global token. */
+.bws-hero h1 em{display:inline-block;margin-top:6px;font-style:italic;color:#1B786D}
 .bws-hero-intro{margin:26px 0 34px;font-size:1.04rem;line-height:1.75;max-width:44ch;color:var(--bws-muted)}
 .bws-button{min-height:55px;display:inline-flex;justify-content:center;align-items:center;gap:14px;padding:16px 28px;border:1px solid transparent;border-radius:999px;font-size:.875rem;font-weight:700;line-height:1.5;transition:background .2s,color .2s,transform .2s}
 .bws-button:hover{transform:translateY(-2px)}
-.bws-theme .bws-button-light{background:var(--bws-lime);color:#2b1c10}
+.bws-theme .bws-button-light{background:var(--bws-accent);color:var(--bws-ink)}
 .bws-button-light:hover{opacity:.88}
 .bws-theme .bws-button-dark{background:var(--bws-sea);color:#fff;border-color:var(--bws-sea)}
-.bws-button-dark:hover{background:#0e2b23}
+.bws-button-dark:hover{background:#0A3940}
 .bws-hero-foot{grid-column:1/-1;grid-row:2;align-self:end;position:relative;display:flex;justify-content:space-between;font-size:.75rem;letter-spacing:.03em;color:var(--bws-muted);padding:14px 114px 26px}
 .bws-hero-foot p span{margin:0 12px;opacity:.7}
 .bws-hero-foot a{display:flex;gap:18px;color:var(--bws-ink)}
@@ -4105,8 +4111,6 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-back-top{font-size:.75rem}
 .bws-footer-bottom{display:flex;justify-content:space-between;gap:25px;font-size:.75rem;color:var(--bws-muted);margin-top:24px;flex-wrap:wrap}
 .bws-rating-note{font-size:.75rem;margin-top:16px;color:var(--bws-muted);line-height:1.8}
-.bws-vendor-credit{font-size:.72rem;margin-top:10px;color:var(--bws-muted)}
-.bws-vendor-credit a{text-decoration:underline}
 .bws-mobile-booking{display:none}
 
 /* Planner (/weddings/bahamas-by-the-sea/plan) */
@@ -4131,7 +4135,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-choice-card{position:relative;display:block;cursor:pointer}
 .bws-choice-card input{position:absolute;opacity:0;pointer-events:none}
 .bws-choice-card>span{display:flex;flex-direction:column;min-height:134px;border:1px solid var(--bws-line);padding:20px;background:#fff;transition:border .2s,background .2s,transform .2s}
-.bws-choice-card input:focus-visible+span{outline:3px solid #cf934c;outline-offset:3px}
+.bws-choice-card input:focus-visible+span{outline:3px solid var(--bws-accent);outline-offset:3px}
 .bws-choice-card input:checked+span{border-color:var(--bws-teal);background:var(--bws-mint);box-shadow:inset 0 0 0 1px var(--bws-teal)}
 .bws-choice-card:hover>span{transform:translateY(-2px);border-color:#7da9a2}
 .bws-choice-card b{font-family:var(--bws-serif);font-size:1.55rem;font-weight:500;line-height:1.1}

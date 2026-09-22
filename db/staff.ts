@@ -62,6 +62,10 @@ export type AttendanceRow = {
   medications: string | null;
   special_needs: string | null;
   attendance_status: string | null;
+  // true when this mark was entered after the session's date had already
+  // passed -- see app/api/futprep/staff/attendance/route.ts, which
+  // computes this server-side rather than trusting the client.
+  is_backfill: boolean;
 };
 
 export async function listFutprepStaffRegistrations(): Promise<
@@ -371,17 +375,17 @@ export async function rosterForSession(
         .order("child_name", { ascending: true }),
       db
         .from("attendance")
-        .select("registration_id,status")
+        .select("registration_id,status,is_backfill")
         .eq("session_id", sessionId),
     ]);
   throwIfSupabaseError(error, "Could not load roster registrations");
   throwIfSupabaseError(attendanceError, "Could not load attendance");
 
-  const statusByRegistration = new Map<number, string>(
+  const attendanceByRegistration = new Map<number, { status: string; is_backfill: boolean }>(
     (attendance ?? []).map(
-      (row: { registration_id: number; status: string }) => [
+      (row: { registration_id: number; status: string; is_backfill: boolean }) => [
         row.registration_id,
-        row.status,
+        { status: row.status, is_backfill: row.is_backfill },
       ],
     ),
   );
@@ -413,7 +417,8 @@ export async function rosterForSession(
       medical_conditions: row.medical_conditions,
       medications: row.medications,
       special_needs: row.special_needs,
-      attendance_status: statusByRegistration.get(row.id) ?? null,
+      attendance_status: attendanceByRegistration.get(row.id)?.status ?? null,
+      is_backfill: attendanceByRegistration.get(row.id)?.is_backfill ?? false,
     }),
   );
 }
@@ -428,6 +433,20 @@ export async function markFutprepAttendance(input: {
   const db = getSupabaseAdmin();
   const now = new Date().toISOString();
 
+  // is_backfill is computed here, from the session's own date, rather than
+  // trusted from the client -- a coach marking today's session and a coach
+  // catching up on 5 September should both get the right answer even if
+  // one of them has a wrong device clock.
+  const { data: session, error: sessionError } = await db
+    .from("sessions")
+    .select("session_date")
+    .eq("id", input.sessionId)
+    .maybeSingle();
+  throwIfSupabaseError(sessionError, "Could not load session for attendance");
+  if (!session) throw new Error("SESSION_NOT_FOUND");
+  const today = now.slice(0, 10);
+  const isBackfill = (session.session_date as string) < today;
+
   const { error } = await db.from("attendance").upsert(
     {
       registration_id: input.registrationId,
@@ -435,10 +454,27 @@ export async function markFutprepAttendance(input: {
       status: input.status,
       marked_by: input.markedBy,
       marked_at: now,
+      is_backfill: isBackfill,
     },
     { onConflict: "registration_id,session_id" },
   );
   throwIfSupabaseError(error, "Could not mark attendance");
+}
+
+// The "tap again to undo" interaction: since a real row is either
+// present/absent/excused/late (the CHECK constraint has no "unmarked"
+// value) or doesn't exist, undoing a mark means deleting the row, not
+// writing a fifth status. rosterForSession already treats "no row" as
+// null/unmarked, so the roster correctly reverts on its own.
+export async function clearFutprepAttendance(input: { sessionId: number; registrationId: number }) {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+  const { error } = await db
+    .from("attendance")
+    .delete()
+    .eq("session_id", input.sessionId)
+    .eq("registration_id", input.registrationId);
+  throwIfSupabaseError(error, "Could not clear attendance");
 }
 
 

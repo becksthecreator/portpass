@@ -631,7 +631,7 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
     .slice(0, 8)
     .toUpperCase()}`;
 
-  const { error: insertError } = await db.from("registrations").insert({
+  const { data: inserted, error: insertError } = await db.from("registrations").insert({
     reference_code: referenceCode,
     organization_id: program.organization_id,
     program_id: program.id,
@@ -661,10 +661,10 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
     additional_notes: "",
     submitted_at: now,
     entered_by_staff: input.enteredByStaff.trim(),
-  });
+  }).select("id").single();
   throwIfSupabaseError(insertError, "Could not create Futprep registration");
 
-  return { referenceCode, programName: program.name };
+  return { referenceCode, programName: program.name, registrationId: Number(inserted!.id) };
 }
 
 export type FutprepPendingRegistration = {

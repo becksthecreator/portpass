@@ -229,7 +229,6 @@ export default async function BahamasWeddingsByTheSeaPage() {
           <a href={WEDDINGWIRE_URL} target="_blank" rel="noopener noreferrer">Photos &amp; review via WeddingWire ↗</a>
         </div>
         <p className="bws-rating-note">WeddingWire rating and review count checked September 2026. Enquiries open in WhatsApp for you to review and send.</p>
-        <p className="bws-vendor-credit">Booking and planning desk powered by <Link href="/">PortPass Bahamas</Link>.</p>
       </footer>
 
       <Link className="bws-mobile-booking" href="/weddings/bahamas-by-the-sea/plan">Plan your wedding <span aria-hidden="true">↗</span></Link>
