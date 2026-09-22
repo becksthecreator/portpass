@@ -38,8 +38,16 @@ export function OrganizationTemplate({ listing }: { listing: OrganizationListing
         location={[org.area, org.island].filter(Boolean).join(", ") || null}
         isOpen
         heroImageUrl={org.heroImageUrl}
+        layout={org.identityLayout ?? "overlay"}
       />
-      <ProofBlock yearsInBusiness={org.yearsInBusiness} rating={org.rating} reviewCount={org.reviewCount} awards={org.awards} />
+      <ProofBlock
+        yearsInBusiness={org.yearsInBusiness}
+        rating={org.rating}
+        reviewCount={org.reviewCount}
+        awards={org.awards}
+        reviewsUrl={org.reviewsUrl}
+        reviewsPlatform={org.reviewsPlatform}
+      />
       <GalleryBlock images={images} />
       <OfferingsBlock offerings={offerings} />
       <PracticalBlock facts={practicalFacts} />

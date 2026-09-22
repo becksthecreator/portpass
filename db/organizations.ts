@@ -485,6 +485,10 @@ export type Organization = {
   heroImageUrl: string | null;
   brandColor: string | null;
   logoUrl: string | null;
+  customDomain: string | null;
+  identityLayout: "overlay" | "split" | null;
+  reviewsUrl: string | null;
+  reviewsPlatform: string | null;
 };
 
 // A directory entry is deliberately smaller than Organization -- it's what
@@ -508,7 +512,7 @@ export type OrganizationListing = {
   faqs: OrganizationFaq[];
 };
 
-const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color,logo_url";
+const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color,logo_url,custom_domain,identity_layout,reviews_url,reviews_platform";
 
 const LISTING_OFFERING_COLUMNS = "id,organization_id,type,slug,name,summary,price_cents,price_unit,inclusions,schedule_text,age_min,age_max,term_start,term_end,event_date,doors_time,ticket_url,capacity,hourly_rate_cents,day_rate_cents,amenities,lead_time_text,image_url,action_url,is_featured";
 
@@ -533,6 +537,10 @@ function toListingOrganization(row: Record<string, unknown>): Organization {
     heroImageUrl: row.hero_image_url as string | null,
     brandColor: row.brand_color as string | null,
     logoUrl: row.logo_url as string | null,
+    customDomain: row.custom_domain as string | null,
+    identityLayout: (row.identity_layout as "overlay" | "split" | null) ?? null,
+    reviewsUrl: row.reviews_url as string | null,
+    reviewsPlatform: row.reviews_platform as string | null,
   };
 }
 

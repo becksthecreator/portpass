@@ -3891,22 +3891,27 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-skip-link:focus{top:10px}
 .bws-eyebrow{text-transform:uppercase;font-size:.75rem;line-height:1.6;font-weight:700;letter-spacing:.18em;margin-bottom:25px}
 
-/* BWS arrival plate -- see app/weddings/bahamas-by-the-sea/BwsArrival.tsx.
-   A separate brand moment from the PortPass one: seeing this page should
-   feel like landing on Antonio's own business, not a sub-page of a sports
-   platform. Session key (bws_arrival_seen) is deliberately distinct from
-   the homepage's (portpass_arrival_seen). */
+/* Arrival plate -- see app/_components/BusinessArrivalPlate.tsx (used
+   today by /sites/bahamas-weddings; originally built for the bespoke
+   bahamas-by-the-sea page, which still uses it via .bws-theme below).
+   Seeing this should feel like landing on that business's own site, not a
+   sub-page of PortPass. Session key (bws_arrival_seen) is deliberately
+   distinct from the homepage's (portpass_arrival_seen); kept as-is since
+   only one business uses this today. .site-shell-business is the shared
+   template's business-shell wrapper (app/_components/BusinessShell.tsx) --
+   listed alongside .bws-theme so both the old bespoke page and the new
+   templated one fade in the same way. */
 .bws-plate{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#fbfaf5;opacity:1;transition:opacity 700ms ease-out;pointer-events:none}
 .bws-plate-mark{font-size:64px;line-height:1}
 .bws-plate-word{font-family:var(--bws-serif,Fraunces,Georgia,serif);font-size:54px;font-weight:400;color:#241f1b;letter-spacing:-.01em}
 .bws-plate-rule{width:72px;height:1px;background:#dbd6c6}
 .bws-plate-sub{font-family:var(--bws-sans,Inter,Arial,sans-serif);font-size:14px;letter-spacing:.34em;text-transform:uppercase;color:#5a6b64}
-:root[data-bws-arriving="holding"] .bws-theme{opacity:0}
+:root[data-bws-arriving="holding"] .bws-theme,:root[data-bws-arriving="holding"] .site-shell-business{opacity:0}
 :root[data-bws-arriving="leaving"] .bws-plate{opacity:0}
-:root[data-bws-arriving="leaving"] .bws-theme{opacity:1;transition:opacity 500ms ease-in}
+:root[data-bws-arriving="leaving"] .bws-theme,:root[data-bws-arriving="leaving"] .site-shell-business{opacity:1;transition:opacity 500ms ease-in}
 @media(prefers-reduced-motion:reduce){
   .bws-plate{display:none}
-  :root[data-bws-arriving] .bws-theme{opacity:1;transition:none}
+  :root[data-bws-arriving] .bws-theme,:root[data-bws-arriving] .site-shell-business{opacity:1;transition:none}
 }
 
 /* Three zones -- nav | brand (centred) | CTA -- rather than a two-way split
@@ -4625,4 +4630,29 @@ img.biz-logo{object-fit:contain;background:#fff;border:1px solid var(--line)}
   .feature-card-wide .feature-card-photo{height:240px}
   .category-hero{min-height:240px}
   .category-hero-inner{padding:40px 24px 28px}
+}
+
+/* ============================================================
+   Business shell (biz-shell-*, site-shell-business): what a
+   business's own domain gets instead of the PortPass shell
+   (site-shell-*) -- its own name/logo, no PortPass categories, no
+   breadcrumb, and --brand instead of --coral. The blocks in between
+   (tpl-*) are identical either way. See app/sites/[slug]/page.tsx
+   and app/_components/BusinessShell.tsx.
+   ============================================================ */
+.site-shell-business{background:var(--paper);color:var(--ink)}
+
+.biz-shell-header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 5vw;background:var(--paper);border-bottom:1px solid var(--line);font-family:var(--font-pp-sans),Arial,sans-serif}
+.biz-shell-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-weight:700;font-size:1rem}
+.biz-shell-cta{background:var(--brand-text, var(--coral));color:#fff;font-size:.85rem;font-weight:700;padding:10px 20px;border-radius:999px;text-decoration:none;white-space:nowrap}
+.biz-shell-cta:hover,.biz-shell-cta:focus-visible{opacity:.9}
+
+.biz-shell-footer{background:var(--sand);border-top:1px solid var(--line);padding:32px 5vw;text-align:center;font-family:var(--font-pp-sans),Arial,sans-serif}
+.biz-shell-footer-name{font-weight:700;color:var(--ink);margin:0 0 6px}
+.biz-shell-footer-credit{font-size:.82rem;color:var(--muted);margin:0}
+.biz-shell-footer-credit a{color:var(--muted);font-weight:600}
+
+@media(max-width:600px){
+  .biz-shell-header{flex-wrap:wrap;gap:12px}
+  .biz-shell-brand span:last-child{font-size:.9rem}
 }
