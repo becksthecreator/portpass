@@ -484,6 +484,21 @@ export type Organization = {
   websiteUrl: string | null;
   heroImageUrl: string | null;
   brandColor: string | null;
+  logoUrl: string | null;
+};
+
+// A directory entry is deliberately smaller than Organization -- it's what
+// cross-category surfaces (the homepage carousel, category chips, feature
+// cards) need to link to a business generically, whether or not that
+// business's own detail page is built on the offerings/template system.
+export type OrganizationDirectoryEntry = {
+  slug: string;
+  name: string;
+  primaryCategory: string | null;
+  heroImageUrl: string | null;
+  logoUrl: string | null;
+  brandColor: string | null;
+  oneLiner: string | null;
 };
 
 export type OrganizationListing = {
@@ -493,7 +508,7 @@ export type OrganizationListing = {
   faqs: OrganizationFaq[];
 };
 
-const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color";
+const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color,logo_url";
 
 const LISTING_OFFERING_COLUMNS = "id,organization_id,type,slug,name,summary,price_cents,price_unit,inclusions,schedule_text,age_min,age_max,term_start,term_end,event_date,doors_time,ticket_url,capacity,hourly_rate_cents,day_rate_cents,amenities,lead_time_text,image_url,action_url,is_featured";
 
@@ -517,6 +532,7 @@ function toListingOrganization(row: Record<string, unknown>): Organization {
     websiteUrl: row.website_url as string | null,
     heroImageUrl: row.hero_image_url as string | null,
     brandColor: row.brand_color as string | null,
+    logoUrl: row.logo_url as string | null,
   };
 }
 
@@ -588,4 +604,30 @@ export async function getOfferingListingBySlug(organizationSlug: string, offerin
   const offering = listing.offerings.find((o) => o.slug === offeringSlug);
   if (!offering) return null;
   return { ...listing, offering };
+}
+
+// Every business the homepage carousel, category chips and feature cards
+// can point at -- gated on is_directory_listed, not is_published, so a
+// business like BWS (no offerings row, so it can never satisfy
+// check_organization_publish_requires_priced_offering) can still appear
+// here. Adding a row and setting this flag is the entire onboarding step;
+// nothing else in this file needs to change for a new business to show up.
+export async function listPublishedOrganizations(category?: string): Promise<OrganizationDirectoryEntry[]> {
+  const supabase = getSupabaseAdmin();
+  let query = supabase
+    .from("organizations")
+    .select("slug,name,primary_category,hero_image_url,logo_url,brand_color,one_liner")
+    .eq("is_directory_listed", true);
+  if (category) query = query.eq("primary_category", category);
+  const { data, error } = await query.order("id", { ascending: true });
+  throwIfSupabaseError(error, "Could not load organization directory");
+  return (data ?? []).map((row) => ({
+    slug: row.slug as string,
+    name: row.name as string,
+    primaryCategory: row.primary_category as string | null,
+    heroImageUrl: row.hero_image_url as string | null,
+    logoUrl: row.logo_url as string | null,
+    brandColor: row.brand_color as string | null,
+    oneLiner: row.one_liner as string | null,
+  }));
 }

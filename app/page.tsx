@@ -2,8 +2,12 @@ import Link from "next/link";
 import { ppDisplay, ppSans } from "./fonts";
 import { ArrivalPlate } from "./ArrivalPlate";
 import { HomeHero, type HeroFrame } from "./HomeHero";
+import { BusinessCarousel } from "./_components/BusinessCarousel";
+import { BusinessLogo } from "./_components/blocks/BusinessLogo";
+import { directoryHref } from "./_components/blocks/directoryHref";
 import { getFutprepAvailability } from "@/db/registrations";
 import { getWeddingSiteSettings } from "@/db/weddingSite";
+import { listPublishedOrganizations } from "@/db/organizations";
 import { programTimeRange } from "./futprep/config";
 import { SiteHeader } from "./_components/SiteHeader";
 import { SiteFooter } from "./_components/SiteFooter";
@@ -21,12 +25,15 @@ const COMING_LANES = [
 ] as const;
 
 export default async function Home() {
-  const [availability, weddingSettings] = await Promise.all([
+  const [availability, weddingSettings, directory] = await Promise.all([
     getFutprepAvailability(),
     getWeddingSiteSettings(),
+    listPublishedOrganizations(),
   ]);
   const futprepProgram = availability[0];
   const spotsThisWeek = availability.reduce((sum, program) => sum + program.spotsRemaining, 0);
+  const sportsBusinesses = directory.filter((biz) => biz.primaryCategory === "sports-fitness");
+  const weddingsBusinesses = directory.filter((biz) => biz.primaryCategory === "weddings");
 
   const frames: HeroFrame[] = [
     futprepProgram && {
@@ -55,12 +62,7 @@ export default async function Home() {
       <SiteHeader />
       <HomeHero frames={frames} />
 
-      <section className="home-trust-strip" aria-label="PortPass by the numbers">
-        <div><strong>2</strong><span>Bahamian businesses running on PortPass today</span></div>
-        <div><strong>26 years</strong><span>The longest-running business on the platform</span></div>
-        <div><strong>100</strong><span>Five-star reviews across our clients</span></div>
-        <div><strong>Nassau</strong><span>Built and run in The Bahamas</span></div>
-      </section>
+      <BusinessCarousel businesses={directory} />
 
       <section className="home-how" id="how-it-works">
         <div className="home-section-heading">
@@ -93,18 +95,34 @@ export default async function Home() {
           <h2>Where do you want to go?</h2>
         </div>
         <div className="home-lane-grid">
-          <Link className="home-lane home-lane-live" href="/sports-fitness">
+          <div className="home-lane home-lane-live">
             <span className="home-lane-tag home-lane-tag-live">Live now</span>
             <h3>Sports &amp; Fitness</h3>
-            <p>Youth training, camps and weekend sessions you register and pay for online.<span className="home-lane-now">Open now — Futprep Athletics, {spotsThisWeek} spots this Saturday.</span></p>
-            <span className="home-lane-action">Explore →</span>
-          </Link>
-          <Link className="home-lane home-lane-live" href="/weddings">
+            <p>Youth training, camps and weekend sessions you register and pay for online.</p>
+            <div className="home-lane-chips">
+              {sportsBusinesses.map((biz) => (
+                <Link key={biz.slug} href={directoryHref(biz.slug, biz.primaryCategory)} className="home-lane-chip">
+                  <BusinessLogo logoUrl={biz.logoUrl} name={biz.name} brand={biz.brandColor ?? "#e8794a"} size="sm" />
+                  <span>{biz.name}</span>
+                </Link>
+              ))}
+            </div>
+            <Link className="home-lane-action" href="/sports-fitness">Explore →</Link>
+          </div>
+          <div className="home-lane home-lane-live">
             <span className="home-lane-tag home-lane-tag-live">Live now</span>
             <h3>Weddings</h3>
-            <p>Island ceremonies planned end to end: officiant, venue, photography, paperwork.<span className="home-lane-now">Open now — Bahamas Weddings By The Sea, {weddingSettings.yearsExperience} years, {weddingSettings.reviewCount} five-star reviews.</span></p>
-            <span className="home-lane-action">Explore →</span>
-          </Link>
+            <p>Island ceremonies planned end to end: officiant, venue, photography, paperwork.</p>
+            <div className="home-lane-chips">
+              {weddingsBusinesses.map((biz) => (
+                <Link key={biz.slug} href={directoryHref(biz.slug, biz.primaryCategory)} className="home-lane-chip">
+                  <BusinessLogo logoUrl={biz.logoUrl} name={biz.name} brand={biz.brandColor ?? "#e8794a"} size="sm" />
+                  <span>{biz.name}</span>
+                </Link>
+              ))}
+            </div>
+            <Link className="home-lane-action" href="/weddings">Explore →</Link>
+          </div>
           {COMING_LANES.map((lane) => (
             <Link className="home-lane home-lane-coming" href={`/${lane.slug}`} key={lane.slug}>
               <span className="home-lane-tag">{lane.tag}</span>
