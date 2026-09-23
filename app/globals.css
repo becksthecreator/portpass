@@ -3907,7 +3907,17 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-plate-word{font-family:var(--bws-serif,Fraunces,Georgia,serif);font-size:54px;font-weight:400;color:var(--bws-ink, #0E3138);letter-spacing:-.01em}
 .bws-plate-rule{width:72px;height:1px;background:var(--bws-line, #DCCFC0)}
 .bws-plate-sub{font-family:var(--bws-sans,Inter,Arial,sans-serif);font-size:14px;letter-spacing:.34em;text-transform:uppercase;color:var(--bws-muted, #6C7B79)}
-:root[data-bws-arriving="holding"] .bws-theme,:root[data-bws-arriving="holding"] .site-shell-business{opacity:0}
+/* Failsafe: forces the page visible 2.2s after the hold starts, no matter
+   what -- the no-flash guard (app/layout.tsx) is scoped to the two BWS home
+   routes now, but this is the backstop for the case that scoping was meant
+   to prevent from being fatal: JS blocked/failing, or a route that somehow
+   ends up holding with no arrival component mounted to clear it. A visitor
+   must never be able to land on a permanently blank page because a
+   client-side animation didn't run. This only ever fires after the
+   animation-timing components' own clears (900ms/1700ms) would already
+   have happened, so it's a no-op whenever those work normally. */
+:root[data-bws-arriving="holding"] .bws-theme,:root[data-bws-arriving="holding"] .site-shell-business{opacity:0;animation:bws-arrival-failsafe 0s linear 2.2s forwards}
+@keyframes bws-arrival-failsafe{to{opacity:1}}
 :root[data-bws-arriving="leaving"] .bws-plate{opacity:0}
 :root[data-bws-arriving="leaving"] .bws-theme,:root[data-bws-arriving="leaving"] .site-shell-business{opacity:1;transition:opacity 500ms ease-in}
 @media(prefers-reduced-motion:reduce){

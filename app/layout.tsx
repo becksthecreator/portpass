@@ -28,12 +28,26 @@ export const metadata: Metadata = {
 // Bahamas Weddings By The Sea's arrival-plate no-flash guard. next/script's
 // beforeInteractive strategy only works reliably when placed in the root
 // layout (Next.js hoists it into <head> and runs it once per full page
-// load, before hydration) -- it cannot be scoped to a single nested route.
-// It's harmless everywhere else: the [data-bws-arriving] CSS it enables
-// only ever matches .bws-theme, which exists only on the wedding site.
+// load, before hydration) -- it cannot be scoped to a single nested route,
+// so this checks the path itself instead.
+//
+// It must only hold on the two BWS *home* routes -- the only places
+// BwsArrival/BusinessArrivalPlate actually mount to clear it. It used to
+// run (and hold) on every route unconditionally, on the theory that the
+// [data-bws-arriving] CSS only ever matches .bws-theme/.site-shell-business
+// so it'd be a no-op elsewhere -- but a sub-route like
+// /weddings/bahamas-by-the-sea/plan is still inside .bws-theme, has no
+// arrival component to clear the hold, and so stayed permanently
+// opacity:0. A fresh visitor landing there from a package CTA saw a blank
+// page forever. See also the failsafe rule in globals.css, which now
+// forces the page visible after 2.2s regardless of this script or the
+// arrival component running at all.
 const BWS_ARRIVAL_GUARD = `
 (function () {
   try {
+    var path = location.pathname.replace(/\\/+$/, '') || '/';
+    var isBwsHome = path === '/weddings/bahamas-by-the-sea' || path === '/sites/bahamas-weddings';
+    if (!isBwsHome) return;
     var seen = sessionStorage.getItem('bws_arrival_seen') === '1';
     var reduced = window.matchMedia
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -41,7 +55,11 @@ const BWS_ARRIVAL_GUARD = `
       document.documentElement.setAttribute('data-bws-arriving', 'holding');
     }
   } catch (e) {
-    document.documentElement.setAttribute('data-bws-arriving', 'holding');
+    // Unknown failure mode -- do NOT hold here. Holding requires an
+    // arrival component to clear it, and if the guard itself is failing in
+    // some unanticipated way, assuming we're on a route with no such
+    // component is the safer default (a missed arrival animation, not a
+    // blank page).
   }
 })();
 `;
