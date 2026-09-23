@@ -20,7 +20,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const listing = await getOrganizationListingBySlug(slug);
   if (!listing) return {};
   const { organization: org } = listing;
-  const title = org.name;
+  // Every other page on the site carries a descriptive suffix; a bare
+  // org.name here left <title> as just "Bahamas Weddings By The Sea" with
+  // nothing to distinguish it in a search result or a browser tab. This is
+  // the business's own site (no PortPass branding in its chrome), so the
+  // suffix is the business's own tagline, not "| PortPass Bahamas" the way
+  // portpassbahamas.com's own pages do it.
+  const title = slug === "bahamas-weddings" ? `${org.name} | Nassau Wedding Officiant & Planner` : org.name;
   const description = org.oneLiner ?? org.description ?? undefined;
   const url = org.customDomain ? `https://${org.customDomain}` : undefined;
   return {
@@ -75,7 +81,12 @@ export default async function BusinessSitePage({ params }: { params: Promise<{ s
     >
       {slug === "bahamas-weddings" && <BusinessArrivalPlate mark="🌴" word="Bahamas" sub="Weddings by the sea" />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
-      <BusinessHeader name={org.name} logoUrl={org.logoUrl} brand={brand} />
+      <BusinessHeader
+        name={org.name}
+        logoUrl={org.logoUrl}
+        brand={brand}
+        wordmarkMark={slug === "bahamas-weddings" ? "🌴" : undefined}
+      />
       <OrganizationTemplate listing={listing} />
       <BusinessFooter name={org.name} />
     </div>

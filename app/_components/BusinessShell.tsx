@@ -10,20 +10,27 @@ export function BusinessHeader({
   name,
   logoUrl,
   brand,
+  wordmarkMark,
   primaryActionHref = "#offerings",
   primaryActionLabel = "See prices",
 }: {
   name: string;
   logoUrl?: string | null;
   brand: string;
+  wordmarkMark?: string;
   primaryActionHref?: string;
   primaryActionLabel?: string;
 }) {
   return (
     <header className="biz-shell-header">
       <Link className="biz-shell-brand" href="/">
-        <BusinessLogo logoUrl={logoUrl} name={name} brand={brand} size="sm" />
-        <span>{name}</span>
+        <BusinessLogo logoUrl={logoUrl} name={name} brand={brand} size="sm" mark={wordmarkMark} />
+        {/* A real logo image doesn't carry the name as text, so it still needs
+            this label next to it. The wordmark fallback already spells the
+            name out inside its own tile -- printing it again here duplicated
+            the brand ("Bahamas Weddings By The Sea | Bahamas Weddings By The
+            Sea | See prices" in the header). */}
+        {logoUrl && <span>{name}</span>}
       </Link>
       <Link className="biz-shell-cta" href={primaryActionHref}>
         {primaryActionLabel}
