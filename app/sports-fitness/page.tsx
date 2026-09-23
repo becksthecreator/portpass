@@ -1,6 +1,7 @@
-import { getOrganizationListingBySlug } from "@/db/organizations";
+import { getOrganizationListingBySlug, listCategoryOrganizations } from "@/db/organizations";
 import { computeBrandTokens } from "@/app/_components/blocks/brand";
 import { FeatureCard } from "@/app/_components/blocks/FeatureCard";
+import { ComingSoonCard } from "@/app/_components/blocks/ComingSoonCard";
 import { formatPrice } from "@/app/_components/blocks/format";
 import { directoryHref } from "@/app/_components/blocks/directoryHref";
 import { SiteHeader } from "@/app/_components/SiteHeader";
@@ -19,10 +20,18 @@ const CATEGORY_HERO_IMAGE = "/futprep/lil-kickers/lil-kickers-training.jpg";
 
 // A category page lists businesses, not programs -- Futprep's own programs
 // (Lil Kickers, Kickers) live on its own page, which is where a visitor
-// who already picked Futprep wants to see them.
+// who already picked Futprep wants to see them. A business mid-onboarding
+// (a real row, not yet published -- see block F1 of the 22 September
+// brief) still shows up here, as a Coming Soon card instead of a
+// FeatureCard, rather than being invisible until it's fully live.
 export default async function SportsFitnessPage() {
-  const futprep = await getOrganizationListingBySlug("futprep");
-  const businesses = futprep ? [futprep] : [];
+  const categoryOrgs = await listCategoryOrganizations("sports-fitness");
+  const published = categoryOrgs.filter((org) => org.isPublished);
+  const comingSoon = categoryOrgs.filter((org) => !org.isPublished);
+  const listings = (
+    await Promise.all(published.map((org) => getOrganizationListingBySlug(org.slug)))
+  ).filter((listing): listing is NonNullable<typeof listing> => listing !== null);
+  const cardCount = listings.length + comingSoon.length;
 
   return (
     <main className={`tpl-page ${ppDisplay.variable} ${ppSans.variable}`}>
@@ -35,8 +44,8 @@ export default async function SportsFitnessPage() {
         </div>
       </section>
 
-      <div className={`feature-card-grid${businesses.length === 1 ? " feature-card-grid-solo" : ""}`}>
-        {businesses.map(({ organization: org, offerings }) => {
+      <div className={`feature-card-grid${cardCount === 1 ? " feature-card-grid-solo" : ""}`}>
+        {listings.map(({ organization: org, offerings }) => {
           const cheapest = offerings
             .filter((offering) => offering.priceCents !== null)
             .sort((a, b) => (a.priceCents as number) - (b.priceCents as number))[0];
@@ -55,12 +64,15 @@ export default async function SportsFitnessPage() {
               priceLabel={cheapest ? `From ${formatPrice(cheapest.priceCents as number, cheapest.priceUnit)}` : null}
               actionHref={directoryHref(org.slug, org.primaryCategory)}
               actionLabel={`Explore ${org.name} →`}
-              wide={businesses.length === 1}
+              wide={cardCount === 1}
             />
           );
         })}
+        {comingSoon.map((org) => (
+          <ComingSoonCard key={org.slug} name={org.name} logoUrl={org.logoUrl} brand={org.brandColor ?? "#e8794a"} />
+        ))}
       </div>
-      {businesses.length === 0 && (
+      {cardCount === 0 && (
         <p className="category-empty">More sports and fitness organizations join PortPass as they come on board.</p>
       )}
 

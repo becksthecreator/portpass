@@ -639,3 +639,34 @@ export async function listPublishedOrganizations(category?: string): Promise<Org
     oneLiner: row.one_liner as string | null,
   }));
 }
+
+export type CategoryOrganizationEntry = {
+  slug: string;
+  name: string;
+  logoUrl: string | null;
+  brandColor: string | null;
+  isPublished: boolean;
+};
+
+// A category page shows every business in that category, live or not --
+// unlike listPublishedOrganizations (homepage carousel/chips), which only
+// ever shows what's genuinely open. A row with is_published false here
+// renders as a Coming Soon card (see ComingSoonCard.tsx) rather than
+// being invisible: a category with a business mid-onboarding should say
+// so, not look empty. is_directory_listed plays no role in this query.
+export async function listCategoryOrganizations(category: string): Promise<CategoryOrganizationEntry[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("slug,name,logo_url,brand_color,is_published")
+    .eq("primary_category", category)
+    .order("id", { ascending: true });
+  throwIfSupabaseError(error, "Could not load category organizations");
+  return (data ?? []).map((row) => ({
+    slug: row.slug as string,
+    name: row.name as string,
+    logoUrl: row.logo_url as string | null,
+    brandColor: row.brand_color as string | null,
+    isPublished: Boolean(row.is_published),
+  }));
+}
