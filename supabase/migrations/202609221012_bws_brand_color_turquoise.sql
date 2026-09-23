@@ -1,0 +1,17 @@
+-- Per the tropical-palette brief's "database side" instruction: verified
+-- that organizations.brand_color does NOT actually drive the
+-- /weddings/bahamas-weddings-by-the-sea listing page -- that page had its
+-- own local BWS_BRAND_COLOR constant (also '#c08a5e', coincidentally the
+-- same value, which is presumably why the brief assumed a link that
+-- doesn't exist). That page's colours are now driven entirely by the new
+-- .bws-listing-theme CSS scope instead (see globals.css), so this column
+-- no longer needs to match anything there.
+--
+-- It DOES still drive every generic single-accent surface: the homepage
+-- carousel tile, the /weddings category-hub chip, the /sports-fitness-
+-- style FeatureCard treatment on /weddings, and the templated
+-- /sites/bahamas-weddings page from the domain-routing work. Set to
+-- turq-deep (#14707F) -- described in the brief as "turquoise that can
+-- carry text or white" -- so those surfaces read as the same tropical
+-- identity instead of the old brown.
+update public.organizations set brand_color = '#14707F' where slug = 'bahamas-weddings';

@@ -4475,6 +4475,53 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .tpl-offering-cta{display:inline-flex;align-items:center;gap:10px;background:var(--brand-text, var(--coral));color:#fff;font-size:.9rem;font-weight:700;padding:13px 22px;border-radius:999px;width:fit-content}
 .tpl-offering-cta:hover,.tpl-offering-cta:focus-visible{opacity:.9}
 
+/* ============================================================
+   Bahamas Weddings By The Sea LISTING page (bws-listing-theme):
+   scoped to this one page's <main> in
+   app/weddings/bahamas-weddings-by-the-sea/page.tsx only. Not
+   .bws-theme -- that class already belongs to the bespoke
+   bahamas-by-the-sea site's own Deep Sea palette; reusing it here
+   would silently overwrite that page's colours. Not :root, which
+   stays shared with Futprep and the PortPass landing page.
+
+   Sampled from Antonio's reference photograph (22 September
+   brief). This overrides the base canvas tokens (ink/paper/sand/
+   line/muted) for this one listing specifically -- an explicit,
+   requested exception to the platform's usual rule that chrome
+   and canvas never vary per business -- because this brief wants
+   five distinct named colours in five distinct roles (badge,
+   button, price, stats strip, dividers), which the generic
+   one-accent --brand/--brand-text mechanism can't express. Every
+   pairing below was contrast-checked in the brief; see that
+   document rather than re-deriving ratios here.
+   ============================================================ */
+.bws-listing-theme{
+  --ink:#17323A;
+  --sand:#F3EAD8;
+  --paper:#FDFAF4;
+  --line:#E2D5BE;
+  --muted:#6B6252;
+  --green:#1F4A50;
+  --lime:#5DCBE3;         /* turquoise -- the brand colour, used as a fill/accent, never as text on a light ground (fails contrast) */
+  --turq-deep:#14707F;    /* turquoise that can safely carry text */
+  --coral:#C0512F;        /* the action colour -- buttons */
+  --coral-deep:#A8441F;   /* coral safe as text (prices) */
+  --rose:#B33448;         /* bougainvillea -- badges only */
+  --gold:#B4823F;         /* rules and ornament -- never text (fails contrast) */
+  --gold-text:#8A6224;    /* when a gold-family colour must carry words */
+  --palm:#63783A;         /* sparing; no assigned role on this page today */
+  --aqua:#DCF1F5;         /* pale wash for alternating bands */
+}
+.bws-listing-theme .tpl-badge{background:var(--rose);color:#fff}
+.bws-listing-theme .tpl-identity-split{border-bottom:2px solid var(--gold)}
+.bws-listing-theme .tpl-proof{background:var(--green)}
+.bws-listing-theme .tpl-proof strong{color:var(--lime)}
+.bws-listing-theme .tpl-proof-link:hover span,.bws-listing-theme .tpl-proof-link:focus-visible span{color:var(--turq-deep)}
+.bws-listing-theme .tpl-gallery{background:var(--aqua)}
+.bws-listing-theme .tpl-offerings{background:var(--sand)}
+.bws-listing-theme .tpl-offering-price{color:var(--coral-deep)}
+.bws-listing-theme .tpl-offering-cta{background:var(--coral);color:#fff}
+
 .tpl-practical{display:flex;flex-wrap:wrap;gap:28px;padding:50px 5vw;background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .tpl-practical-fact b{display:block;font-family:var(--font-pp-display),Georgia,serif;font-size:1rem;font-weight:600;margin-bottom:4px}
 .tpl-practical-fact span{font-size:.9rem;color:var(--muted)}
