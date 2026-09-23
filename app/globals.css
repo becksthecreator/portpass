@@ -4605,6 +4605,17 @@ img.biz-logo{object-fit:contain;background:#fff;border:1px solid var(--line)}
 .biz-logo-wordmark.biz-logo-md{font-size:.66rem}
 .biz-logo-wordmark.biz-logo-lg{font-size:.85rem}
 
+/* A wordmark with a `mark` (see BusinessLogo's `mark` prop) is meant to be
+   read, not squeezed into the square logo footprint above -- a business
+   header's whole point is naming the business, so this is the one wordmark
+   variant that gets a real lockup: a round mark plus the name at legible
+   size, echoing the arrival plate's mark treatment (.pp-arrival-mark). */
+.biz-logo-wordmark-lockup{width:auto;height:auto;background:none;color:var(--ink);display:inline-flex;align-items:center;gap:8px;padding:0;text-align:left;overflow:visible}
+.biz-logo-wordmark-lockup.biz-logo-sm{font-size:1rem}
+.biz-logo-wordmark-lockup.biz-logo-md{font-size:1.2rem}
+.biz-logo-wordmark-lockup.biz-logo-lg{font-size:1.5rem}
+.biz-logo-mark{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:1.6em;height:1.6em;border-radius:50% 50% 47% 53%;background:var(--brand);color:#fff;font-size:.85em;transform:rotate(-6deg)}
+
 /* ============================================================
    Business carousel (carousel-*): "Open now on PortPass," directly
    under the hero. A native horizontally-scrolling, scroll-snapping

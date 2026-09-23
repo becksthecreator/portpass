@@ -7,17 +7,23 @@ export function BusinessLogo({
   name,
   brand,
   size = "md",
+  mark,
 }: {
   logoUrl?: string | null;
   name: string;
   brand: string;
   size?: "sm" | "md" | "lg";
+  mark?: string;
 }) {
   if (logoUrl) {
     return <img className={`biz-logo biz-logo-${size}`} src={logoUrl} alt={`${name} logo`} loading="lazy" />;
   }
   return (
-    <span className={`biz-logo biz-logo-${size} biz-logo-wordmark`} style={{ "--brand": brand } as React.CSSProperties}>
+    <span
+      className={`biz-logo biz-logo-${size} biz-logo-wordmark${mark ? " biz-logo-wordmark-lockup" : ""}`}
+      style={{ "--brand": brand } as React.CSSProperties}
+    >
+      {mark && <span className="biz-logo-mark" aria-hidden="true">{mark}</span>}
       {name}
     </span>
   );
