@@ -40,27 +40,37 @@ export function ProofBlock({
   const items: { value: string; label: string; href?: string }[] = [];
   if (yearsInBusiness) items.push({ value: `${yearsInBusiness}+`, label: "Years in business" });
 
-  if (!ratingBadgeHtml) {
-    if (reviewsUrl && reviewCount) {
-      const platform = reviewsPlatform ? ` on ${reviewsPlatform}` : "";
-      items.push({
-        value: rating !== null ? rating.toFixed(1) : String(reviewCount),
-        label: `Read ${reviewCount} five-star reviews${platform}`,
-        href: reviewsUrl,
-      });
-    } else if (rating !== null) {
-      items.push({ value: rating.toFixed(1), label: reviewCount ? `${reviewCount} reviews` : "Rating" });
-    } else if (reviewCount) {
-      items.push({ value: String(reviewCount), label: "Reviews" });
-    }
+  // A badge replaces the NUMBER (a graphic reads better than a hand-typed
+  // "5.0"), but it still needs the same text label underneath -- a picture
+  // and a bare "100" next to it isn't self-explanatory the way "100
+  // five-star reviews on WeddingWire" is. The label is generated from the
+  // same data the hand-entered branch below would have used.
+  let ratingBadgeLabel: string | null = null;
+  if (ratingBadgeHtml) {
+    const platform = reviewsPlatform ? ` on ${reviewsPlatform}` : "";
+    ratingBadgeLabel = reviewCount ? `${reviewCount} five-star reviews${platform}` : reviewsPlatform ? `Reviews on ${reviewsPlatform}` : "Reviews";
+  } else if (reviewsUrl && reviewCount) {
+    const platform = reviewsPlatform ? ` on ${reviewsPlatform}` : "";
+    items.push({
+      value: rating !== null ? rating.toFixed(1) : String(reviewCount),
+      label: `Read ${reviewCount} five-star reviews${platform}`,
+      href: reviewsUrl,
+    });
+  } else if (rating !== null) {
+    items.push({ value: rating.toFixed(1), label: reviewCount ? `${reviewCount} reviews` : "Rating" });
+  } else if (reviewCount) {
+    items.push({ value: String(reviewCount), label: "Reviews" });
   }
 
-  if (!awardBadgeHtml) {
-    if (awards.length === 1) items.push({ value: "1", label: awards[0] });
-    else if (awards.length > 1) {
-      const allSameAward = awards.every((award) => award === awards[0]);
-      items.push({ value: String(awards.length), label: allSameAward ? `${awards[0]}s` : "Awards & recognition" });
-    }
+  let awardBadgeLabel: string | null = null;
+  if (awardBadgeHtml) {
+    const allSameAward = awards.length > 0 && awards.every((award) => award === awards[0]);
+    awardBadgeLabel = awards.length === 1 ? awards[0] : awards.length > 1 ? (allSameAward ? `${awards.length} ${awards[0]}s` : "Awards & recognition") : "Awards";
+  } else if (awards.length === 1) {
+    items.push({ value: "1", label: awards[0] });
+  } else if (awards.length > 1) {
+    const allSameAward = awards.every((award) => award === awards[0]);
+    items.push({ value: String(awards.length), label: allSameAward ? `${awards[0]}s` : "Awards & recognition" });
   }
 
   if (items.length === 0 && !ratingBadgeHtml && !awardBadgeHtml) return null;
@@ -80,8 +90,18 @@ export function ProofBlock({
           </div>
         )
       )}
-      {ratingBadgeHtml && <ExternalWidget className="tpl-proof-widget" html={ratingBadgeHtml} />}
-      {awardBadgeHtml && <ExternalWidget className="tpl-proof-widget" html={awardBadgeHtml} />}
+      {ratingBadgeHtml && (
+        <div>
+          <ExternalWidget className="tpl-proof-widget" html={ratingBadgeHtml} />
+          <span>{ratingBadgeLabel}</span>
+        </div>
+      )}
+      {awardBadgeHtml && (
+        <div>
+          <ExternalWidget className="tpl-proof-widget" html={awardBadgeHtml} />
+          <span>{awardBadgeLabel}</span>
+        </div>
+      )}
     </section>
   );
 }
