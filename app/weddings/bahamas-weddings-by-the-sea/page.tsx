@@ -4,7 +4,7 @@ import { getPublicWeddingPackages } from "@/db/weddingPackages";
 import { IdentityBlock } from "@/app/_components/blocks/IdentityBlock";
 import { ProofBlock } from "@/app/_components/blocks/ProofBlock";
 import { Carousel } from "@/app/_components/blocks/Carousel";
-import { ReviewsCarousel } from "@/app/_components/blocks/ReviewsCarousel";
+import { ReviewsPanel } from "@/app/_components/blocks/ReviewsPanel";
 import { OfferingsBlock } from "@/app/_components/blocks/OfferingsBlock";
 import { PeopleBlock } from "@/app/_components/blocks/PeopleBlock";
 import { ServicesBlock } from "@/app/_components/blocks/ServicesBlock";
@@ -176,11 +176,10 @@ export default async function BahamasWeddingsListingPage() {
         {/*
           Reviews render only through the official WeddingWire widget (the
           PR #26 rule: never read, copy or store the review text itself).
-          The carousel wraps whatever DOM the widget injects into it, once
-          it actually renders -- see ReviewsCarousel.tsx. If the widget
-          never populates (found last round: it's domain-locked to
-          Antonio's registered listing URL, which isn't this domain yet),
-          the component removes the whole section itself rather than leave
+          Deliberately a static, vertically-scrolling panel rather than a
+          carousel like the gallery -- reviews are read, and moving text
+          works against reading. See ReviewsPanel.tsx: it removes the whole
+          section itself if the widget never populates, rather than leave
           a hole above the action block.
         */}
         {settings.reviewsWidgetHtml && (
@@ -189,7 +188,7 @@ export default async function BahamasWeddingsListingPage() {
               <p className="tpl-eyebrow">In their words</p>
               <h2>One hundred five-star reviews.</h2>
             </div>
-            <ReviewsCarousel html={settings.reviewsWidgetHtml} speed={18} />
+            <ReviewsPanel html={settings.reviewsWidgetHtml} />
             <a
               className="tpl-text-link"
               target="_blank"
