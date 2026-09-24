@@ -6,6 +6,8 @@ export type WeddingSiteSettings = {
   yearsExperience: number;
   awardYears: number[];
   reviewsWidgetHtml: string | null;
+  ratingBadgeHtml: string | null;
+  awardBadgeHtml: string | null;
 };
 
 const DEFAULT_SETTINGS: WeddingSiteSettings = {
@@ -14,13 +16,15 @@ const DEFAULT_SETTINGS: WeddingSiteSettings = {
   yearsExperience: 26,
   awardYears: [2026, 2023, 2022, 2021, 2020, 2019],
   reviewsWidgetHtml: null,
+  ratingBadgeHtml: null,
+  awardBadgeHtml: null,
 };
 
 export async function getWeddingSiteSettings(): Promise<WeddingSiteSettings> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("wedding_site_settings")
-    .select("review_count,review_recommend_pct,years_experience,award_years,reviews_widget_html")
+    .select("review_count,review_recommend_pct,years_experience,award_years,reviews_widget_html,rating_badge_html,award_badge_html")
     .eq("id", 1)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load wedding site settings");
@@ -31,6 +35,8 @@ export async function getWeddingSiteSettings(): Promise<WeddingSiteSettings> {
     yearsExperience: Number(data.years_experience),
     awardYears: Array.isArray(data.award_years) ? data.award_years.filter((v): v is number => typeof v === "number") : [],
     reviewsWidgetHtml: data.reviews_widget_html,
+    ratingBadgeHtml: (data.rating_badge_html as string | null) ?? null,
+    awardBadgeHtml: (data.award_badge_html as string | null) ?? null,
   };
 }
 
@@ -40,6 +46,8 @@ export type WeddingSiteSettingsInput = {
   yearsExperience: number;
   awardYears: number[];
   reviewsWidgetHtml: string | null;
+  ratingBadgeHtml: string | null;
+  awardBadgeHtml: string | null;
 };
 
 export async function updateWeddingSiteSettings(input: WeddingSiteSettingsInput): Promise<void> {
@@ -52,6 +60,8 @@ export async function updateWeddingSiteSettings(input: WeddingSiteSettingsInput)
       years_experience: input.yearsExperience,
       award_years: input.awardYears,
       reviews_widget_html: input.reviewsWidgetHtml?.trim() || null,
+      rating_badge_html: input.ratingBadgeHtml?.trim() || null,
+      award_badge_html: input.awardBadgeHtml?.trim() || null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1);

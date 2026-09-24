@@ -3866,6 +3866,15 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   --bws-paper:#FCFAF6;
   --bws-muted:#6C7B79;
   --bws-line:#DCCFC0;
+  /* Antonio's requested accent (24 Sept 2026 brief), contrast-checked
+     against --bws-paper: 5.2:1, and 5.44:1 for white text on a rose fill --
+     passes in both directions, which matters since the button below is a
+     rose fill with white text. Scoped to exactly four places per the
+     brief: package card CTAs, the "Plan your own wedding" button, the
+     featured-tier border, and text-link hover -- see the rules using it
+     further down, not a --brand/--bws-accent-wide rename. */
+  --bws-rose:#B0455F;
+  --bws-rose-deep:#9E3A55;
   --bws-serif:var(--font-bws-serif),Georgia,serif;
   --bws-sans:var(--font-bws-sans),Arial,sans-serif;
   color:var(--bws-ink);
@@ -3992,6 +4001,11 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-trust-strip strong{font-family:var(--bws-serif);font-weight:500;font-size:2.1rem;color:var(--bws-lime)}
 .bws-trust-strip>*>span{font-size:.75rem;color:#dce8e0}
 .bws-trust-strip .bws-stars{font-family:var(--bws-sans);font-size:.78rem;letter-spacing:.15em;color:var(--bws-lime);vertical-align:middle;margin-left:10px}
+/* WeddingWire's own badges are designed for a light background, not this
+   strip's dark teal -- a plain white chip keeps them legible instead of
+   fighting the surrounding colour. min-height matches the strip's other
+   items so the row doesn't jump before the deferred widget script loads. */
+.bws-trust-strip>.bws-trust-widget{background:#fff;border-radius:10px;padding:10px 14px;min-height:64px}
 
 .bws-section-wrap{max-width:1380px;padding:110px 7%;margin:auto}
 .bws-about{display:grid;grid-template-columns:1fr 1.08fr;align-items:center;gap:10%}
@@ -4001,6 +4015,9 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-about-copy>p:not(.bws-eyebrow):not(.bws-signature-caption){margin-top:23px;max-width:490px;color:var(--bws-muted)}
 .bws-signature{font-family:var(--bws-serif);font-size:2rem;font-style:italic;line-height:1.25;margin-top:30px}
 .bws-signature-caption{font-size:.75rem;margin-top:5px;color:var(--bws-muted)}
+.bws-signature-credentials{font-size:.75rem;margin-top:8px;font-weight:600;letter-spacing:.02em;color:var(--bws-ink)}
+.bws-services-list{display:flex;flex-wrap:wrap;gap:12px;list-style:none;margin:36px 0 0;padding:0}
+.bws-services-list li{border:1px solid var(--bws-line);border-radius:999px;padding:10px 20px;font-size:.85rem;color:var(--bws-ink)}
 .bws-text-link{display:inline-flex;justify-content:space-between;align-items:center;gap:30px;font-size:.875rem;font-weight:600;border-bottom:1px solid currentColor;padding-bottom:6px;line-height:1.5}
 .bws-about-copy>.bws-text-link{margin-top:28px}
 
@@ -4015,7 +4032,13 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-tier-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:36px;align-items:stretch}
 .bws-tier-grid-single{grid-template-columns:1fr;max-width:420px;margin-left:auto;margin-right:auto}
 .bws-tier-card{position:relative;display:flex;flex-direction:column;align-items:start;padding:36px 26px;border:1px solid var(--bws-line);border-radius:4px}
-.bws-tier-featured{border-color:var(--bws-teal);border-width:2px;background:var(--bws-mint)}
+.bws-tier-featured{border-color:var(--bws-rose);border-width:2px;background:var(--bws-mint)}
+.bws-tier-card .bws-text-link{color:var(--bws-rose)}
+.bws-text-link:hover{color:var(--bws-rose-deep)}
+.bws-build-your-own{border-top:1px solid var(--bws-line);margin-top:46px;padding-top:46px;text-align:center}
+.bws-build-your-own h3{font-family:var(--bws-serif);font-size:2rem;font-weight:400;margin:6px 0 14px}
+.bws-build-your-own>p:not(.bws-eyebrow){color:var(--bws-muted);max-width:480px;margin:0 auto 24px}
+.bws-build-your-own-cta{background:var(--bws-rose);color:#fff}
 .bws-tier-badge{position:absolute;top:-13px;left:26px;z-index:1;background:var(--bws-teal);color:#fff;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 14px;border-radius:999px}
 .bws-tier-image{width:calc(100% + 52px);height:160px;margin:-36px -26px 20px;object-fit:cover;border-radius:16px 16px 0 0}
 .bws-tier-card h3{font-size:1.5rem;margin-bottom:8px}

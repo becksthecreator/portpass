@@ -5,6 +5,7 @@ import { QuickEnquiryForm } from "./QuickEnquiryForm";
 import { GalleryCycle } from "./GalleryCycle";
 import { BwsArrival } from "./BwsArrival";
 import { PackageTiers } from "./PackageTiers";
+import { ExternalWidget } from "./ExternalWidget";
 import { getPublicWeddingGallery, getWeddingSiteSettings } from "@/db/weddingSite";
 import { getPublicWeddingPackages } from "@/db/weddingPackages";
 
@@ -16,10 +17,16 @@ export const dynamic = "force-dynamic";
 const ASSET = "/weddings/bahamas-by-the-sea";
 const WEDDINGWIRE_URL = "https://www.weddingwire.com/biz/bahamas-weddings-by-the-sea-nassau/406f00580a64e27e.html";
 
-const OG_IMAGE = `${ASSET}/hero.jpg`;
+// hero.jpg is a shared platform asset -- also the homepage's own hero
+// background, the /weddings category hub's hero, and the add-ons film
+// card's background (see globals.css and app/weddings/page.tsx). Swapping
+// what hero.jpg IS would repaint all of those, not just this page, so this
+// page's own hero uses a dedicated file (one of the eight real ceremony
+// photos supplied for it) instead of the shared one.
+const OG_IMAGE = `${ASSET}/bws-10.webp`;
 
 export const metadata = {
-  title: "Bahamas Weddings By The Sea | Antonio Beckford",
+  title: "Bahamas Weddings By The Sea | Nassau Wedding Officiant & Planner",
   description: "A wedding that feels like you, in a place like nowhere else. Plan your Bahamas wedding ceremony or vow renewal with Antonio Beckford.",
   // Explicit override: the root layout sets a static `icons` field for
   // PortPass's own favicon, which otherwise wins over this route's
@@ -46,6 +53,25 @@ const NAV_LINKS = [
   { href: "#wedding-desk", label: "Wedding Desk" },
   { href: "#add-ons", label: "Photo & film" },
   { href: "#love-notes", label: "Gallery" },
+];
+
+// Antonio's own service list, from his business documentation -- nothing
+// here is inferred. Cruise Passenger Weddings specifically wasn't mentioned
+// anywhere on the site before this; Nassau's cruise-passenger volume makes
+// it a real, distinct market from a destination wedding booked in advance.
+const SERVICE_LIST = [
+  "Marriage Licence Assistance",
+  "Registrar Appointments",
+  "Beach Weddings",
+  "Hotel & Resort Weddings",
+  "Private Villa Weddings",
+  "Cruise Passenger Weddings",
+  "Vow Renewals",
+  "Elopements",
+  "Customised Ceremonies",
+  "Photography & Videography",
+  "Transportation",
+  "Premarital Counselling",
 ];
 
 export default async function BahamasWeddingsByTheSeaPage() {
@@ -75,7 +101,7 @@ export default async function BahamasWeddingsByTheSeaPage() {
 
       <main id="main">
         <section className="bws-hero" id="home" aria-labelledby="hero-title">
-          <img className="bws-hero-image" src={`${ASSET}/hero.jpg`} alt="A floral wedding arch overlooking turquoise water on Paradise Island" width={1920} height={1280} fetchPriority="high" />
+          <img className="bws-hero-image" src={`${ASSET}/bws-10.webp`} alt="A ceremony under a floral arch with turquoise water behind the couple" width={1280} height={853} fetchPriority="high" />
           <div className="bws-hero-content">
             <span className="bws-hero-badge">Nassau, The Bahamas</span>
             <h1 id="hero-title">A love like yours.<br /><em>A place like this.</em></h1>
@@ -94,9 +120,17 @@ export default async function BahamasWeddingsByTheSeaPage() {
         </section>
 
         <section className="bws-trust-strip" aria-label="Experience and recognition">
+          {/*
+            "26+ years" stays Antonio's own copy (the brief is explicit about
+            this one). The rating and award figures were hand-entered
+            numbers ("5.0", "100 reviews", "6 Couples' Choice Awards") --
+            those now come directly from WeddingWire's own official widgets
+            instead, so there's exactly one place (WeddingPro.com) that can
+            ever make them wrong.
+          */}
           <div><strong>{siteSettings.yearsExperience}+</strong><span>Years of experience</span></div>
-          <a href={WEDDINGWIRE_URL} target="_blank" rel="noopener noreferrer"><strong>5.0 <span className="bws-stars" aria-label="out of five stars">★★★★★</span></strong><span>{siteSettings.reviewCount} reviews · Recommended by {siteSettings.reviewRecommendPct}% of couples ↗</span></a>
-          <div><strong>{siteSettings.awardYears.length || 6} Couples&rsquo; Choice Awards</strong><span>WeddingWire, {siteSettings.awardYears.length ? [...siteSettings.awardYears].sort((a, b) => a - b).join(", ") : "2019–2026"}</span></div>
+          {siteSettings.ratingBadgeHtml && <ExternalWidget className="bws-trust-widget" html={siteSettings.ratingBadgeHtml} />}
+          {siteSettings.awardBadgeHtml && <ExternalWidget className="bws-trust-widget" html={siteSettings.awardBadgeHtml} />}
         </section>
 
         <section className="bws-gallery-cycle-section" id="love-notes">
@@ -109,7 +143,7 @@ export default async function BahamasWeddingsByTheSeaPage() {
 
         <section className="bws-about bws-section-wrap" id="antonio">
           <div className="bws-about-photo">
-            <img src={`${ASSET}/antonio.jpg`} alt="Antonio Beckford, wedding planner and officiant" width={361} height={361} loading="lazy" />
+            <img src={`${ASSET}/bws-9.webp`} alt="Antonio Beckford greeting a guest at a Bahamas Weddings By The Sea ceremony" width={1280} height={853} loading="lazy" />
             <span className="bws-photo-label">Your person in paradise.</span>
           </div>
           <div className="bws-about-copy">
@@ -120,8 +154,18 @@ export default async function BahamasWeddingsByTheSeaPage() {
             <p>From your first questions to the words you say at the water&rsquo;s edge, there&rsquo;s room for what matters to you.</p>
             <div className="bws-signature">Antonio Beckford</div>
             <p className="bws-signature-caption">Planner. Officiant. Your island connection.</p>
+            <p className="bws-signature-credentials">D.Min, MSc. · Licensed Marriage Officer · Justice of the Peace</p>
             <a className="bws-text-link" href="#enquire">Tell Antonio your story <span aria-hidden="true">↗</span></a>
           </div>
+        </section>
+
+        <section className="bws-services bws-section-wrap" id="services">
+          <div className="bws-section-heading">
+            <div><p className="bws-eyebrow">What the Wedding Desk covers</p><h2>Every part of<br /><em>the day.</em></h2></div>
+          </div>
+          <ul className="bws-services-list">
+            {SERVICE_LIST.map((service) => <li key={service}>{service}</li>)}
+          </ul>
         </section>
 
         <section className="bws-tiers bws-section-wrap" id="packages">
@@ -131,22 +175,6 @@ export default async function BahamasWeddingsByTheSeaPage() {
           </div>
           <PackageTiers packages={packages} />
         </section>
-
-        {/*
-          Reviews render only through the official WeddingWire widget (never
-          copied review text — that content belongs to the couples and to
-          WeddingWire, and republishing it is a rights problem). Antonio
-          supplies the embed HTML himself from WeddingPro.com → Reviews →
-          Reviews Widget, pasted in once via the wedding admin.
-        */}
-        {siteSettings.reviewsWidgetHtml && (
-          <section className="bws-reviews-widget bws-section-wrap" aria-label="Reviews from couples on WeddingWire">
-            <div className="bws-section-heading">
-              <div><p className="bws-eyebrow">What couples say</p><h2>Straight from<br /><em>WeddingWire.</em></h2></div>
-            </div>
-            <div dangerouslySetInnerHTML={{ __html: siteSettings.reviewsWidgetHtml }} />
-          </section>
-        )}
 
         <section className="bws-add-ons" id="add-ons">
           <div className="bws-section-wrap">
@@ -197,6 +225,23 @@ export default async function BahamasWeddingsByTheSeaPage() {
             <details><summary>Does an enquiry reserve our date?<span aria-hidden="true">+</span></summary><p>No. An enquiry starts the pre-consultation. The Wedding Desk organizes your plan, then Antonio confirms availability and provides the next steps. A date is reserved only after the booking terms are agreed.</p></details>
           </div>
         </section>
+
+        {/*
+          Reviews render only through the official WeddingWire widget (never
+          copied review text — that content belongs to the couples and to
+          WeddingWire, and republishing it is a rights problem: the PR #26
+          rule). Placed here, above the enquiry section, since that's this
+          page's action block -- a couple should see real reviews right
+          before being asked to reach out.
+        */}
+        {siteSettings.reviewsWidgetHtml && (
+          <section className="bws-reviews-widget bws-section-wrap" aria-label="Reviews from couples on WeddingWire">
+            <div className="bws-section-heading">
+              <div><p className="bws-eyebrow">What couples say</p><h2>Straight from<br /><em>WeddingWire.</em></h2></div>
+            </div>
+            <ExternalWidget html={siteSettings.reviewsWidgetHtml} />
+          </section>
+        )}
 
         <section className="bws-enquiry" id="enquire">
           <div className="bws-enquiry-inner">

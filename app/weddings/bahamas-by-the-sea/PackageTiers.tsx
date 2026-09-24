@@ -92,6 +92,28 @@ export function PackageTiers({ packages }: { packages: PublicWeddingPackage[] })
       <p className="bws-tier-bespoke">
         {isVowRenewal ? "Planning something larger?" : "Planning something larger, or something different?"} Antonio will quote it.
       </p>
+      {/*
+        The full configurator (venue/flowers/photography by the hour, a
+        running total, "send to the Wedding Desk") is blocked -- Antonio
+        hasn't supplied venue or flower prices, or decided whether a
+        self-built wedding should price at component rates, at a premium
+        over the equivalent package, or with its own base fee (see the
+        brief's "pricing decision" section). Building that pricing engine
+        on invented numbers would be worse than not having it. This band is
+        the real, working option in the meantime: it hands off to the same
+        planner every package CTA uses, with "Still exploring" pre-selected
+        so nothing here implies a firm plan or a price that doesn't exist.
+      */}
+      {!isVowRenewal && (
+        <div className="bws-build-your-own">
+          <p className="bws-eyebrow">Something else in mind?</p>
+          <h3>Plan your own wedding.</h3>
+          <p>Start with Antonio as your officiant and build the day around it. Tell the Wedding Desk what you have in mind.</p>
+          <Link className="bws-button bws-build-your-own-cta" href={`/weddings/bahamas-by-the-sea/plan?ceremony=${encodeURIComponent("Still exploring")}`}>
+            Build your wedding <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+      )}
     </>
   );
 }

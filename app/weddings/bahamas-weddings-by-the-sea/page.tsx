@@ -14,12 +14,6 @@ import { ppDisplay, ppSans } from "@/app/fonts";
 // than exported/shared since these two pages don't otherwise share code.
 const WEDDINGWIRE_URL = "https://www.weddingwire.com/biz/bahamas-weddings-by-the-sea-nassau/406f00580a64e27e.html";
 
-// The gallery table also feeds the bespoke site's full 18-photo catalogue
-// cycle -- these two are excluded only from this page's 4-photo featured
-// strip (one of them, catalogue-05, is also a package-tier photo below;
-// keeping it out of the gallery here avoids showing it twice on the page).
-const GALLERY_EXCLUDE = new Set(["catalogue-01.webp", "catalogue-05.webp"]);
-
 // force-dynamic (not ISR/revalidate) because this repo's CI build has no
 // Supabase credentials, so a statically-prerendered page would fail the
 // build fetching live wedding data.
@@ -74,10 +68,10 @@ export default async function BahamasWeddingsListingPage() {
     isFeatured: pkg.isFeatured,
   }));
 
-  const images = gallery
-    .filter((image) => !GALLERY_EXCLUDE.has(image.imageUrl.split("/").pop() ?? ""))
-    .slice(0, 4)
-    .map((image) => ({ url: image.imageUrl, alt: image.caption }));
+  // Package cards on this page no longer carry their own imageUrl (see
+  // migration 202609241016), so there's nothing left to exclude here to
+  // avoid a photo appearing twice on the page.
+  const images = gallery.slice(0, 4).map((image) => ({ url: image.imageUrl, alt: image.caption }));
 
   return (
     <div className={`${ppDisplay.variable} ${ppSans.variable}`}>
