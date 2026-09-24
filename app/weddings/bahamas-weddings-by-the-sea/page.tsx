@@ -88,14 +88,16 @@ export default async function BahamasWeddingsListingPage() {
     amenities: [],
     leadTimeText: null,
     imageUrl: pkg.imageUrl,
-    actionUrl: `/weddings/bahamas-by-the-sea/plan?tier=${encodeURIComponent(pkg.slug)}`,
+    actionUrl: `/weddings/bahamas-weddings-by-the-sea/plan?tier=${encodeURIComponent(pkg.slug)}`,
     isFeatured: pkg.isFeatured,
   }));
 
   // Package cards on this page no longer carry their own imageUrl (see
   // migration 202609241016), so there's nothing left to exclude here to
   // avoid a photo appearing twice on the page.
-  const images = gallery.slice(0, 4).map((image) => ({ url: image.imageUrl, alt: image.caption }));
+  // All six live gallery rows (bws-11..16) -- this used to be capped at
+  // four, from before the gallery table held real photos.
+  const images = gallery.map((image) => ({ url: image.imageUrl, alt: image.caption }));
 
   return (
     <div className={`${ppDisplay.variable} ${ppSans.variable}`}>
@@ -136,6 +138,8 @@ export default async function BahamasWeddingsListingPage() {
           bio={extras.ownerBio}
           imageUrl={extras.ownerImageUrl}
           credentials={extras.ownerName ? "D.Min, MSc. · Licensed Marriage Officer · Justice of the Peace" : null}
+          contactPhone={extras.ownerName ? "+1 (242) 424-1262" : null}
+          contactEmail={extras.ownerName ? "aobeckford2021@gmail.com" : null}
         />
         <QuestionsBlock faqs={extras.faqs} />
         <ActionBlock label="See prices & get started" href="#offerings" />

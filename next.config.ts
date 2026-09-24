@@ -52,6 +52,15 @@ const nextConfig: NextConfig = {
         destination: "/futprep/staff/:path*",
         permanent: true,
       },
+      // Bahamas Weddings By The Sea consolidation (24 Sept brief): the
+      // planner moved off the bespoke page onto the listing page it's
+      // being merged into. Query strings (?tier=, ?ceremony=, ?service=)
+      // forward automatically on a redirect with no :path* segment.
+      {
+        source: "/weddings/bahamas-by-the-sea/plan",
+        destination: "/weddings/bahamas-weddings-by-the-sea/plan",
+        permanent: true,
+      },
     ];
   },
 };

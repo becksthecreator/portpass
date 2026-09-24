@@ -12,15 +12,22 @@ export const metadata = {
   description: "Plan a Bahamas wedding with the Wedding Desk. Explore venue preferences, choose services, request a consultation, and prepare a complete plan for Antonio Beckford to review.",
 };
 
+// Moved here from app/weddings/bahamas-by-the-sea/plan (redirected in
+// next.config.ts) as part of consolidating onto this page -- the wizard
+// itself (WeddingPlanner.tsx) is unchanged, still using its own bws-theme
+// styling for now rather than the shared template look. Restyling it to
+// match the template system (per the "do not drift" brief) is separate,
+// lower-priority work from just getting a working planner at the right
+// path.
 export default async function PlanPage() {
   const [packages, unavailableDates] = await Promise.all([getPublicWeddingPackages(), getPublicUnavailableDates()]);
   return (
     <div className={`bws-theme bws-planner-body ${bwsSerif.variable} ${bwsSans.variable}`}>
       <a className="bws-skip-link" href="#planner-main">Skip to planner</a>
       <header className="bws-site-header bws-inner-header">
-        <Link className="bws-brand" href="/weddings/bahamas-by-the-sea" aria-label="Bahamas Weddings By The Sea home"><span>Bahamas</span><small>WEDDINGS BY THE SEA</small></Link>
+        <Link className="bws-brand" href="/weddings/bahamas-weddings-by-the-sea" aria-label="Bahamas Weddings By The Sea home"><span>Bahamas</span><small>WEDDINGS BY THE SEA</small></Link>
         <nav className="bws-desktop-nav" aria-label="Main navigation">
-          <Link className="bws-planner-home" href="/weddings/bahamas-by-the-sea">Back to the main site <span aria-hidden="true">↗</span></Link>
+          <Link className="bws-planner-home" href="/weddings/bahamas-weddings-by-the-sea">Back to the main site <span aria-hidden="true">↗</span></Link>
         </nav>
       </header>
       <main className="bws-planner-main" id="planner-main">
@@ -41,7 +48,7 @@ export default async function PlanPage() {
       <footer className="bws-planner-footer">
         <span>Bahamas Weddings By The Sea · Planning desk managed by the Wedding Desk</span>
         <a href="tel:+12424241262">Call +1 (242) 424-1262</a>
-        <Link href="/weddings/bahamas-by-the-sea">Return to main site</Link>
+        <Link href="/weddings/bahamas-weddings-by-the-sea">Return to main site</Link>
         <span>Booking and planning desk powered by <a href="https://portpassbahamas.com">PortPass Bahamas</a>.</span>
       </footer>
     </div>
