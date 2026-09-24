@@ -8,11 +8,15 @@ export function PeopleBlock({
   bio,
   imageUrl,
   credentials,
+  contactPhone,
+  contactEmail,
 }: {
   name: string | null;
   bio: string | null;
   imageUrl?: string | null;
   credentials?: string | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
 }) {
   if (!name || !bio) return null;
   return (
@@ -22,6 +26,13 @@ export function PeopleBlock({
         <h3>{name}</h3>
         {credentials && <p className="tpl-people-credentials">{credentials}</p>}
         <p>{bio}</p>
+        {(contactPhone || contactEmail) && (
+          <p className="tpl-people-contact">
+            {contactPhone && <a href={`tel:${contactPhone.replace(/[^+\d]/g, "")}`}>{contactPhone}</a>}
+            {contactPhone && contactEmail && " · "}
+            {contactEmail && <a href={`mailto:${contactEmail}`}>{contactEmail}</a>}
+          </p>
+        )}
       </div>
     </section>
   );
