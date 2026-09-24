@@ -56,8 +56,19 @@
 }
 
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+/* 100vw (used by full-bleed sections like .tpl-carousel) includes the
+   vertical scrollbar's width, which clientWidth does not -- on a page with
+   a scrollbar this makes a 100vw element genuinely wider than the
+   viewport, and the resulting few pixels of overflow let the whole page
+   drag sideways. `clip` crops it without turning html into a scroll
+   container the way `overflow-x:hidden` would -- hidden breaks
+   `position:sticky` (the mobile action bar depends on it), clip doesn't. */
+html{scroll-behavior:smooth;overflow-x:clip}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+/* A single oversized third-party embed is the usual other cause of
+   horizontal overflow -- there are three WeddingWire scripts injecting
+   content into this page now. */
+img,video,iframe,svg{max-width:100%}
 a{color:inherit;text-decoration:none}
 button,input,select,textarea{font:inherit}
 button,a{-webkit-tap-highlight-color:transparent}
@@ -4491,12 +4502,20 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .tpl-proof-link{display:block;text-decoration:none;color:inherit}
 .tpl-proof-link span{text-decoration:underline;text-underline-offset:3px}
 .tpl-proof-link:hover span,.tpl-proof-link:focus-visible span{color:var(--coral)}
-/* A real third-party badge (WeddingWire, etc.) is designed for a light
-   background, not this strip's dark ink -- a plain white chip keeps it
-   legible instead of fighting the surrounding colour. min-height matches
-   the strip's text items so the row doesn't jump before the deferred
-   widget script loads. */
-.tpl-proof>.tpl-proof-widget{background:#fff;border-radius:10px;padding:10px 14px;min-height:64px;display:flex;align-items:center;justify-content:center}
+/* Live-measured: WeddingWire's rated badge renders at 140x140, the award
+   badge at 125x125 -- both far heavier than a line of text next to them,
+   and together they more than doubled this section's height. Scaling the
+   wrapper (not overriding width/height on the rated badge directly) is
+   required there specifically: the rated badge's "100" is a <span>
+   absolutely positioned over the badge by WeddingWire's own inline
+   styles, and a width override would leave that number misaligned. The
+   award badge is a plain <img>, so a direct size override is simpler and
+   sharper. 56px reserved height on the wrapper itself keeps the row from
+   jumping when these deferred, async-loaded scripts finish. */
+.tpl-proof>div{display:flex;flex-direction:column;align-items:center;gap:6px}
+.tpl-proof-widget{height:56px;display:flex;align-items:center;justify-content:center;overflow:visible}
+.tpl-proof-widget #wp-rated-img{transform:scale(.4);margin:0!important}
+.tpl-proof-widget #wp-ratedWA img{width:56px!important;height:56px!important}
 
 .tpl-gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px}
 .tpl-gallery-image{width:100%;height:220px;object-fit:cover}
@@ -4659,19 +4678,49 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
    deliberately not a carousel. See app/_components/blocks/ReviewsPanel.tsx.
    ============================================================ */
 .tpl-reviews-panel{position:relative;max-width:720px;margin-inline:auto}
-.tpl-reviews-scroll{height:clamp(420px,55vh,560px);overflow-y:auto;overscroll-behavior:contain;padding:4px 20px 4px 4px;border:1px solid var(--line);border-radius:4px;background:var(--card);scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+/* No card: a hard-edged white box read as "someone else's widget bolted
+   on" rather than part of the page. This sits directly on the section's
+   own band (see .bws-listing-theme .tpl-reviews below), separated from
+   what's above/below by ordinary padding, not a border. */
+.tpl-reviews-scroll{height:clamp(420px,55vh,560px);overflow-y:auto;overscroll-behavior:contain;padding:4px 20px 4px 4px;background:transparent;border:0;border-radius:0;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 .tpl-reviews-scroll::-webkit-scrollbar{width:8px}
 .tpl-reviews-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
-.tpl-reviews-panel::after{content:"";position:absolute;left:1px;right:1px;bottom:1px;height:64px;background:linear-gradient(transparent,var(--card));border-radius:0 0 4px 4px;pointer-events:none}
-.tpl-reviews-scroll>*{padding:22px 20px;border-bottom:1px solid var(--line)}
-.tpl-reviews-scroll>*:last-child{border-bottom:0}
+.tpl-reviews-panel::after{content:"";position:absolute;left:1px;right:1px;bottom:1px;height:64px;background:linear-gradient(transparent,var(--paper));pointer-events:none}
 @media(max-width:700px){.tpl-reviews-scroll{height:420px;padding-right:12px}}
+
+/* The widget writes its own classes, its own fonts, its own red accent --
+   read from the live page, not guessed. !important is necessary and used
+   only here, scoped under .tpl-reviews-scroll so it can't leak, because
+   the widget's own inline/CSS styles otherwise win. */
+.tpl-reviews-scroll .weddingwireWidget__header,
+.tpl-reviews-scroll .weddingwireWidget__footer{display:none}
+.tpl-reviews-scroll .weddingWireWidgetReview{padding:26px 0;border-bottom:1px solid var(--line)}
+.tpl-reviews-scroll .weddingWireWidgetReview:last-of-type{border-bottom:0}
+.tpl-reviews-scroll .weddingWireWidgetReview__title{font-family:var(--font-pp-display),Georgia,serif!important;font-size:19px!important;font-weight:400!important;color:var(--ink)!important;margin-bottom:8px!important}
+.tpl-reviews-scroll .weddingWireWidgetReview__post{font-family:var(--font-pp-sans),Arial,sans-serif!important;font-size:15px!important;line-height:1.6!important;color:var(--ink)!important}
+.tpl-reviews-scroll .weddingWireWidgetReview__user,
+.tpl-reviews-scroll .weddingWireWidgetReview__timestamp{font-size:13px!important;color:var(--muted)!important}
+.tpl-reviews-scroll .weddingWireWidgetReview__avatar,
+.tpl-reviews-scroll .avatar-thumb{width:34px!important;height:34px!important;border-radius:50%!important}
+.tpl-reviews-scroll .rating-stars-vendor-bar{filter:hue-rotate(-18deg) saturate(.85)}
 
 .tpl-section-heading{max-width:640px;margin:0 auto 32px;padding-inline:5vw;text-align:center}
 .tpl-eyebrow{display:block;text-transform:uppercase;font-size:.75rem;font-weight:700;letter-spacing:.14em;color:var(--muted);margin-bottom:10px}
 .tpl-section-heading h2{font-family:var(--font-pp-display),Georgia,serif;font-size:clamp(1.6rem,3vw,2.2rem);font-weight:500;margin:0}
 .tpl-gallery-carousel-section,.tpl-reviews{padding-block:60px}
 .tpl-text-link{display:block;text-align:center;margin-top:24px;font-size:.9rem;font-weight:600;color:var(--brand-text,var(--ink))}
+
+/* Banding: five transparent sections in a row (gallery, services, people,
+   questions, reviews, action) left the bottom half of the page with no
+   rhythm at all, right where it should be building toward the booking
+   action. Alternating sand/paper -- the same sand .tpl-offerings already
+   uses -- gives it the same alternation as the top half. Scoped to this
+   page's own theme rather than the generic .tpl-people/.tpl-reviews,
+   since no other business has a reviews section yet and this is a
+   deliberate look for this page, not a template-wide default. */
+.bws-listing-theme .tpl-reviews{background:var(--sand)}
+.bws-listing-theme .tpl-people{background:var(--paper)}
+.bws-listing-theme .tpl-reviews-panel::after{content:"";position:absolute;left:1px;right:1px;bottom:1px;height:64px;background:linear-gradient(transparent,var(--sand));pointer-events:none}
 
 /* ============================================================
    Site shell (site-shell-*): the one header and footer every
