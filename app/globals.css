@@ -4579,15 +4579,24 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-listing-theme .tpl-gallery{background:var(--aqua)}
 .bws-listing-theme .tpl-offerings{background:var(--sand)}
 .bws-listing-theme .tpl-offering-price{color:var(--coral-deep)}
-.bws-listing-theme .tpl-offering-cta{background:var(--coral);color:#fff}
+/* Rose (--brand), not coral -- Antonio's explicit preference (24 Sept
+   brief) for the package buttons specifically, overriding the tropical
+   mockup's coral choice from the earlier round. */
+.bws-listing-theme .tpl-offering-cta{background:var(--brand);color:#fff}
+.bws-listing-theme .tpl-offering-cta:hover,.bws-listing-theme .tpl-offering-cta:focus-visible{background:var(--brand-text)}
 
 .tpl-practical{display:flex;flex-wrap:wrap;gap:28px;padding:50px 5vw;background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .tpl-practical-fact b{display:block;font-family:var(--font-pp-display),Georgia,serif;font-size:1rem;font-weight:600;margin-bottom:4px}
 .tpl-practical-fact span{font-size:.9rem;color:var(--muted)}
 
+.tpl-services{padding:60px 5vw;max-width:900px;margin:0 auto}
+.tpl-services h2{font-family:var(--font-pp-display),Georgia,serif;font-size:clamp(1.6rem,3vw,2.2rem);font-weight:500;margin:0 0 24px}
+.tpl-services-list{display:flex;flex-wrap:wrap;gap:12px;list-style:none;margin:0;padding:0}
+.tpl-services-list li{border:1px solid var(--line);border-radius:999px;padding:10px 20px;font-size:.85rem;color:var(--ink)}
 .tpl-people{display:flex;align-items:center;gap:28px;padding:70px 5vw;max-width:800px;margin:0 auto}
 .tpl-people-image{width:120px;height:120px;border-radius:50%;object-fit:cover;flex:0 0 auto}
 .tpl-people-copy h3{font-family:var(--font-pp-display),Georgia,serif;font-size:1.3rem;font-weight:500;margin:0 0 10px}
+.tpl-people-credentials{font-size:.8rem;font-weight:600;letter-spacing:.02em;color:var(--ink);margin:-6px 0 10px}
 .tpl-people-copy p{color:var(--muted);font-size:.95rem;line-height:1.65;margin:0}
 
 .tpl-questions{max-width:760px;margin:0 auto;padding:50px 5vw 90px;border-top:1px solid var(--line)}
