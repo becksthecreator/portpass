@@ -17,7 +17,13 @@ export const dynamic = "force-dynamic";
 const ASSET = "/weddings/bahamas-by-the-sea";
 const WEDDINGWIRE_URL = "https://www.weddingwire.com/biz/bahamas-weddings-by-the-sea-nassau/406f00580a64e27e.html";
 
-const OG_IMAGE = `${ASSET}/hero.jpg`;
+// hero.jpg is a shared platform asset -- also the homepage's own hero
+// background, the /weddings category hub's hero, and the add-ons film
+// card's background (see globals.css and app/weddings/page.tsx). Swapping
+// what hero.jpg IS would repaint all of those, not just this page, so this
+// page's own hero uses a dedicated file (one of the eight real ceremony
+// photos supplied for it) instead of the shared one.
+const OG_IMAGE = `${ASSET}/bws-10.webp`;
 
 export const metadata = {
   title: "Bahamas Weddings By The Sea | Nassau Wedding Officiant & Planner",
@@ -95,7 +101,7 @@ export default async function BahamasWeddingsByTheSeaPage() {
 
       <main id="main">
         <section className="bws-hero" id="home" aria-labelledby="hero-title">
-          <img className="bws-hero-image" src={`${ASSET}/hero.jpg`} alt="A floral wedding arch overlooking turquoise water on Paradise Island" width={1920} height={1280} fetchPriority="high" />
+          <img className="bws-hero-image" src={`${ASSET}/bws-10.webp`} alt="A ceremony under a floral arch with turquoise water behind the couple" width={1280} height={853} fetchPriority="high" />
           <div className="bws-hero-content">
             <span className="bws-hero-badge">Nassau, The Bahamas</span>
             <h1 id="hero-title">A love like yours.<br /><em>A place like this.</em></h1>
@@ -137,7 +143,7 @@ export default async function BahamasWeddingsByTheSeaPage() {
 
         <section className="bws-about bws-section-wrap" id="antonio">
           <div className="bws-about-photo">
-            <img src={`${ASSET}/antonio.jpg`} alt="Antonio Beckford, wedding planner and officiant" width={361} height={361} loading="lazy" />
+            <img src={`${ASSET}/bws-9.webp`} alt="Antonio Beckford greeting a guest at a Bahamas Weddings By The Sea ceremony" width={1280} height={853} loading="lazy" />
             <span className="bws-photo-label">Your person in paradise.</span>
           </div>
           <div className="bws-about-copy">
