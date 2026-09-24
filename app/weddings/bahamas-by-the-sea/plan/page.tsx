@@ -42,6 +42,7 @@ export default async function PlanPage() {
         <span>Bahamas Weddings By The Sea · Planning desk managed by the Wedding Desk</span>
         <a href="tel:+12424241262">Call +1 (242) 424-1262</a>
         <Link href="/weddings/bahamas-by-the-sea">Return to main site</Link>
+        <span>Booking and planning desk powered by <a href="https://portpassbahamas.com">PortPass Bahamas</a>.</span>
       </footer>
     </div>
   );

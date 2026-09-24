@@ -2,7 +2,7 @@ import Link from "next/link";
 import { bwsSerif, bwsSans } from "./fonts";
 import { MobileMenu } from "./MobileMenu";
 import { QuickEnquiryForm } from "./QuickEnquiryForm";
-import { GalleryCycle } from "./GalleryCycle";
+import { GalleryCarousel } from "./GalleryCarousel";
 import { BwsArrival } from "./BwsArrival";
 import { PackageTiers } from "./PackageTiers";
 import { ExternalWidget } from "./ExternalWidget";
@@ -133,12 +133,12 @@ export default async function BahamasWeddingsByTheSeaPage() {
           {siteSettings.awardBadgeHtml && <ExternalWidget className="bws-trust-widget" html={siteSettings.awardBadgeHtml} />}
         </section>
 
-        <section className="bws-gallery-cycle-section" id="love-notes">
-          <GalleryCycle images={gallery} />
-          <div className="bws-gallery-cycle-caption">
+        <section className="bws-gallery-section bws-section-wrap" id="love-notes">
+          <div className="bws-gallery-heading">
             <p className="bws-eyebrow">Real island weddings</p>
             <h2>A little colour<br /><em>from the water&rsquo;s edge.</em></h2>
           </div>
+          <GalleryCarousel images={gallery} />
         </section>
 
         <section className="bws-about bws-section-wrap" id="antonio">
@@ -274,6 +274,7 @@ export default async function BahamasWeddingsByTheSeaPage() {
           <a href={WEDDINGWIRE_URL} target="_blank" rel="noopener noreferrer">Photos &amp; review via WeddingWire ↗</a>
         </div>
         <p className="bws-rating-note">WeddingWire rating and review count checked September 2026. Enquiries open in WhatsApp for you to review and send.</p>
+        <p className="bws-vendor-credit">Booking and planning desk powered by <a href="https://portpassbahamas.com">PortPass Bahamas</a>.</p>
       </footer>
 
       <Link className="bws-mobile-booking" href="/weddings/bahamas-by-the-sea/plan">Plan your wedding <span aria-hidden="true">↗</span></Link>

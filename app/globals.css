@@ -4090,16 +4090,30 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 /* Gallery: full-bleed cross-fading photo cycle, same concept as the
    homepage hero -- real photos take turns filling the background rather
    than sitting in a static grid. */
-.bws-gallery-cycle-section{position:relative;isolation:isolate;overflow:hidden;min-height:min(70svh,620px)}
-.bws-gallery-cycle{position:absolute;inset:0}
-.bws-gallery-cycle-frame{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition-property:opacity;transition-timing-function:ease}
-.bws-gallery-cycle-frame-on{opacity:1}
-.bws-gallery-cycle:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,33,28,.1),rgba(18,33,28,.02) 40%,rgba(18,33,28,.45) 100%)}
-.bws-gallery-credit{position:absolute;left:16px;bottom:16px;z-index:1;font-size:.7rem;background:rgba(18,33,28,.78);color:#fff;padding:4px 9px;border-radius:20px}
-.bws-gallery-credit a{color:inherit}
-.bws-gallery-cycle-caption{position:relative;z-index:1;color:#fff;text-align:center;padding:70px 6vw;max-width:640px;margin:0 auto}
-.bws-gallery-cycle-caption h2 em{color:var(--bws-lime)}
-@media(prefers-reduced-motion:reduce){.bws-gallery-cycle-frame{transition:none}}
+.bws-gallery-heading{text-align:center;max-width:640px;margin:0 auto 40px}
+.bws-gallery-heading h2 em{color:var(--bws-teal)}
+.bws-gallery-carousel{position:relative}
+.bws-gallery-track{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;cursor:grab;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.bws-gallery-track::-webkit-scrollbar{display:none}
+.bws-gallery-track:active{cursor:grabbing}
+.bws-gallery-item{display:block;flex:0 0 38%;scroll-snap-align:start;aspect-ratio:4/3;border:0;padding:0;background:none;cursor:pointer;border-radius:12px;overflow:hidden}
+.bws-gallery-item img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.bws-gallery-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:44px;height:44px;border-radius:50%;border:0;background:rgba(14,49,56,.75);color:#fff;font-size:1.4rem;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.bws-gallery-arrow-prev{left:-8px}
+.bws-gallery-arrow-next{right:-8px}
+.bws-gallery-dots{display:flex;justify-content:center;gap:10px;margin-top:22px}
+.bws-gallery-dot{width:9px;height:9px;border-radius:50%;border:0;padding:0;background:var(--bws-line);cursor:pointer}
+.bws-gallery-dot-active{background:var(--bws-teal)}
+.bws-lightbox{position:fixed;inset:0;z-index:500;background:rgba(9,20,18,.92);display:flex;align-items:center;justify-content:center;padding:5vw}
+.bws-lightbox img{max-width:100%;max-height:90vh;border-radius:8px;object-fit:contain}
+.bws-lightbox-close{position:absolute;top:20px;right:5vw;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff;font-size:1.6rem;line-height:1;cursor:pointer}
+@media(max-width:760px){
+  .bws-gallery-item{flex:0 0 100%}
+  .bws-gallery-arrow{width:38px;height:38px;font-size:1.2rem}
+  .bws-gallery-arrow-prev{left:4px}
+  .bws-gallery-arrow-next{right:4px}
+}
+@media(prefers-reduced-motion:reduce){.bws-gallery-track{scroll-behavior:auto}}
 
 .bws-reviews-widget{padding-top:0}
 
@@ -4148,6 +4162,12 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-back-top{font-size:.75rem}
 .bws-footer-bottom{display:flex;justify-content:space-between;gap:25px;font-size:.75rem;color:var(--bws-muted);margin-top:24px;flex-wrap:wrap}
 .bws-rating-note{font-size:.75rem;margin-top:16px;color:var(--bws-muted);line-height:1.8}
+/* Reintroduced deliberately, footer-only this time: PR #44 removed this
+   same credit line from the hero, but the brief now wants PortPass visible
+   in exactly one place across every BWS page (this footer and the Desk's),
+   never the hero. */
+.bws-vendor-credit{font-size:.75rem;margin-top:10px;color:var(--bws-muted)}
+.bws-vendor-credit a{color:inherit;text-decoration:underline}
 .bws-mobile-booking{display:none}
 
 /* Planner (/weddings/bahamas-by-the-sea/plan) */
