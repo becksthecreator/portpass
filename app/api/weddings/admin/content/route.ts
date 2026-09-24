@@ -12,6 +12,8 @@ export async function POST(request: Request) {
     yearsExperience?: number;
     awardYears?: string;
     reviewsWidgetHtml?: string;
+    ratingBadgeHtml?: string;
+    awardBadgeHtml?: string;
   };
 
   const awardYears = String(body.awardYears ?? "")
@@ -26,6 +28,8 @@ export async function POST(request: Request) {
       yearsExperience: Number(body.yearsExperience) || 0,
       awardYears,
       reviewsWidgetHtml: body.reviewsWidgetHtml ?? null,
+      ratingBadgeHtml: body.ratingBadgeHtml ?? null,
+      awardBadgeHtml: body.awardBadgeHtml ?? null,
     });
     return NextResponse.json({ settings: await getWeddingSiteSettings() });
   } catch (error) {

@@ -9,6 +9,8 @@ export function ContentManager({ initialSettings }: { initialSettings: WeddingSi
   const [yearsExperience, setYearsExperience] = useState(String(initialSettings.yearsExperience));
   const [awardYears, setAwardYears] = useState(initialSettings.awardYears.join(", "));
   const [reviewsWidgetHtml, setReviewsWidgetHtml] = useState(initialSettings.reviewsWidgetHtml ?? "");
+  const [ratingBadgeHtml, setRatingBadgeHtml] = useState(initialSettings.ratingBadgeHtml ?? "");
+  const [awardBadgeHtml, setAwardBadgeHtml] = useState(initialSettings.awardBadgeHtml ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -26,6 +28,8 @@ export function ContentManager({ initialSettings }: { initialSettings: WeddingSi
         yearsExperience: Number(yearsExperience),
         awardYears,
         reviewsWidgetHtml,
+        ratingBadgeHtml,
+        awardBadgeHtml,
       }),
     });
     const data = await response.json().catch(() => ({}));
@@ -43,12 +47,17 @@ export function ContentManager({ initialSettings }: { initialSettings: WeddingSi
         <label><span>Years of experience</span><input inputMode="numeric" value={yearsExperience} onChange={(e) => setYearsExperience(e.target.value)} /></label>
         <label><span>Couples' Choice award years (comma-separated)</span><input value={awardYears} onChange={(e) => setAwardYears(e.target.value)} placeholder="2019, 2020, 2021, 2022, 2023, 2026" /></label>
       </div>
-      <h2 style={{ marginTop: 24 }}>WeddingWire reviews widget</h2>
+      <h2 style={{ marginTop: 24 }}>WeddingWire widgets</h2>
       <p style={{ color: "var(--muted)", fontSize: ".82rem" }}>
-        Sign in at WeddingPro.com → Reviews tab → Reviews Widget → choose a colour scheme → copy the HTML → paste it below.
+        Sign in at WeddingPro.com → Reviews tab to copy each widget's embed HTML, then paste it into the matching field below.
         This is trusted staff-entered content and renders directly on the public page — never paste anything you didn't get from WeddingPro yourself.
       </p>
-      <textarea rows={6} value={reviewsWidgetHtml} onChange={(e) => setReviewsWidgetHtml(e.target.value)} placeholder="<div>...WeddingWire embed HTML...</div>" style={{ width: "100%", border: "1px solid var(--line)", padding: 10, fontFamily: "monospace", fontSize: ".78rem" }} />
+      <label style={{ display: "block", marginTop: 14, fontSize: ".82rem", fontWeight: 600 }}>Rating badge</label>
+      <textarea rows={4} value={ratingBadgeHtml} onChange={(e) => setRatingBadgeHtml(e.target.value)} placeholder="<div>...WeddingWire rating badge embed HTML...</div>" style={{ width: "100%", border: "1px solid var(--line)", padding: 10, fontFamily: "monospace", fontSize: ".78rem" }} />
+      <label style={{ display: "block", marginTop: 14, fontSize: ".82rem", fontWeight: 600 }}>Couples&rsquo; Choice Award badge</label>
+      <textarea rows={4} value={awardBadgeHtml} onChange={(e) => setAwardBadgeHtml(e.target.value)} placeholder="<div>...WeddingWire award badge embed HTML...</div>" style={{ width: "100%", border: "1px solid var(--line)", padding: 10, fontFamily: "monospace", fontSize: ".78rem" }} />
+      <label style={{ display: "block", marginTop: 14, fontSize: ".82rem", fontWeight: 600 }}>Reviews widget</label>
+      <textarea rows={4} value={reviewsWidgetHtml} onChange={(e) => setReviewsWidgetHtml(e.target.value)} placeholder="<div>...WeddingWire reviews widget embed HTML...</div>" style={{ width: "100%", border: "1px solid var(--line)", padding: 10, fontFamily: "monospace", fontSize: ".78rem" }} />
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="staff-actions">
         <button disabled={busy} onClick={save}>{busy ? "Saving…" : "Save"}</button>
