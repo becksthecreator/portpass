@@ -1,9 +1,10 @@
 import { getOrganizationExtrasBySlug, type Offering } from "@/db/organizations";
-import { getPublicWeddingGallery, getWeddingSiteSettings } from "@/db/weddingSite";
+import { getWeddingSiteSettings } from "@/db/weddingSite";
 import { getPublicWeddingPackages } from "@/db/weddingPackages";
 import { IdentityBlock } from "@/app/_components/blocks/IdentityBlock";
 import { ProofBlock } from "@/app/_components/blocks/ProofBlock";
-import { GalleryBlock } from "@/app/_components/blocks/GalleryBlock";
+import { Carousel } from "@/app/_components/blocks/Carousel";
+import { ReviewsCarousel } from "@/app/_components/blocks/ReviewsCarousel";
 import { OfferingsBlock } from "@/app/_components/blocks/OfferingsBlock";
 import { PeopleBlock } from "@/app/_components/blocks/PeopleBlock";
 import { ServicesBlock } from "@/app/_components/blocks/ServicesBlock";
@@ -12,6 +13,26 @@ import { ActionBlock } from "@/app/_components/blocks/ActionBlock";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { ppDisplay, ppSans } from "@/app/fonts";
+
+const ASSET = "/weddings/bahamas-by-the-sea";
+
+// All eight supplied photos, in this specific order -- it alternates wide
+// scene-setting shots with closer human moments so the continuous drift
+// never shows two similar frames side by side. bws-10 leads because it's
+// the strongest image in the set. bws-10 and bws-9 also appear in the
+// identity block and people block respectively -- an image appearing both
+// in the hero and the gallery is normal and reads fine. Real width/height
+// on every image so the carousel track doesn't reflow as photos arrive.
+const GALLERY_PHOTOS = [
+  { file: "bws-10.webp", alt: "A beach ceremony beneath a floral arch, turquoise water behind", width: 1280, height: 853 },
+  { file: "bws-16.webp", alt: "A resort beach ceremony with guests seated among purple florals", width: 1138, height: 1706 },
+  { file: "bws-11.webp", alt: "A couple with Antonio beneath a turquoise-draped arch", width: 1138, height: 1707 },
+  { file: "bws-13.webp", alt: "A garden ceremony, Antonio officiating as the couple embrace", width: 1280, height: 1706 },
+  { file: "bws-12.webp", alt: "A couple share a kiss on the beach under a wide blue sky", width: 1138, height: 1707 },
+  { file: "bws-15.webp", alt: "A beach ceremony at golden hour, guests seated, tiki torch lit", width: 1280, height: 853 },
+  { file: "bws-14.webp", alt: "A couple with Antonio beneath a white draped arch on the sand", width: 1138, height: 1707 },
+  { file: "bws-9.webp", alt: "Antonio greeting a guest after the ceremony", width: 1280, height: 853 },
+];
 
 // Antonio's own service list, from his business documentation. Cruise
 // Passenger Weddings specifically wasn't mentioned anywhere on the site
@@ -57,9 +78,8 @@ export const metadata = {
 // full bahamasweddingsbythesea.com experience (arrival plate, full gallery
 // cycle, FAQ, planner) stays at its own address, linked from here.
 export default async function BahamasWeddingsListingPage() {
-  const [settings, gallery, packages, extras] = await Promise.all([
+  const [settings, packages, extras] = await Promise.all([
     getWeddingSiteSettings(),
-    getPublicWeddingGallery(),
     getPublicWeddingPackages(),
     getOrganizationExtrasBySlug("bahamas-weddings"),
   ]);
@@ -92,13 +112,6 @@ export default async function BahamasWeddingsListingPage() {
     isFeatured: pkg.isFeatured,
   }));
 
-  // Package cards on this page no longer carry their own imageUrl (see
-  // migration 202609241016), so there's nothing left to exclude here to
-  // avoid a photo appearing twice on the page.
-  // All six live gallery rows (bws-11..16) -- this used to be capped at
-  // four, from before the gallery table held real photos.
-  const images = gallery.map((image) => ({ url: image.imageUrl, alt: image.caption }));
-
   return (
     <div className={`${ppDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "Weddings", href: "/weddings" }, { label: "Bahamas Weddings By The Sea", href: "/weddings/bahamas-weddings-by-the-sea" }]} />
@@ -130,7 +143,25 @@ export default async function BahamasWeddingsListingPage() {
           reviewsPlatform="WeddingWire"
           awards={settings.awardYears.map(() => "Couples' Choice Award")}
         />
-        <GalleryBlock images={images} />
+        <section className="tpl-gallery-carousel-section">
+          <div className="tpl-section-heading">
+            <p className="tpl-eyebrow">Real island weddings</p>
+            <h2>A little colour from the water&rsquo;s edge.</h2>
+          </div>
+          <Carousel variant="gallery" speed={28} prevLabel="Previous photographs" nextLabel="Next photographs">
+            {GALLERY_PHOTOS.map((photo, i) => (
+              <figure className="tpl-carousel-item" key={photo.file}>
+                <img
+                  src={`${ASSET}/${photo.file}`}
+                  alt={photo.alt}
+                  width={photo.width}
+                  height={photo.height}
+                  loading={i < 3 ? "eager" : "lazy"}
+                />
+              </figure>
+            ))}
+          </Carousel>
+        </section>
         <OfferingsBlock offerings={offerings} />
         <ServicesBlock services={SERVICE_LIST} />
         <PeopleBlock
@@ -142,6 +173,33 @@ export default async function BahamasWeddingsListingPage() {
           contactEmail={extras.ownerName ? "aobeckford2021@gmail.com" : null}
         />
         <QuestionsBlock faqs={extras.faqs} />
+        {/*
+          Reviews render only through the official WeddingWire widget (the
+          PR #26 rule: never read, copy or store the review text itself).
+          The carousel wraps whatever DOM the widget injects into it, once
+          it actually renders -- see ReviewsCarousel.tsx. If the widget
+          never populates (found last round: it's domain-locked to
+          Antonio's registered listing URL, which isn't this domain yet),
+          the component removes the whole section itself rather than leave
+          a hole above the action block.
+        */}
+        {settings.reviewsWidgetHtml && (
+          <section className="tpl-reviews">
+            <div className="tpl-section-heading">
+              <p className="tpl-eyebrow">In their words</p>
+              <h2>One hundred five-star reviews.</h2>
+            </div>
+            <ReviewsCarousel html={settings.reviewsWidgetHtml} speed={18} />
+            <a
+              className="tpl-text-link"
+              target="_blank"
+              rel="nofollow noopener noreferrer"
+              href="https://www.weddingwire.com/biz/bahamas-weddings-by-the-sea-nassau/406f00580a64e27e.html"
+            >
+              Read all reviews on WeddingWire ↗
+            </a>
+          </section>
+        )}
         <ActionBlock label="See prices & get started" href="#offerings" />
       </main>
       <SiteFooter orgLine="Bahamas Weddings By The Sea · Booking and payments powered by PortPass" />
