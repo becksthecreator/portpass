@@ -32,7 +32,17 @@ export function ExternalWidget({ html, className }: { html: string; className?: 
       { rootMargin: "300px" },
     );
     observer.observe(el);
-    return () => observer.disconnect();
+    // A fallback, not the primary path: IntersectionObserver callbacks are
+    // throttled or suspended on a backgrounded/hidden tab in some browsers,
+    // and could in principle never fire before a visitor switches back to
+    // this tab. Same reasoning as the arrival-guard's CSS failsafe
+    // elsewhere on this page -- a real widget must not depend on exactly
+    // one signal to ever load.
+    const fallback = window.setTimeout(() => setShouldLoad(true), 4000);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(fallback);
+    };
   }, []);
 
   useEffect(() => {
