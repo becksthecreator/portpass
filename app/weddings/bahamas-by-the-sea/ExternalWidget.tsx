@@ -48,13 +48,41 @@ export function ExternalWidget({ html, className }: { html: string; className?: 
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !shouldLoad) return;
+    let cancelled = false;
     el.innerHTML = html;
-    for (const oldScript of Array.from(el.querySelectorAll("script"))) {
-      const newScript = document.createElement("script");
-      for (const attr of Array.from(oldScript.attributes)) newScript.setAttribute(attr.name, attr.value);
-      newScript.textContent = oldScript.textContent;
-      oldScript.replaceWith(newScript);
+
+    // Each widget is an external loader script followed by an inline script
+    // that immediately calls a function the loader defines (e.g.
+    // wpShowReviews(946150, "red")). A dynamically created <script src>
+    // loads asynchronously by default, so replacing every <script> in the
+    // same pass -- as this used to -- ran the inline call before the
+    // loader had actually defined anything: it threw
+    // "wpShowReviews is not defined" every time, and the widget never
+    // populated past WeddingWire's own static placeholder. Scripts here run
+    // strictly in order instead, awaiting each external one's load event
+    // before moving to the next.
+    async function runScriptsInOrder() {
+      for (const oldScript of Array.from(el!.querySelectorAll("script"))) {
+        if (cancelled) return;
+        const newScript = document.createElement("script");
+        for (const attr of Array.from(oldScript.attributes)) newScript.setAttribute(attr.name, attr.value);
+        newScript.textContent = oldScript.textContent;
+        if (newScript.src) {
+          await new Promise<void>((resolve) => {
+            newScript.onload = () => resolve();
+            newScript.onerror = () => resolve();
+            oldScript.replaceWith(newScript);
+          });
+        } else {
+          oldScript.replaceWith(newScript);
+        }
+      }
     }
+    runScriptsInOrder();
+
+    return () => {
+      cancelled = true;
+    };
   }, [shouldLoad, html]);
 
   // Empty until it loads, then whatever WeddingWire's own markup renders --
