@@ -19,13 +19,7 @@ function money(cents: number) {
   return `$${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(cents / 100)}`;
 }
 
-// A vow renewal isn't a legal ceremony, so licence-specific inclusions
-// don't apply -- filtered out client-side rather than stored as separate
-// per-ceremony package rows.
-function includesForCeremony(includes: string[], ceremonyType: string): string[] {
-  if (ceremonyType !== "Vow renewal") return includes;
-  return includes.filter((line) => !/licen[cs]e/i.test(line));
-}
+const VOW_RENEWAL_PRICE_CENTS = 30000;
 
 export function PackageTiers({ packages }: { packages: PublicWeddingPackage[] }) {
   const [ceremonyType, setCeremonyType] = useState(CEREMONY_TYPES[0].value);
@@ -45,38 +39,59 @@ export function PackageTiers({ packages }: { packages: PublicWeddingPackage[] })
           </button>
         ))}
       </div>
-      <div className="bws-tier-grid">
-        {packages.map((pkg) => (
-          <div className={`bws-tier-card${pkg.isFeatured ? " bws-tier-featured" : ""}`} key={pkg.id}>
-            {pkg.isFeatured && <span className="bws-tier-badge">Most chosen</span>}
-            {pkg.imageUrl && <img className="bws-tier-image" src={pkg.imageUrl} alt="" loading="lazy" />}
-            <h3>{pkg.name}</h3>
-            {pkg.tagline && <p className="bws-tier-tagline">{pkg.tagline}</p>}
-            <p className="bws-tier-price">
-              {pkg.priceFromCents !== null
-                ? <>{pkg.priceNote === "from" ? "From " : ""}{money(pkg.priceFromCents)}</>
-                : "Ask the Wedding Desk"}
-            </p>
-            {pkg.includes.length > 0 && (
-              <ul className="bws-tier-includes">
-                {includesForCeremony(pkg.includes, ceremonyType).map((item) => <li key={item}>{item}</li>)}
-              </ul>
-            )}
+      {isVowRenewal ? (
+        // A vow renewal isn't a legal ceremony, so the six licence-inclusive
+        // packages don't apply -- Antonio's confirmed rate is a single flat
+        // price, not a tier ladder.
+        <div className="bws-tier-grid bws-tier-grid-single">
+          <div className="bws-tier-card">
+            <h3>Standard vow renewal</h3>
+            <p className="bws-tier-tagline">Antonio as your officiant, at the water&rsquo;s edge</p>
+            <p className="bws-tier-price">{money(VOW_RENEWAL_PRICE_CENTS)}</p>
             <Link
               className="bws-text-link"
-              href={`/weddings/bahamas-by-the-sea/plan?ceremony=${encodeURIComponent(ceremonyType)}&tier=${encodeURIComponent(pkg.slug)}`}
+              href={`/weddings/bahamas-by-the-sea/plan?ceremony=${encodeURIComponent(ceremonyType)}`}
             >
-              Choose {pkg.name} <span aria-hidden="true">↗</span>
+              Choose vow renewal <span aria-hidden="true">↗</span>
             </Link>
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div className="bws-tier-grid">
+          {packages.map((pkg) => (
+            <div className={`bws-tier-card${pkg.isFeatured ? " bws-tier-featured" : ""}`} key={pkg.id}>
+              {pkg.isFeatured && <span className="bws-tier-badge">Most chosen</span>}
+              {pkg.imageUrl && <img className="bws-tier-image" src={pkg.imageUrl} alt="" loading="lazy" />}
+              <h3>{pkg.name}</h3>
+              {pkg.tagline && <p className="bws-tier-tagline">{pkg.tagline}</p>}
+              <p className="bws-tier-price">
+                {pkg.priceFromCents !== null
+                  ? <>{pkg.priceNote === "from" ? "From " : ""}{money(pkg.priceFromCents)}</>
+                  : "Ask the Wedding Desk"}
+              </p>
+              {pkg.includes.length > 0 && (
+                <ul className="bws-tier-includes">
+                  {pkg.includes.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              )}
+              <Link
+                className="bws-text-link"
+                href={`/weddings/bahamas-by-the-sea/plan?ceremony=${encodeURIComponent(ceremonyType)}&tier=${encodeURIComponent(pkg.slug)}`}
+              >
+                Choose {pkg.name} <span aria-hidden="true">↗</span>
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
       <p className="bws-tier-fineprint">
         Choosing one here doesn&rsquo;t confirm or book anything — it just tells the Wedding Desk where to start.
         {" "}Prices in Bahamian dollars (BSD), fixed 1:1 with USD.
       </p>
-      {!isVowRenewal && <p className="bws-tier-price-note">Marriage licence government fee not included.</p>}
-      <p className="bws-tier-bespoke">Planning something larger, or something different? Antonio will quote it.</p>
+      {!isVowRenewal && <p className="bws-tier-price-note">This package gives assistance with applying for marriage license.</p>}
+      <p className="bws-tier-bespoke">
+        {isVowRenewal ? "Planning something larger?" : "Planning something larger, or something different?"} Antonio will quote it.
+      </p>
     </>
   );
 }
