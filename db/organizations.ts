@@ -604,6 +604,42 @@ export async function getOrganizationListingBySlug(slug: string): Promise<Organi
   };
 }
 
+export type OrganizationExtras = {
+  ownerName: string | null;
+  ownerBio: string | null;
+  ownerImageUrl: string | null;
+  faqs: { question: string; answer: string }[];
+};
+
+// A lighter-weight fetch than getOrganizationListingBySlug for pages that
+// already have their own hero/offering/gallery data from elsewhere (e.g.
+// the wedding_* tables) and just need this org's owner bio and FAQ content
+// -- the bahamas-weddings-by-the-sea listing page, notably, which
+// otherwise doesn't touch the organizations table at all.
+export async function getOrganizationExtrasBySlug(slug: string): Promise<OrganizationExtras> {
+  const empty: OrganizationExtras = { ownerName: null, ownerBio: null, ownerImageUrl: null, faqs: [] };
+  const supabase = getSupabaseAdmin();
+  const { data: orgRow, error: orgError } = await supabase
+    .from("organizations")
+    .select("id,owner_name,owner_bio,owner_image_url")
+    .eq("slug", slug)
+    .maybeSingle();
+  throwIfSupabaseError(orgError, "Could not load organization");
+  if (!orgRow) return empty;
+  const { data, error } = await supabase
+    .from("organization_faqs")
+    .select("question,answer")
+    .eq("organization_id", orgRow.id)
+    .order("sort_order", { ascending: true });
+  throwIfSupabaseError(error, "Could not load organization FAQs");
+  return {
+    ownerName: orgRow.owner_name as string | null,
+    ownerBio: orgRow.owner_bio as string | null,
+    ownerImageUrl: orgRow.owner_image_url as string | null,
+    faqs: (data ?? []).map((row) => ({ question: row.question as string, answer: row.answer as string })),
+  };
+}
+
 export type OfferingListing = OrganizationListing & { offering: Offering };
 
 export async function getOfferingListingBySlug(organizationSlug: string, offeringSlug: string): Promise<OfferingListing | null> {

@@ -1,13 +1,36 @@
-import type { Offering } from "@/db/organizations";
+import { getOrganizationExtrasBySlug, type Offering } from "@/db/organizations";
 import { getPublicWeddingGallery, getWeddingSiteSettings } from "@/db/weddingSite";
 import { getPublicWeddingPackages } from "@/db/weddingPackages";
 import { IdentityBlock } from "@/app/_components/blocks/IdentityBlock";
 import { ProofBlock } from "@/app/_components/blocks/ProofBlock";
 import { GalleryBlock } from "@/app/_components/blocks/GalleryBlock";
 import { OfferingsBlock } from "@/app/_components/blocks/OfferingsBlock";
+import { PeopleBlock } from "@/app/_components/blocks/PeopleBlock";
+import { ServicesBlock } from "@/app/_components/blocks/ServicesBlock";
+import { QuestionsBlock } from "@/app/_components/blocks/QuestionsBlock";
+import { ActionBlock } from "@/app/_components/blocks/ActionBlock";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { ppDisplay, ppSans } from "@/app/fonts";
+
+// Antonio's own service list, from his business documentation. Cruise
+// Passenger Weddings specifically wasn't mentioned anywhere on the site
+// before -- Nassau's cruise-passenger volume makes it a real, distinct
+// market from a destination wedding booked in advance.
+const SERVICE_LIST = [
+  "Marriage Licence Assistance",
+  "Registrar Appointments",
+  "Beach Weddings",
+  "Hotel & Resort Weddings",
+  "Private Villa Weddings",
+  "Cruise Passenger Weddings",
+  "Vow Renewals",
+  "Elopements",
+  "Customised Ceremonies",
+  "Photography & Videography",
+  "Transportation",
+  "Premarital Counselling",
+];
 
 // Same listing as the "Read reviews" link on the bespoke site
 // (app/weddings/bahamas-by-the-sea/page.tsx) -- duplicated locally rather
@@ -34,10 +57,11 @@ export const metadata = {
 // full bahamasweddingsbythesea.com experience (arrival plate, full gallery
 // cycle, FAQ, planner) stays at its own address, linked from here.
 export default async function BahamasWeddingsListingPage() {
-  const [settings, gallery, packages] = await Promise.all([
+  const [settings, gallery, packages, extras] = await Promise.all([
     getWeddingSiteSettings(),
     getPublicWeddingGallery(),
     getPublicWeddingPackages(),
+    getOrganizationExtrasBySlug("bahamas-weddings"),
   ]);
 
   const offerings: Offering[] = packages.map((pkg) => ({
@@ -77,17 +101,23 @@ export default async function BahamasWeddingsListingPage() {
     <div className={`${ppDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "Weddings", href: "/weddings" }, { label: "Bahamas Weddings By The Sea", href: "/weddings/bahamas-weddings-by-the-sea" }]} />
       {/* bws-listing-theme: this listing's own tropical palette (22
-          September brief), scoped here only -- see the rule block in
-          globals.css for why this can't be the generic --brand/--brand-text
-          mechanism (the brief wants distinct named colours per role: rose
-          badge, coral buttons, coral-deep prices, not one accent). */}
-      <main className="tpl-page bws-listing-theme">
+          September brief), scoped here only -- most roles (badge, gallery
+          background, offering price) keep their own distinct named tokens,
+          not a single accent. --brand is the one exception: the 24 Sept
+          brief is explicit that Antonio wants exactly four elements in his
+          own rose (#B0455F, contrast-checked in both directions against
+          this palette's paper) -- package CTAs, the build-your-own button,
+          the featured-tier border, and CTA hover -- which is exactly what
+          the generic --brand/--brand-text mechanism already threads through
+          OfferingsBlock/ActionBlock, so it's used here rather than adding a
+          fifth named token that would only ever hold this same value. */}
+      <main className="tpl-page bws-listing-theme" style={{ "--brand": "#B0455F", "--brand-text": "#9E3A55" } as React.CSSProperties}>
         <IdentityBlock
           name="Bahamas Weddings By The Sea"
           category="Weddings"
           location="Nassau, New Providence"
           isOpen
-          heroImageUrl="/weddings/bahamas-by-the-sea/ceremony.jpg"
+          heroImageUrl="/weddings/bahamas-by-the-sea/bws-10.webp"
           layout="split"
         />
         <ProofBlock
@@ -100,6 +130,15 @@ export default async function BahamasWeddingsListingPage() {
         />
         <GalleryBlock images={images} />
         <OfferingsBlock offerings={offerings} />
+        <ServicesBlock services={SERVICE_LIST} />
+        <PeopleBlock
+          name={extras.ownerName}
+          bio={extras.ownerBio}
+          imageUrl={extras.ownerImageUrl}
+          credentials={extras.ownerName ? "D.Min, MSc. · Licensed Marriage Officer · Justice of the Peace" : null}
+        />
+        <QuestionsBlock faqs={extras.faqs} />
+        <ActionBlock label="See prices & get started" href="#offerings" />
       </main>
       <SiteFooter orgLine="Bahamas Weddings By The Sea · Booking and payments powered by PortPass" />
     </div>
