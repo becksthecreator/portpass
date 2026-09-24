@@ -4038,7 +4038,10 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .bws-build-your-own{border-top:1px solid var(--bws-line);margin-top:46px;padding-top:46px;text-align:center}
 .bws-build-your-own h3{font-family:var(--bws-serif);font-size:2rem;font-weight:400;margin:6px 0 14px}
 .bws-build-your-own>p:not(.bws-eyebrow){color:var(--bws-muted);max-width:480px;margin:0 auto 24px}
-.bws-build-your-own-cta{background:var(--bws-rose);color:#fff}
+/* .bws-theme a{color:inherit} (a class + a type selector) otherwise beats
+   this single-class rule's color, even though this rule comes later in the
+   stylesheet -- CSS specificity, not source order, decides here. */
+.bws-theme a.bws-build-your-own-cta{background:var(--bws-rose);color:#fff}
 .bws-tier-badge{position:absolute;top:-13px;left:26px;z-index:1;background:var(--bws-teal);color:#fff;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 14px;border-radius:999px}
 .bws-tier-image{width:calc(100% + 52px);height:160px;margin:-36px -26px 20px;object-fit:cover;border-radius:16px 16px 0 0}
 .bws-tier-card h3{font-size:1.5rem;margin-bottom:8px}
