@@ -4623,11 +4623,12 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 }
 
 /* ============================================================
-   Continuous-drift carousel (tpl-carousel-*): shared by the gallery and
-   the reviews section, so the two read as one system. Full-bleed and
-   edge-masked so it feels built into the page rather than dropped in --
-   see app/_components/blocks/carouselEngine.ts for the drift/loop
-   mechanics and Carousel.tsx / ReviewsCarousel.tsx for the two instances.
+   Continuous-drift carousel (tpl-carousel-*): the gallery only -- reviews
+   are read, not glanced at, so moving text would work against reading
+   (see .tpl-reviews-panel below instead). Full-bleed and edge-masked so
+   it feels built into the page rather than dropped in -- see
+   app/_components/blocks/carouselEngine.ts for the drift/loop mechanics
+   and Carousel.tsx for the React wrapper.
    ============================================================ */
 .tpl-carousel{position:relative;overflow:hidden;width:100vw;margin-inline:calc(50% - 50vw);padding-block:8px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
 .tpl-carousel-track{display:flex;gap:20px;width:max-content;will-change:transform;cursor:grab}
@@ -4635,7 +4636,6 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .tpl-carousel-item{flex:0 0 auto;user-select:none;-webkit-user-drag:none}
 .tpl-carousel-gallery .tpl-carousel-item{width:clamp(240px,32vw,420px);aspect-ratio:3/2;border-radius:4px;overflow:hidden;background:var(--sand)}
 .tpl-carousel-gallery img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
-.tpl-carousel-reviews .tpl-carousel-item{width:clamp(280px,34vw,400px);background:var(--card);border:1px solid var(--line);border-radius:4px;padding:24px}
 .tpl-carousel-btn{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .2s;font-size:1.2rem}
 .tpl-carousel:hover .tpl-carousel-btn,.tpl-carousel-btn:focus-visible{opacity:1}
 .tpl-carousel-btn:focus-visible{outline:2px solid var(--brand,var(--ink));outline-offset:2px}
@@ -4644,10 +4644,22 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .tpl-carousel-pause{position:absolute;right:16px;bottom:8px;z-index:2;font-size:12px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--muted);cursor:pointer}
 @media(max-width:700px){
   .tpl-carousel-gallery .tpl-carousel-item{width:78vw}
-  .tpl-carousel-reviews .tpl-carousel-item{width:82vw}
   .tpl-carousel-btn{display:none}
 }
 @media(prefers-reduced-motion:reduce){.tpl-carousel-track{animation:none!important}}
+
+/* ============================================================
+   Reviews panel (tpl-reviews-panel/-scroll): static, scrolls vertically --
+   deliberately not a carousel. See app/_components/blocks/ReviewsPanel.tsx.
+   ============================================================ */
+.tpl-reviews-panel{position:relative;max-width:720px;margin-inline:auto}
+.tpl-reviews-scroll{height:clamp(420px,55vh,560px);overflow-y:auto;overscroll-behavior:contain;padding:4px 20px 4px 4px;border:1px solid var(--line);border-radius:4px;background:var(--card);scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.tpl-reviews-scroll::-webkit-scrollbar{width:8px}
+.tpl-reviews-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
+.tpl-reviews-panel::after{content:"";position:absolute;left:1px;right:1px;bottom:1px;height:64px;background:linear-gradient(transparent,var(--card));border-radius:0 0 4px 4px;pointer-events:none}
+.tpl-reviews-scroll>*{padding:22px 20px;border-bottom:1px solid var(--line)}
+.tpl-reviews-scroll>*:last-child{border-bottom:0}
+@media(max-width:700px){.tpl-reviews-scroll{height:420px;padding-right:12px}}
 
 .tpl-section-heading{max-width:640px;margin:0 auto 32px;padding-inline:5vw;text-align:center}
 .tpl-eyebrow{display:block;text-transform:uppercase;font-size:.75rem;font-weight:700;letter-spacing:.14em;color:var(--muted);margin-bottom:10px}
