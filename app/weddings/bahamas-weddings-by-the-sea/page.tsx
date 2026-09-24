@@ -142,6 +142,8 @@ export default async function BahamasWeddingsListingPage() {
           reviewsUrl={WEDDINGWIRE_URL}
           reviewsPlatform="WeddingWire"
           awards={settings.awardYears.map(() => "Couples' Choice Award")}
+          ratingBadgeHtml={settings.ratingBadgeHtml}
+          awardBadgeHtml={settings.awardBadgeHtml}
         />
         <section className="tpl-gallery-carousel-section">
           <div className="tpl-section-heading">

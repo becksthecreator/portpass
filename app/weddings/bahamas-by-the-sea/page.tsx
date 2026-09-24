@@ -5,7 +5,7 @@ import { QuickEnquiryForm } from "./QuickEnquiryForm";
 import { GalleryCarousel } from "./GalleryCarousel";
 import { BwsArrival } from "./BwsArrival";
 import { PackageTiers } from "./PackageTiers";
-import { ExternalWidget } from "./ExternalWidget";
+import { ExternalWidget } from "@/app/_components/blocks/ExternalWidget";
 import { getPublicWeddingGallery, getWeddingSiteSettings } from "@/db/weddingSite";
 import { getPublicWeddingPackages } from "@/db/weddingPackages";
 
