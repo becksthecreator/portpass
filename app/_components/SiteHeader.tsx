@@ -15,8 +15,8 @@ const SITE_URL = "https://portpassbahamas.com";
 // The one header every PortPass-branded page renders -- homepage included.
 // Category links always go to the category hub, never to an in-page
 // anchor, so every category is one click from anywhere on the site. The
-// only exception is BWS (app/weddings/bahamas-by-the-sea and its
-// children), which keeps its own chrome until it moves to its own domain.
+// only exception is BWS's planner (app/weddings/bahamas-weddings-by-the-sea/
+// plan), which keeps its own bws-theme chrome rather than this header.
 export function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
   // The full trail ("PortPass / Weddings / Bahamas Weddings By The Sea")
   // reads like a file path, so only a single link back to the immediate

@@ -3,11 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 
 // Carried over verbatim from the old bahamas-by-the-sea bespoke page
-// (BwsArrival.tsx) -- same session key, same attribute, same timings
-// (900ms hold, 700ms fade) -- just no longer tied to that one route.
-// The no-flash guard that sets data-bws-arriving="holding" on <html>
-// before first paint lives in app/layout.tsx (BWS_ARRIVAL_GUARD,
-// beforeInteractive) and is unaffected by this component's move.
+// (BwsArrival.tsx, deleted in the 25 Sept Part 2 cleanup) -- same session
+// key, same attribute, same timings (900ms hold, 700ms fade). Only
+// mounts today via app/sites/[slug]/page.tsx for the bahamas-weddings
+// slug, which nothing reaches by direct navigation now that /sites/
+// bahamas-weddings redirects -- it stays dormant, ready for the day that
+// business gets a real custom_domain. The beforeInteractive no-flash
+// guard that used to hold the page invisible until this component's
+// timers cleared it was deleted along with the two routes it checked
+// for by path; a real custom-domain launch should add path-independent
+// no-flash handling back (e.g. gated on host, not pathname) rather than
+// relying on this comment.
 const SESSION_KEY = "bws_arrival_seen"; // deliberately NOT portpass_arrival_seen
 
 export function BusinessArrivalPlate({ mark, word, sub }: { mark: string; word: string; sub: string }) {

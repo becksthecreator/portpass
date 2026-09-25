@@ -10,7 +10,7 @@ export function StaffLogoutButton() {
 
   return (
     <span className="staff-nav-actions">
-      <Link href="/weddings/bahamas-by-the-sea">Wedding site</Link>
+      <Link href="/weddings/bahamas-weddings-by-the-sea">Wedding site</Link>
       <Link href="/weddings/staff/change-pin">Change PIN</Link>
       <button className="staff-logout-button" type="button" onClick={logout}>Sign out</button>
     </span>
