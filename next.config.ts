@@ -61,6 +61,27 @@ const nextConfig: NextConfig = {
         destination: "/weddings/bahamas-weddings-by-the-sea/plan",
         permanent: true,
       },
+      // Retiring the bespoke page itself (25 Sept brief, Part 2) -- the
+      // listing page now carries full parity (content, gallery, reviews,
+      // FAQ, planner), so this bespoke route and its components are deleted
+      // rather than just orphaned.
+      {
+        source: "/weddings/bahamas-by-the-sea",
+        destination: "/weddings/bahamas-weddings-by-the-sea",
+        permanent: true,
+      },
+      // Same consolidation for the other mistaken duplicate (the "wrong
+      // page" the 24 Sept brief opened with). Scoped to the platform host:
+      // /sites/[slug] is also reached by rewriting a business's own
+      // custom_domain to this same path (see middleware.ts), and a future
+      // bahamas-weddings custom domain must keep rendering that page, not
+      // bounce back to portpassbahamas.com.
+      {
+        source: "/sites/bahamas-weddings",
+        has: [{ type: "host", value: "^(www\\.)?portpassbahamas\\.com$" }],
+        destination: "/weddings/bahamas-weddings-by-the-sea",
+        permanent: true,
+      },
     ];
   },
 };

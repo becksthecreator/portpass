@@ -21,7 +21,7 @@ export default async function WeddingStaffLoginPage({
       <header className="site-header form-header registration-header">
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
         <div className="registration-header-right">
-          <Link className="header-link" href="/weddings/bahamas-by-the-sea">Wedding site</Link>
+          <Link className="header-link" href="/weddings/bahamas-weddings-by-the-sea">Wedding site</Link>
         </div>
       </header>
       <section className="staff-login-shell">

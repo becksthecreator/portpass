@@ -463,7 +463,7 @@ export type Offering = {
 };
 
 export type OrganizationImage = { id: number; url: string; alt: string | null };
-export type OrganizationFaq = { id: number; question: string; answer: string };
+export type OrganizationFaq = { id: number; question: string; answer: string; linkUrl: string | null; linkLabel: string | null };
 
 export type Organization = {
   id: number;
@@ -590,7 +590,7 @@ export async function getOrganizationListingBySlug(slug: string): Promise<Organi
   const [offeringsResult, imagesResult, faqsResult] = await Promise.all([
     supabase.from("offerings").select(LISTING_OFFERING_COLUMNS).eq("organization_id", organization.id).eq("is_published", true).order("sort_order", { ascending: true }),
     supabase.from("organization_images").select("id,url,alt").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
-    supabase.from("organization_faqs").select("id,question,answer").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
+    supabase.from("organization_faqs").select("id,question,answer,link_url,link_label").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
   ]);
   throwIfSupabaseError(offeringsResult.error, "Could not load offerings");
   throwIfSupabaseError(imagesResult.error, "Could not load organization images");
@@ -600,7 +600,13 @@ export async function getOrganizationListingBySlug(slug: string): Promise<Organi
     organization,
     offerings: (offeringsResult.data ?? []).map(toListingOffering),
     images: (imagesResult.data ?? []).map((row) => ({ id: Number(row.id), url: row.url as string, alt: row.alt as string | null })),
-    faqs: (faqsResult.data ?? []).map((row) => ({ id: Number(row.id), question: row.question as string, answer: row.answer as string })),
+    faqs: (faqsResult.data ?? []).map((row) => ({
+      id: Number(row.id),
+      question: row.question as string,
+      answer: row.answer as string,
+      linkUrl: row.link_url as string | null,
+      linkLabel: row.link_label as string | null,
+    })),
   };
 }
 
@@ -608,7 +614,7 @@ export type OrganizationExtras = {
   ownerName: string | null;
   ownerBio: string | null;
   ownerImageUrl: string | null;
-  faqs: { question: string; answer: string }[];
+  faqs: { question: string; answer: string; linkUrl: string | null; linkLabel: string | null }[];
 };
 
 // A lighter-weight fetch than getOrganizationListingBySlug for pages that
@@ -628,7 +634,7 @@ export async function getOrganizationExtrasBySlug(slug: string): Promise<Organiz
   if (!orgRow) return empty;
   const { data, error } = await supabase
     .from("organization_faqs")
-    .select("question,answer")
+    .select("question,answer,link_url,link_label")
     .eq("organization_id", orgRow.id)
     .order("sort_order", { ascending: true });
   throwIfSupabaseError(error, "Could not load organization FAQs");
@@ -636,7 +642,12 @@ export async function getOrganizationExtrasBySlug(slug: string): Promise<Organiz
     ownerName: orgRow.owner_name as string | null,
     ownerBio: orgRow.owner_bio as string | null,
     ownerImageUrl: orgRow.owner_image_url as string | null,
-    faqs: (data ?? []).map((row) => ({ question: row.question as string, answer: row.answer as string })),
+    faqs: (data ?? []).map((row) => ({
+      question: row.question as string,
+      answer: row.answer as string,
+      linkUrl: row.link_url as string | null,
+      linkLabel: row.link_label as string | null,
+    })),
   };
 }
 

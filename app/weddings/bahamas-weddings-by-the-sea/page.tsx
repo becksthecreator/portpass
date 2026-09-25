@@ -53,9 +53,6 @@ const SERVICE_LIST = [
   "Premarital Counselling",
 ];
 
-// Same listing as the "Read reviews" link on the bespoke site
-// (app/weddings/bahamas-by-the-sea/page.tsx) -- duplicated locally rather
-// than exported/shared since these two pages don't otherwise share code.
 const WEDDINGWIRE_URL = "https://www.weddingwire.com/biz/bahamas-weddings-by-the-sea-nassau/406f00580a64e27e.html";
 
 // force-dynamic (not ISR/revalidate) because this repo's CI build has no
@@ -73,10 +70,13 @@ export const metadata = {
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
-// A genuine summary, not the bespoke site's copy pasted in -- this is the
-// PortPass-branded listing a couple finds while browsing categories; the
-// full bahamasweddingsbythesea.com experience (arrival plate, full gallery
-// cycle, FAQ, planner) stays at its own address, linked from here.
+// The only real BWS page (25 Sept brief, Part 2) -- the old bespoke page
+// and its /sites/ duplicate are gone, redirected here. This page now carries
+// what they had: real content, the photo gallery, real FAQ, and the planner
+// as its own sub-route. It never had the old page's arrival-plate intro
+// animation and doesn't gain one here -- that was a full-site brand moment
+// for a standalone domain, not fitting for a page that also carries
+// PortPass's own header/breadcrumb.
 export default async function BahamasWeddingsListingPage() {
   const [settings, packages, extras] = await Promise.all([
     getWeddingSiteSettings(),
