@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
   const venueId = typeof venueIdRaw === "number" && Number.isFinite(venueIdRaw) ? Math.round(venueIdRaw) : null;
 
   const packageSlug = str(b.packageSlug, 60);
-  const packageId = packageSlug ? (await getWeddingPackageBySlug(packageSlug))?.id ?? null : null;
+  const selectedPackage = packageSlug ? await getWeddingPackageBySlug(packageSlug) : null;
 
   try {
     const lead = await createWeddingLead({
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       locationIdea: str(b.locationIdea, 500),
       venueId,
       venuePreference: str(b.venuePreference, 120),
-      packageId,
+      packageId: selectedPackage?.id ?? null,
       requestedServices: strArray(b.requestedServices, 120),
       consultationMethod: (consultationMethodRaw as "phone" | "whatsapp_video" | "guided_text") || null,
       consultationPreferredDate: str(b.consultationPreferredDate, 20),
@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
         html: `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#153c46">
           <h1 style="font-size:20px;margin:0 0 16px">New wedding enquiry</h1>
           <p><strong>${lead.names}</strong></p>
+          ${selectedPackage ? `<p>Selected package: ${selectedPackage.name}</p>` : ""}
           <p>Lead reference: ${lead.publicToken}</p>
         </div>`,
       });

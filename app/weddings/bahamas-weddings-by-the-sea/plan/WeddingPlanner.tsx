@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { PublicWeddingPackage } from "@/db/weddingPackages";
+import { formatPrice } from "@/app/_components/blocks/format";
 
 const WHATSAPP_NUMBER = "12424241262";
 
@@ -143,6 +144,15 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
     setStep((s) => Math.max(s - 1, 0));
   }
 
+  // Confirms what a package-specific CTA on the listing page (?tier=)
+  // actually carried through, rather than leaving it silently pre-filled
+  // behind Step 1 where a couple arriving straight from "See prices & get
+  // started" for one specific tier would never notice it. Looked up
+  // against the same `packages` prop the step itself renders from, so an
+  // unrecognized or stale ?tier= just resolves to nothing instead of
+  // showing a broken card.
+  const selectedPackage = packages.find((p) => p.slug === form.packageSlug) ?? null;
+
   const summary = useMemo(() => [
     ["Celebrating", form.ceremonyChoice || "Still deciding"],
     ["Level of service", packages.find((p) => p.slug === form.packageSlug)?.name || "Not chosen yet"],
@@ -219,6 +229,14 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
         </div>
         <div className="bws-progress-track" aria-hidden="true"><span style={{ width: `${progressPct}%` }} /></div>
       </div>
+
+      {selectedPackage && (
+        <div className="bws-planner-selected-package">
+          <span>Selected package</span>
+          <strong>{selectedPackage.name}{selectedPackage.priceFromCents !== null ? ` — ${formatPrice(selectedPackage.priceFromCents, selectedPackage.priceNote)}` : ""}</strong>
+          <button type="button" onClick={() => { setError(null); setStep(1); }}>Change package</button>
+        </div>
+      )}
 
       <form onSubmit={submit}>
         {step === 0 && (
