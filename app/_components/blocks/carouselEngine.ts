@@ -24,6 +24,10 @@ export function initCarousel(root: HTMLElement, { speed = 28 }: { speed?: number
   originals.forEach((node) => {
     const clone = node.cloneNode(true) as HTMLElement;
     clone.setAttribute("aria-hidden", "true");
+    // inert covers focus, find-in-page and touch/pointer interaction in one
+    // property; kept alongside aria-hidden and the manual tabIndex loop
+    // below (not in place of them) for older browsers/AT that predate it.
+    clone.inert = true;
     clone.querySelectorAll("a,button,input").forEach((el) => {
       (el as HTMLElement).tabIndex = -1;
     });

@@ -73,16 +73,17 @@ export default function RootLayout({
         <Script id="bws-arrival-guard" strategy="beforeInteractive">{BWS_ARRIVAL_GUARD}</Script>
         {children}
         {/*
-          Vercel Web Analytics via the platform-served script directly,
-          rather than the @vercel/analytics package -- adding that package
-          triggered an ERESOLVE failure from an unrelated, pre-existing
-          vite-version conflict already latent in this repo's dependency
-          tree (vitest wants vite 5-7, something else in the tree resolves
-          vite 8). This script is served by Vercel's edge network itself
-          when Web Analytics is enabled for the project, so it needs no
-          npm dependency at all.
+          Vercel Web Analytics is NOT actually enabled for this project
+          (confirmed 25 Sept: this script 404s on every single page load in
+          production, per Part 5 of that day's brief) -- removed rather than
+          left in place 404ing for every visitor. Re-add once Web Analytics
+          is turned on for this project in the Vercel dashboard (Project ->
+          Analytics -> Enable); at that point Vercel serves this exact path
+          itself, so no npm dependency is needed (the @vercel/analytics
+          package was tried and rejected earlier over an unrelated,
+          pre-existing vite-version ERESOLVE conflict already latent in this
+          repo's dependency tree).
         */}
-        <Script src="/_vercel/insights/script.js" strategy="afterInteractive" />
       </body>
     </html>
   );
