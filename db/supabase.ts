@@ -37,5 +37,28 @@ export function throwIfSupabaseError(
     details: error.details,
     hint: error.hint,
   });
-  throw new Error(context);
+  const thrown = new Error(context) as Error & { code?: string };
+  thrown.code = error.code;
+  throw thrown;
+}
+
+// Retries once, after a short delay, for the specific failure this was
+// built for: PGRST303 ("JWT issued at future" -- a clock-skew rejection at
+// token-issuance time, not a real data problem) and generic network
+// failures, both of which are usually gone a moment later. Anything else
+// (a real query, permission, or schema error) is not retry-worthy and
+// rethrows immediately -- retrying a genuine bug doesn't fix it, it just
+// delays reporting it by half a second.
+export async function withOneRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    const code = (error as { code?: string } | null)?.code;
+    const isNetworkError =
+      error instanceof TypeError ||
+      (error instanceof Error && /fetch failed|network|ECONNRESET|ETIMEDOUT/i.test(error.message));
+    if (code !== "PGRST303" && !isNetworkError) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return fn();
+  }
 }
