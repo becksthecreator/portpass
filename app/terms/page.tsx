@@ -48,7 +48,7 @@ export default function TermsPage() {
           PortPass Bahamas Technologies<br />
           Nassau, The Bahamas<br />
           Email: <a href="mailto:portpassbahamas@outlook.com">portpassbahamas@outlook.com</a><br />
-          Phone: <a href="tel:+12424241262">+1 (242) 424-1262</a>
+          Phone: <a href="tel:+12424238161">+1 (242) 423-8161</a>
         </p>
       </article>
       <SiteFooter />

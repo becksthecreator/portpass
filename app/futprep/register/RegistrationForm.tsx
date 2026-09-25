@@ -220,7 +220,7 @@ export function RegistrationForm() {
           {selectedProgram ? (
             <p>Registering for <strong>{selectedProgram.name}</strong> — {selectedProgram.day}s, {programTimeRange(selectedProgram)}. You can change the class in step 4.</p>
           ) : (
-            <p>Choose your child&apos;s class below. Registration is free.</p>
+            <p>Choose your child&apos;s class below. There&apos;s no registration fee. You&apos;ll choose how to pay the term fee (bank transfer, online banking or cash) in Step 4.</p>
           )}
         </div>
         <div className="registration-progress">
