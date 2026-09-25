@@ -2,8 +2,34 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { bwsSerif, bwsSans } from "../fonts";
 import { WeddingPlanner } from "./WeddingPlanner";
-import { getPublicWeddingPackages } from "@/db/weddingPackages";
+import { getPublicWeddingPackages, type PublicWeddingPackage } from "@/db/weddingPackages";
 import { getPublicUnavailableDates } from "@/db/weddingAvailability";
+import { withOneRetry } from "@/db/supabase";
+
+// The planner is the actual booking conversion path -- of every page this
+// pattern applies to (25 Sept brief, Part 1a/1b), this is the one where a
+// crash costs a real enquiry, not just a decorated page. Both queries are
+// non-essential to the wizard actually working: a couple can still pick a
+// ceremony type, a date, services and submit via WhatsApp with no package
+// preselected or no dates blocked, so a failure here degrades instead of
+// crashing.
+async function safePackages(): Promise<PublicWeddingPackage[]> {
+  try {
+    return await withOneRetry(() => getPublicWeddingPackages());
+  } catch (error) {
+    console.error("planner: packages fetch failed, showing the wizard with no package options", error);
+    return [];
+  }
+}
+
+async function safeUnavailableDates(): Promise<string[]> {
+  try {
+    return await withOneRetry(() => getPublicUnavailableDates());
+  } catch (error) {
+    console.error("planner: unavailable-dates fetch failed, showing the wizard with no dates blocked", error);
+    return [];
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +46,7 @@ export const metadata = {
 // lower-priority work from just getting a working planner at the right
 // path.
 export default async function PlanPage() {
-  const [packages, unavailableDates] = await Promise.all([getPublicWeddingPackages(), getPublicUnavailableDates()]);
+  const [packages, unavailableDates] = await Promise.all([safePackages(), safeUnavailableDates()]);
   return (
     <div className={`bws-theme bws-planner-body ${bwsSerif.variable} ${bwsSans.variable}`}>
       <a className="bws-skip-link" href="#planner-main">Skip to planner</a>

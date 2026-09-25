@@ -5,12 +5,50 @@ import { HomeHero, type HeroFrame } from "./HomeHero";
 import { BusinessCarousel } from "./_components/BusinessCarousel";
 import { BusinessLogo } from "./_components/blocks/BusinessLogo";
 import { directoryHref } from "./_components/blocks/directoryHref";
-import { getFutprepAvailability } from "@/db/registrations";
-import { getWeddingSiteSettings } from "@/db/weddingSite";
-import { listPublishedOrganizations } from "@/db/organizations";
+import { getFutprepAvailability, type FutprepAvailability } from "@/db/registrations";
+import { getWeddingSiteSettings, DEFAULT_SETTINGS, type WeddingSiteSettings } from "@/db/weddingSite";
+import { listPublishedOrganizations, type OrganizationDirectoryEntry } from "@/db/organizations";
+import { withOneRetry } from "@/db/supabase";
 import { programTimeRange } from "./futprep/config";
 import { SiteHeader } from "./_components/SiteHeader";
 import { SiteFooter } from "./_components/SiteFooter";
+
+// The homepage is the highest-traffic page on the site, and every one of
+// these three queries is decoration on top of static page structure (the
+// hero frame text, the business directory chips) -- not something worth a
+// hard crash over. Found while investigating the 25 Sept /weddings outage
+// (Part 1b): the same PGRST303 clock-skew rejection had ALSO been hitting
+// listPublishedOrganizations() on this exact route ("Could not load
+// organization directory", 12 occurrences over 3 days) and
+// getWeddingSiteSettings() here too -- this wasn't a /weddings-only
+// problem, and the homepage going down is a bigger deal than a category
+// page going down. Same retry-then-fallback pattern as /weddings.
+async function safeAvailability(): Promise<FutprepAvailability[]> {
+  try {
+    return await withOneRetry(() => getFutprepAvailability());
+  } catch (error) {
+    console.error("homepage: futprep availability fetch failed, hiding that hero frame", error);
+    return [];
+  }
+}
+
+async function safeWeddingSettings(): Promise<WeddingSiteSettings> {
+  try {
+    return await withOneRetry(() => getWeddingSiteSettings());
+  } catch (error) {
+    console.error("homepage: wedding site settings fetch failed, using defaults", error);
+    return DEFAULT_SETTINGS;
+  }
+}
+
+async function safeDirectory(): Promise<OrganizationDirectoryEntry[]> {
+  try {
+    return await withOneRetry(() => listPublishedOrganizations());
+  } catch (error) {
+    console.error("homepage: organization directory fetch failed, hiding the business carousel", error);
+    return [];
+  }
+}
 
 // Title, description, and Open Graph/Twitter tags are inherited from the
 // root layout -- they're identical for "/", so there's nothing to override.
@@ -26,9 +64,9 @@ const COMING_LANES = [
 
 export default async function Home() {
   const [availability, weddingSettings, directory] = await Promise.all([
-    getFutprepAvailability(),
-    getWeddingSiteSettings(),
-    listPublishedOrganizations(),
+    safeAvailability(),
+    safeWeddingSettings(),
+    safeDirectory(),
   ]);
   const futprepProgram = availability[0];
   const spotsThisWeek = availability.reduce((sum, program) => sum + program.spotsRemaining, 0);

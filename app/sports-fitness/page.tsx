@@ -1,4 +1,5 @@
-import { getOrganizationListingBySlug, listCategoryOrganizations } from "@/db/organizations";
+import { getOrganizationListingBySlug, listCategoryOrganizations, type CategoryOrganizationEntry, type OrganizationListing } from "@/db/organizations";
+import { withOneRetry } from "@/db/supabase";
 import { computeBrandTokens } from "@/app/_components/blocks/brand";
 import { FeatureCard } from "@/app/_components/blocks/FeatureCard";
 import { ComingSoonCard } from "@/app/_components/blocks/ComingSoonCard";
@@ -18,6 +19,33 @@ export const metadata = {
 
 const CATEGORY_HERO_IMAGE = "/futprep/lil-kickers/lil-kickers-training.jpg";
 
+// Same resilience as the /weddings category page (25 Sept brief, Part
+// 1a): a transient Supabase clock-skew rejection (PGRST303) or network
+// blip on one query must not take the whole category page down. Retries
+// once, then falls back to an empty list and logs -- a business that
+// briefly doesn't appear is a much smaller problem than a 500 for every
+// visitor to the whole category.
+async function safeCategoryOrgs(category: string): Promise<CategoryOrganizationEntry[]> {
+  try {
+    return await withOneRetry(() => listCategoryOrganizations(category));
+  } catch (error) {
+    console.error("sports-fitness page: category listing fetch failed, showing no businesses", error);
+    return [];
+  }
+}
+
+// Each business's own listing is fetched independently (not one
+// Promise.all) so one business's DB hiccup doesn't hide every business on
+// the page -- the others still render normally.
+async function safeOrgListing(slug: string): Promise<OrganizationListing | null> {
+  try {
+    return await withOneRetry(() => getOrganizationListingBySlug(slug));
+  } catch (error) {
+    console.error(`sports-fitness page: listing fetch failed for "${slug}", omitting its card`, error);
+    return null;
+  }
+}
+
 // A category page lists businesses, not programs -- Futprep's own programs
 // (Lil Kickers, Kickers) live on its own page, which is where a visitor
 // who already picked Futprep wants to see them. A business mid-onboarding
@@ -25,11 +53,11 @@ const CATEGORY_HERO_IMAGE = "/futprep/lil-kickers/lil-kickers-training.jpg";
 // brief) still shows up here, as a Coming Soon card instead of a
 // FeatureCard, rather than being invisible until it's fully live.
 export default async function SportsFitnessPage() {
-  const categoryOrgs = await listCategoryOrganizations("sports-fitness");
+  const categoryOrgs = await safeCategoryOrgs("sports-fitness");
   const published = categoryOrgs.filter((org) => org.isPublished);
   const comingSoon = categoryOrgs.filter((org) => !org.isPublished);
   const listings = (
-    await Promise.all(published.map((org) => getOrganizationListingBySlug(org.slug)))
+    await Promise.all(published.map((org) => safeOrgListing(org.slug)))
   ).filter((listing): listing is NonNullable<typeof listing> => listing !== null);
   const cardCount = listings.length + comingSoon.length;
 

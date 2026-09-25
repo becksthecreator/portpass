@@ -10,7 +10,10 @@ export type WeddingSiteSettings = {
   awardBadgeHtml: string | null;
 };
 
-const DEFAULT_SETTINGS: WeddingSiteSettings = {
+// Exported so a caller that can't afford to have this fetch throw (e.g. a
+// category page, where these numbers are decoration, not content) has a
+// real, already-approved fallback to reach for instead of inventing one.
+export const DEFAULT_SETTINGS: WeddingSiteSettings = {
   reviewCount: 100,
   reviewRecommendPct: 100,
   yearsExperience: 26,
