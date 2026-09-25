@@ -25,7 +25,16 @@ jobs:
       - name: Unit tests
         run: npm run test
       - name: Build
-        run: npm run build
+        # --webpack, not the default Turbopack: Turbopack's next/font/google
+        # fetch occasionally gets a Google Fonts CSS URL containing a bare
+        # "&" that its query-string parser splits into multiple pairs,
+        # failing with "next/font/google queries have exactly one entry" --
+        # a known upstream bug (vercel/next.js), not a real build error, and
+        # it doesn't reproduce locally since it depends on what Google's CDN
+        # happens to return at that moment. Scoped to this CI job only --
+        # Vercel's own production build keeps using Turbopack and has not
+        # hit this.
+        run: npx next build --webpack
 
   integration-tests:
     runs-on: ubuntu-latest
