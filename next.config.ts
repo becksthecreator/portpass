@@ -89,6 +89,14 @@ const nextConfig: NextConfig = {
         destination: "/entertainment/events",
         permanent: true,
       },
+      // The QR code on the OWN Conference material. Temporary on purpose
+      // (the campaign ends, the tags shouldn't be cached forever by
+      // browsers); Next sends a 307 for a non-permanent redirect.
+      {
+        source: "/own",
+        destination: "/apply?utm_source=own&utm_medium=qr&utm_campaign=own2026",
+        permanent: false,
+      },
     ];
   },
 };

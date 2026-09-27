@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Apply to list with PortPass | PortPass Bahamas";
+export const alt = "Get listed on PortPass | PortPass Bahamas";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -40,10 +40,10 @@ export default async function Image() {
           <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: 6, color: "#14303d" }}>PORTPASS</div>
         </div>
         <div style={{ display: "flex", fontSize: 60, fontWeight: 600, color: "#14303d", lineHeight: 1.1, maxWidth: 920 }}>
-          List your business with PortPass.
+          Get your business listed on PortPass.
         </div>
         <div style={{ display: "flex", fontSize: 28, color: "#43524f", marginTop: 28, maxWidth: 820 }}>
-          The same booking and payment system running Futprep and Bahamas Weddings By The Sea.
+          Your bookings and payments in one place, not lost in WhatsApp. First 30 days free.
         </div>
       </div>
     ),

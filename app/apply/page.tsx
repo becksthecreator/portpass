@@ -1,9 +1,10 @@
+import { Suspense } from "react";
 import { ApplicationForm } from "./ApplicationForm";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 
-const APPLY_TITLE = "Apply to list with PortPass | PortPass Bahamas";
-const APPLY_DESCRIPTION = "Bring your club, academy, or business onto the same booking and payment system powering Futprep and Bahamas Weddings By The Sea.";
+const APPLY_TITLE = "Get listed on PortPass | PortPass Bahamas";
+const APPLY_DESCRIPTION = "Send us the basics and we'll message you on WhatsApp to build your page: your prices, photos and a booking button, in one link.";
 
 export const metadata = {
   title: APPLY_TITLE,
@@ -25,14 +26,17 @@ export const metadata = {
 export default function ApplyPage() {
   return (
     <main className="form-page">
-      <SiteHeader />
+      <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }, { label: "Get listed", href: "/apply" }]} />
       <section className="form-intro">
-        <div className="eyebrow"><span className="eyebrow-dot" />PortPass early access</div>
-        <h1>Tell us about your organization.</h1>
-        <p>We&apos;re welcoming the first group of Bahamian clubs, academies, and sports organizations.</p>
-        <p className="apply-pricing-note">Free while we onboard our first businesses — pricing is shared on your call, before you commit to anything.</p>
+        <div className="eyebrow"><span className="eyebrow-dot" />Get listed</div>
+        <h1>Tell us about your business.</h1>
+        <p>Six quick answers. We&rsquo;ll message you on WhatsApp within a business day, build your page from the photos and prices you send us, and give you one link to share.</p>
+        <p className="apply-pricing-note">First 30 days free. Then from $65/month, or no monthly fee on Marketplace (8% of the bookings we bring you).</p>
       </section>
-      <ApplicationForm />
+      {/* useSearchParams (for the UTM tags) needs a Suspense boundary on a statically rendered page. */}
+      <Suspense fallback={null}>
+        <ApplicationForm />
+      </Suspense>
       <SiteFooter />
     </main>
   );

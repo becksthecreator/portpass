@@ -4,35 +4,63 @@ export type ApplicationRecord = {
   id: number;
   organization_name: string;
   contact_person: string;
-  email: string;
-  phone: string;
-  activity_type: string;
-  main_location: string;
-  player_count: string;
-  help_needed: string;
-  description: string;
+  // Optional since the WhatsApp-first form (27 Sept); older rows have them.
+  email: string | null;
+  phone: string | null;
+  activity_type: string | null;
+  main_location: string | null;
+  player_count: string | null;
+  help_needed: string | null;
+  description: string | null;
+  section: string | null;
+  whatsapp_e164: string | null;
+  instagram_handle: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
   status: "submitted" | "approved" | "rejected";
   submitted_at: string;
   reviewed_at: string | null;
   organization_id?: number | null;
 };
 
-export async function createApplication(
-  values: Omit<
-    ApplicationRecord,
-    "id" | "status" | "submitted_at" | "reviewed_at"
-  >,
-) {
-  const db = getSupabaseAdmin();
-  const now = new Date().toISOString();
+export type NewApplication = {
+  organizationName: string;
+  contactPerson: string;
+  section: string;
+  whatsappE164: string;
+  instagramHandle: string | null;
+  note: string | null;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+};
 
-  const { error } = await db.from("applications").insert({
-    ...values,
-    email: values.email.toLowerCase(),
-    status: "submitted",
-    submitted_at: now,
-  });
-  throwIfSupabaseError(error, "Could not create early-access application");
+export async function createApplication(values: NewApplication): Promise<{ id: number }> {
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("applications")
+    .insert({
+      organization_name: values.organizationName,
+      contact_person: values.contactPerson,
+      section: values.section,
+      whatsapp_e164: values.whatsappE164,
+      // Kept in the legacy column too so the admin list and any old export
+      // keep showing a number without a code change.
+      phone: values.whatsappE164,
+      instagram_handle: values.instagramHandle,
+      description: values.note,
+      utm_source: values.utmSource,
+      utm_medium: values.utmMedium,
+      utm_campaign: values.utmCampaign,
+      status: "submitted",
+      submitted_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  throwIfSupabaseError(error, "Could not create listing application");
+  if (!data) throw new Error("Could not create listing application");
+  return { id: Number(data.id) };
 }
 
 export async function listApplications(): Promise<ApplicationRecord[]> {
@@ -42,7 +70,7 @@ export async function listApplications(): Promise<ApplicationRecord[]> {
     .from("applications")
     .select("*")
     .order("submitted_at", { ascending: false });
-  throwIfSupabaseError(error, "Could not load early-access applications");
+  throwIfSupabaseError(error, "Could not load listing applications");
 
   const rows = (applications ?? []) as ApplicationRecord[];
   if (!rows.length) return [];
@@ -91,15 +119,17 @@ export async function reviewApplication(
   const now = new Date().toISOString();
 
   if (decision === "approved") {
+    const app = application as ApplicationRecord;
     const { error: organizationError } = await db.from("organizations").upsert(
       {
         application_id: id,
-        name: application.organization_name,
-        primary_contact: application.contact_person,
-        email: String(application.email).toLowerCase(),
-        phone: application.phone,
-        activity_type: application.activity_type,
-        main_location: application.main_location,
+        name: app.organization_name,
+        primary_contact: app.contact_person,
+        email: app.email ? app.email.toLowerCase() : null,
+        phone: app.phone ?? app.whatsapp_e164,
+        activity_type: app.activity_type ?? app.section,
+        main_location: app.main_location,
+        primary_category: app.section,
         created_at: now,
       },
       { onConflict: "application_id" },

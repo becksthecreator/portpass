@@ -1,188 +1,121 @@
-import Image from "next/image";
 import Link from "next/link";
+import { ppDisplay, ppSans } from "@/app/fonts";
+import { SiteHeader } from "@/app/_components/SiteHeader";
+import { SiteFooter } from "@/app/_components/SiteFooter";
+import { portpassWhatsAppUrl } from "@/lib/contact";
+import { SECTIONS } from "@/lib/sections";
 
+// No openGraph here on purpose: the root file-based image is inherited
+// only when a page doesn't export its own openGraph object.
 export const metadata = {
-  title: "PortPass for Business | Your club, better connected",
-  description: "PortPass helps sports clubs and academies in The Bahamas organize, communicate, and grow.",
+  title: "PortPass for Business | Your bookings and payments in one place",
+  description: "One link with your prices, photos and a booking button. Send us your photos and prices on WhatsApp, we build your page, you share one link.",
 };
 
-const roles = [
-  ["01", "Club leaders", "Programs, registrations, payments, schedules, locations, and staff in one operating view."],
-  ["02", "Coaches", "Rosters, attendance, session plans, player information, and the details needed on the field."],
-  ["03", "Parents", "Clear registration, payment information, schedules, confirmations, and club updates."],
-  ["04", "Players", "A cleaner path from joining a program to showing up ready to play."],
-];
+const WHATSAPP_HREF = portpassWhatsAppUrl("Hi PortPass — I run a business and want to get listed.");
 
-export default function BusinessLandingPage() {
+const STEPS = [
+  ["Send us your photos and prices on WhatsApp", "A few photos, what you offer and what it costs. That's the whole form."],
+  ["We build your page", "Your listing goes up on PortPass with a booking button, built from what you sent."],
+  ["Share one link", "In your bio, your status and your replies. Bookings and payments land in one place."],
+] as const;
+
+const PLANS = [
+  { name: "Solo", price: "$65", featured: false },
+  { name: "Growing", price: "$120", featured: true },
+  { name: "Business", price: "$220", featured: false },
+] as const;
+
+export default function BusinessPage() {
   return (
-    <main className="landing-page">
-      <section className="landing-hero" id="home">
-        <div className="landing-hero-media" aria-hidden="true">
-          <Image
-            className="landing-hero-slide landing-hero-slide-one"
-            src="https://images.unsplash.com/photo-1661881545067-b15c94c6b7cd?auto=format&fit=crop&w=2200&q=88"
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-          />
-          <Image
-            className="landing-hero-slide landing-hero-slide-two"
-            src="https://images.unsplash.com/photo-1748606327306-5c518f0a6cfa?auto=format&fit=crop&w=2200&q=88"
-            alt=""
-            fill
-            sizes="100vw"
-          />
+    <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`}>
+      <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }]} />
+
+      <section className="biz-hero">
+        <span className="home-eyebrow">PortPass for business</span>
+        <h1>Your bookings and payments in one place, not lost in WhatsApp.</h1>
+        <p>One link with your prices, your photos and a booking button. We build it for you; you share it everywhere you already talk to customers.</p>
+        <div className="biz-actions">
+          <Link className="home-button" href="/apply">Get listed →</Link>
+          <a className="home-button home-button-light" href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a>
         </div>
-        <div className="landing-hero-shade" aria-hidden="true" />
+      </section>
 
-        <header className="landing-nav">
-          <Link className="landing-brand" href="/" aria-label="PortPass home">
-            <span className="landing-brand-mark">P</span>
-            <span>PORTPASS</span>
-          </Link>
-
-          <nav className="landing-nav-links" aria-label="Primary navigation">
-            <a className="is-active" href="#home">Home</a>
-            <a href="#features">Features</a>
-            <a href="#live">Live</a>
-            <a href="#about">About</a>
-            <Link href="/sports-fitness/futprep-athletics">Futprep</Link>
-            <Link href="/apply">Early access</Link>
-          </nav>
-        </header>
-
-        <Link className="landing-register-strip" href="/sports-fitness/futprep-athletics">
-          <span className="landing-register-label">Live now</span>
-          <strong>Futprep Athletics on PortPass</strong>
-          <span className="landing-register-action">Explore Futprep →</span>
-        </Link>
-
-        <div className="landing-hero-content">
-          <span className="landing-hero-kicker">Sports management · The Bahamas</span>
-          <h1>Your club.<br/><em>Better connected.</em></h1>
-          <p>One simple place for sports organizations to organize, communicate, register, and grow.</p>
-          <div className="landing-hero-actions">
-            <Link className="landing-button landing-button-primary" href="/apply">Apply for early access →</Link>
-            <a className="landing-text-link" href="#features">Explore PortPass ↓</a>
+      <div className="biz-sections">
+        {SECTIONS.map((section) => (
+          <div className="biz-section" key={section.slug}>
+            <h3>{section.href ? <Link href={section.href}>{section.name}</Link> : section.name}</h3>
+            <p>{section.line}</p>
+            {!section.href && <small>Coming soon</small>}
           </div>
-        </div>
+        ))}
+      </div>
 
-        <div className="landing-hero-caption" aria-hidden="true">
-          <span>01</span><i />
-          <span>02</span>
+      <section className="home-how" id="how-it-works">
+        <div className="home-section-heading">
+          <span className="home-eyebrow">How it works</span>
+          <h2>Three steps. No forms to fill.</h2>
         </div>
-      </section>
-
-      <section className="landing-systems" id="features">
-        <div className="landing-section-heading">
-          <span>What PortPass brings together</span>
-          <h2>One place for your club.</h2>
-        </div>
-
-        <div className="landing-system-grid">
-          <article className="landing-system-card">
-            <div className="landing-system-visual landing-system-visual-ops" aria-hidden="true">
-              <div className="landing-ui-shell">
-                <div className="landing-ui-sidebar">
-                  <span className="landing-ui-logo">P</span>
-                  <i /><i /><i /><i />
-                </div>
-                <div className="landing-ui-main">
-                  <div className="landing-ui-top"><span /><span /></div>
-                  <div className="landing-ui-stats"><b /><b /><b /></div>
-                  <div className="landing-ui-lines"><i /><i /><i /><i /></div>
-                </div>
-              </div>
+        <div className="biz-steps">
+          {STEPS.map(([title, copy], index) => (
+            <div className="biz-step" key={title}>
+              <span aria-hidden="true">{index + 1}</span>
+              <h3>{title}</h3>
+              <p>{copy}</p>
             </div>
-            <div className="landing-system-copy">
-              <h3>Run your organization.</h3>
-              <p>Replace scattered forms, chats, spreadsheets, and payment notes with one clear operating system.</p>
-              <div className="landing-tags">
-                <span>Programs</span><span>Registrations</span><span>Payments</span>
-              </div>
-              <a href="#about">Explore operations →</a>
-            </div>
-          </article>
-
-          <article className="landing-system-card">
-            <div className="landing-system-visual landing-system-visual-connect" aria-hidden="true">
-              <div className="landing-connect-board">
-                <div className="landing-connect-person"><span>C</span><small>Coach</small></div>
-                <div className="landing-connect-line landing-connect-line-a" />
-                <div className="landing-connect-person"><span>P</span><small>Parent</small></div>
-                <div className="landing-connect-line landing-connect-line-b" />
-                <div className="landing-connect-person"><span>PL</span><small>Player</small></div>
-              </div>
-            </div>
-            <div className="landing-system-copy">
-              <h3>Keep everyone connected.</h3>
-              <p>Give coaches, parents, players, and club staff the right information without creating more admin.</p>
-              <div className="landing-tags">
-                <span>Schedules</span><span>Attendance</span><span>Updates</span>
-              </div>
-              <a href="#about">Explore the community →</a>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section className="landing-roles" id="about">
-        <div className="landing-roles-intro">
-          <span className="landing-section-label">Built around real sport</span>
-          <h2>The people who make the club happen.</h2>
-          <p>PortPass is designed around how a sports organization actually works—from the office to the sideline to the family at home.</p>
-        </div>
-        <div className="landing-role-grid">
-          {roles.map(([number, title, copy]) => (
-            <article className="landing-role-card" key={number}>
-              <span>{number}</span>
-              <div>
-                <h3>{title}</h3>
-                <p>{copy}</p>
-              </div>
-            </article>
           ))}
         </div>
       </section>
 
-      <section className="landing-live" id="live">
-        <div className="landing-live-image">
-          <Image
-            src="https://images.squarespace-cdn.com/content/v1/5ff2226296a9ec7fa1402a39/d69eda54-1539-434e-bb0c-7e122dd03eab/IMG_5805.jpg"
-            alt="Futprep Athletics players together on the field"
-            fill
-            sizes="(max-width: 900px) 100vw, 55vw"
-          />
+      <section className="biz-pricing" id="pricing">
+        <div className="home-section-heading">
+          <span className="home-eyebrow">Pricing</span>
+          <h2>First 30 days free.</h2>
         </div>
-        <div className="landing-live-copy">
-          <span className="landing-live-badge">Live on PortPass</span>
-          <p className="landing-live-overline">First live program</p>
-          <h2>Futprep Athletics<br/>Lil Kickers.</h2>
-          <p>Parents can already view the program, choose a class, register a child, select a payment method, and receive confirmation through PortPass.</p>
-          <div className="landing-live-tags">
-            <span>Term 1</span>
-            <span>Ages 3–7</span>
-            <span>Saturday sessions</span>
+        <div className="biz-plans">
+          {PLANS.map((plan) => (
+            <div className={`biz-plan${plan.featured ? " biz-plan-featured" : ""}`} key={plan.name}>
+              <h3>{plan.name}</h3>
+              <strong>{plan.price}</strong>
+              <span>per month</span>
+            </div>
+          ))}
+          <div className="biz-plan">
+            <h3>Marketplace</h3>
+            <strong>$0</strong>
+            <span>no monthly fee</span>
+            <p>8% of the bookings we bring you.</p>
           </div>
-          <Link className="landing-button landing-button-dark" href="/sports-fitness/futprep-athletics/lil-kickers">View live registration →</Link>
+        </div>
+        <div className="biz-pricing-notes">
+          <span>Every plan starts with 30 days free — we&rsquo;ll confirm which one fits on your first call.</span>
+          <span>Card payments: coming soon with a licensed partner. Cash and bank transfer work today.</span>
         </div>
       </section>
 
-      <section className="landing-final">
-        <span>Early access is open.</span>
-        <h2>Run your club differently.</h2>
-        <p>Bring your organization onto PortPass and help shape the platform being built for sport in The Bahamas.</p>
-        <Link className="landing-button landing-button-lime" href="/apply">Apply for early access →</Link>
+      <section className="biz-founders" aria-label="The founders">
+        {/* Photo slot: swap this placeholder for the founders' photo once it exists. */}
+        <div className="biz-founders-photo" aria-hidden="true">A &amp; A</div>
+        <div>
+          <span className="home-eyebrow">Who you&rsquo;re talking to</span>
+          <h2>Antonio and Adon Beckford</h2>
+          <p>The brothers behind PortPass, in Nassau. When you message us, it&rsquo;s one of us who replies — and one of us who builds your page.</p>
+        </div>
       </section>
 
-      <footer className="landing-footer">
-        <Link className="landing-brand landing-footer-brand" href="/">
-          <span className="landing-brand-mark">P</span><span>PORTPASS</span>
-        </Link>
-        <p>Made for sport in The Bahamas.</p>
-        <a className="landing-footer-back" href="#home">Back to top ↑</a>
-      </footer>
+      <section className="home-business">
+        <div>
+          <span className="home-eyebrow">Ready when you are</span>
+          <h2>Get your page built this week.</h2>
+          <p>Send the basics on WhatsApp or tell us about your business and we&rsquo;ll take it from there.</p>
+        </div>
+        <div className="biz-actions">
+          <Link className="home-button home-button-light" href="/apply">Get listed →</Link>
+          <a className="home-button home-button-light" href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a>
+        </div>
+      </section>
+
+      <SiteFooter />
     </main>
   );
 }
