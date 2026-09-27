@@ -3,11 +3,11 @@
 import { FormEvent, useState } from "react";
 import type { InterestCategory } from "@/lib/interestCategories";
 
-export function InterestForm({ category, placeholder }: { category: InterestCategory; placeholder: string }) {
+export function InterestForm({ category, placeholder, defaultNote }: { category: InterestCategory; placeholder: string; defaultNote?: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState(defaultNote ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);

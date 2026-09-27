@@ -15,7 +15,7 @@ const DOMAIN_CACHE_TTL_MS = 60_000;
 // Paths that should resolve the same way regardless of which hostname the
 // request came in on -- a business's own domain never needs to reach
 // PortPass's admin surface or another business's /sites/ route.
-const NEVER_REWRITE_PREFIXES = ["/api", "/admin", "/organizations", "/sites"];
+const NEVER_REWRITE_PREFIXES = ["/api", "/admin", "/organizations", "/sites", "/icons", "/apple-icon"];
 
 let domainCache: { map: Map<string, string>; fetchedAt: number } | null = null;
 

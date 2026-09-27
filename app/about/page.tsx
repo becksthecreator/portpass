@@ -1,5 +1,6 @@
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
+import { PORTPASS_PHONE_DISPLAY, PORTPASS_PHONE_E164, PORTPASS_SUPPORT_EMAIL } from "@/lib/contact";
 
 const TITLE = "About | PortPass Bahamas";
 const DESCRIPTION = "PortPass is a booking and payment platform for independent Bahamian businesses.";
@@ -32,8 +33,8 @@ export default function AboutPage() {
 
         <h2>Get in touch</h2>
         <p>
-          Email: <a href="mailto:portpassbahamas@outlook.com">portpassbahamas@outlook.com</a><br />
-          Phone: <a href="tel:+12424241262">+1 (242) 424-1262</a>
+          Email: <a href={`mailto:${PORTPASS_SUPPORT_EMAIL}`}>{PORTPASS_SUPPORT_EMAIL}</a><br />
+          Phone: <a href={`tel:${PORTPASS_PHONE_E164}`}>{PORTPASS_PHONE_DISPLAY}</a>
         </p>
       </article>
       <SiteFooter />
