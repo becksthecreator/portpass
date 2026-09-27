@@ -5,5 +5,6 @@ import nextTs from "eslint-config-next/typescript";
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
-  globalIgnores([".next/**","out/**","build/**","next-env.d.ts"]),
+  // scripts/loadtest is a k6 script (k6 globals like __ENV, not Node/Next).
+  globalIgnores([".next/**","out/**","build/**","next-env.d.ts","scripts/loadtest/**"]),
 ]);

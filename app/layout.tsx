@@ -10,7 +10,10 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://portpassbahamas.com"),
   title: TITLE,
   description: DESCRIPTION,
-  icons: { icon: "/favicon.svg" },
+  // Listing `apple` here is required: once `icons` is set in config, Next
+  // stops emitting the link for app/apple-icon.tsx on its own (verified
+  // live 27 Sept -- the PNG served, the <link> never appeared).
+  icons: { icon: "/favicon.svg", apple: [{ url: "/apple-icon", sizes: "180x180", type: "image/png" }] },
   openGraph: {
     type: "website",
     siteName: "PortPass Bahamas",
