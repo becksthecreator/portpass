@@ -14,5 +14,5 @@ export async function getNavSections(): Promise<NavLink[]> {
   } catch {
     // fall through
   }
-  return SECTIONS.map((s) => ({ label: s.name, href: s.href ?? `/${s.slug}` }));
+  return SECTIONS.map((s) => ({ label: s.name, href: `/${s.slug}` }));
 }
