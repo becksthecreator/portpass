@@ -1,3 +1,5 @@
+import { PORTPASS_SUPPORT_EMAIL } from "./contact";
+
 const RESEND_API_URL = "https://api.resend.com/emails";
 
 // Reserved for test/seed data (registrations created by integration tests
@@ -10,23 +12,26 @@ type SendEmailInput = {
   to: string;
   subject: string;
   html: string;
+  // Defaults to the Futprep sender; PortPass's own emails pass
+  // portpassFrom() so the two senders can differ once both are configured.
+  from?: string;
 };
 
 // No-ops with a console warning when RESEND_API_KEY isn't set, so local
 // dev and preview builds never crash for missing email config. Uses
 // Resend's plain HTTP API directly rather than its SDK, since it's a
 // single endpoint and this avoids adding a dependency.
-export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<void> {
+export async function sendEmail({ to, subject, html, from: fromOverride }: SendEmailInput): Promise<void> {
   if (to.trim().toLowerCase().endsWith(TEST_EMAIL_DOMAIN)) {
     console.warn(`[email] Refusing to send to reserved test domain: ${to}`);
     return;
   }
 
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.FUTPREP_FROM_EMAIL;
+  const from = fromOverride ?? process.env.FUTPREP_FROM_EMAIL;
 
   if (!apiKey || !from) {
-    console.warn(`[email] RESEND_API_KEY or FUTPREP_FROM_EMAIL not set — skipping email to ${to}: "${subject}"`);
+    console.warn(`[email] RESEND_API_KEY or the from address not set — skipping email to ${to}: "${subject}"`);
     return;
   }
 
@@ -53,6 +58,62 @@ function emailShell(title: string, bodyHtml: string) {
     ${bodyHtml}
     <p style="color:#647069;font-size:12px;margin-top:32px">Futprep Athletics · Sent via PortPass</p>
   </div>`;
+}
+
+function portpassFrom(): string | undefined {
+  return process.env.PORTPASS_FROM_EMAIL ?? process.env.FUTPREP_FROM_EMAIL;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+export function portpassEmailShell(title: string, bodyHtml: string) {
+  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#14303d">
+    <p style="font-size:12px;font-weight:800;letter-spacing:3px;margin:0 0 18px;color:#e8794a">PORTPASS</p>
+    <h1 style="font-size:22px;margin:0 0 16px">${title}</h1>
+    ${bodyHtml}
+    <p style="color:#647069;font-size:12px;margin-top:32px">PortPass Bahamas Technologies · portpassbahamas.com</p>
+  </div>`;
+}
+
+// Internal notification for a new listing request from /apply. Everything
+// in it is typed by a stranger on the internet, so it's escaped -- it lands
+// in a staff inbox as HTML.
+export async function sendApplicationReceivedEmail(input: {
+  id: number;
+  organizationName: string;
+  contactPerson: string;
+  section: string;
+  whatsappE164: string;
+  instagramHandle: string | null;
+  note: string | null;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+}) {
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:6px 0;color:#647069;vertical-align:top">${label}</td><td style="padding:6px 0;text-align:right">${value}</td></tr>`;
+  const waLink = `https://wa.me/${input.whatsappE164.replace(/\D/g, "")}`;
+  const source = [input.utmSource, input.utmMedium, input.utmCampaign].filter(Boolean).map((v) => escapeHtml(v as string)).join(" / ");
+  await sendEmail({
+    to: PORTPASS_SUPPORT_EMAIL,
+    from: portpassFrom(),
+    subject: `New listing request — ${input.organizationName}`,
+    html: portpassEmailShell("New listing request", `
+      <p><strong>${escapeHtml(input.organizationName)}</strong> wants to be listed on PortPass.</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0">
+        ${row("Contact", escapeHtml(input.contactPerson))}
+        ${row("Section", escapeHtml(input.section))}
+        ${row("WhatsApp", `<a href="${waLink}" style="color:#B9532A">${escapeHtml(input.whatsappE164)}</a>`)}
+        ${input.instagramHandle ? row("Instagram", `<a href="https://instagram.com/${encodeURIComponent(input.instagramHandle)}" style="color:#B9532A">@${escapeHtml(input.instagramHandle)}</a>`) : ""}
+        ${input.note ? row("Note", escapeHtml(input.note)) : ""}
+        ${source ? row("Source", source) : ""}
+        ${row("Reference", `#${input.id}`)}
+      </table>
+      <p><a href="https://portpassbahamas.com/admin" style="color:#B9532A">Open the approvals queue →</a></p>
+    `),
+  });
 }
 
 export async function sendFutprepRegistrationReceivedEmail(input: {

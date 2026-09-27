@@ -1,30 +1,50 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { portpassWhatsAppUrl } from "@/lib/contact";
+import { SECTIONS } from "@/lib/sections";
+
+type FormState = { name: string; businessName: string; section: string; whatsapp: string; instagram: string; note: string };
 
 export function ApplicationForm() {
+  const searchParams = useSearchParams();
+  const [form, setForm] = useState<FormState>({ name: "", businessName: "", section: "", whatsapp: "", instagram: "", note: "" });
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const whatsappHref = portpassWhatsAppUrl(`Hi PortPass — I'd like to get ${form.businessName.trim() || "my business"} listed.`);
+
+  function set<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!form.section) {
+      setError("Choose the section your business belongs in.");
+      return;
+    }
     setBusy(true);
     setError("");
-    const body = Object.fromEntries(new FormData(event.currentTarget).entries());
-
     try {
       const response = await fetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          ...form,
+          utm_source: searchParams.get("utm_source") ?? "",
+          utm_medium: searchParams.get("utm_medium") ?? "",
+          utm_campaign: searchParams.get("utm_campaign") ?? "",
+        }),
       });
-      if (!response.ok) throw new Error();
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(data.error ?? "We couldn’t send that. Please try again.");
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch {
-      setError("We couldn’t submit your application. Please try again.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "We couldn’t send that. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -34,10 +54,10 @@ export function ApplicationForm() {
     return (
       <section className="confirmation" aria-live="polite">
         <span className="confirmation-mark">✓</span>
-        <div className="eyebrow"><span className="eyebrow-dot" />Application received</div>
-        <h2>Thanks for applying.</h2>
-        <p>We&apos;ll review your organization and follow up with the next steps for PortPass early access.</p>
-        <Link className="primary-button" href="/">Back to PortPass →</Link>
+        <div className="eyebrow"><span className="eyebrow-dot" />Got it</div>
+        <h2>We&rsquo;ll message you on WhatsApp.</h2>
+        <p>Usually within a business day. Have a few photos and your prices ready and we&rsquo;ll build the page from there.</p>
+        <a className="primary-button" href={whatsappHref} target="_blank" rel="noopener noreferrer">Message us now on WhatsApp →</a>
       </section>
     );
   }
@@ -45,21 +65,25 @@ export function ApplicationForm() {
   return (
     <form className="application-form" onSubmit={handleSubmit}>
       <div className="form-grid">
-        <label><span>Organization name *</span><input name="organizationName" required /></label>
-        <label><span>Contact person *</span><input name="contactPerson" required /></label>
-        <label><span>Email *</span><input name="email" type="email" required /></label>
-        <label><span>Phone *</span><input name="phone" type="tel" required /></label>
-        <label><span>Sport or activity type *</span><input name="activityType" required /></label>
-        <label><span>Main location *</span><input name="mainLocation" required /></label>
-        <label><span>Approximate number of players *</span><input name="playerCount" required /></label>
-        <label className="full-field"><span>What do you need the most help with? *</span><textarea name="helpNeeded" rows={4} required /></label>
-        <label className="full-field"><span>Tell us about your organization *</span><textarea name="description" rows={5} required /></label>
+        <label><span>Your name *</span><input name="name" autoComplete="name" required maxLength={120} value={form.name} onChange={(e) => set("name", e.target.value)} /></label>
+        <label><span>Business name *</span><input name="businessName" autoComplete="organization" required maxLength={150} value={form.businessName} onChange={(e) => set("businessName", e.target.value)} /></label>
+        <label>
+          <span>Section *</span>
+          <select name="section" required value={form.section} onChange={(e) => set("section", e.target.value)}>
+            <option value="">Choose one</option>
+            {SECTIONS.map((section) => <option key={section.slug} value={section.slug}>{section.name}</option>)}
+          </select>
+        </label>
+        <label><span>WhatsApp number *</span><input name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" required placeholder="242-423-8161" maxLength={40} value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} /></label>
+        <label><span>Instagram (optional)</span><input name="instagram" placeholder="@yourbusiness" maxLength={60} value={form.instagram} onChange={(e) => set("instagram", e.target.value)} /></label>
+        <label className="full-field"><span>Anything we should know? (optional)</span><input name="note" maxLength={300} placeholder="What you offer, where, and rough prices" value={form.note} onChange={(e) => set("note", e.target.value)} /></label>
       </div>
       {error && <p className="form-error">{error}</p>}
       <div className="form-submit">
-        <p>By submitting, you&apos;re asking to join the PortPass early-access pilot.</p>
-        <button className="primary-button" disabled={busy} type="submit">{busy ? "Submitting…" : "Submit application →"}</button>
+        <p>We reply on WhatsApp. No account or card needed to get started.</p>
+        <button className="primary-button" disabled={busy} type="submit">{busy ? "Sending…" : "Get listed →"}</button>
       </div>
+      <p className="apply-alt">Rather just talk? <a href={whatsappHref} target="_blank" rel="noopener noreferrer">Message us on WhatsApp →</a></p>
     </form>
   );
 }
