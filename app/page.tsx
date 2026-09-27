@@ -58,8 +58,7 @@ export const dynamic = "force-dynamic";
 
 const COMING_LANES = [
   { slug: "venues", title: "Venues", tag: "Coming soon", copy: "Beaches, halls, studios and private estates, held by the hour or the day.", now: "Add-ons priced as you build the booking." },
-  { slug: "events", title: "Events", tag: "Coming soon", copy: "Ticketed nights with scanning at the door.", now: "You see who is in the room and what came through the gate." },
-  { slug: "entertainment", title: "Entertainment", tag: "Coming soon", copy: "Tours, attractions and nightlife.", now: "Booked the same way as everything else on PortPass." },
+  { slug: "entertainment", title: "Entertainment", tag: "Coming soon", copy: "Events, DJs and sound equipment.", now: "Ticketed nights, DJs and AV hire, booked the same way as everything else on PortPass." },
 ] as const;
 
 export default async function Home() {

@@ -1,6 +1,7 @@
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
+import type { InterestCategory } from "@/lib/interestCategories";
 
-export type InterestCategory = "venues" | "events" | "entertainment";
+export type { InterestCategory };
 
 export type InterestSubmissionInput = {
   category: InterestCategory;

@@ -82,6 +82,13 @@ const nextConfig: NextConfig = {
         destination: "/weddings/bahamas-weddings-by-the-sea",
         permanent: true,
       },
+      // Events became a subsection of Entertainment (decided 27 Sept, for
+      // the OWN Conference build); the old top-level placeholder is gone.
+      {
+        source: "/events",
+        destination: "/entertainment/events",
+        permanent: true,
+      },
     ];
   },
 };

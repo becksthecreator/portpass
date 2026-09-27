@@ -4,7 +4,6 @@ const CATEGORY_LINKS = [
   { label: "Sports & Fitness", href: "/sports-fitness" },
   { label: "Weddings", href: "/weddings" },
   { label: "Venues", href: "/venues" },
-  { label: "Events", href: "/events" },
   { label: "Entertainment", href: "/entertainment" },
 ];
 

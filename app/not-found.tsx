@@ -8,7 +8,6 @@ const CATEGORIES = [
   { href: "/sports-fitness", label: "Sports & Fitness" },
   { href: "/weddings", label: "Weddings" },
   { href: "/venues", label: "Venues" },
-  { href: "/events", label: "Events" },
   { href: "/entertainment", label: "Entertainment" },
 ];
 
