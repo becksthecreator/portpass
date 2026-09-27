@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import type { InterestCategory } from "@/lib/interestCategories";
 
-export function InterestForm({ category, placeholder }: { category: "venues" | "events" | "entertainment"; placeholder: string }) {
+export function InterestForm({ category, placeholder }: { category: InterestCategory; placeholder: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");

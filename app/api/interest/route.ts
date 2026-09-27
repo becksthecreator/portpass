@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createInterestSubmission, type InterestCategory } from "@/db/interest";
+import { createInterestSubmission } from "@/db/interest";
+import { isInterestCategory } from "@/lib/interestCategories";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_ATTEMPTS = 8;
@@ -15,8 +16,6 @@ function rateLimited(ip: string) {
   entry.count += 1;
   return entry.count > RATE_LIMIT_MAX_ATTEMPTS;
 }
-
-const CATEGORIES: InterestCategory[] = ["venues", "events", "entertainment"];
 
 function str(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -44,7 +43,7 @@ export async function POST(request: NextRequest) {
   const b = body as Record<string, unknown>;
 
   const category = str(b.category, 20);
-  if (!CATEGORIES.includes(category as InterestCategory)) {
+  if (!isInterestCategory(category)) {
     return NextResponse.json({ error: "Choose a valid category." }, { status: 400 });
   }
 
@@ -60,7 +59,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await createInterestSubmission({
-      category: category as InterestCategory,
+      category,
       name,
       email,
       phone,
