@@ -24,6 +24,9 @@ yarn-error.log*
 
 # env files
 .env*
+# backup credentials (scripts/backup/README.md) -- only the .example is committed
+scripts/backup/*.env
+!scripts/backup/*.env.example
 
 # vercel
 .vercel
