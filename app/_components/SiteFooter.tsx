@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PORTPASS_PHONE_DISPLAY, PORTPASS_PHONE_E164, PORTPASS_SUPPORT_EMAIL } from "@/lib/contact";
 
 const CATEGORY_LINKS = [
   { label: "Sports & Fitness", href: "/sports-fitness" },
@@ -19,7 +20,7 @@ export function SiteFooter({ orgLine }: { orgLine?: string }) {
         <div>
           <p className="site-shell-footer-name">PortPass Bahamas Technologies · Nassau, The Bahamas</p>
           <p className="site-shell-footer-contact">
-            <a href="mailto:portpassbahamas@outlook.com">portpassbahamas@outlook.com</a> · <a href="tel:+12424238161">+1 (242) 423-8161</a>
+            <a href={`mailto:${PORTPASS_SUPPORT_EMAIL}`}>{PORTPASS_SUPPORT_EMAIL}</a> · <a href={`tel:${PORTPASS_PHONE_E164}`}>{PORTPASS_PHONE_DISPLAY}</a>
           </p>
         </div>
         <nav className="site-shell-footer-categories" aria-label="Categories">

@@ -97,7 +97,13 @@ export default async function SportsFitnessPage() {
           );
         })}
         {comingSoon.map((org) => (
-          <ComingSoonCard key={org.slug} name={org.name} logoUrl={org.logoUrl} brand={org.brandColor ?? "#e8794a"} />
+          <ComingSoonCard
+            key={org.slug}
+            name={org.name}
+            logoUrl={org.logoUrl}
+            brand={org.brandColor ?? "#e8794a"}
+            notifyHref={`/sports-fitness/notify?business=${encodeURIComponent(org.slug)}`}
+          />
         ))}
       </div>
       {cardCount === 0 && (

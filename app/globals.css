@@ -17,6 +17,9 @@
   --muted:#5a6b64;
   --danger:#8f3026;
   --coral:#e8794a;
+  /* Buttons and text links: white on it clears 4.5:1 (4.85). --coral
+     stays for the P mark, large shapes and surfaces carrying ink text. */
+  --coral-deep:#B9532A;
 }
 
 /* The homepage hero cross-fades between real photo backgrounds of very
@@ -129,7 +132,7 @@ dd{margin:6px 0 0}
 .benefit-card h3{font-family:Georgia,serif;font-size:1.45rem;font-weight:400;margin:0 0 12px}
 .benefit-card p{color:var(--muted);font-size:.9rem;line-height:1.55;margin:0}
 .closing-cta{background:var(--ink);color:white;padding:100px 5vw;text-align:center}
-.closing-cta>p{color:var(--coral);font-size:.7rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.closing-cta>p{color:var(--coral-deep);font-size:.7rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
 .closing-cta h2{font-family:Georgia,serif;font-size:clamp(2.8rem,6vw,6.5rem);font-weight:400;letter-spacing:-.05em;margin:28px auto 44px;max-width:950px}
 footer{align-items:center;display:flex;justify-content:space-between;padding:34px 5vw}
 footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem}
@@ -195,7 +198,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .pilot-hero-copy h1{font-family:Georgia,serif;font-size:clamp(4rem,8vw,8rem);font-weight:400;letter-spacing:-.06em;line-height:.86;margin:28px 0}
 .pilot-hero-copy>p{font-size:1.08rem;line-height:1.6;margin:0 0 32px;max-width:560px}
 .pilot-term-card{align-self:end;background:var(--ink);color:white;padding:32px}
-.pilot-term-card>span{color:var(--coral);font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.pilot-term-card>span{color:var(--coral-deep);font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
 .pilot-term-card>strong{display:block;font-family:Georgia,serif;font-size:2.5rem;font-weight:400;line-height:1.05;margin:20px 0 30px}
 .pilot-term-card dl{margin:0}
 .pilot-term-card dl div{border-top:1px solid #4c6b61;padding:14px 0}
@@ -4381,14 +4384,14 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   overflow-x:hidden;
 }
 
-.home-skip-link{background:var(--coral);color:#fff;left:12px;padding:10px 16px;position:absolute;top:-60px;transition:top .15s;z-index:50}
+.home-skip-link{background:var(--coral-deep);color:#fff;left:12px;padding:10px 16px;position:absolute;top:-60px;transition:top .15s;z-index:50}
 .home-skip-link:focus{top:12px}
 
 .home-theme a{color:inherit;text-decoration:none}
 .home-theme :focus-visible{outline:3px solid var(--coral);outline-offset:2px}
 
 .home-eyebrow{color:var(--hp-green);font-size:.72rem;font-weight:800;letter-spacing:.14em;margin:0 0 14px;text-transform:uppercase}
-.home-button{background:var(--coral);border-radius:999px;color:#fff;display:inline-block;font-size:.9rem;font-weight:700;padding:15px 28px}
+.home-button{background:var(--coral-deep);border-radius:999px;color:#fff;display:inline-block;font-size:.9rem;font-weight:700;padding:15px 28px}
 .home-button-light{background:#fff;color:var(--ink);border:1px solid var(--line)}
 
 .home-section-heading{margin:0 auto 40px;max-width:640px;padding:0 5vw;text-align:center}
@@ -4425,7 +4428,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .home-how-track h3{font-family:var(--hp-font-display);font-size:1.3rem;font-weight:500;margin:0 0 18px}
 .home-how-track ol{margin:0;padding:0 0 0 22px;color:var(--muted);font-size:.95rem;line-height:1.6}
 .home-how-track li+li{margin-top:10px}
-.home-how-track li::marker{color:var(--coral);font-weight:700}
+.home-how-track li::marker{color:var(--coral-deep);font-weight:700}
 
 .home-chooser{padding:70px 5vw}
 .home-lane-grid{display:grid;gap:14px;grid-template-columns:repeat(4,1fr);margin:0 auto;max-width:1200px}
@@ -4454,7 +4457,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .biz-section small{display:inline-block;margin-top:10px;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .biz-steps{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));max-width:1000px;margin:0 auto}
 .biz-step{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:26px 24px}
-.biz-step span{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--coral);color:#fff;font-weight:800;margin-bottom:14px}
+.biz-step span{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--coral-deep);color:#fff;font-weight:800;margin-bottom:14px}
 .biz-step h3{font-family:var(--hp-font-display);font-size:1.15rem;font-weight:500;margin:0 0 8px}
 .biz-step p{color:var(--muted);font-size:.92rem;line-height:1.55;margin:0}
 .biz-pricing{padding:70px 5vw}
@@ -4587,7 +4590,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 }
 
 .tpl-text-link{display:inline-flex;align-items:center;gap:10px;font-size:.875rem;font-weight:700;color:var(--ink);border-bottom:1px solid currentColor;padding-bottom:4px;width:fit-content}
-.tpl-text-link:hover,.tpl-text-link:focus-visible{color:var(--brand-text, var(--coral))}
+.tpl-text-link:hover,.tpl-text-link:focus-visible{color:var(--brand-text, var(--coral-deep))}
 
 /* The primary action on an offering card is a filled button, not a text
    link -- there has to be visible hierarchy between "read more" and
@@ -4770,7 +4773,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .site-shell-brand{display:inline-flex;align-items:center;gap:9px;font-size:.78rem;font-weight:800;letter-spacing:.13em;color:var(--ink);flex:0 0 auto}
 .site-shell-nav{display:flex;gap:22px;font-size:.8rem;font-weight:700;flex-wrap:wrap;color:var(--ink)}
 .site-shell-nav a:hover{color:var(--coral)}
-.site-shell-business{font-size:.8rem;font-weight:700;color:var(--coral);flex:0 0 auto;white-space:nowrap}
+.site-shell-business{font-size:.8rem;font-weight:700;color:var(--coral-deep);flex:0 0 auto;white-space:nowrap}
 .site-shell-breadcrumb{padding:10px 5vw;font-size:.75rem;color:var(--muted);border-top:1px solid var(--line)}
 .site-shell-breadcrumb a{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:600}
 .site-shell-breadcrumb a:hover{color:var(--ink)}
@@ -4896,6 +4899,7 @@ img.biz-logo{object-fit:contain;background:#fff;border:1px solid var(--line)}
    feature-card, quieter treatment (dashed border, no photo/price/button)
    so it reads as "on the way," not broken or clickable. */
 .coming-soon-card{background:var(--card);border:1px dashed var(--line);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:48px 24px;text-align:center;min-height:220px}
+.coming-soon-notify{display:inline-block;font-size:.8rem;font-weight:700;color:var(--coral-deep);border-bottom:1px solid currentColor;padding-bottom:2px}
 .subsection-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));max-width:1100px;margin:0 auto 64px;padding:0 5vw}
 .subsection-card{background:var(--card);border:1px dashed var(--line);border-radius:20px;display:flex;flex-direction:column;gap:10px;padding:28px 24px;color:var(--ink);text-decoration:none;transition:border-color .2s,transform .2s}
 .subsection-card:hover{border-color:var(--ink);transform:translateY(-2px)}
