@@ -1,0 +1,87 @@
+import "server-only";
+import {
+  createPerson,
+  findPersonByEmail,
+  findPersonByUser,
+  getProfile,
+  linkPersonToUser,
+  listPendingInvitesForEmail,
+  markInviteAccepted,
+  markOrganizationClaimed,
+  upsertMembership,
+  upsertProfile,
+} from "@/db/accounts";
+import { logAudit } from "@/db/audit";
+import { platformOwnerEmails } from "./env";
+
+type AuthUser = {
+  id: string;
+  email?: string | null;
+  phone?: string | null;
+  user_metadata?: Record<string, unknown> | null;
+};
+
+function metaString(meta: Record<string, unknown> | null | undefined, key: string): string | null {
+  const value = meta?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+// Runs right after a code is verified, every time (idempotent): makes sure
+// the profile exists, grants platform_owner to the configured founders,
+// accepts any open invites for this email, and links the person record so
+// earlier bookings show up. Nothing here trusts the browser -- the only
+// inputs are the verified user and what they typed at sign-up (name, phone),
+// which Supabase stored as user_metadata.
+export async function bootstrapUser(user: AuthUser): Promise<void> {
+  const email = user.email?.trim().toLowerCase() ?? null;
+  const meta = user.user_metadata ?? null;
+  const existing = await getProfile(user.id);
+
+  const fullName = metaString(meta, "full_name") ?? existing?.fullName ?? (email ? email.split("@")[0] : "PortPass member");
+  const phoneFromSignup = metaString(meta, "phone_e164");
+  const isFounder = email !== null && platformOwnerEmails().includes(email);
+  const platformRole = existing?.platformRole ?? (isFounder ? "platform_owner" : null);
+
+  await upsertProfile({
+    userId: user.id,
+    fullName,
+    phoneE164: phoneFromSignup ?? existing?.phoneE164 ?? user.phone ?? null,
+    platformRole,
+  });
+
+  if (!existing && isFounder) {
+    await logAudit({ actorUserId: user.id, action: "profile.platform_owner_granted", targetTable: "profiles", targetId: user.id, after: { email } });
+  }
+
+  if (email) {
+    for (const invite of await listPendingInvitesForEmail(email)) {
+      await upsertMembership({
+        organizationId: invite.organizationId,
+        userId: user.id,
+        role: invite.role,
+        canViewMedical: invite.canViewMedical,
+        invitedBy: invite.invitedBy,
+      });
+      await markInviteAccepted(invite.id);
+      if (invite.role === "org_owner") await markOrganizationClaimed(invite.organizationId);
+      await logAudit({
+        actorUserId: user.id,
+        organizationId: invite.organizationId,
+        action: "invite.accepted",
+        targetTable: "organization_invites",
+        targetId: invite.id,
+        after: { role: invite.role, can_view_medical: invite.canViewMedical },
+      });
+    }
+
+    const byUser = await findPersonByUser(user.id);
+    if (!byUser) {
+      const byEmail = await findPersonByEmail(email);
+      if (byEmail && !byEmail.authUserId) {
+        await linkPersonToUser(byEmail.id, user.id);
+      } else if (!byEmail) {
+        await createPerson({ name: fullName, email, phoneE164: phoneFromSignup ?? user.phone ?? null, authUserId: user.id });
+      }
+    }
+  }
+}

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { authUiEnabled } from "@/lib/auth/env";
+import { HeaderAccount } from "./HeaderAccount";
 
 export type Crumb = { label: string; href: string };
 
@@ -39,7 +41,10 @@ export function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
         <nav className="site-shell-nav" aria-label="Categories">
           {CATEGORY_LINKS.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
         </nav>
-        <Link className="site-shell-business" href="/apply">For business</Link>
+        <div className="site-shell-header-actions">
+          <HeaderAccount enabled={authUiEnabled()} />
+          <Link className="site-shell-business" href="/apply">For business</Link>
+        </div>
       </div>
       {back && (
         <nav className="site-shell-breadcrumb" aria-label="Breadcrumb">
