@@ -4,6 +4,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   "sports-fitness": "Sports & Fitness",
   weddings: "Weddings",
   venues: "Venues",
+  tours: "Tours",
   events: "Events",
   entertainment: "Entertainment",
 };

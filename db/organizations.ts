@@ -493,6 +493,9 @@ export type Organization = {
   identityLayout: "overlay" | "split" | null;
   reviewsUrl: string | null;
   reviewsPlatform: string | null;
+  whatsappE164: string | null;
+  subcategory: string | null;
+  status: string;
 };
 
 // A directory entry is deliberately smaller than Organization -- it's what
@@ -516,7 +519,7 @@ export type OrganizationListing = {
   faqs: OrganizationFaq[];
 };
 
-const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color,logo_url,custom_domain,identity_layout,reviews_url,reviews_platform";
+const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color,logo_url,custom_domain,identity_layout,reviews_url,reviews_platform,whatsapp_e164,subcategory,status";
 
 const LISTING_OFFERING_COLUMNS = "id,organization_id,type,slug,name,summary,price_cents,price_unit,inclusions,schedule_text,age_min,age_max,term_start,term_end,event_date,doors_time,ticket_url,capacity,hourly_rate_cents,day_rate_cents,amenities,lead_time_text,image_url,action_url,is_featured";
 
@@ -545,6 +548,9 @@ function toListingOrganization(row: Record<string, unknown>): Organization {
     identityLayout: (row.identity_layout as "overlay" | "split" | null) ?? null,
     reviewsUrl: row.reviews_url as string | null,
     reviewsPlatform: row.reviews_platform as string | null,
+    whatsappE164: (row.whatsapp_e164 as string | null) ?? null,
+    subcategory: (row.subcategory as string | null) ?? null,
+    status: (row.status as string | null) ?? "draft",
   };
 }
 
@@ -724,4 +730,45 @@ export async function listCategoryOrganizations(category: string): Promise<Categ
     brandColor: row.brand_color as string | null,
     isPublished: Boolean(row.is_published),
   }));
+}
+
+export type SectionBusiness = {
+  slug: string;
+  name: string;
+  primaryCategory: string | null;
+  subcategory: string | null;
+  logoUrl: string | null;
+  brandColor: string | null;
+  heroImageUrl: string | null;
+  oneLiner: string | null;
+  isPublished: boolean;
+};
+
+// Businesses for a data-driven section or subcategory page: approved or
+// live (or anything published, as a safety net), optionally narrowed to
+// one subcategory. Same visibility rule as listCategoryOrganizations,
+// with the fields the generic CategoryPage needs to render a card.
+export async function listSectionBusinesses(section: string, subcategory?: string | null): Promise<SectionBusiness[]> {
+  const supabase = getSupabaseAdmin();
+  let query = supabase
+    .from("organizations")
+    .select("slug,name,primary_category,subcategory,logo_url,brand_color,hero_image_url,one_liner,is_published")
+    .eq("primary_category", section)
+    .or("status.in.(approved,live),is_published.eq.true");
+  if (subcategory) query = query.eq("subcategory", subcategory);
+  const { data, error } = await query.order("id", { ascending: true });
+  throwIfSupabaseError(error, "Could not load section businesses");
+  return (data ?? [])
+    .filter((row) => typeof row.slug === "string" && row.slug)
+    .map((row) => ({
+      slug: row.slug as string,
+      name: row.name as string,
+      primaryCategory: (row.primary_category as string | null) ?? null,
+      subcategory: (row.subcategory as string | null) ?? null,
+      logoUrl: (row.logo_url as string | null) ?? null,
+      brandColor: (row.brand_color as string | null) ?? null,
+      heroImageUrl: (row.hero_image_url as string | null) ?? null,
+      oneLiner: (row.one_liner as string | null) ?? null,
+      isPublished: Boolean(row.is_published),
+    }));
 }
