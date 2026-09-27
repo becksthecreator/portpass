@@ -7,7 +7,8 @@
 export type OgPhoto = { data: ArrayBuffer | Buffer; mime: "image/jpeg" | "image/png" };
 
 export function OrgOgCard({ name, tagline, photo }: { name: string; tagline?: string | null; photo?: OgPhoto | null }) {
-  const src = photo ? `data:${photo.mime};base64,${Buffer.from(photo.data).toString("base64")}` : null;
+  const bytes = photo ? (Buffer.isBuffer(photo.data) ? photo.data : Buffer.from(photo.data)) : null;
+  const src = photo && bytes ? `data:${photo.mime};base64,${bytes.toString("base64")}` : null;
   const ink = src ? "#ffffff" : "#14303d";
   const soft = src ? "#e6eef0" : "#43524f";
   const faint = src ? "#cfdadf" : "#5a6b64";
