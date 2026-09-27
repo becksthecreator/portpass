@@ -75,8 +75,12 @@ export async function middleware(request: NextRequest) {
   if (domainRewrite) return domainRewrite;
 
   const { pathname } = request.nextUrl;
+  // "/api/applications/" with the slash: the collection endpoint
+  // (POST /api/applications) is the public /apply form; only the review
+  // endpoint (PATCH /api/applications/[id]) is admin-only, and it checks
+  // the admin cookie itself as well.
   const needsAdminAuth =
-    pathname.startsWith("/admin") || pathname.startsWith("/organizations") || pathname.startsWith("/api/applications");
+    pathname.startsWith("/admin") || pathname.startsWith("/organizations") || pathname.startsWith("/api/applications/");
   if (!needsAdminAuth) return NextResponse.next();
 
   if (pathname === "/admin/login") return NextResponse.next();
