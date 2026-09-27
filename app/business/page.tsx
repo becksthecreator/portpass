@@ -45,9 +45,8 @@ export default function BusinessPage() {
       <div className="biz-sections">
         {SECTIONS.map((section) => (
           <div className="biz-section" key={section.slug}>
-            <h3>{section.href ? <Link href={section.href}>{section.name}</Link> : section.name}</h3>
+            <h3><Link href={section.href}>{section.name}</Link></h3>
             <p>{section.line}</p>
-            {!section.href && <small>Coming soon</small>}
           </div>
         ))}
       </div>

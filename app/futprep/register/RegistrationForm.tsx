@@ -1,5 +1,7 @@
 "use client";
 
+import { ShareOnWhatsApp } from "@/app/_components/blocks/WhatsAppActions";
+
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -187,6 +189,7 @@ export function RegistrationForm() {
           <div><dt>Amount</dt><dd>{formatMoney(result.amountDueCents)}{form.paymentFrequency === "weekly" ? " per class" : ""}</dd></div>
           <div><dt>Status</dt><dd><span className="status status-submitted">Payment pending</span></dd></div>
         </dl>
+        <p className="confirmation-share"><ShareOnWhatsApp url="https://portpassbahamas.com/sports-fitness/futprep-athletics" text={`${form.childName} is registered with Futprep Athletics on PortPass:`} /></p>
         <div className="payment-instruction">
           <strong>{form.paymentMethod === "cash" ? "Cash payment" : paymentMethodLabel(form.paymentMethod)}</strong>
           {form.paymentMethod === "cash" ? (

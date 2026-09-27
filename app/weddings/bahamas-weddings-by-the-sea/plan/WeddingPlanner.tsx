@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { PublicWeddingPackage } from "@/db/weddingPackages";
 import { formatPrice } from "@/app/_components/blocks/format";
+import { ShareOnWhatsApp } from "@/app/_components/blocks/WhatsAppActions";
 
 const WHATSAPP_NUMBER = "12424241262";
 
@@ -214,6 +215,7 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
         <h1>Your plan is on its way to the Wedding Desk.</h1>
         <p>Thank you, {form.names}. A Wedding Desk representative will follow up to refine the details before Antonio reviews your complete plan. Prefer to talk now?</p>
         <a className="bws-button bws-button-dark" href={whatsappHref} target="_blank" rel="noopener noreferrer">Message the Wedding Desk on WhatsApp <span aria-hidden="true">↗</span></a>
+        <p className="confirmation-share"><ShareOnWhatsApp url="https://portpassbahamas.com/weddings/bahamas-weddings-by-the-sea" text="We're planning our wedding with Bahamas Weddings By The Sea on PortPass:" /></p>
       </section>
     );
   }

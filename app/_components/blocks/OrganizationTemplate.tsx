@@ -7,7 +7,9 @@ import { PracticalBlock } from "./PracticalBlock";
 import { PeopleBlock } from "./PeopleBlock";
 import { QuestionsBlock } from "./QuestionsBlock";
 import { ActionBlock } from "./ActionBlock";
+import { MessageOnWhatsApp, ShareOnWhatsApp } from "./WhatsAppActions";
 import { categoryLabel } from "./categoryLabel";
+import { directoryHref } from "./directoryHref";
 import { formatAgeRange } from "./format";
 import { computeBrandTokens } from "./brand";
 
@@ -53,6 +55,10 @@ export function OrganizationTemplate({ listing }: { listing: OrganizationListing
       <PracticalBlock facts={practicalFacts} />
       <PeopleBlock name={org.ownerName} bio={org.ownerBio} imageUrl={org.ownerImageUrl} />
       <QuestionsBlock faqs={faqs} />
+      <div className="tpl-whatsapp">
+        {org.whatsappE164 && <MessageOnWhatsApp e164={org.whatsappE164} businessName={org.name} />}
+        <ShareOnWhatsApp url={`https://portpassbahamas.com${directoryHref(org.slug, org.primaryCategory)}`} text={`${org.name} on PortPass:`} />
+      </div>
       {hasPricedOffering && <ActionBlock label="See prices & get started" href="#offerings" />}
     </main>
   );

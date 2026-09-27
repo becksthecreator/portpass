@@ -1,17 +1,12 @@
 import Link from "next/link";
+import { getNavSections } from "@/lib/navSections";
 
 export const metadata = {
   title: "Page not found | PortPass Bahamas",
 };
 
-const CATEGORIES = [
-  { href: "/sports-fitness", label: "Sports & Fitness" },
-  { href: "/weddings", label: "Weddings" },
-  { href: "/venues", label: "Venues" },
-  { href: "/entertainment", label: "Entertainment" },
-];
-
-export default function NotFound() {
+export default async function NotFound() {
+  const CATEGORIES = await getNavSections();
   return (
     <main style={{ minHeight: "100vh", background: "var(--sand)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
       <div className="dashboard-empty" style={{ maxWidth: 560, textAlign: "center" }}>

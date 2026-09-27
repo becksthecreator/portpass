@@ -1,18 +1,13 @@
 import Link from "next/link";
 import { PORTPASS_PHONE_DISPLAY, PORTPASS_PHONE_E164, PORTPASS_SUPPORT_EMAIL } from "@/lib/contact";
-
-const CATEGORY_LINKS = [
-  { label: "Sports & Fitness", href: "/sports-fitness" },
-  { label: "Weddings", href: "/weddings" },
-  { label: "Venues", href: "/venues" },
-  { label: "Entertainment", href: "/entertainment" },
-];
+import { getNavSections } from "@/lib/navSections";
 
 // The one footer every PortPass-branded page renders. An organization page
 // appends its own credit line above this via the orgLine prop, but the
 // company name, contact details, and legal links are always the same --
 // no page should be missing any of them.
-export function SiteFooter({ orgLine }: { orgLine?: string }) {
+export async function SiteFooter({ orgLine }: { orgLine?: string }) {
+  const categoryLinks = await getNavSections();
   return (
     <footer className="site-shell-footer">
       {orgLine && <p className="site-shell-footer-org">{orgLine}</p>}
@@ -24,7 +19,7 @@ export function SiteFooter({ orgLine }: { orgLine?: string }) {
           </p>
         </div>
         <nav className="site-shell-footer-categories" aria-label="Categories">
-          {CATEGORY_LINKS.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
+          {categoryLinks.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
         </nav>
       </div>
       <div className="site-shell-footer-legal">

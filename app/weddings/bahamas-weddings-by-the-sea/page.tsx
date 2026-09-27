@@ -10,6 +10,7 @@ import { PeopleBlock } from "@/app/_components/blocks/PeopleBlock";
 import { ServicesBlock } from "@/app/_components/blocks/ServicesBlock";
 import { QuestionsBlock } from "@/app/_components/blocks/QuestionsBlock";
 import { ActionBlock } from "@/app/_components/blocks/ActionBlock";
+import { MessageOnWhatsApp, ShareOnWhatsApp } from "@/app/_components/blocks/WhatsAppActions";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { ppDisplay, ppSans } from "@/app/fonts";
@@ -201,6 +202,10 @@ export default async function BahamasWeddingsListingPage() {
             </a>
           </section>
         )}
+        <div className="tpl-whatsapp">
+          <MessageOnWhatsApp e164="+12424241262" businessName="Antonio" />
+          <ShareOnWhatsApp url="https://portpassbahamas.com/weddings/bahamas-weddings-by-the-sea" text="Bahamas Weddings By The Sea on PortPass:" />
+        </div>
         <ActionBlock label="See prices & get started" href="#offerings" />
       </main>
       <SiteFooter orgLine="Bahamas Weddings By The Sea · Booking and payments powered by PortPass" />
