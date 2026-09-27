@@ -3,17 +3,21 @@ import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type OrganizationRecord = {
   id: number;
-  application_id: number;
+  // Nullable since the WhatsApp-first /apply and the owner setup wizard
+  // (27 Sept): a business no longer has to arrive through an application
+  // with every questionnaire answer filled in.
+  application_id: number | null;
   name: string;
-  primary_contact: string;
-  email: string;
-  phone: string;
-  activity_type: string;
-  main_location: string;
+  primary_contact: string | null;
+  email: string | null;
+  phone: string | null;
+  activity_type: string | null;
+  main_location: string | null;
   created_at: string;
   slug: string | null;
   theme: Record<string, string>;
   registration_url: string | null;
+  status: "draft" | "submitted" | "approved" | "live" | "suspended";
 };
 
 export type OrganizationStats = {
@@ -695,18 +699,22 @@ export type CategoryOrganizationEntry = {
   isPublished: boolean;
 };
 
-// A category page shows every business in that category, live or not --
-// unlike listPublishedOrganizations (homepage carousel/chips), which only
-// ever shows what's genuinely open. A row with is_published false here
-// renders as a Coming Soon card (see ComingSoonCard.tsx) rather than
-// being invisible: a category with a business mid-onboarding should say
-// so, not look empty. is_directory_listed plays no role in this query.
+// A category page shows every *approved* business in that category, live
+// or not -- unlike listPublishedOrganizations (homepage carousel/chips),
+// which only ever shows what's genuinely open. An approved row with
+// is_published false renders as a Coming Soon card (see ComingSoonCard.tsx)
+// rather than being invisible: a category with a business mid-onboarding
+// should say so, not look empty. Drafts and submitted-but-unreviewed
+// businesses (self-serve sign-ups) never appear here; a published row is
+// always shown whatever its status says, so a status mix-up can't hide a
+// live business. is_directory_listed plays no role in this query.
 export async function listCategoryOrganizations(category: string): Promise<CategoryOrganizationEntry[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("organizations")
     .select("slug,name,logo_url,brand_color,is_published")
     .eq("primary_category", category)
+    .or("status.in.(approved,live),is_published.eq.true")
     .order("id", { ascending: true });
   throwIfSupabaseError(error, "Could not load category organizations");
   return (data ?? []).map((row) => ({

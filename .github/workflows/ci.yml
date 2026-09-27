@@ -64,6 +64,9 @@ jobs:
           fi
           echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
           echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          # The anon/publishable key lets tests prove RLS keeps browsers out.
+          ANON_KEY=$(grep -E '^(ANON_KEY|SUPABASE_ANON_KEY|PUBLISHABLE_KEY|SUPABASE_PUBLISHABLE_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
       - name: Seed test data
         run: npx tsx scripts/seed-test-data.ts
       - name: Integration tests (security regressions in their own describe blocks)

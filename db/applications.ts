@@ -130,6 +130,10 @@ export async function reviewApplication(
         activity_type: app.activity_type ?? app.section,
         main_location: app.main_location,
         primary_category: app.section,
+        // Approving an application is PortPass approving the business, so
+        // it can appear as Coming Soon on its category page right away.
+        status: "approved",
+        approved_at: now,
         created_at: now,
       },
       { onConflict: "application_id" },
