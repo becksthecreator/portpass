@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PORTPASS_ADMIN_COOKIE, verifyAdminToken } from "@/lib/admin-auth";
+import { needsSession, updateSession } from "@/lib/auth/middleware";
 
 // Broadened from the old admin-only matcher so the domain-routing check
 // below runs on every real page request. Still excludes _next and any
@@ -14,8 +15,21 @@ const PLATFORM_HOST = "portpassbahamas.com";
 const DOMAIN_CACHE_TTL_MS = 60_000;
 // Paths that should resolve the same way regardless of which hostname the
 // request came in on -- a business's own domain never needs to reach
-// PortPass's admin surface or another business's /sites/ route.
-const NEVER_REWRITE_PREFIXES = ["/api", "/admin", "/organizations", "/sites", "/icons", "/apple-icon"];
+// PortPass's admin surface, another business's /sites/ route, or the
+// account/sign-in pages (those are PortPass's, not the business's).
+const NEVER_REWRITE_PREFIXES = [
+  "/api",
+  "/admin",
+  "/organizations",
+  "/sites",
+  "/icons",
+  "/apple-icon",
+  "/login",
+  "/signup",
+  "/account",
+  "/where-to",
+  "/business",
+];
 
 let domainCache: { map: Map<string, string>; fetchedAt: number } | null = null;
 
@@ -74,19 +88,33 @@ export async function middleware(request: NextRequest) {
   const domainRewrite = await rewriteForCustomDomain(request);
   if (domainRewrite) return domainRewrite;
 
-  const { pathname } = request.nextUrl;
-  // "/api/applications/" with the slash: the collection endpoint
-  // (POST /api/applications) is the public /apply form; only the review
-  // endpoint (PATCH /api/applications/[id]) is admin-only, and it checks
-  // the admin cookie itself as well.
+  // Refreshes the Supabase session cookies and says whether one exists.
+  // Only "signed in or not" is decided here; what the person may do is
+  // worked out server-side by lib/auth/guards.ts on each page and route.
+  const { response, hasSession } = await updateSession(request);
+  const { pathname, search } = request.nextUrl;
+
+  if (needsSession(pathname) && !hasSession) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+    }
+    const login = new URL("/login", request.url);
+    login.searchParams.set("next", `${pathname}${search}`);
+    return NextResponse.redirect(login);
+  }
+
+  // Legacy shared-PIN gate for the super-admin area and the application
+  // review endpoint (PATCH /api/applications/[id]); replaced by the
+  // accounts guards in the admin console rebuild. POST /api/applications
+  // (the public /apply form) is deliberately not behind it.
   const needsAdminAuth =
     pathname.startsWith("/admin") || pathname.startsWith("/organizations") || pathname.startsWith("/api/applications/");
-  if (!needsAdminAuth) return NextResponse.next();
+  if (!needsAdminAuth) return response;
 
-  if (pathname === "/admin/login") return NextResponse.next();
+  if (pathname === "/admin/login") return response;
 
   const token = request.cookies.get(PORTPASS_ADMIN_COOKIE)?.value;
-  if (await verifyAdminToken(token)) return NextResponse.next();
+  if (await verifyAdminToken(token)) return response;
 
   if (pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
