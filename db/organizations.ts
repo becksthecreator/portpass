@@ -732,6 +732,31 @@ export async function listCategoryOrganizations(category: string): Promise<Categ
   }));
 }
 
+// The owner's own preview: the same shape the public page renders from,
+// without the is_published gate, so a draft can be seen before it's live.
+// Callers must have checked access (lib/auth/guards.ts) first.
+export async function getOrganizationListingForPreview(organizationId: number): Promise<OrganizationListing | null> {
+  const supabase = getSupabaseAdmin();
+  const { data: orgRow, error: orgError } = await supabase.from("organizations").select(LISTING_ORGANIZATION_COLUMNS).eq("id", organizationId).maybeSingle();
+  throwIfSupabaseError(orgError, "Could not load organization");
+  if (!orgRow) return null;
+  const organization = toListingOrganization(orgRow);
+  const [offeringsResult, imagesResult, faqsResult] = await Promise.all([
+    supabase.from("offerings").select(LISTING_OFFERING_COLUMNS).eq("organization_id", organization.id).order("sort_order", { ascending: true }),
+    supabase.from("organization_images").select("id,url,alt").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
+    supabase.from("organization_faqs").select("id,question,answer,link_url,link_label").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
+  ]);
+  throwIfSupabaseError(offeringsResult.error, "Could not load offerings");
+  throwIfSupabaseError(imagesResult.error, "Could not load organization images");
+  throwIfSupabaseError(faqsResult.error, "Could not load organization FAQs");
+  return {
+    organization,
+    offerings: (offeringsResult.data ?? []).map(toListingOffering),
+    images: (imagesResult.data ?? []).map((row) => ({ id: Number(row.id), url: row.url as string, alt: row.alt as string | null })),
+    faqs: (faqsResult.data ?? []).map((row) => ({ id: Number(row.id), question: row.question as string, answer: row.answer as string, linkUrl: row.link_url as string | null, linkLabel: row.link_label as string | null })),
+  };
+}
+
 export type SectionBusiness = {
   slug: string;
   name: string;
