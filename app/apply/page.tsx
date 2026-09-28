@@ -7,6 +7,10 @@ import { getSectionOptions } from "@/lib/navSections";
 const APPLY_TITLE = "Get listed on PortPass | PortPass Bahamas";
 const APPLY_DESCRIPTION = "Send us the basics and we'll message you on WhatsApp to build your page: your prices, photos and a booking button, in one link.";
 
+// ISR: the header now shows live counts from the database, so a static page
+// regenerates every five minutes rather than only at deploy time.
+export const revalidate = 300;
+
 export const metadata = {
   title: APPLY_TITLE,
   description: APPLY_DESCRIPTION,

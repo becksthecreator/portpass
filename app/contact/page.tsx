@@ -5,6 +5,10 @@ import { PORTPASS_PHONE_DISPLAY, PORTPASS_PHONE_E164, PORTPASS_SUPPORT_EMAIL, PO
 const TITLE = "Contact | PortPass Bahamas";
 const DESCRIPTION = "Get in touch with PortPass Bahamas.";
 
+// ISR: the header now shows live counts from the database, so a static page
+// regenerates every five minutes rather than only at deploy time.
+export const revalidate = 300;
+
 export const metadata = {
   title: TITLE,
   description: DESCRIPTION,
