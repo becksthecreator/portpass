@@ -119,7 +119,10 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
       <SiteHeader breadcrumb={breadcrumb} />
       <section className="category-hero category-hero-plain">
         <div className="category-hero-inner">
-          <span className="category-hero-eyebrow">{subcategory ? section.name : "PortPass"}{belowThreshold ? " · Coming soon" : ""}</span>
+          {/* "Coming soon" only when there is nothing to book; below the
+              threshold but with a live business, the page is open (the
+              threshold still drives the reassurance block further down). */}
+          <span className="category-hero-eyebrow">{subcategory ? section.name : "PortPass"}{liveCount === 0 ? " · Coming soon" : ""}</span>
           <h1>{current.name} in The Bahamas.</h1>
           <p>
             {liveCount > 0
