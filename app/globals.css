@@ -4536,6 +4536,51 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .tpl-button-secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
 .share-whatsapp{color:var(--coral-deep);font-size:.9rem;font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .confirmation-share{margin:14px 0 0;font-size:.9rem}
+/* Owner setup wizard / settings, business home, preview banner. */
+.wiz-head{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-end;margin-bottom:14px}
+.wiz-progress{height:6px;background:var(--sand);border-radius:999px;overflow:hidden;flex:1 1 200px;max-width:280px}
+.wiz-progress span{display:block;height:100%;background:var(--coral-deep);transition:width .3s}
+.wiz-steps{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0 0 22px;padding:0}
+.wiz-steps button{background:var(--card);border:1px solid var(--line);border-radius:999px;color:var(--muted);cursor:pointer;font:inherit;font-size:.74rem;font-weight:700;padding:6px 11px}
+.wiz-steps button.is-done{border-color:var(--ink);color:var(--ink)}
+.wiz-steps button.is-active{background:var(--ink);border-color:var(--ink);color:#fff}
+.wiz-notice{background:#e7f3ec;border-left:3px solid #2f7a56;color:#1d4d37;font-size:.9rem;margin:0 0 16px;padding:10px 14px}
+.wiz-problems{background:#fbeaea;border-left:3px solid #9d2525;color:#7a1d1d;font-size:.9rem;margin:0 0 16px;padding:10px 14px 10px 30px}
+.wiz-two{display:grid;gap:22px;grid-template-columns:1fr 1fr}
+.wiz-count{color:var(--muted);font-style:normal;font-weight:400;margin-left:8px}
+.wiz-upload{display:flex;flex-direction:column;gap:10px}
+.wiz-upload>span{font-size:.74rem;font-weight:800}
+.wiz-logo{width:84px;height:84px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px}
+.wiz-photos{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+.wiz-photos figure{margin:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.wiz-photos figure.is-hero{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.wiz-photos img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.wiz-photos figure div{display:flex;gap:6px;padding:6px}
+.wiz-photos button,.wiz-list button{background:none;border:1px solid var(--line);border-radius:8px;color:var(--ink);cursor:pointer;font:inherit;font-size:.74rem;font-weight:700;padding:4px 8px}
+.wiz-photos button:disabled{color:var(--muted);cursor:default}
+.wiz-color{display:flex;gap:10px;align-items:center}
+.wiz-color input[type=color]{width:52px;height:44px;padding:0;border:1px solid var(--line);border-radius:8px;background:none;min-height:0}
+.wiz-color input[type=text],.wiz-color input:not([type]){max-width:130px}
+.wiz-swatch{align-items:center;border-radius:8px;color:#fff;display:inline-flex;font-weight:800;height:44px;justify-content:center;width:52px}
+.wiz-warn{color:#8d2330}
+.wiz-list{list-style:none;margin:0 0 6px;padding:0;display:grid;gap:8px}
+.wiz-list li{align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;display:flex;gap:12px;justify-content:space-between;padding:12px 14px}
+.wiz-list li>div:first-child{display:flex;flex-direction:column;gap:2px}
+.wiz-list li span{color:var(--muted);font-size:.82rem}
+.wiz-list li>div:last-child{display:flex;gap:6px;flex:none}
+.wiz-subform{border:1px dashed var(--line);border-radius:14px;padding:18px}
+.wiz-subform>strong{display:block;margin-bottom:4px}
+.wiz-fieldset{border:0;margin:0;padding:0;display:grid;gap:12px}
+.wiz-check{align-items:center;display:flex;gap:10px;font-weight:700}
+.wiz-check input{width:auto;min-height:0}
+.wiz-check.is-disabled{color:var(--muted)}
+.wiz-check-inline{align-self:end;padding-bottom:12px}
+.wiz-checklist{list-style:none;margin:18px 0;padding:0;display:grid;gap:6px;color:var(--muted)}
+.wiz-checklist li.is-done{color:var(--ink)}
+.biz-home-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:18px}
+.preview-banner{background:var(--ink);color:#fff;font-size:.9rem;padding:10px 5vw;text-align:center}
+.preview-banner a{color:#fff;text-decoration:underline;margin-left:6px}
+@media(max-width:640px){.wiz-two{grid-template-columns:1fr}}
 @media(max-width:640px){
   .auth-card{margin-top:28px;padding:28px 18px}
   .auth-doors{grid-template-columns:1fr}

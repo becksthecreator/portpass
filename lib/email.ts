@@ -60,7 +60,7 @@ function emailShell(title: string, bodyHtml: string) {
   </div>`;
 }
 
-function portpassFrom(): string | undefined {
+export function portpassFrom(): string | undefined {
   return process.env.PORTPASS_FROM_EMAIL ?? process.env.FUTPREP_FROM_EMAIL;
 }
 
@@ -114,6 +114,38 @@ export async function sendApplicationReceivedEmail(input: {
       <p><a href="https://portpassbahamas.com/admin" style="color:#B9532A">Open the approvals queue →</a></p>
     `),
   });
+}
+
+// Someone swapping a business's bank details is the fraud to design out,
+// so every change tells every owner, whoever made it.
+export async function sendBankDetailsChangedEmail(input: { to: string[]; businessName: string; changedBy: string; settingsUrl: string }) {
+  for (const to of input.to) {
+    await sendEmail({
+      to,
+      from: portpassFrom(),
+      subject: `Your payment details were changed — ${input.businessName}`,
+      html: portpassEmailShell("Your payment details were changed", `
+        <p>The bank-transfer details customers see for <strong>${escapeHtml(input.businessName)}</strong> were just changed by <strong>${escapeHtml(input.changedBy)}</strong>.</p>
+        <p>If that was you or your team, nothing to do. If it wasn't, change them back now and reply to this email so we can help.</p>
+        <p><a href="${input.settingsUrl}" style="color:#B9532A">Review payment details →</a></p>
+      `),
+    });
+  }
+}
+
+export async function sendBusinessSubmittedEmail(input: { to: string[]; businessName: string; section: string | null; submittedBy: string; previewUrl: string }) {
+  for (const to of input.to) {
+    await sendEmail({
+      to,
+      from: portpassFrom(),
+      subject: `Review request — ${input.businessName}`,
+      html: portpassEmailShell("A business is ready for review", `
+        <p><strong>${escapeHtml(input.businessName)}</strong>${input.section ? ` (${escapeHtml(input.section)})` : ""} was submitted by ${escapeHtml(input.submittedBy)}.</p>
+        <p><a href="${input.previewUrl}" style="color:#B9532A">Preview the page →</a> &nbsp; <a href="https://portpassbahamas.com/admin" style="color:#B9532A">Open the approvals queue →</a></p>
+        <p>The owner has been told to expect a reply within 2 business days.</p>
+      `),
+    });
+  }
 }
 
 export async function sendFutprepRegistrationReceivedEmail(input: {
