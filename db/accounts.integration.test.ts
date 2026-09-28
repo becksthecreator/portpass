@@ -24,7 +24,7 @@ describe("categories seed", () => {
     const sections = await listSections({ includeHidden: true });
     expect(sections.map((s) => s.slug)).toEqual(["sports-fitness", "weddings", "venues", "tours", "entertainment", "services"]);
     const entertainment = sections.find((s) => s.slug === "entertainment")!;
-    expect(entertainment.subcategories.map((c) => c.slug)).toEqual(["events", "djs", "sound-equipment"]);
+    expect(entertainment.subcategories.map((c) => c.slug)).toEqual(["events", "djs", "sound-equipment", "party-rentals", "photo-booths"]);
     // Nine visible plus the three hidden in round 5 (Equestrian, Padel,
     // Volleyball) -- hidden rows are kept, not deleted.
     expect(sections.find((s) => s.slug === "sports-fitness")!.subcategories.length).toBe(12);
