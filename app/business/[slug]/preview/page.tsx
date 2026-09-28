@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { OrganizationTemplate } from "@/app/_components/blocks/OrganizationTemplate";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
-import { ppDisplay, ppSans } from "@/app/fonts";
+import { bizDisplay, ppSans } from "@/app/fonts";
 import { getBusinessBySlug } from "@/db/business";
 import { getOrganizationListingForPreview } from "@/db/organizations";
 import { requireOrgRole } from "@/lib/auth/guards";
@@ -26,7 +26,7 @@ export default async function BusinessPreviewPage({ params }: { params: Promise<
   if (!listing) notFound();
 
   return (
-    <div className={`${ppDisplay.variable} ${ppSans.variable}`}>
+    <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "My business", href: `/business/${slug}` }, { label: "Preview", href: `/business/${slug}/preview` }]} />
       <div className="preview-banner" role="status">
         <strong>Preview</strong> — this is how your page will look. {business.isPublished ? "It's live." : "It isn't public yet."}{" "}

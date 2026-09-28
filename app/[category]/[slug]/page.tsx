@@ -4,7 +4,7 @@ import { CategoryPage, countLiveBusinesses } from "@/app/_components/CategoryPag
 import { OrganizationTemplate } from "@/app/_components/blocks/OrganizationTemplate";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
-import { ppDisplay, ppSans } from "@/app/fonts";
+import { bizDisplay, ppSans } from "@/app/fonts";
 import { listSections } from "@/db/categories";
 import { getOrganizationListingBySlug } from "@/db/organizations";
 
@@ -64,7 +64,7 @@ export default async function SectionSlugPage({ params }: { params: Params }) {
 
   const listing = resolved.listing!;
   return (
-    <div className={`${ppDisplay.variable} ${ppSans.variable}`}>
+    <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: resolved.section.name, href: `/${category}` }, { label: listing.organization.name, href: `/${category}/${slug}` }]} />
       <OrganizationTemplate listing={listing} />
       <SiteFooter orgLine={`${listing.organization.name} · Booking and payments powered by PortPass`} />

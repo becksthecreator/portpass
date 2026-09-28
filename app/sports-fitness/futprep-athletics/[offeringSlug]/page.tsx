@@ -4,7 +4,7 @@ import { getOfferingListingBySlug } from "@/db/organizations";
 import { ProgramTemplate } from "@/app/_components/blocks/OfferingTemplate";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
-import { ppDisplay, ppSans } from "@/app/fonts";
+import { bizDisplay, ppSans } from "@/app/fonts";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +49,7 @@ export default async function FutprepOfferingPage({ params }: { params: Promise<
   } : null;
 
   return (
-    <div className={`${ppDisplay.variable} ${ppSans.variable}`}>
+    <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
       {courseSchema && (
         <Script id="offering-course-schema" type="application/ld+json">
           {JSON.stringify(courseSchema)}

@@ -3,7 +3,7 @@ import { getOrganizationListingBySlug } from "@/db/organizations";
 import { OrganizationTemplate } from "@/app/_components/blocks/OrganizationTemplate";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
-import { ppDisplay, ppSans } from "@/app/fonts";
+import { bizDisplay, ppSans } from "@/app/fonts";
 
 // force-dynamic: reads live organization/offering data at request time.
 export const dynamic = "force-dynamic";
@@ -29,7 +29,7 @@ export default async function FutprepOrganizationPage() {
   if (!listing) notFound();
 
   return (
-    <div className={`${ppDisplay.variable} ${ppSans.variable}`}>
+    <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: listing.organization.name, href: "/sports-fitness/futprep-athletics" }]} />
       <OrganizationTemplate listing={listing} />
       <SiteFooter orgLine={`${listing.organization.name} · Booking and payments powered by PortPass`} />
