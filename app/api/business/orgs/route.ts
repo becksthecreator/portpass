@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { createDraftBusiness, findDraftForUser } from "@/db/business";
-import { getCategoryBySlug } from "@/db/categories";
+import { getCategoryBySlug, isKnownSectionSlug } from "@/db/categories";
 import { requireSignedInApi } from "@/lib/auth/guards";
-import { isSectionSlug } from "@/lib/sections";
 
 function str(body: Record<string, unknown>, key: string, max: number): string {
   return typeof body[key] === "string" ? body[key].trim().slice(0, max) : "";
@@ -25,7 +24,7 @@ export async function POST(request: Request) {
   const section = str(body, "section", 40);
   const subcategory = str(body, "subcategory", 60) || null;
   if (!name) return NextResponse.json({ error: "Give your business a name." }, { status: 400 });
-  if (!isSectionSlug(section)) return NextResponse.json({ error: "Choose one of the five sections." }, { status: 400 });
+  if (!(await isKnownSectionSlug(section))) return NextResponse.json({ error: "Choose a section." }, { status: 400 });
   if (subcategory) {
     const cat = await getCategoryBySlug(subcategory).catch(() => null);
     const parent = cat?.parentId ? await getCategoryBySlug(section) : null;

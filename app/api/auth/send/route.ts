@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createAuthClient } from "@/lib/auth/server";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { normalizePhoneE164 } from "@/lib/phone";
-import { isSectionSlug } from "@/lib/sections";
+import { isKnownSectionSlug } from "@/db/categories";
 
 // @public-route: this is how anyone starts signing in.
 const ipLimited = createRateLimiter(10, 10 * 60_000);
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   const intent = str(body, "intent", 20);
   const businessName = str(body, "businessName", 150);
   const section = str(body, "section", 40);
-  if (section && !isSectionSlug(section)) return NextResponse.json({ error: "Choose one of the five sections." }, { status: 400 });
+  if (section && !(await isKnownSectionSlug(section))) return NextResponse.json({ error: "Choose a section." }, { status: 400 });
 
   const data: Record<string, string> = {};
   if (fullName) data.full_name = fullName;

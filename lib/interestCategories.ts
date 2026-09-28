@@ -1,8 +1,8 @@
 // Shared by the client-side InterestForm and the server route/db layer, so
 // it must stay free of server-only imports. The database check constraint
 // on interest_submissions.category mirrors this list exactly (see
-// supabase/migrations/202609271001_interest_categories_widen.sql) -- add
-// to both together.
+// supabase/migrations/202609281001_sections_round5.sql) -- add to both
+// together.
 export const INTEREST_CATEGORIES = [
   "venues",
   "events",
@@ -12,6 +12,9 @@ export const INTEREST_CATEGORIES = [
   "sports-fitness",
   "weddings",
   "tours",
+  "services",
+  "photography",
+  "phone-tech-repair",
 ] as const;
 
 export type InterestCategory = (typeof INTEREST_CATEGORIES)[number];

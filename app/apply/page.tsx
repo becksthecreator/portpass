@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { ApplicationForm } from "./ApplicationForm";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
+import { getSectionOptions } from "@/lib/navSections";
 
 const APPLY_TITLE = "Get listed on PortPass | PortPass Bahamas";
 const APPLY_DESCRIPTION = "Send us the basics and we'll message you on WhatsApp to build your page: your prices, photos and a booking button, in one link.";
@@ -23,7 +24,8 @@ export const metadata = {
   },
 };
 
-export default function ApplyPage() {
+export default async function ApplyPage() {
+  const sections = await getSectionOptions();
   return (
     <main className="form-page">
       <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }, { label: "Get listed", href: "/apply" }]} />
@@ -35,7 +37,7 @@ export default function ApplyPage() {
       </section>
       {/* useSearchParams (for the UTM tags) needs a Suspense boundary on a statically rendered page. */}
       <Suspense fallback={null}>
-        <ApplicationForm />
+        <ApplicationForm sections={sections} />
       </Suspense>
       <SiteFooter />
     </main>

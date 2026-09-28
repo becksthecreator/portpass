@@ -1,16 +1,17 @@
 import { headers } from "next/headers";
 import type { MetadataRoute } from "next";
 import { listSections } from "@/db/categories";
-import { listSectionBusinesses } from "@/db/organizations";
+import { listSectionBusinesses, liveCountsByCategory } from "@/db/organizations";
 import { directoryHref } from "@/app/_components/blocks/directoryHref";
 
 const PLATFORM_HOST = "portpassbahamas.com";
 
 // A business's own domain gets its own minimal sitemap (just its home
 // page today -- there's nothing else on that domain yet to list). The
-// platform's sitemap lists the fixed pages, every visible section, any
-// subcategory that has reached its coming-soon threshold (below it the
-// page is noindex anyway), and every live business page.
+// platform's sitemap lists the fixed pages, every section and subcategory
+// with something to book, and every live business page -- all from the
+// categories table and organization_categories, the same source the nav
+// and the section pages read.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const host = (await headers()).get("host")?.replace(/^www\./, "").toLowerCase();
   const now = new Date();
@@ -28,23 +29,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const sections = await listSections();
+    const [sections, live] = await Promise.all([listSections(), liveCountsByCategory()]);
+    // Indexable means "has something to book": a section or subcategory
+    // with no live business is a coming-soon page (noindex, see
+    // app/[category]) and stays out of the sitemap. The coming-soon
+    // *threshold* only drives the on-page label, not indexing.
+    const seen = new Set<string>();
     for (const section of sections) {
-      const businesses = await listSectionBusinesses(section.slug).catch(() => []);
-      // Indexable means "has something to book": a section or subcategory
-      // with no live business is a coming-soon page (noindex, see
-      // app/[category]) and stays out of the sitemap. The coming-soon
-      // *threshold* only drives the on-page label, not indexing -- with a
-      // threshold of 5, Sports & Fitness and Weddings would otherwise vanish
-      // from the sitemap while ranking for real businesses.
-      const liveInSection = businesses.filter((b) => b.isPublished).length;
-      if (liveInSection > 0) entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}`, lastModified: now });
+      if ((live.get(section.slug) ?? 0) > 0) entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}`, lastModified: now });
       for (const sub of section.subcategories) {
-        const live = businesses.filter((b) => b.isPublished && b.subcategory === sub.slug).length;
-        if (live > 0) entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}/${sub.slug}`, lastModified: now });
+        if ((live.get(sub.slug) ?? 0) > 0) entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}/${sub.slug}`, lastModified: now });
       }
+      // A business listed under two sections has one page (its primary
+      // section's), so it is listed once.
+      const businesses = await listSectionBusinesses(section.slug).catch(() => []);
       for (const business of businesses) {
-        if (business.isPublished) entries.push({ url: `https://${PLATFORM_HOST}${directoryHref(business.slug, business.primaryCategory)}`, lastModified: now });
+        if (!business.isPublished || seen.has(business.slug)) continue;
+        seen.add(business.slug);
+        entries.push({ url: `https://${PLATFORM_HOST}${directoryHref(business.slug, business.primaryCategory)}`, lastModified: now });
       }
     }
   } catch {

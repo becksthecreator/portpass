@@ -7,6 +7,7 @@ import { FeatureCard } from "@/app/_components/blocks/FeatureCard";
 import { formatPriceCents } from "@/app/_components/blocks/format";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
+import { SubsectionChips } from "@/app/_components/SubsectionChips";
 import { ppDisplay, ppSans } from "@/app/fonts";
 
 // A category page has to render even when the database is having a bad
@@ -80,6 +81,8 @@ export default async function WeddingsPage() {
           <p>Island ceremonies and vow renewals, planned end to end: officiant, venue, photography, and paperwork.</p>
         </div>
       </section>
+
+      <SubsectionChips sectionSlug="weddings" current={null} />
 
       <div className="feature-card-grid feature-card-grid-solo">
         {org && (

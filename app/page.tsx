@@ -9,7 +9,7 @@ import { categoryLabel } from "./_components/blocks/categoryLabel";
 import { directoryHref } from "./_components/blocks/directoryHref";
 import { getFutprepAvailability, type FutprepAvailability } from "@/db/registrations";
 import { getWeddingSiteSettings, DEFAULT_SETTINGS, type WeddingSiteSettings } from "@/db/weddingSite";
-import { listPublishedOrganizations, type OrganizationDirectoryEntry } from "@/db/organizations";
+import { listPublishedOrganizations, liveCountsByCategory, type OrganizationDirectoryEntry } from "@/db/organizations";
 import { withOneRetry } from "@/db/supabase";
 import { programTimeRange } from "./futprep/config";
 import { SiteHeader } from "./_components/SiteHeader";
@@ -50,6 +50,19 @@ async function safeDirectory(): Promise<OrganizationDirectoryEntry[]> {
   }
 }
 
+// Which sections have something live, from the same counts the nav and
+// the section pages use -- a business listed under a second section makes
+// that section live too. Falls back to the directory's primary categories.
+async function safeLiveSections(directory: OrganizationDirectoryEntry[]): Promise<Set<string>> {
+  try {
+    const counts = await withOneRetry(() => liveCountsByCategory());
+    if (counts.size) return new Set(Array.from(counts).filter(([, n]) => n > 0).map(([slug]) => slug));
+  } catch (error) {
+    console.error("homepage: live counts failed, using primary categories", error);
+  }
+  return new Set(directory.map((biz) => biz.primaryCategory).filter((c): c is string => Boolean(c)));
+}
+
 // Title, description, and Open Graph/Twitter tags are inherited from the
 // root layout -- they're identical for "/", so there's nothing to override.
 
@@ -67,7 +80,7 @@ export default async function Home() {
   ]);
   const futprepProgram = availability[0];
   const spotsThisWeek = availability.reduce((sum, program) => sum + program.spotsRemaining, 0);
-  const liveSlugs = new Set(directory.map((biz) => biz.primaryCategory).filter((c): c is string => Boolean(c)));
+  const liveSlugs = await safeLiveSections(directory);
 
   // The two businesses that are live today get their real numbers; anyone
   // who joins later gets their one-liner and an "Explore" button until

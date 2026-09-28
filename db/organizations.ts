@@ -1,3 +1,4 @@
+import { listCategories } from "./categories";
 import { ensureFutprepPilotData } from "./registrations";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -836,19 +837,49 @@ export type SectionBusiness = {
   isPublished: boolean;
 };
 
+// The organization ids listed under a section (or one of its subcategories):
+// everything in organization_categories for those category rows, plus --
+// as a safety net for a row the mirror trigger somehow missed -- anything
+// whose primary_category/subcategory columns say so directly.
+async function organizationIdsInCategory(section: string, subcategory: string | null): Promise<number[]> {
+  const supabase = getSupabaseAdmin();
+  const categories = await listCategories();
+  const sectionRow = categories.find((c) => c.slug === section && c.parentId === null);
+  if (!sectionRow) return [];
+  const scope = subcategory
+    ? categories.filter((c) => c.slug === subcategory && c.parentId === sectionRow.id).map((c) => c.id)
+    : [sectionRow.id, ...categories.filter((c) => c.parentId === sectionRow.id).map((c) => c.id)];
+  if (!scope.length) return [];
+  const primary = supabase.from("organizations").select("id").eq("primary_category", section);
+  const [viaCategories, viaPrimary] = await Promise.all([
+    supabase.from("organization_categories").select("organization_id").in("category_id", scope),
+    subcategory ? primary.eq("subcategory", subcategory) : primary,
+  ]);
+  throwIfSupabaseError(viaCategories.error, "Could not load section businesses");
+  throwIfSupabaseError(viaPrimary.error, "Could not load section businesses");
+  const ids = new Set<number>();
+  for (const row of viaCategories.data ?? []) ids.add(Number(row.organization_id));
+  for (const row of viaPrimary.data ?? []) ids.add(Number(row.id));
+  return Array.from(ids);
+}
+
 // Businesses for a data-driven section or subcategory page: approved or
 // live (or anything published, as a safety net), optionally narrowed to
-// one subcategory. Same visibility rule as listCategoryOrganizations,
-// with the fields the generic CategoryPage needs to render a card.
+// one subcategory. A business listed under two categories (round 5:
+// a photographer under Weddings → Photo & Video and Services → Photo &
+// Video) is the same row on both pages, never a copy. Same visibility rule
+// as listCategoryOrganizations, with the fields the generic CategoryPage
+// needs to render a card.
 export async function listSectionBusinesses(section: string, subcategory?: string | null): Promise<SectionBusiness[]> {
+  const ids = await organizationIdsInCategory(section, subcategory ?? null);
+  if (!ids.length) return [];
   const supabase = getSupabaseAdmin();
-  let query = supabase
+  const { data, error } = await supabase
     .from("organizations")
     .select("id,slug,name,primary_category,subcategory,logo_url,brand_color,hero_image_url,one_liner,is_published,photo_consent_required")
-    .eq("primary_category", section)
-    .or("status.in.(approved,live),is_published.eq.true");
-  if (subcategory) query = query.eq("subcategory", subcategory);
-  const { data, error } = await query.order("id", { ascending: true });
+    .in("id", ids)
+    .or("status.in.(approved,live),is_published.eq.true")
+    .order("id", { ascending: true });
   throwIfSupabaseError(error, "Could not load section businesses");
   const gated = await gateHeroImages(
     (data ?? [])
@@ -878,4 +909,35 @@ export async function listSectionBusinesses(section: string, subcategory?: strin
     oneLiner: row.oneLiner,
     isPublished: row.isPublished,
   }));
+}
+
+// Published businesses per category slug -- subcategories counted on their
+// own, sections as the distinct businesses across the section and all its
+// subcategories, so a business listed under two subcategories of the same
+// section counts once. Feeds the nav's live counts, the subsection chips,
+// the homepage tiles and the sitemap; a business with is_published false
+// (a coming-soon card) is not "live" anywhere.
+export async function liveCountsByCategory(): Promise<Map<string, number>> {
+  const supabase = getSupabaseAdmin();
+  const [categories, links] = await Promise.all([
+    listCategories(),
+    supabase.from("organization_categories").select("organization_id,category_id,organizations!inner(is_published)").eq("organizations.is_published", true),
+  ]);
+  throwIfSupabaseError(links.error, "Could not count live businesses");
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  const orgsBySlug = new Map<string, Set<number>>();
+  const add = (slug: string, organizationId: number) => {
+    const set = orgsBySlug.get(slug) ?? new Set<number>();
+    set.add(organizationId);
+    orgsBySlug.set(slug, set);
+  };
+  for (const row of links.data ?? []) {
+    const category = byId.get(Number(row.category_id));
+    if (!category) continue;
+    const organizationId = Number(row.organization_id);
+    add(category.slug, organizationId);
+    const parent = category.parentId === null ? null : byId.get(category.parentId);
+    if (parent) add(parent.slug, organizationId);
+  }
+  return new Map(Array.from(orgsBySlug, ([slug, set]) => [slug, set.size]));
 }

@@ -578,3 +578,61 @@ export async function submitBusiness(id: number, actorUserId: string): Promise<B
   await logAudit({ actorUserId, organizationId: id, action: "business.submitted", targetTable: "organizations", targetId: id });
   return toBusiness(data!);
 }
+
+// ---- categories -----------------------------------------------------------
+// The primary category (subcategory when set, else the section) is mirrored
+// into organization_categories by a database trigger. Extra categories --
+// a photographer under Weddings → Photo & Video *and* Services → Photo &
+// Video (round 5, §1) -- are set here: one listing in several places, never
+// a second row. Section pages, counts and the sitemap all read that table.
+
+export async function listBusinessCategorySlugs(id: number): Promise<string[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from("organization_categories").select("category_id").eq("organization_id", id);
+  throwIfSupabaseError(error, "Could not load business categories");
+  const categories = await listCategories();
+  const slugById = new Map(categories.map((c) => [c.id, c.slug]));
+  return (data ?? [])
+    .map((row) => slugById.get(Number(row.category_id)))
+    .filter((slug): slug is string => Boolean(slug))
+    .sort();
+}
+
+// Replaces the business's extra categories with `slugs` (the primary is
+// always kept). Throws UNKNOWN_CATEGORY:<slug> for a slug that isn't in the
+// categories table.
+export async function setBusinessExtraCategories(id: number, slugs: string[], actorUserId: string | null): Promise<string[]> {
+  const business = await getBusiness(id);
+  if (!business) throw new Error("NOT_FOUND");
+  const categories = await listCategories();
+  const bySlug = new Map(categories.map((c) => [c.slug, c]));
+  const wanted = new Set<number>();
+  const primarySlug = business.subcategory ?? business.primaryCategory;
+  const primary = primarySlug ? bySlug.get(primarySlug) : undefined;
+  if (primary) wanted.add(primary.id);
+  for (const slug of slugs) {
+    const category = bySlug.get(slug);
+    if (!category) throw new Error(`UNKNOWN_CATEGORY:${slug}`);
+    wanted.add(category.id);
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data: currentRows, error } = await supabase.from("organization_categories").select("category_id").eq("organization_id", id);
+  throwIfSupabaseError(error, "Could not load business categories");
+  const current = new Set((currentRows ?? []).map((row) => Number(row.category_id)));
+  const toRemove = Array.from(current).filter((categoryId) => !wanted.has(categoryId));
+  const toAdd = Array.from(wanted).filter((categoryId) => !current.has(categoryId));
+  if (toRemove.length) {
+    const { error: removeError } = await supabase.from("organization_categories").delete().eq("organization_id", id).in("category_id", toRemove);
+    throwIfSupabaseError(removeError, "Could not update business categories");
+  }
+  if (toAdd.length) {
+    const { error: addError } = await supabase.from("organization_categories").insert(toAdd.map((categoryId) => ({ organization_id: id, category_id: categoryId })));
+    throwIfSupabaseError(addError, "Could not update business categories");
+  }
+  const result = await listBusinessCategorySlugs(id);
+  if (toRemove.length || toAdd.length) {
+    await logAudit({ actorUserId, organizationId: id, action: "business.categories.updated", targetTable: "organization_categories", targetId: id, after: { categories: result } });
+  }
+  return result;
+}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createApplication } from "@/db/applications";
 import { sendApplicationReceivedEmail } from "@/lib/email";
 import { normalizePhoneE164 } from "@/lib/phone";
-import { isSectionSlug } from "@/lib/sections";
+import { isKnownSectionSlug } from "@/db/categories";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_ATTEMPTS = 8;
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
   if (!contactPerson || !organizationName) {
     return NextResponse.json({ error: "Tell us your name and your business name." }, { status: 400 });
   }
-  if (!isSectionSlug(section)) {
+  if (!(await isKnownSectionSlug(section))) {
     return NextResponse.json({ error: "Choose which section your business belongs in." }, { status: 400 });
   }
   const whatsappE164 = normalizePhoneE164(whatsappRaw);
