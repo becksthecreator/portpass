@@ -4719,7 +4719,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .tpl-offering-featured{border-color:var(--brand, var(--ink));border-width:2px;padding:34px 28px}
 .tpl-offering-badge{position:absolute;top:-13px;left:24px;background:var(--brand-text, var(--ink));color:#fff;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 14px;border-radius:999px}
 .tpl-offering-image{width:calc(100% + 48px);height:150px;margin:-28px -24px 18px;object-fit:cover;border-radius:16px 16px 0 0}
-.tpl-offering-card h3{font-family:var(--font-pp-display),Georgia,serif;font-size:1.35rem;font-weight:500;margin:0 0 6px}
+.tpl-offering-card h2{font-family:var(--font-pp-display),Georgia,serif;font-size:1.35rem;font-weight:500;margin:0 0 6px}
 .tpl-offering-summary{color:var(--muted);font-size:.92rem;margin:0 0 14px}
 .tpl-offering-price{font-family:var(--font-pp-display),Georgia,serif;font-size:1.5rem;font-weight:600;margin:0 0 4px;color:var(--ink)}
 .tpl-offering-ages,.tpl-offering-schedule{font-size:.82rem;color:var(--muted);margin:0 0 4px}
@@ -4733,7 +4733,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
    instead of auto-fit's minmax wrapping the fourth card onto its own row. */
 .tpl-offerings-grid-4{grid-template-columns:repeat(4,1fr)}
 .tpl-offerings-grid-4 .tpl-offering-card{padding:22px 18px}
-.tpl-offerings-grid-4 .tpl-offering-card h3{font-size:1.15rem}
+.tpl-offerings-grid-4 .tpl-offering-card h2{font-size:1.15rem}
 .tpl-offerings-grid-4 .tpl-offering-price{font-size:1.25rem}
 .tpl-offerings-grid-4 .tpl-offering-featured{padding:28px 20px}
 @media(max-width:980px){
@@ -4814,7 +4814,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .tpl-services-list li{border:1px solid var(--line);border-radius:999px;padding:10px 20px;font-size:.85rem;color:var(--ink)}
 .tpl-people{display:flex;align-items:center;gap:28px;padding:70px 5vw;max-width:800px;margin:0 auto}
 .tpl-people-image{width:120px;height:120px;border-radius:50%;object-fit:cover;flex:0 0 auto}
-.tpl-people-copy h3{font-family:var(--font-pp-display),Georgia,serif;font-size:1.3rem;font-weight:500;margin:0 0 10px}
+.tpl-people-copy h2{font-family:var(--font-pp-display),Georgia,serif;font-size:1.3rem;font-weight:500;margin:0 0 10px}
 .tpl-people-credentials{font-size:.8rem;font-weight:600;letter-spacing:.02em;color:var(--ink);margin:-6px 0 10px}
 .tpl-people-contact{margin-top:10px;font-size:.85rem}
 .tpl-people-contact a{color:var(--brand-text,var(--ink));font-weight:600}
@@ -5048,7 +5048,7 @@ img.biz-logo{object-fit:contain;background:#fff;border:1px solid var(--line)}
 .feature-card-body{padding:26px 24px 28px;display:flex;flex-direction:column;gap:10px}
 .feature-card-label{display:inline-block;background:var(--brand-text, var(--coral-deep));color:#fff;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:999px;width:fit-content}
 .feature-card-heading{display:flex;align-items:center;gap:10px}
-.feature-card-heading h3{font-family:var(--font-pp-display),Georgia,serif;font-size:1.4rem;font-weight:500;margin:0}
+.feature-card-heading h2{font-family:var(--font-pp-display),Georgia,serif;font-size:1.4rem;font-weight:500;margin:0}
 .feature-card-description{color:var(--muted);font-size:.94rem;line-height:1.5;margin:0}
 .feature-card-price{font-family:var(--font-pp-display),Georgia,serif;font-size:1.3rem;font-weight:600;color:var(--ink);margin:0}
 .feature-card-button{display:inline-flex;align-items:center;gap:8px;background:var(--brand-text, var(--coral-deep));color:#fff;font-size:.9rem;font-weight:700;padding:13px 22px;border-radius:999px;width:fit-content;margin-top:6px;text-decoration:none}

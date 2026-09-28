@@ -31,13 +31,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const sections = await listSections();
     for (const section of sections) {
       const businesses = await listSectionBusinesses(section.slug).catch(() => []);
-      // A section below its own coming-soon threshold is noindex, so it
-      // stays out of the sitemap just like a coming-soon subcategory.
+      // Indexable means "has something to book": a section or subcategory
+      // with no live business is a coming-soon page (noindex, see
+      // app/[category]) and stays out of the sitemap. The coming-soon
+      // *threshold* only drives the on-page label, not indexing -- with a
+      // threshold of 5, Sports & Fitness and Weddings would otherwise vanish
+      // from the sitemap while ranking for real businesses.
       const liveInSection = businesses.filter((b) => b.isPublished).length;
-      if (liveInSection >= section.comingSoonThreshold) entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}`, lastModified: now });
+      if (liveInSection > 0) entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}`, lastModified: now });
       for (const sub of section.subcategories) {
         const live = businesses.filter((b) => b.isPublished && b.subcategory === sub.slug).length;
-        if (live >= sub.comingSoonThreshold) entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}/${sub.slug}`, lastModified: now });
+        if (live > 0) entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}/${sub.slug}`, lastModified: now });
       }
       for (const business of businesses) {
         if (business.isPublished) entries.push({ url: `https://${PLATFORM_HOST}${directoryHref(business.slug, business.primaryCategory)}`, lastModified: now });

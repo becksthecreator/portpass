@@ -49,7 +49,7 @@ export function FeatureCard({
         <span className="feature-card-label">{label}</span>
         <div className="feature-card-heading">
           <BusinessLogo logoUrl={logoUrl} name={name} brand={brand} size="sm" />
-          <h3>{name}</h3>
+          <h2>{name}</h2>
         </div>
         {description && <p className="feature-card-description">{description}</p>}
         {priceLabel && <p className="feature-card-price">{priceLabel}</p>}

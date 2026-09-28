@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     return {
       title: `${resolved.subcategory.name} · ${resolved.section.name} | PortPass Bahamas`,
       description: live > 0 ? `${resolved.subcategory.name} you can book on PortPass in The Bahamas.` : `${resolved.subcategory.name} in The Bahamas — coming soon to PortPass.`,
-      robots: live < resolved.subcategory.comingSoonThreshold ? { index: false, follow: true } : undefined,
+      robots: live === 0 ? { index: false, follow: true } : undefined,
     };
   }
   const org = resolved.listing!.organization;
