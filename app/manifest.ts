@@ -13,8 +13,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/?source=pwa",
     scope: "/",
     display: "standalone",
-    background_color: "#fbfaf6",
-    theme_color: "#14303d",
+    background_color: "#F5F1E8",
+    theme_color: "#0B2A3C",
     lang: "en",
     categories: ["sports", "travel", "lifestyle"],
     icons: [

@@ -89,22 +89,22 @@ export default function AppPage() {
 function IphoneShareDrawing() {
   return (
     <svg viewBox="0 0 260 300" role="img" aria-label="Safari with the Share button highlighted and the Add to Home Screen row in the share sheet">
-      <rect x="20" y="8" width="220" height="284" rx="28" fill="#fff" stroke="#14303d" strokeWidth="3" />
-      <rect x="40" y="34" width="180" height="26" rx="8" fill="#f2efe6" />
-      <text x="130" y="52" textAnchor="middle" fontSize="12" fontFamily="Inter, Arial, sans-serif" fill="#14303d">portpassbahamas.com</text>
-      <rect x="40" y="130" width="180" height="128" rx="14" fill="#fbfaf6" stroke="#dbd6c6" />
-      <text x="56" y="154" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5a6b64">Copy</text>
-      <text x="56" y="180" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5a6b64">Add to Reading List</text>
-      <rect x="46" y="192" width="168" height="26" rx="8" fill="#B9532A" />
-      <text x="56" y="209" fontSize="12" fontWeight="700" fontFamily="Inter, Arial, sans-serif" fill="#fff">Add to Home Screen</text>
-      <rect x="188" y="197" width="16" height="16" rx="3" fill="none" stroke="#fff" strokeWidth="2" />
-      <path d="M196 200v10M191 205h10" stroke="#fff" strokeWidth="2" />
-      <text x="56" y="240" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5a6b64">Find on Page</text>
-      <rect x="40" y="262" width="180" height="1" fill="#dbd6c6" />
-      <circle cx="130" cy="278" r="12" fill="#B9532A" />
-      <path d="M130 271v10M126 275l4-4 4 4" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" />
-      <text x="70" y="282" fontSize="10" fontFamily="Inter, Arial, sans-serif" fill="#5a6b64">◀</text>
-      <text x="184" y="282" fontSize="10" fontFamily="Inter, Arial, sans-serif" fill="#5a6b64">▶</text>
+      <rect x="20" y="8" width="220" height="284" rx="28" fill="#fff" stroke="#0B2A3C" strokeWidth="3" />
+      <rect x="40" y="34" width="180" height="26" rx="8" fill="#F5F1E8" />
+      <text x="130" y="52" textAnchor="middle" fontSize="12" fontFamily="Inter, Arial, sans-serif" fill="#0B2A3C">portpassbahamas.com</text>
+      <rect x="40" y="130" width="180" height="128" rx="14" fill="#FFFFFF" stroke="#E3DDD0" />
+      <text x="56" y="154" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5B6B75">Copy</text>
+      <text x="56" y="180" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5B6B75">Add to Reading List</text>
+      <rect x="46" y="192" width="168" height="26" rx="8" fill="#FFC21A" />
+      <text x="56" y="209" fontSize="12" fontWeight="700" fontFamily="Inter, Arial, sans-serif" fill="#0B2A3C">Add to Home Screen</text>
+      <rect x="188" y="197" width="16" height="16" rx="3" fill="none" stroke="#0B2A3C" strokeWidth="2" />
+      <path d="M196 200v10M191 205h10" stroke="#0B2A3C" strokeWidth="2" />
+      <text x="56" y="240" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5B6B75">Find on Page</text>
+      <rect x="40" y="262" width="180" height="1" fill="#E3DDD0" />
+      <circle cx="130" cy="278" r="12" fill="#FFC21A" />
+      <path d="M130 271v10M126 275l4-4 4 4" stroke="#0B2A3C" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <text x="70" y="282" fontSize="10" fontFamily="Inter, Arial, sans-serif" fill="#5B6B75">◀</text>
+      <text x="184" y="282" fontSize="10" fontFamily="Inter, Arial, sans-serif" fill="#5B6B75">▶</text>
     </svg>
   );
 }
@@ -113,22 +113,22 @@ function IphoneShareDrawing() {
 function AndroidMenuDrawing() {
   return (
     <svg viewBox="0 0 260 300" role="img" aria-label="Chrome's menu with Install app highlighted">
-      <rect x="20" y="8" width="220" height="284" rx="22" fill="#fff" stroke="#14303d" strokeWidth="3" />
-      <rect x="40" y="30" width="150" height="26" rx="13" fill="#f2efe6" />
-      <text x="52" y="48" fontSize="12" fontFamily="Inter, Arial, sans-serif" fill="#14303d">portpassbahamas.com</text>
-      <circle cx="214" cy="37" r="2" fill="#14303d" />
-      <circle cx="214" cy="43" r="2" fill="#14303d" />
-      <circle cx="214" cy="49" r="2" fill="#14303d" />
-      <rect x="84" y="62" width="150" height="150" rx="12" fill="#fbfaf6" stroke="#dbd6c6" />
-      <text x="98" y="86" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5a6b64">New tab</text>
-      <text x="98" y="110" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5a6b64">History</text>
-      <text x="98" y="134" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5a6b64">Downloads</text>
-      <rect x="90" y="146" width="138" height="26" rx="8" fill="#B9532A" />
-      <path d="M100 152v10M96 158l4 4 4-4M94 166h12" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <text x="116" y="163" fontSize="12" fontWeight="700" fontFamily="Inter, Arial, sans-serif" fill="#fff">Install app</text>
-      <text x="98" y="194" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5a6b64">Settings</text>
-      <rect x="40" y="228" width="180" height="40" rx="10" fill="#f2efe6" />
-      <text x="130" y="252" textAnchor="middle" fontSize="11" fontWeight="700" fontFamily="Inter, Arial, sans-serif" fill="#14303d">Get the PortPass app · Install</text>
+      <rect x="20" y="8" width="220" height="284" rx="22" fill="#fff" stroke="#0B2A3C" strokeWidth="3" />
+      <rect x="40" y="30" width="150" height="26" rx="13" fill="#F5F1E8" />
+      <text x="52" y="48" fontSize="12" fontFamily="Inter, Arial, sans-serif" fill="#0B2A3C">portpassbahamas.com</text>
+      <circle cx="214" cy="37" r="2" fill="#0B2A3C" />
+      <circle cx="214" cy="43" r="2" fill="#0B2A3C" />
+      <circle cx="214" cy="49" r="2" fill="#0B2A3C" />
+      <rect x="84" y="62" width="150" height="150" rx="12" fill="#FFFFFF" stroke="#E3DDD0" />
+      <text x="98" y="86" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5B6B75">New tab</text>
+      <text x="98" y="110" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5B6B75">History</text>
+      <text x="98" y="134" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5B6B75">Downloads</text>
+      <rect x="90" y="146" width="138" height="26" rx="8" fill="#FFC21A" />
+      <path d="M100 152v10M96 158l4 4 4-4M94 166h12" stroke="#0B2A3C" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="116" y="163" fontSize="12" fontWeight="700" fontFamily="Inter, Arial, sans-serif" fill="#0B2A3C">Install app</text>
+      <text x="98" y="194" fontSize="11" fontFamily="Inter, Arial, sans-serif" fill="#5B6B75">Settings</text>
+      <rect x="40" y="228" width="180" height="40" rx="10" fill="#F5F1E8" />
+      <text x="130" y="252" textAnchor="middle" fontSize="11" fontWeight="700" fontFamily="Inter, Arial, sans-serif" fill="#0B2A3C">Get the PortPass app · Install</text>
     </svg>
   );
 }
