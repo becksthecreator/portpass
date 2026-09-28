@@ -56,8 +56,8 @@ export function OrganizationTemplate({ listing }: { listing: OrganizationListing
       <PeopleBlock name={org.ownerName} bio={org.ownerBio} imageUrl={org.ownerImageUrl} />
       <QuestionsBlock faqs={faqs} />
       <div className="tpl-whatsapp">
-        {org.whatsappE164 && <MessageOnWhatsApp e164={org.whatsappE164} businessName={org.name} />}
-        <ShareOnWhatsApp url={`https://portpassbahamas.com${directoryHref(org.slug, org.primaryCategory)}`} text={`${org.name} on PortPass:`} />
+        {org.whatsappE164 && <MessageOnWhatsApp e164={org.whatsappE164} businessName={org.name} org={org.slug} />}
+        <ShareOnWhatsApp url={`https://portpassbahamas.com${directoryHref(org.slug, org.primaryCategory)}`} text={`${org.name} on PortPass:`} org={org.slug} />
       </div>
       {hasPricedOffering && <ActionBlock label="See prices & get started" href="#offerings" />}
     </main>

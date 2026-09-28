@@ -4534,6 +4534,14 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .category-hero-plain{background:var(--ink)}
 .category-notify{padding:0 0 40px}
 .category-notify .form-intro{margin-top:40px}
+/* Coming-soon pages: reassurance, what's bookable today, and the owner door (round 4, item 7). */
+.category-notify-more{max-width:640px;margin:18px auto 0;padding:0 5vw;display:grid;gap:10px;font-size:.9rem;line-height:1.55}
+.category-notify-reassure{color:var(--muted);margin:0}
+.category-notify-bookable{margin:0;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+.category-notify-bookable span{color:var(--muted);font-weight:700;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
+.category-notify-bookable a{color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.category-notify-owner{margin:8px 0 0;padding-top:14px;border-top:1px solid var(--line);color:var(--ink);font-weight:600}
+.category-notify-owner a{color:var(--coral-deep);font-weight:800;text-decoration:underline;text-underline-offset:3px;margin-left:4px}
 .tpl-whatsapp{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;justify-content:center;padding:10px 5vw 0}
 .tpl-button-secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
 .share-whatsapp{color:var(--coral-deep);font-size:.9rem;font-weight:700;text-decoration:underline;text-underline-offset:3px}

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Category, Section } from "@/db/categories";
-import { getOrganizationListingBySlug, listSectionBusinesses, type OrganizationListing, type SectionBusiness } from "@/db/organizations";
+import { getOrganizationListingBySlug, listPublishedOrganizations, listSectionBusinesses, type OrganizationListing, type SectionBusiness } from "@/db/organizations";
 import { withOneRetry } from "@/db/supabase";
 import { isInterestCategory, type InterestCategory } from "@/lib/interestCategories";
+import { getNavSections } from "@/lib/navSections";
 import { computeBrandTokens } from "./blocks/brand";
 import { ComingSoonCard } from "./blocks/ComingSoonCard";
 import { directoryHref } from "./blocks/directoryHref";
@@ -43,6 +44,31 @@ function interestCategoryFor(section: Section, subcategory: Category | null): In
   return "entertainment";
 }
 
+// "Run a venue?" reads better than "Run a venues business?".
+const OWNER_NOUN: Record<string, string> = {
+  venues: "a venue",
+  tours: "a tour company",
+  entertainment: "an entertainment business",
+  events: "events",
+  djs: "a DJ business",
+  "sound-equipment": "a sound-equipment business",
+  weddings: "a wedding business",
+  "sports-fitness": "a sports program",
+};
+
+// The sections a visitor can book in today, for the "Bookable now" row on
+// a coming-soon page. Derived from the directory, so a new live section
+// shows up here without a deploy; empty on a DB hiccup rather than wrong.
+async function bookableNow(exceptSlug: string): Promise<{ label: string; href: string }[]> {
+  try {
+    const [directory, sections] = await Promise.all([withOneRetry(() => listPublishedOrganizations()), getNavSections()]);
+    const live = new Set(directory.map((b) => b.primaryCategory).filter(Boolean));
+    return sections.filter((s) => live.has(s.href.slice(1)) && s.href !== `/${exceptSlug}`);
+  } catch {
+    return [];
+  }
+}
+
 export async function CategoryPage({ section, subcategory = null }: { section: Section; subcategory?: Category | null }) {
   const current = subcategory ?? section;
   let businesses: SectionBusiness[] = [];
@@ -57,6 +83,8 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
   const liveCount = listings.length;
   const belowThreshold = liveCount < current.comingSoonThreshold;
   const cardCount = listings.length + comingSoon.length;
+  const bookable = belowThreshold ? await bookableNow(section.slug) : [];
+  const ownerNoun = OWNER_NOUN[current.slug] ?? `a ${current.name.toLowerCase()} business`;
 
   const breadcrumb = [{ label: section.name, href: `/${section.slug}` }];
   if (subcategory) breadcrumb.push({ label: subcategory.name, href: `/${section.slug}/${subcategory.slug}` });
@@ -125,6 +153,20 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
           <h2>{liveCount > 0 ? `Tell us what else you'd book in ${current.name.toLowerCase()}.` : `We'll tell you when ${current.name.toLowerCase()} opens.`}</h2>
         </div>
         <InterestForm category={interestCategoryFor(section, subcategory)} placeholder="What are you looking for? (optional)" defaultNote={subcategory ? `Interested in ${subcategory.name}.` : ""} />
+        {belowThreshold && (
+          <div className="category-notify-more">
+            <p className="category-notify-reassure">We&rsquo;ll only contact you when this opens, or if we find a match for what you need.</p>
+            {bookable.length > 0 && (
+              <p className="category-notify-bookable">
+                <span>Bookable now:</span>
+                {bookable.map((s) => <Link key={s.href} href={s.href}>{s.label}</Link>)}
+              </p>
+            )}
+            <p className="category-notify-owner">
+              Run {ownerNoun}? <Link href={`/apply?section=${encodeURIComponent(section.slug)}`}>Get listed &rarr;</Link>
+            </p>
+          </div>
+        )}
       </section>
 
       <SiteFooter />
