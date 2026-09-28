@@ -2,14 +2,18 @@
 
 import { FormEvent, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { track } from "@/lib/analytics";
 import { portpassWhatsAppUrl } from "@/lib/contact";
-import { SECTIONS } from "@/lib/sections";
+import { isSectionSlug, SECTIONS } from "@/lib/sections";
 
 type FormState = { name: string; businessName: string; section: string; whatsapp: string; instagram: string; note: string };
 
 export function ApplicationForm() {
   const searchParams = useSearchParams();
-  const [form, setForm] = useState<FormState>({ name: "", businessName: "", section: "", whatsapp: "", instagram: "", note: "" });
+  // A coming-soon page's "Run a venue? Get listed" link arrives with
+  // ?section=venues, so the section is already chosen.
+  const presetSection = searchParams.get("section") ?? "";
+  const [form, setForm] = useState<FormState>({ name: "", businessName: "", section: isSectionSlug(presetSection) ? presetSection : "", whatsapp: "", instagram: "", note: "" });
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -41,6 +45,7 @@ export function ApplicationForm() {
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "We couldn’t send that. Please try again.");
+      track("apply_submitted", { section: form.section, source: searchParams.get("utm_source") ?? "" });
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
