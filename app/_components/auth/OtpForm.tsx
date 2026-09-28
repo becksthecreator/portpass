@@ -6,11 +6,16 @@ import { SECTIONS } from "@/lib/sections";
 
 type Intent = "customer" | "business";
 
+type SectionOption = { slug: string; name: string };
+
 type Props = {
   mode: "login" | "signup";
   next?: string | null;
   initialIntent?: Intent | null;
   phoneEnabled?: boolean;
+  // From the categories table via the page; the compiled list is only the
+  // fallback for a caller that has nothing better.
+  sections?: SectionOption[];
 };
 
 type Fields = { fullName: string; email: string; phone: string; businessName: string; section: string };
@@ -21,7 +26,8 @@ const CODE_LENGTH = 6;
 // needs (sign-in: just the email) and asks for a code; step 2 is the code
 // itself -- a single input styled as six boxes rather than six inputs, so
 // iOS/Android one-time-code autofill and paste both land in one place.
-export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false }: Props) {
+export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false, sections }: Props) {
+  const sectionOptions: SectionOption[] = sections ?? SECTIONS.map((s) => ({ slug: s.slug, name: s.name }));
   const [intent, setIntent] = useState<Intent | null>(mode === "login" ? "customer" : initialIntent);
   const [fields, setFields] = useState<Fields>({ fullName: "", email: "", phone: "", businessName: "", section: "" });
   const [step, setStep] = useState<"details" | "code">("details");
@@ -211,7 +217,7 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
               <span>Section *</span>
               <select required value={fields.section} onChange={(e) => set("section", e.target.value)}>
                 <option value="">Choose one</option>
-                {SECTIONS.map((s) => <option key={s.slug} value={s.slug}>{s.name}</option>)}
+                {sectionOptions.map((s) => <option key={s.slug} value={s.slug}>{s.name}</option>)}
               </select>
             </label>
           </>

@@ -1,4 +1,5 @@
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
+import { isSectionSlug } from "@/lib/sections";
 
 export type Category = {
   id: number;
@@ -69,4 +70,18 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
 export async function getSectionWithSubcategories(slug: string): Promise<Section | null> {
   const sections = await listSections({ includeHidden: true });
   return sections.find((s) => s.slug === slug) ?? null;
+}
+
+// Section validation for the public forms (/apply, sign-up, the wizard):
+// the table when it answers, the compiled mirror when it doesn't, so a
+// section added in the admin is accepted at once and a database hiccup
+// never rejects a real submission.
+export async function isKnownSectionSlug(slug: string): Promise<boolean> {
+  try {
+    const sections = await listSections();
+    if (sections.length) return sections.some((s) => s.slug === slug);
+  } catch {
+    // fall through to the compiled list
+  }
+  return isSectionSlug(slug);
 }

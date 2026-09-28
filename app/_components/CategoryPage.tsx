@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Category, Section } from "@/db/categories";
-import { getOrganizationListingBySlug, listPublishedOrganizations, listSectionBusinesses, type OrganizationListing, type SectionBusiness } from "@/db/organizations";
+import { getOrganizationListingBySlug, listPublishedOrganizations, listSectionBusinesses, liveCountsByCategory, type OrganizationListing, type SectionBusiness } from "@/db/organizations";
 import { withOneRetry } from "@/db/supabase";
 import { isInterestCategory, type InterestCategory } from "@/lib/interestCategories";
 import { getNavSections } from "@/lib/navSections";
@@ -12,6 +12,7 @@ import { formatPrice } from "./blocks/format";
 import { InterestForm } from "./InterestForm";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
+import { SubsectionChips } from "./SubsectionChips";
 import { ppDisplay, ppSans } from "@/app/fonts";
 
 // The data-driven section / subcategory page: whatever the categories
@@ -38,6 +39,15 @@ async function safeListing(slug: string): Promise<OrganizationListing | null> {
   }
 }
 
+async function safeCounts(): Promise<Map<string, number>> {
+  try {
+    return await withOneRetry(() => liveCountsByCategory());
+  } catch (error) {
+    console.error("category page: live counts failed, chips show no counts", error);
+    return new Map();
+  }
+}
+
 function interestCategoryFor(section: Section, subcategory: Category | null): InterestCategory {
   if (subcategory && isInterestCategory(subcategory.slug)) return subcategory.slug;
   if (isInterestCategory(section.slug)) return section.slug;
@@ -47,13 +57,25 @@ function interestCategoryFor(section: Section, subcategory: Category | null): In
 // "Run a venue?" reads better than "Run a venues business?".
 const OWNER_NOUN: Record<string, string> = {
   venues: "a venue",
+  "event-venues": "an event venue",
+  "gardens-outdoor": "a garden or outdoor venue",
+  "meeting-rooms": "meeting rooms",
   tours: "a tour company",
+  boats: "a boat or charter",
+  "fishing-charters": "a fishing charter",
+  "food-tours": "a food or culture tour",
+  "land-tours": "land tours",
   entertainment: "an entertainment business",
   events: "events",
   djs: "a DJ business",
   "sound-equipment": "a sound-equipment business",
   weddings: "a wedding business",
+  "wedding-venues": "a wedding venue",
+  "photo-video": "a photo or video business",
   "sports-fitness": "a sports program",
+  services: "a service business",
+  photography: "a photo or video business",
+  "phone-tech-repair": "a repair shop",
 };
 
 // The sections a visitor can book in today, for the "Bookable now" row on
@@ -79,7 +101,10 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
   }
   const published = businesses.filter((b) => b.isPublished);
   const comingSoon = businesses.filter((b) => !b.isPublished);
-  const listings = (await Promise.all(published.map((b) => safeListing(b.slug)))).filter((l): l is OrganizationListing => l !== null);
+  const [listings, counts] = await Promise.all([
+    Promise.all(published.map((b) => safeListing(b.slug))).then((all) => all.filter((l): l is OrganizationListing => l !== null)),
+    safeCounts(),
+  ]);
   const liveCount = listings.length;
   const belowThreshold = liveCount < current.comingSoonThreshold;
   const cardCount = listings.length + comingSoon.length;
@@ -94,7 +119,10 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
       <SiteHeader breadcrumb={breadcrumb} />
       <section className="category-hero category-hero-plain">
         <div className="category-hero-inner">
-          <span className="category-hero-eyebrow">{subcategory ? section.name : "PortPass"}{belowThreshold ? " · Coming soon" : ""}</span>
+          {/* "Coming soon" only when there is nothing to book; below the
+              threshold but with a live business, the page is open (the
+              threshold still drives the reassurance block further down). */}
+          <span className="category-hero-eyebrow">{subcategory ? section.name : "PortPass"}{liveCount === 0 ? " · Coming soon" : ""}</span>
           <h1>{current.name} in The Bahamas.</h1>
           <p>
             {liveCount > 0
@@ -104,11 +132,16 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
         </div>
       </section>
 
-      {!subcategory && section.subcategories.length > 0 && (
+      <SubsectionChips section={section} current={subcategory?.slug ?? null} counts={counts} />
+
+      {/* With nothing live yet, the subsection cards are the page's body;
+          once there are listings, the chips above do the picking and the
+          listings are what people came for. */}
+      {!subcategory && liveCount === 0 && section.subcategories.length > 0 && (
         <div className="subsection-grid">
           {section.subcategories.map((sub) => (
             <Link className="subsection-card" href={`/${section.slug}/${sub.slug}`} key={sub.slug}>
-              <span className="coming-soon-label">{businesses.some((b) => b.subcategory === sub.slug && b.isPublished) ? "Open now" : "Coming soon"}</span>
+              <span className="coming-soon-label">{(counts.get(sub.slug) ?? 0) > 0 ? "Open now" : "Coming soon"}</span>
               <h2>{sub.name}</h2>
               <b>Browse &rarr;</b>
             </Link>

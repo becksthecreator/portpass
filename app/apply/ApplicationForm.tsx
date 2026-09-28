@@ -4,16 +4,18 @@ import { FormEvent, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { track } from "@/lib/analytics";
 import { portpassWhatsAppUrl } from "@/lib/contact";
-import { isSectionSlug, SECTIONS } from "@/lib/sections";
 
 type FormState = { name: string; businessName: string; section: string; whatsapp: string; instagram: string; note: string };
+type SectionOption = { slug: string; name: string };
 
-export function ApplicationForm() {
+// `sections` comes from the page (the categories table, with the compiled
+// list as fallback) so the form never carries its own copy of the list.
+export function ApplicationForm({ sections }: { sections: SectionOption[] }) {
   const searchParams = useSearchParams();
   // A coming-soon page's "Run a venue? Get listed" link arrives with
   // ?section=venues, so the section is already chosen.
   const presetSection = searchParams.get("section") ?? "";
-  const [form, setForm] = useState<FormState>({ name: "", businessName: "", section: isSectionSlug(presetSection) ? presetSection : "", whatsapp: "", instagram: "", note: "" });
+  const [form, setForm] = useState<FormState>({ name: "", businessName: "", section: sections.some((s) => s.slug === presetSection) ? presetSection : "", whatsapp: "", instagram: "", note: "" });
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -76,7 +78,7 @@ export function ApplicationForm() {
           <span>Section *</span>
           <select name="section" required value={form.section} onChange={(e) => set("section", e.target.value)}>
             <option value="">Choose one</option>
-            {SECTIONS.map((section) => <option key={section.slug} value={section.slug}>{section.name}</option>)}
+            {sections.map((section) => <option key={section.slug} value={section.slug}>{section.name}</option>)}
           </select>
         </label>
         <label><span>WhatsApp number *</span><input name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" required placeholder="242-423-8161" maxLength={40} value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} /></label>

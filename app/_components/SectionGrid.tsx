@@ -1,24 +1,10 @@
 import Link from "next/link";
-import { listSections } from "@/db/categories";
-import { SECTIONS } from "@/lib/sections";
+import { getSectionTiles } from "@/lib/navSections";
 
-type Tile = { slug: string; name: string; line: string; live: boolean };
-
-// "Where do you want to go?" as a compact grid: five section tiles from
+// "Where do you want to go?" as a compact grid: one tile per section from
 // the categories table (same fail-soft fallback as the nav), each with an
 // icon, the name and a Live / Coming soon chip. Two columns on a phone,
 // which is what brings the section from 1,263px down under 600px.
-async function loadTiles(liveSlugs: Set<string>): Promise<Tile[]> {
-  const lineFor = (slug: string) => SECTIONS.find((s) => s.slug === slug)?.line ?? "";
-  try {
-    const sections = await listSections();
-    if (sections.length) return sections.map((s) => ({ slug: s.slug, name: s.name, line: lineFor(s.slug), live: liveSlugs.has(s.slug) }));
-  } catch {
-    // fall through to the compiled list
-  }
-  return SECTIONS.map((s) => ({ slug: s.slug, name: s.name, line: s.line, live: liveSlugs.has(s.slug) }));
-}
-
 function SectionIcon({ slug }: { slug: string }) {
   const common = { width: 28, height: 28, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
   switch (slug) {
@@ -59,6 +45,13 @@ function SectionIcon({ slug }: { slug: string }) {
           <circle cx="16.5" cy="16" r="2.5" />
         </svg>
       );
+    case "services":
+      return (
+        <svg {...common}>
+          <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+          <circle cx="12" cy="13" r="3.5" />
+        </svg>
+      );
     default:
       return (
         <svg {...common}>
@@ -70,18 +63,21 @@ function SectionIcon({ slug }: { slug: string }) {
 }
 
 export async function SectionGrid({ liveSlugs }: { liveSlugs: Set<string> }) {
-  const tiles = await loadTiles(liveSlugs);
+  const tiles = await getSectionTiles();
   return (
     <div className="home-sections-grid">
-      {tiles.map((tile) => (
-        <Link className={`home-section-card${tile.live ? " is-live" : ""}`} href={`/${tile.slug}`} key={tile.slug}>
-          <SectionIcon slug={tile.slug} />
-          <span className={`home-section-chip${tile.live ? " is-live" : ""}`}>{tile.live ? "Live" : "Coming soon"}</span>
-          <h3>{tile.name}</h3>
-          {tile.line && <p>{tile.line}</p>}
-          <b>{tile.live ? "Browse →" : "Tell us what you need →"}</b>
-        </Link>
-      ))}
+      {tiles.map((tile) => {
+        const live = liveSlugs.has(tile.slug);
+        return (
+          <Link className={`home-section-card${live ? " is-live" : ""}`} href={tile.href} key={tile.slug}>
+            <SectionIcon slug={tile.slug} />
+            <span className={`home-section-chip${live ? " is-live" : ""}`}>{live ? "Live" : "Coming soon"}</span>
+            <h3>{tile.name}</h3>
+            {tile.line && <p>{tile.line}</p>}
+            <b>{live ? "Browse →" : "Tell us what you need →"}</b>
+          </Link>
+        );
+      })}
     </div>
   );
 }

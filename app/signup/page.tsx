@@ -7,6 +7,7 @@ import { phoneOtpEnabled } from "@/lib/auth/env";
 import { safeNext } from "@/lib/auth/next";
 import { LAST_CHOICE_COOKIE, resolveDestination } from "@/lib/auth/routing";
 import { getSession } from "@/lib/auth/session";
+import { getSectionOptions } from "@/lib/navSections";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +28,11 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
     redirect(resolveDestination(session, { next, lastChoice, intent: initialIntent }));
   }
 
+  const sections = await getSectionOptions();
   return (
     <main className="form-page auth-page">
       <SiteHeader breadcrumb={[{ label: "Create an account", href: "/signup" }]} />
-      <OtpForm mode="signup" next={next} initialIntent={initialIntent} phoneEnabled={phoneOtpEnabled()} />
+      <OtpForm mode="signup" next={next} initialIntent={initialIntent} phoneEnabled={phoneOtpEnabled()} sections={sections} />
       <SiteFooter />
     </main>
   );

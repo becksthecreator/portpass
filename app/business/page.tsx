@@ -4,7 +4,7 @@ import { ppDisplay, ppSans } from "@/app/fonts";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { portpassWhatsAppUrl } from "@/lib/contact";
-import { SECTIONS } from "@/lib/sections";
+import { getSectionTiles } from "@/lib/navSections";
 
 // No openGraph here on purpose: the root file-based image is inherited
 // only when a page doesn't export its own openGraph object.
@@ -27,7 +27,8 @@ const PLANS = [
   { name: "Business", price: "$220", featured: false },
 ] as const;
 
-export default function BusinessPage() {
+export default async function BusinessPage() {
+  const sections = await getSectionTiles();
   return (
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }]} />
@@ -43,7 +44,7 @@ export default function BusinessPage() {
       </section>
 
       <div className="biz-sections">
-        {SECTIONS.map((section) => (
+        {sections.map((section) => (
           <div className="biz-section" key={section.slug}>
             <h3><Link href={section.href}>{section.name}</Link></h3>
             <p>{section.line}</p>
