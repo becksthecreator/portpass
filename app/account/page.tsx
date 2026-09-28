@@ -22,7 +22,7 @@ export default async function AccountPage() {
   const places = destinationsFor(session).filter((d) => d.kind !== "account");
 
   return (
-    <main className="form-page auth-page">
+    <main className="form-page auth-page theme-night">
       <SiteHeader breadcrumb={[{ label: "My account", href: "/account" }]} />
       <div className="auth-card auth-card-wide">
         <div className="eyebrow"><span className="eyebrow-dot" />My account</div>

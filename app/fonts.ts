@@ -1,11 +1,13 @@
-import { Fraunces, Inter, Sora } from "next/font/google";
+import { Fraunces, Inter, Poppins } from "next/font/google";
 
-// PortPass's own type (Aragonite brand, 28 Sept): Sora for headings, Inter
-// for body. The CSS variable names are unchanged so every existing
-// `var(--font-pp-display)` rule now resolves to Sora on PortPass pages.
-export const ppDisplay = Sora({
+// PortPass's own type (Aragonite brand, 28 Sept): Poppins for headings --
+// Poppins, not Sora, so the site matches the printed banner and signs --
+// and Inter for body. The CSS variable names are unchanged so every
+// existing `var(--font-pp-display)` rule now resolves to Poppins on
+// PortPass pages.
+export const ppDisplay = Poppins({
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
+  weight: ["600", "700"],
   variable: "--font-pp-display",
   display: "swap",
 });

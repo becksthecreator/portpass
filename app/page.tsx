@@ -5,6 +5,7 @@ import { HomeHero } from "./HomeHero";
 import { BusinessCarousel } from "./_components/BusinessCarousel";
 import { OpenNowCards, type OpenNowCard } from "./_components/OpenNowCards";
 import { SectionGrid } from "./_components/SectionGrid";
+import { DEFAULT_BRAND } from "./_components/blocks/brand";
 import { categoryLabel } from "./_components/blocks/categoryLabel";
 import { directoryHref } from "./_components/blocks/directoryHref";
 import { getFutprepAvailability, type FutprepAvailability } from "@/db/registrations";
@@ -90,7 +91,7 @@ export default async function Home() {
       slug: biz.slug,
       name: biz.name,
       logoUrl: biz.logoUrl,
-      brand: biz.brandColor ?? "#e8794a",
+      brand: biz.brandColor ?? DEFAULT_BRAND,
       href: directoryHref(biz.slug, biz.primaryCategory),
     };
     if (biz.slug === "futprep" && futprepProgram) {

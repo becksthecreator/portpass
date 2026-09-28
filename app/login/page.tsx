@@ -27,7 +27,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   }
 
   return (
-    <main className="form-page auth-page">
+    <main className="form-page auth-page theme-night">
       <SiteHeader breadcrumb={[{ label: "Sign in", href: "/login" }]} />
       <OtpForm mode="login" next={next} phoneEnabled={phoneOtpEnabled()} />
       <SiteFooter />

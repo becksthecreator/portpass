@@ -7,7 +7,7 @@ export default async function FutprepChangePinPage() {
   await requireFutprepStaff(["admin", "coach", "ceo", "helper"], "/futprep/staff/change-pin");
 
   return (
-    <main className="staff-workspace">
+    <main className="staff-workspace theme-night">
       <header className="staff-workspace-header">
         <div>
           <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>

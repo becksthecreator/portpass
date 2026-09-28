@@ -22,7 +22,7 @@ export default async function WhereToPage() {
   if (primary.length === 1) redirect(primary[0].href);
 
   return (
-    <main className="form-page auth-page">
+    <main className="form-page auth-page theme-night">
       <SiteHeader />
       <div className="auth-card auth-card-wide">
         <div className="eyebrow"><span className="eyebrow-dot" />Signed in</div>

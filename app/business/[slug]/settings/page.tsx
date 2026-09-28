@@ -32,7 +32,7 @@ export default async function BusinessSettingsPage({ params, searchParams }: { p
   const initialStep = Math.min(7, Math.max(1, Number(step) || 1));
 
   return (
-    <main className="form-page auth-page">
+    <main className="form-page auth-page theme-night">
       <SiteHeader breadcrumb={[{ label: "My business", href: `/business/${slug}` }, { label: "Settings", href: `/business/${slug}/settings` }]} />
       <SetupWizard
         mode="settings"

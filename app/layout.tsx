@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./staff.css";
 import { PwaRegister } from "./_components/PwaRegister";
+import { ppDisplay, ppSans } from "./fonts";
 
 const TITLE = "PortPass Bahamas | Find and Book Sports, Weddings, Venues & Events in Nassau";
 const DESCRIPTION = "Sports sessions, weddings, venues and events — found and booked in one place.";
@@ -36,7 +37,11 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>
+      {/* Poppins + Inter on <body>, so every page -- sign-in, account, admin,
+          staff, the offline page, the install banner -- has the brand type
+          without setting it itself. Business listing pages put their own
+          serif (bizDisplay) on their wrapper, which wins inside it. */}
+      <body className={`${ppDisplay.variable} ${ppSans.variable}`}>
         {children}
         <PwaRegister />
         {/*

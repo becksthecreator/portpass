@@ -18,7 +18,7 @@ export default function NotFound() {
         <Link className="brand" href="/" style={{ justifyContent: "center", marginBottom: 24 }}>
           <span className="brand-mark">P</span><span>PORTPASS</span>
         </Link>
-        <h1 style={{ fontFamily: "var(--font-pp-display), Sora, sans-serif", fontSize: "2.4rem", fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 12px" }}>That page doesn&rsquo;t exist.</h1>
+        <h1 style={{ fontFamily: "var(--font-pp-display), Poppins, sans-serif", fontSize: "2.4rem", fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 12px" }}>That page doesn&rsquo;t exist.</h1>
         <p>It may have moved, or the link might be mistyped. Here&rsquo;s where you probably meant to go:</p>
         <nav style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, margin: "22px 0 28px" }} aria-label="Browse categories">
           {CATEGORIES.map((c) => (

@@ -17,7 +17,7 @@ export default async function StaffLoginPage({
   const hasAccount = await hasAnyStaffAccount();
 
   return (
-    <main className="staff-login-page futprep-theme">
+    <main className="theme-night staff-login-page futprep-theme">
       <header className="site-header form-header registration-header">
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
         <div className="registration-header-right">

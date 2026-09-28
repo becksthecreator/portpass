@@ -4,7 +4,7 @@ import { getOrganizationListingBySlug, listPublishedOrganizations, listSectionBu
 import { withOneRetry } from "@/db/supabase";
 import { isInterestCategory, type InterestCategory } from "@/lib/interestCategories";
 import { getNavSections } from "@/lib/navSections";
-import { computeBrandTokens } from "./blocks/brand";
+import { computeBrandTokens, DEFAULT_BRAND } from "./blocks/brand";
 import { ComingSoonCard } from "./blocks/ComingSoonCard";
 import { directoryHref } from "./blocks/directoryHref";
 import { FeatureCard } from "./blocks/FeatureCard";
@@ -70,6 +70,7 @@ const OWNER_NOUN: Record<string, string> = {
   djs: "a DJ business",
   "sound-equipment": "a sound-equipment business",
   "party-rentals": "a party-rental business",
+  "photo-booths": "a photo-booth business",
   weddings: "a wedding business",
   "wedding-venues": "a wedding venue",
   "photo-video": "a photo or video business",
@@ -114,11 +115,14 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
 
   const breadcrumb = [{ label: section.name, href: `/${section.slug}` }];
   if (subcategory) breadcrumb.push({ label: subcategory.name, href: `/${section.slug}/${subcategory.slug}` });
+  // Optional (Antonio to confirm): the Entertainment hero in Night, since
+  // it suits nightlife. One env var switches it on.
+  const nightHero = section.slug === "entertainment" && process.env.ENTERTAINMENT_NIGHT_HERO === "1";
 
   return (
     <main className={`tpl-page ${ppDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={breadcrumb} />
-      <section className="category-hero category-hero-plain">
+      <section className={`category-hero category-hero-plain${nightHero ? " category-hero-night" : ""}`}>
         <div className="category-hero-inner">
           {/* "Coming soon" only when there is nothing to book; below the
               threshold but with a live business, the page is open (the
@@ -176,7 +180,7 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
             );
           })}
           {comingSoon.map((b) => (
-            <ComingSoonCard key={b.slug} name={b.name} logoUrl={b.logoUrl} brand={b.brandColor ?? "#e8794a"} notifyHref="#notify" />
+            <ComingSoonCard key={b.slug} name={b.name} logoUrl={b.logoUrl} brand={b.brandColor ?? DEFAULT_BRAND} notifyHref="#notify" />
           ))}
         </div>
       )}
