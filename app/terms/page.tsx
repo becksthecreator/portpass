@@ -1,6 +1,10 @@
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 
+// ISR: the header now shows live counts from the database, so a static page
+// regenerates every five minutes rather than only at deploy time.
+export const revalidate = 300;
+
 export const metadata = {
   title: "Terms of Service | PortPass Bahamas",
   description: "The terms that apply to booking, listing, and paying through PortPass Bahamas.",

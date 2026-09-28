@@ -66,14 +66,14 @@ describe("organization categories", () => {
   });
 
   it("counts a published business once per section, however many categories it has", async () => {
-    const before = await liveCountsByCategory();
+    const before = await liveCountsByCategory({ maxAgeMs: 0 });
     await setBusinessExtraCategories(orgId, ["photography", "officiants"], null);
     const { error: offeringError } = await admin.from("offerings").insert({ organization_id: orgId, type: "service", slug: "portraits", name: "Portrait session", price_cents: 25000, price_unit: "from", is_published: true });
     expect(offeringError).toBeNull();
     const { error: publishError } = await admin.from("organizations").update({ is_published: true, status: "live" }).eq("id", orgId);
     expect(publishError).toBeNull();
 
-    const after = await liveCountsByCategory();
+    const after = await liveCountsByCategory({ maxAgeMs: 0 });
     const delta = (key: string) => (after.get(key) ?? 0) - (before.get(key) ?? 0);
     expect(delta("weddings")).toBe(1);
     expect(delta("planning")).toBe(1);

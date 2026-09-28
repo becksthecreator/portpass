@@ -8,6 +8,10 @@ import { getSectionTiles } from "@/lib/navSections";
 
 // No openGraph here on purpose: the root file-based image is inherited
 // only when a page doesn't export its own openGraph object.
+// ISR: the header now shows live counts from the database, so a static page
+// regenerates every five minutes rather than only at deploy time.
+export const revalidate = 300;
+
 export const metadata = {
   title: "PortPass for Business | Your bookings and payments in one place",
   description: "One link with your prices, photos and a booking button. Send us your photos and prices on WhatsApp, we build your page, you share one link.",
