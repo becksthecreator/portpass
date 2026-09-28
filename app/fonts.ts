@@ -1,17 +1,20 @@
-import { Fraunces, Inter } from "next/font/google";
+import { Inter, Sora } from "next/font/google";
 
-// Display face with real character for the homepage's headline moments.
-// The wedding site (app/weddings/bahamas-weddings-by-the-sea/fonts.ts)
-// intentionally loads the same Fraunces/Inter pairing at Antonio's request.
-export const ppDisplay = Fraunces({
+// PortPass's own type (Aragonite brand, 28 Sept): Sora for headings, Inter
+// for body. The CSS variable names are unchanged so every existing
+// `var(--font-pp-display)` rule now resolves to Sora. Bahamas Weddings By
+// The Sea keeps its own pairing inside its page
+// (app/weddings/bahamas-weddings-by-the-sea/fonts.ts).
+export const ppDisplay = Sora({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
+  weight: ["600", "700", "800"],
   variable: "--font-pp-display",
+  display: "swap",
 });
 
 export const ppSans = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-pp-sans",
+  display: "swap",
 });

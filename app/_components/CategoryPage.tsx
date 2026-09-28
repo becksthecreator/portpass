@@ -69,6 +69,7 @@ const OWNER_NOUN: Record<string, string> = {
   events: "events",
   djs: "a DJ business",
   "sound-equipment": "a sound-equipment business",
+  "party-rentals": "a party-rental business",
   weddings: "a wedding business",
   "wedding-venues": "a wedding venue",
   "photo-video": "a photo or video business",
