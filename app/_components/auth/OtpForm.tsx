@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { SECTIONS } from "@/lib/sections";
+import { PhoneInput } from "../PhoneInput";
 
 type Intent = "customer" | "business";
 
@@ -208,7 +209,7 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
         )}
         <label><span>Email *</span><input type="email" inputMode="email" autoComplete="email" required maxLength={254} value={fields.email} onChange={(e) => set("email", e.target.value)} /></label>
         {mode === "signup" && intent && (
-          <label><span>Phone (WhatsApp) {intent === "business" ? "*" : "(optional)"}</span><input type="tel" inputMode="tel" autoComplete="tel" required={intent === "business"} maxLength={40} placeholder="242-423-8161" value={fields.phone} onChange={(e) => set("phone", e.target.value)} /></label>
+          <label><span>Phone (WhatsApp) {intent === "business" ? "*" : "(optional)"}</span><PhoneInput required={intent === "business"} value={fields.phone} onChange={(v) => set("phone", v)} /></label>
         )}
         {mode === "signup" && intent === "business" && (
           <>

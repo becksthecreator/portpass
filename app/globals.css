@@ -5217,3 +5217,8 @@ img.biz-logo{object-fit:contain;background:#fff;border:1px solid var(--line)}
 .offline-list{list-style:none;margin:0 0 22px;padding:0;display:grid;gap:8px;text-align:left}
 .offline-list a{display:block;padding:12px 14px;border:1px solid var(--line);border-radius:12px;color:var(--ink);font-weight:700;text-decoration:none;background:var(--paper)}
 .offline-empty{font-size:.9rem;color:var(--muted);margin:0 0 22px}
+
+/* International phone field (round 5, §7): country code + national number. */
+.phone-input{display:flex;gap:8px;align-items:stretch;min-width:0}
+.phone-input select{flex:0 0 auto;width:auto;max-width:44%;min-width:0}
+.phone-input input{flex:1 1 auto;min-width:0;width:auto}

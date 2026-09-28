@@ -6,6 +6,7 @@ import type { OrgRole } from "@/db/accounts";
 import type { Business, BusinessImage, BusinessInvite, BusinessOffering, TeamMember } from "@/db/business";
 import type { Section } from "@/db/categories";
 import { suggestForWhiteText, whiteTextContrast } from "@/lib/color";
+import { PhoneInput } from "@/app/_components/PhoneInput";
 
 type Props = {
   mode: "setup" | "settings";
@@ -342,8 +343,8 @@ export function SetupWizard(props: Props) {
       {step === 2 && (
         <form className="auth-form" onSubmit={(e) => { e.preventDefault(); void saveDetails(s2, 3); }}>
           <div className="wiz-two">
-            <label><span>WhatsApp number *</span><input type="tel" inputMode="tel" required placeholder="242-423-8161" value={s2.whatsappE164} onChange={(e) => setS2({ ...s2, whatsappE164: e.target.value })} /></label>
-            <label><span>Phone (if different)</span><input type="tel" inputMode="tel" value={s2.phoneE164} onChange={(e) => setS2({ ...s2, phoneE164: e.target.value })} /></label>
+            <label><span>WhatsApp number *</span><PhoneInput required value={s2.whatsappE164} onChange={(v) => setS2({ ...s2, whatsappE164: v })} /></label>
+            <label><span>Phone (if different)</span><PhoneInput value={s2.phoneE164} onChange={(v) => setS2({ ...s2, phoneE164: v })} /></label>
           </div>
           <label><span>Public email (optional)</span><input type="email" value={s2.publicEmail} onChange={(e) => setS2({ ...s2, publicEmail: e.target.value })} /></label>
           <div className="wiz-two">

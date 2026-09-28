@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { completeFutprepRegistration, getFutprepPendingRegistration } from "@/db/registrations";
+import { normalizePhoneE164 } from "@/lib/phone";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_ATTEMPTS = 8;
@@ -52,7 +53,11 @@ export async function POST(request: Request, context: { params: Promise<{ code: 
   const childDob = clean(body, "childDob");
   const gender = clean(body, "gender");
   const emergencyContactName = clean(body, "emergencyContactName");
-  const emergencyContactPhone = clean(body, "emergencyContactPhone");
+  // Stored as E.164 when readable as a number; kept as typed otherwise.
+  const emergencyContactRaw = clean(body, "emergencyContactPhone");
+  const emergencyContactPhone = normalizePhoneE164(emergencyContactRaw) ?? emergencyContactRaw;
+  const parentPhoneRaw = clean(body, "parentPhone");
+  const parentPhone = normalizePhoneE164(parentPhoneRaw) ?? parentPhoneRaw;
   const photoConsent = clean(body, "photoConsent");
   const paymentFrequency = clean(body, "paymentFrequency");
   const paymentMethod = clean(body, "paymentMethod");
@@ -85,7 +90,7 @@ export async function POST(request: Request, context: { params: Promise<{ code: 
       relationship: clean(body, "relationship"),
       parentName: clean(body, "parentName"),
       parentEmail: clean(body, "parentEmail"),
-      parentPhone: clean(body, "parentPhone"),
+      parentPhone,
       emergencyContactName,
       emergencyContactPhone,
       allergies: clean(body, "allergies"),

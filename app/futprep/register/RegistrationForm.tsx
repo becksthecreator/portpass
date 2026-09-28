@@ -1,13 +1,15 @@
 "use client";
 
 import { ShareOnWhatsApp } from "@/app/_components/blocks/WhatsAppActions";
+import { formatPriceCents } from "@/app/_components/blocks/format";
+import { PhoneInput } from "@/app/_components/PhoneInput";
+import { track } from "@/lib/analytics";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   FUTPREP_BANK_DETAILS,
   FUTPREP_TERM,
-  formatMoney,
   normalizeProgramSlug,
   programTimeRange,
 } from "../config";
@@ -144,6 +146,9 @@ export function RegistrationForm() {
   function next() {
     const message = validate();
     if (message) return setError(message);
+    // Leaving step 1 is the "started registering" signal (round 4, item 8);
+    // the event carries the business, never the parent's details.
+    if (step === 0) track("register_start", { org: "futprep" });
     setStep((current) => Math.min(current + 1, steps.length - 1));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -186,7 +191,7 @@ export function RegistrationForm() {
           <div><dt>Time</dt><dd>{result.program.day} · {programTimeRange(result.program)}</dd></div>
           <div><dt>Location</dt><dd>{result.term.location}</dd></div>
           <div><dt>Plan</dt><dd>{form.paymentFrequency === "term" ? "Full term" : "Weekly"}</dd></div>
-          <div><dt>Amount</dt><dd>{formatMoney(result.amountDueCents)}{form.paymentFrequency === "weekly" ? " per class" : ""}</dd></div>
+          <div><dt>Amount</dt><dd>{formatPriceCents(result.amountDueCents)}{form.paymentFrequency === "weekly" ? " per class" : ""}</dd></div>
           <div><dt>Status</dt><dd><span className="status status-submitted">Payment pending</span></dd></div>
         </dl>
         <p className="confirmation-share"><ShareOnWhatsApp url="https://portpassbahamas.com/sports-fitness/futprep-athletics" text={`${form.childName} is registered with Futprep Athletics on PortPass:`} /></p>
@@ -243,7 +248,7 @@ export function RegistrationForm() {
               <label><span>Full name *</span><input value={form.parentName} onChange={(e)=>set("parentName",e.target.value)} /></label>
               <label><span>Relationship *</span><input value={form.relationship} onChange={(e)=>set("relationship",e.target.value)} placeholder="Mother, father, guardian…" /></label>
               <label><span>Email *</span><input type="email" value={form.parentEmail} onChange={(e)=>set("parentEmail",e.target.value)} /></label>
-              <label><span>Phone *</span><input type="tel" value={form.parentPhone} onChange={(e)=>set("parentPhone",e.target.value)} /></label>
+              <label><span>Phone *</span><PhoneInput required value={form.parentPhone} onChange={(v)=>set("parentPhone",v)} /></label>
             </div>
           </fieldset>
         )}
@@ -265,7 +270,7 @@ export function RegistrationForm() {
             <legend><span>03</span>Health & safety</legend>
             <div className="form-grid">
               <label><span>Emergency contact name *</span><input value={form.emergencyContactName} onChange={(e)=>set("emergencyContactName",e.target.value)} /></label>
-              <label><span>Emergency contact phone *</span><input type="tel" value={form.emergencyContactPhone} onChange={(e)=>set("emergencyContactPhone",e.target.value)} /></label>
+              <label><span>Emergency contact phone *</span><PhoneInput required value={form.emergencyContactPhone} onChange={(v)=>set("emergencyContactPhone",v)} /></label>
               <label className="full-field"><span>Allergies</span><textarea rows={2} value={form.allergies} onChange={(e)=>set("allergies",e.target.value)} placeholder="Write none if there are no known allergies" /></label>
               <label className="full-field"><span>Medical conditions</span><textarea rows={2} value={form.medicalConditions} onChange={(e)=>set("medicalConditions",e.target.value)} /></label>
               <label className="full-field"><span>Medications</span><textarea rows={2} value={form.medications} onChange={(e)=>set("medications",e.target.value)} /></label>
@@ -300,12 +305,12 @@ export function RegistrationForm() {
                 <label className={`choice-card ${form.paymentFrequency==="weekly" ? "is-selected" : ""}`}>
                   <input type="radio" checked={form.paymentFrequency==="weekly"} onChange={()=>set("paymentFrequency","weekly")} />
                   <span className="choice-check" /><strong>Pay weekly</strong>
-                  <span>{selectedProgram ? `${formatMoney(selectedProgram.weeklyFeeCents)} per class` : "Choose a class first"}</span>
+                  <span>{selectedProgram ? `${formatPriceCents(selectedProgram.weeklyFeeCents)} per class` : "Choose a class first"}</span>
                 </label>
                 <label className={`choice-card ${form.paymentFrequency==="term" ? "is-selected" : ""}`}>
                   <input type="radio" checked={form.paymentFrequency==="term"} onChange={()=>set("paymentFrequency","term")} />
                   <span className="choice-check" /><strong>Pay full term</strong>
-                  <span>{selectedProgram ? `${formatMoney(selectedProgram.termFeeCents)} for Term 1` : "Choose a class first"}</span>
+                  <span>{selectedProgram ? `${formatPriceCents(selectedProgram.termFeeCents)} for Term 1` : "Choose a class first"}</span>
                   <small>Best value</small>
                 </label>
               </div>
@@ -347,7 +352,7 @@ export function RegistrationForm() {
               </div>
             )}
 
-            {selectedPrice !== null && <div className="registration-total"><span>{form.paymentFrequency==="term" ? "Term 1 amount" : "Weekly class amount"}</span><strong>{formatMoney(selectedPrice)}</strong></div>}
+            {selectedPrice !== null && <div className="registration-total"><span>{form.paymentFrequency==="term" ? "Term 1 amount" : "Weekly class amount"}</span><strong>{formatPriceCents(selectedPrice)}</strong></div>}
           </fieldset>
         )}
 
@@ -357,7 +362,7 @@ export function RegistrationForm() {
             <div className="registration-review">
               <div><span>Child</span><strong>{form.childName}</strong><small>{form.childDob}</small></div>
               <div><span>Class</span><strong>{selectedProgram?.name}</strong><small>{selectedProgram ? `${selectedProgram.day} · ${programTimeRange(selectedProgram)}` : ""}</small></div>
-              <div><span>Payment</span><strong>{form.paymentFrequency==="term" ? "Full term" : "Weekly"} · {selectedPrice!==null ? formatMoney(selectedPrice) : ""}</strong><small>{paymentMethodLabel(form.paymentMethod)}</small></div>
+              <div><span>Payment</span><strong>{form.paymentFrequency==="term" ? "Full term" : "Weekly"} · {selectedPrice!==null ? formatPriceCents(selectedPrice) : ""}</strong><small>{paymentMethodLabel(form.paymentMethod)}</small></div>
               <div><span>Parent/guardian</span><strong>{form.parentName}</strong><small>{form.parentEmail}</small></div>
             </div>
 

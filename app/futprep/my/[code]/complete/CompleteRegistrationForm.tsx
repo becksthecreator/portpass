@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { PhoneInput } from "@/app/_components/PhoneInput";
 
 type Props = {
   referenceCode: string;
@@ -85,7 +86,7 @@ export function CompleteRegistrationForm({ referenceCode, childName, programName
           <label><span>Full name</span><input value={parentName} onChange={(e) => setParentName(e.target.value)} /></label>
           <label><span>Relationship</span><input value={relationship} onChange={(e) => setRelationship(e.target.value)} placeholder="Mother, father, guardian…" /></label>
           <label><span>Email</span><input type="email" value={parentEmail} onChange={(e) => setParentEmail(e.target.value)} /></label>
-          <label><span>Phone</span><input type="tel" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} /></label>
+          <label><span>Phone</span><PhoneInput value={parentPhone} onChange={setParentPhone} /></label>
         </div>
       </fieldset>
 
@@ -93,7 +94,7 @@ export function CompleteRegistrationForm({ referenceCode, childName, programName
         <legend><span>03</span>Health & safety</legend>
         <div className="form-grid">
           <label><span>Emergency contact name *</span><input required value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} /></label>
-          <label><span>Emergency contact phone *</span><input type="tel" required value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} /></label>
+          <label><span>Emergency contact phone *</span><PhoneInput required value={emergencyContactPhone} onChange={setEmergencyContactPhone} /></label>
           <label className="full-field"><span>Allergies</span><textarea rows={2} value={allergies} onChange={(e) => setAllergies(e.target.value)} placeholder="Write none if there are no known allergies" /></label>
           <label className="full-field"><span>Medical conditions</span><textarea rows={2} value={medicalConditions} onChange={(e) => setMedicalConditions(e.target.value)} placeholder="Write none if there are none" /></label>
           <label className="full-field"><span>Medications</span><textarea rows={2} value={medications} onChange={(e) => setMedications(e.target.value)} placeholder="Write none if there are none" /></label>
