@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { PublicWeddingPackage } from "@/db/weddingPackages";
 import { formatPrice } from "@/app/_components/blocks/format";
 import { ShareOnWhatsApp } from "@/app/_components/blocks/WhatsAppActions";
+import { track } from "@/lib/analytics";
 
 const WHATSAPP_NUMBER = "12424241262";
 
@@ -137,6 +138,9 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
     const message = validate(step);
     if (message) { setError(message); return; }
     setError(null);
+    // Leaving the first step is the "started planning" signal (round 4,
+    // item 8); the event names the business only.
+    if (step === 0) track("planner_start", { org: "bahamas-weddings" });
     setStep((s) => Math.min(s + 1, STEP_LABELS.length - 1));
   }
 
