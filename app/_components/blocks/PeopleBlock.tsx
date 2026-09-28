@@ -23,7 +23,7 @@ export function PeopleBlock({
     <section className="tpl-people" aria-label="Meet the team">
       {imageUrl && <img className="tpl-people-image" src={imageUrl} alt={name} loading="lazy" />}
       <div className="tpl-people-copy">
-        <h3>{name}</h3>
+        <h2>{name}</h2>
         {credentials && <p className="tpl-people-credentials">{credentials}</p>}
         <p>{bio}</p>
         {(contactPhone || contactEmail) && (

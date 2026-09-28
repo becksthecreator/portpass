@@ -1,12 +1,16 @@
 import Link from "next/link";
-import { getNavSections } from "@/lib/navSections";
+import { SECTIONS } from "@/lib/sections";
 
 export const metadata = {
   title: "Page not found | PortPass Bahamas",
 };
 
-export default async function NotFound() {
-  const CATEGORIES = await getNavSections();
+// Static on purpose: reading sections from the database made this page
+// dynamic, and a dynamic not-found streams in after an empty shell, so
+// curl, crawlers without JavaScript and slow phones saw a blank 404. The
+// compiled five-section list is what the nav falls back to anyway.
+export default function NotFound() {
+  const CATEGORIES = SECTIONS.map((s) => ({ label: s.name, href: s.href }));
   return (
     <main style={{ minHeight: "100vh", background: "var(--sand)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
       <div className="dashboard-empty" style={{ maxWidth: 560, textAlign: "center" }}>

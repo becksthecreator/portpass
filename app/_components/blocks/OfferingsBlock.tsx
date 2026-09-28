@@ -19,7 +19,7 @@ export function OfferingsBlock({ offerings }: { offerings: Offering[] }) {
           <div className={`tpl-offering-card${offering.isFeatured ? " tpl-offering-featured" : ""}`} key={offering.id}>
             {offering.isFeatured && <span className="tpl-offering-badge">Most chosen</span>}
             {offering.imageUrl && <img className="tpl-offering-image" src={offering.imageUrl} alt={imageAlt} loading="lazy" />}
-            <h3>{offering.name}</h3>
+            <h2>{offering.name}</h2>
             {offering.summary && <p className="tpl-offering-summary">{offering.summary}</p>}
             <p className="tpl-offering-price">{formatPrice(offering.priceCents as number, offering.priceUnit)}</p>
             {ageRange && <p className="tpl-offering-ages">{ageRange}</p>}

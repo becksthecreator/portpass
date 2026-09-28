@@ -27,7 +27,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return {
     title: `${section.name} in The Bahamas | PortPass Bahamas`,
     description: live > 0 ? `${section.name} you can book on PortPass in The Bahamas.` : `${section.name} in The Bahamas — coming soon to PortPass.`,
-    robots: live < section.comingSoonThreshold ? { index: false, follow: true } : undefined,
+    // noindex only while there is nothing to book; the coming-soon threshold
+    // drives the on-page label, not indexing (mirrors app/sitemap.ts).
+    robots: live === 0 ? { index: false, follow: true } : undefined,
   };
 }
 
