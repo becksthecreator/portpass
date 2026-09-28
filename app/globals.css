@@ -5222,3 +5222,11 @@ img.biz-logo{object-fit:contain;background:#fff;border:1px solid var(--line)}
 .phone-input{display:flex;gap:8px;align-items:stretch;min-width:0}
 .phone-input select{flex:0 0 auto;width:auto;max-width:44%;min-width:0}
 .phone-input input{flex:1 1 auto;min-width:0;width:auto}
+
+/* "Sign in" lives in the one-row header at every width (28 Sept brief).
+   Below 400px the wordmark yields to the P mark so brand · Browse · Sign
+   in · For business still fit on one line. */
+@media(max-width:400px){
+  .site-shell-brand span:last-child{display:none}
+  .site-shell-header-actions{gap:12px}
+}

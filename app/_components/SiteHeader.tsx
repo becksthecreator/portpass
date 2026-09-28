@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { authUiEnabled } from "@/lib/auth/env";
 import { getNavTree } from "@/lib/navSections";
 import { HeaderAccount } from "./HeaderAccount";
 import { SiteNav } from "./SiteNav";
@@ -40,7 +39,7 @@ export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
         <Link className="site-shell-brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
         <SiteNav sections={sections} />
         <div className="site-shell-header-actions">
-          <HeaderAccount enabled={authUiEnabled()} />
+          <HeaderAccount />
           <Link className="site-shell-business" href="/apply">For business</Link>
         </div>
       </div>

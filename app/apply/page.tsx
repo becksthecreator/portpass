@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { ApplicationForm } from "./ApplicationForm";
 import { SiteHeader } from "@/app/_components/SiteHeader";
@@ -38,6 +39,7 @@ export default async function ApplyPage() {
         <h1>Tell us about your business.</h1>
         <p>Six quick answers. We&rsquo;ll message you on WhatsApp within a business day, build your page from the photos and prices you send us, and give you one link to share.</p>
         <p className="apply-pricing-note">First 30 days free. Then from $65/month, or no monthly fee on Marketplace (8% of the bookings we bring you).</p>
+        <p className="auth-alt">Already on PortPass? <Link href="/login?next=%2Fbusiness%2Fsetup">Sign in to manage your listing.</Link></p>
       </section>
       {/* useSearchParams (for the UTM tags) needs a Suspense boundary on a statically rendered page. */}
       <Suspense fallback={null}>

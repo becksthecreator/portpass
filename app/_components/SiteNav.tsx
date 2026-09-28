@@ -314,6 +314,7 @@ function BrowseSheet({ sections }: { sections: NavSection[] }) {
               })}
             </ul>
             <div className="sheet-foot">
+              <Link href="/login">Sign in</Link>
               <Link href="/business">For business</Link>
               <Link href="/about">About</Link>
               <Link href="/contact">Contact</Link>
