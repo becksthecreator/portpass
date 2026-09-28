@@ -5048,7 +5048,7 @@ img.biz-logo{object-fit:contain;background:#fff;border:1px solid var(--line)}
 .feature-card-body{padding:26px 24px 28px;display:flex;flex-direction:column;gap:10px}
 .feature-card-label{display:inline-block;background:var(--brand-text, var(--coral-deep));color:#fff;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:999px;width:fit-content}
 .feature-card-heading{display:flex;align-items:center;gap:10px}
-.feature-card-heading h3{font-family:var(--font-pp-display),Georgia,serif;font-size:1.4rem;font-weight:500;margin:0}
+.feature-card-heading h2{font-family:var(--font-pp-display),Georgia,serif;font-size:1.4rem;font-weight:500;margin:0}
 .feature-card-description{color:var(--muted);font-size:.94rem;line-height:1.5;margin:0}
 .feature-card-price{font-family:var(--font-pp-display),Georgia,serif;font-size:1.3rem;font-weight:600;color:var(--ink);margin:0}
 .feature-card-button{display:inline-flex;align-items:center;gap:8px;background:var(--brand-text, var(--coral-deep));color:#fff;font-size:.9rem;font-weight:700;padding:13px 22px;border-radius:999px;width:fit-content;margin-top:6px;text-decoration:none}
