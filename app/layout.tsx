@@ -36,17 +36,22 @@ export default function RootLayout({
       <body>
         {children}
         {/*
-          Vercel Web Analytics is NOT actually enabled for this project
-          (confirmed 25 Sept: this script 404s on every single page load in
-          production, per Part 5 of that day's brief) -- removed rather than
-          left in place 404ing for every visitor. Re-add once Web Analytics
-          is turned on for this project in the Vercel dashboard (Project ->
-          Analytics -> Enable); at that point Vercel serves this exact path
-          itself, so no npm dependency is needed (the @vercel/analytics
-          package was tried and rejected earlier over an unrelated,
-          pre-existing vite-version ERESOLVE conflict already latent in this
-          repo's dependency tree).
+          Vercel Web Analytics (cookieless, matches the privacy policy).
+          Vercel serves /_vercel/insights/script.js itself once Web Analytics
+          is enabled for the project (Project -> Analytics -> Enable); until
+          then that path 404s for every visitor (confirmed 25 Sept), so the
+          tag is behind VERCEL_WEB_ANALYTICS=1. The inline shim is Vercel's
+          own queue: lib/analytics.ts calls window.va("event", ...) and
+          anything fired before the script loads is kept, not lost. No npm
+          dependency (the @vercel/analytics package hit a pre-existing
+          vite-version ERESOLVE conflict in this repo's dependency tree).
         */}
+        {process.env.VERCEL_WEB_ANALYTICS === "1" && (
+          <>
+            <script dangerouslySetInnerHTML={{ __html: "window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};" }} />
+            <script defer src="/_vercel/insights/script.js" />
+          </>
+        )}
       </body>
     </html>
   );
