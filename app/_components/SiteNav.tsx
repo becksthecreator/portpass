@@ -34,9 +34,15 @@ function liveTag(live: number | null): string | null {
 
 // ---- desktop ---------------------------------------------------------------
 
+// Which panel is open and how it got there: a hover-opened panel closes
+// when the pointer leaves and turns into a click-opened one if clicked
+// (so hovering then clicking never snaps it shut -- also what a tap on a
+// touch laptop does, since it fires mouseenter then click); a click-opened
+// panel stays until a click elsewhere, Esc, another trigger or navigation.
+type OpenPanel = { slug: string; by: "hover" | "click" } | null;
+
 function DesktopNav({ sections }: { sections: NavSection[] }) {
-  const [open, setOpen] = useState<string | null>(null);
-  const hoverOpenedAt = useRef(0);
+  const [open, setOpen] = useState<OpenPanel>(null);
   const closeTimer = useRef<number | null>(null);
   const rootRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
@@ -45,11 +51,25 @@ function DesktopNav({ sections }: { sections: NavSection[] }) {
 
   useEffect(() => {
     if (!open) return;
+    const root = rootRef.current;
     const onDoc = (event: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(null);
+      if (root && !root.contains(event.target as Node)) setOpen(null);
+    };
+    // Esc closes from anywhere on the page; if focus was inside the nav it
+    // returns to the trigger that owns the panel.
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      const trigger = root?.querySelector<HTMLButtonElement>(".nav-item.is-open .nav-trigger") ?? null;
+      const focusInside = Boolean(root && document.activeElement && root.contains(document.activeElement));
+      setOpen(null);
+      if (focusInside) trigger?.focus();
     };
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   const cancelClose = () => {
@@ -60,7 +80,7 @@ function DesktopNav({ sections }: { sections: NavSection[] }) {
   };
   const scheduleClose = () => {
     cancelClose();
-    closeTimer.current = window.setTimeout(() => setOpen(null), 160);
+    closeTimer.current = window.setTimeout(() => setOpen((current) => (current?.by === "hover" ? null : current)), 160);
   };
 
   return (
@@ -69,44 +89,39 @@ function DesktopNav({ sections }: { sections: NavSection[] }) {
         <NavItem
           key={section.slug}
           section={section}
-          isOpen={open === section.slug}
+          isOpen={open?.slug === section.slug}
           onHoverOpen={() => {
             cancelClose();
-            hoverOpenedAt.current = Date.now();
-            setOpen(section.slug);
+            setOpen((current) => (current?.slug === section.slug ? current : { slug: section.slug, by: "hover" }));
           }}
           onHoverLeave={scheduleClose}
           onToggle={() => {
             cancelClose();
-            // A tap on a touch laptop fires mouseenter (which opened the
-            // panel) right before click -- don't let the click close it again.
-            if (open === section.slug && Date.now() - hoverOpenedAt.current < 400) return;
-            setOpen(open === section.slug ? null : section.slug);
+            setOpen((current) => {
+              if (current?.slug !== section.slug) return { slug: section.slug, by: "click" };
+              if (current.by === "hover") return { slug: section.slug, by: "click" };
+              return null;
+            });
           }}
-          onClose={() => setOpen(null)}
         />
       ))}
     </nav>
   );
 }
 
-function NavItem({ section, isOpen, onHoverOpen, onHoverLeave, onToggle, onClose }: { section: NavSection; isOpen: boolean; onHoverOpen: () => void; onHoverLeave: () => void; onToggle: () => void; onClose: () => void }) {
+function NavItem({ section, isOpen, onHoverOpen, onHoverLeave, onToggle }: { section: NavSection; isOpen: boolean; onHoverOpen: () => void; onHoverLeave: () => void; onToggle: () => void }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const panelId = `nav-panel-${section.slug}`;
 
+  // Tab and the arrows stay inside the open panel; Esc is handled once,
+  // at document level, by DesktopNav.
   function onKeyDown(event: ReactKeyboardEvent) {
     if (!isOpen) {
       if (event.key === "ArrowDown") {
         event.preventDefault();
         onToggle();
       }
-      return;
-    }
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose();
-      triggerRef.current?.focus();
       return;
     }
     const focusables = [triggerRef.current, ...Array.from(panelRef.current?.querySelectorAll<HTMLElement>("a[href]") ?? [])].filter((el): el is HTMLElement => el !== null);
