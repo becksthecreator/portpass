@@ -4633,10 +4633,16 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .home-business{flex-direction:column;text-align:center}
 }
 @media(max-width:600px){
-  .home-chooser{padding:50px 16px}
+  .home-chooser{padding:36px 16px 40px}
+  /* Five tiles in two columns under 600px tall, heading included (measured
+     702px on 28 Sept before this). */
+  .home-chooser .home-section-heading{margin-bottom:22px}
   .home-sections-grid{gap:10px;grid-template-columns:repeat(2,1fr)}
-  .home-section-card{min-height:0;padding:14px 12px}
+  .home-section-card{min-height:0;padding:12px 12px 10px;gap:4px}
+  .home-section-card svg{width:22px;height:22px;margin:0}
+  .home-section-card h3{font-size:.95rem}
   .home-section-card p{display:none}
+  .home-section-card b{font-size:.7rem;padding-top:2px}
   .home-section-heading{padding:0 16px}
   .home-business{padding:32px 16px}
   .home-editorial-col{padding:28px 22px}
