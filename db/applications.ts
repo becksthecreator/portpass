@@ -18,6 +18,8 @@ export type ApplicationRecord = {
   utm_source: string | null;
   utm_medium: string | null;
   utm_campaign: string | null;
+  // The plan picked on /pricing before /apply (pricing brief, 28 Sept).
+  plan_code?: string | null;
   status: "submitted" | "approved" | "rejected";
   submitted_at: string;
   reviewed_at: string | null;
@@ -34,6 +36,7 @@ export type NewApplication = {
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
+  planCode: string | null;
 };
 
 export async function createApplication(values: NewApplication): Promise<{ id: number }> {
@@ -53,6 +56,7 @@ export async function createApplication(values: NewApplication): Promise<{ id: n
       utm_source: values.utmSource,
       utm_medium: values.utmMedium,
       utm_campaign: values.utmCampaign,
+      plan_code: values.planCode,
       status: "submitted",
       submitted_at: new Date().toISOString(),
     })

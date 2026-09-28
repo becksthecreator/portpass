@@ -3,6 +3,7 @@ import { createApplication } from "@/db/applications";
 import { sendApplicationReceivedEmail } from "@/lib/email";
 import { normalizePhoneE164 } from "@/lib/phone";
 import { isKnownSectionSlug } from "@/db/categories";
+import { getPlan } from "@/db/pricing";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_ATTEMPTS = 8;
@@ -67,6 +68,11 @@ export async function POST(request: NextRequest) {
   const utmSource = str(b, "utm_source", 60) || null;
   const utmMedium = str(b, "utm_medium", 60) || null;
   const utmCampaign = str(b, "utm_campaign", 60) || null;
+  // The plan is a hint from /pricing, not a commitment ("You can change it
+  // later"), so an unknown or private code is dropped rather than refused.
+  const planRaw = str(b, "plan", 40);
+  const plan = planRaw ? await getPlan(planRaw).catch(() => null) : null;
+  const planCode = plan && plan.isPublic ? plan.code : null;
 
   try {
     const { id } = await createApplication({
@@ -79,6 +85,7 @@ export async function POST(request: NextRequest) {
       utmSource,
       utmMedium,
       utmCampaign,
+      planCode,
     });
     await sendApplicationReceivedEmail({
       id,
@@ -91,6 +98,7 @@ export async function POST(request: NextRequest) {
       utmSource,
       utmMedium,
       utmCampaign,
+      planName: plan && plan.isPublic ? plan.name : null,
     });
     return NextResponse.json({ ok: true, id }, { status: 201 });
   } catch (error) {

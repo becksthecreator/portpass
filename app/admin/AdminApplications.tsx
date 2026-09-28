@@ -61,6 +61,7 @@ export function AdminApplications({ initialApplications }: { initialApplications
               </div>
               <dl className="application-details">
                 <div><dt>Section</dt><dd>{sectionName(application.section) ?? application.activity_type ?? "—"}</dd></div>
+                {application.plan_code && <div><dt>Plan picked</dt><dd>{application.plan_code.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase())}</dd></div>}
                 {whatsapp && (
                   <div><dt>WhatsApp</dt><dd><a href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">{formatPhoneDisplay(whatsapp)} ↗</a></dd></div>
                 )}

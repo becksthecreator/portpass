@@ -40,6 +40,7 @@ export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
         <SiteNav sections={sections} />
         <div className="site-shell-header-actions">
           <HeaderAccount />
+          <Link className="site-shell-for-business site-shell-pricing" href="/pricing">Pricing</Link>
           <Link className="site-shell-for-business" href="/apply">For business</Link>
         </div>
       </div>

@@ -27,6 +27,7 @@ export async function SiteFooter({ orgLine }: { orgLine?: string }) {
           <Link href="/login">Sign in</Link>
           <Link href="/signup">Create an account</Link>
           <Link href="/apply">For business</Link>
+          <Link href="/pricing">Pricing</Link>
           <Link href="/about">About</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/privacy">Privacy</Link>
