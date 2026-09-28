@@ -12,14 +12,20 @@ const SITE_URL = "https://portpassbahamas.com";
 // anchor, so every category is one click from anywhere on the site. The
 // only exception is BWS's planner (app/weddings/bahamas-weddings-by-the-sea/
 // plan), which keeps its own bws-theme chrome rather than this header.
+//
+// On a phone the five section links wrapped onto two lines and the
+// "← back" row added a third, pushing every page down ~130px (round 4,
+// item 4). Now: one row -- brand, a "Browse" menu (a <details>, so no
+// JavaScript), account, For business -- and the back row is desktop-only.
+// The BreadcrumbList JSON-LD is unchanged, so search results still get
+// the trail.
 export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
   const categoryLinks = await getNavSections();
   // The full trail ("PortPass / Weddings / Bahamas Weddings By The Sea")
   // reads like a file path, so only a single link back to the immediate
   // parent is shown -- the offering page's parent is its organization, an
   // organization's parent is Home, matching breadcrumb[length-2] (or Home
-  // when there's nothing before the current page). The full trail still
-  // goes out as BreadcrumbList schema so search results can show it.
+  // when there's nothing before the current page).
   const back =
     breadcrumb && breadcrumb.length > 0
       ? breadcrumb.length > 1
@@ -36,6 +42,12 @@ export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
         <nav className="site-shell-nav" aria-label="Categories">
           {categoryLinks.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
         </nav>
+        <details className="site-shell-browse">
+          <summary>Browse <span aria-hidden="true">▾</span></summary>
+          <nav aria-label="Categories">
+            {categoryLinks.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
+          </nav>
+        </details>
         <div className="site-shell-header-actions">
           <HeaderAccount enabled={authUiEnabled()} />
           <Link className="site-shell-business" href="/apply">For business</Link>
