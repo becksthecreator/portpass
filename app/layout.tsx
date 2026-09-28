@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
-import Script from "next/script";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./staff.css";
+import { PwaRegister } from "./_components/PwaRegister";
 
 const TITLE = "PortPass Bahamas | Find and Book Sports, Weddings, Venues & Events in Nassau";
 const DESCRIPTION = "Sports sessions, weddings, venues and events — found and booked in one place.";
@@ -28,6 +28,9 @@ export const metadata: Metadata = {
   },
 };
 
+// The installed app's title bar takes this colour (round 5, §6).
+export const viewport: Viewport = { themeColor: "#14303d" };
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -35,6 +38,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
+        <PwaRegister />
         {/*
           Vercel Web Analytics (cookieless, matches the privacy policy).
           Vercel serves /_vercel/insights/script.js itself once Web Analytics

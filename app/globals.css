@@ -5170,3 +5170,50 @@ img.biz-logo{object-fit:contain;background:#fff;border:1px solid var(--line)}
   .biz-shell-header{flex-wrap:wrap;gap:12px}
   .biz-shell-brand span:last-child{font-size:.9rem}
 }
+
+/* ============================================================
+   Installable app (round 5, §6): the install banner (pwa-*), the
+   /app page (app-*) and the offline fallback page (offline-*).
+   ============================================================ */
+.pwa-banner{position:fixed;left:12px;right:12px;bottom:12px;z-index:110;display:flex;align-items:center;gap:12px;background:var(--paper);border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 50px #14303d33;padding:12px 14px;max-width:520px;margin:0 auto;animation:sheet-up .3s cubic-bezier(.2,.8,.2,1)}
+.pwa-banner-mark{flex:0 0 auto;width:40px;height:40px;border-radius:50% 50% 47% 53%;background:var(--coral);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-pp-display),Georgia,serif;font-style:italic;font-weight:700;font-size:22px;transform:rotate(-7deg)}
+.pwa-banner-copy{flex:1 1 auto;min-width:0}
+.pwa-banner-copy strong{display:block;font-size:.95rem;color:var(--ink)}
+.pwa-banner-copy p{margin:2px 0 0;font-size:.82rem;color:var(--muted);line-height:1.35}
+.pwa-banner-copy svg{width:14px;height:14px;vertical-align:-2px}
+.pwa-banner-actions{display:flex;flex-direction:column;gap:4px;align-items:stretch;flex:0 0 auto}
+.pwa-banner-install{background:var(--coral-deep);color:#fff;border:0;border-radius:999px;font:inherit;font-size:.82rem;font-weight:800;padding:9px 16px;cursor:pointer;text-align:center;text-decoration:none}
+.pwa-banner-dismiss{background:none;border:0;color:var(--muted);font:inherit;font-size:.78rem;font-weight:700;cursor:pointer;padding:4px}
+@media(min-width:760px){.pwa-banner{left:auto;right:20px;bottom:20px;margin:0;width:420px}}
+@media(prefers-reduced-motion:reduce){.pwa-banner{animation:none}}
+
+.app-page{background:var(--paper);min-height:100vh}
+.app-hero{max-width:1100px;margin:0 auto;padding:48px 5vw 28px;display:grid;gap:32px;grid-template-columns:1.2fr .8fr;align-items:center}
+.app-hero h1{font-family:var(--font-pp-display),Georgia,serif;font-size:clamp(2rem,4.5vw,3rem);font-weight:500;letter-spacing:-.01em;margin:8px 0 12px;color:var(--ink)}
+.app-hero p{font-size:1.05rem;line-height:1.6;color:var(--muted);margin:0 0 20px;max-width:52ch}
+.app-qr{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px;justify-self:center}
+.app-qr img{width:220px;height:220px;display:block}
+.app-qr span{font-size:.8rem;font-weight:700;color:var(--muted);text-align:center}
+.app-qr a{font-size:.78rem;color:var(--coral-deep);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.app-steps{max-width:1100px;margin:0 auto;padding:12px 5vw 64px;display:grid;gap:24px;grid-template-columns:1fr 1fr}
+.app-platform{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:26px}
+.app-platform h2{font-family:var(--font-pp-display),Georgia,serif;font-size:1.5rem;font-weight:500;margin:0 0 4px;color:var(--ink)}
+.app-platform>p{color:var(--muted);margin:0 0 18px;font-size:.92rem}
+.app-platform ol{margin:0 0 18px;padding-left:22px;display:grid;gap:10px;line-height:1.5;color:var(--ink)}
+.app-platform ol b{font-weight:800}
+.app-platform svg.app-inline{width:18px;height:18px;vertical-align:-3px;margin:0 2px}
+.app-shot{background:var(--sand);border-radius:16px;padding:16px;display:flex;justify-content:center}
+.app-shot svg{width:100%;max-width:240px;height:auto}
+.app-installed{margin:0 0 20px;font-weight:700;color:var(--ink)}
+@media(max-width:760px){
+  .app-hero{grid-template-columns:1fr;padding-top:32px}
+  .app-steps{grid-template-columns:1fr}
+}
+
+.offline-page{min-height:100vh;background:var(--sand);display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,Arial,sans-serif}
+.offline-card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:36px 28px;max-width:520px;width:100%;text-align:center}
+.offline-card h1{font-family:Georgia,serif;font-size:2rem;font-weight:400;margin:14px 0 8px;color:var(--ink)}
+.offline-card p{color:var(--muted);margin:0 0 18px;line-height:1.55}
+.offline-list{list-style:none;margin:0 0 22px;padding:0;display:grid;gap:8px;text-align:left}
+.offline-list a{display:block;padding:12px 14px;border:1px solid var(--line);border-radius:12px;color:var(--ink);font-weight:700;text-decoration:none;background:var(--paper)}
+.offline-empty{font-size:.9rem;color:var(--muted);margin:0 0 22px}

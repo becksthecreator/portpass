@@ -26,6 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `https://${PLATFORM_HOST}/apply`, lastModified: now },
     { url: `https://${PLATFORM_HOST}/about`, lastModified: now },
     { url: `https://${PLATFORM_HOST}/contact`, lastModified: now },
+    { url: `https://${PLATFORM_HOST}/app`, lastModified: now },
   ];
 
   try {
