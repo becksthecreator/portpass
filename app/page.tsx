@@ -86,7 +86,7 @@ export default async function Home() {
     if (biz.slug === "bahamas-weddings") {
       return { ...base, line: `${weddingSettings.yearsExperience} years · ${weddingSettings.reviewCount} five-star reviews · Nassau`, cta: "Plan a wedding" };
     }
-    return { ...base, line: biz.oneLiner ?? (biz.primaryCategory ? categoryLabel(biz.primaryCategory) : ""), cta: "Explore" };
+    return { ...base, line: biz.oneLiner ?? (biz.primaryCategory ? categoryLabel(biz.primaryCategory) ?? "" : ""), cta: "Explore" };
   });
 
   return (
