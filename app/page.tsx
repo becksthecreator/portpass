@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { ppDisplay, ppSans } from "./fonts";
 import { ArrivalPlate } from "./ArrivalPlate";
-import { HomeHero, type HeroFrame } from "./HomeHero";
+import { HomeHero } from "./HomeHero";
 import { BusinessCarousel } from "./_components/BusinessCarousel";
-import { BusinessLogo } from "./_components/blocks/BusinessLogo";
+import { OpenNowCards, type OpenNowCard } from "./_components/OpenNowCards";
+import { SectionGrid } from "./_components/SectionGrid";
+import { categoryLabel } from "./_components/blocks/categoryLabel";
 import { directoryHref } from "./_components/blocks/directoryHref";
 import { getFutprepAvailability, type FutprepAvailability } from "@/db/registrations";
 import { getWeddingSiteSettings, DEFAULT_SETTINGS, type WeddingSiteSettings } from "@/db/weddingSite";
@@ -15,19 +17,17 @@ import { SiteFooter } from "./_components/SiteFooter";
 
 // The homepage is the highest-traffic page on the site, and every one of
 // these three queries is decoration on top of static page structure (the
-// hero frame text, the business directory chips) -- not something worth a
-// hard crash over. Found while investigating the 25 Sept /weddings outage
-// (Part 1b): the same PGRST303 clock-skew rejection had ALSO been hitting
-// listPublishedOrganizations() on this exact route ("Could not load
-// organization directory", 12 occurrences over 3 days) and
-// getWeddingSiteSettings() here too -- this wasn't a /weddings-only
-// problem, and the homepage going down is a bigger deal than a category
-// page going down. Same retry-then-fallback pattern as /weddings.
+// "Open now" card lines, the section grid's Live chips) -- not something
+// worth a hard crash over. Found while investigating the 25 Sept /weddings
+// outage (Part 1b): the same PGRST303 clock-skew rejection had ALSO been
+// hitting listPublishedOrganizations() on this exact route, and
+// getWeddingSiteSettings() here too. Same retry-then-fallback pattern as
+// /weddings.
 async function safeAvailability(): Promise<FutprepAvailability[]> {
   try {
     return await withOneRetry(() => getFutprepAvailability());
   } catch (error) {
-    console.error("homepage: futprep availability fetch failed, hiding that hero frame", error);
+    console.error("homepage: futprep availability fetch failed, using the generic card line", error);
     return [];
   }
 }
@@ -45,7 +45,7 @@ async function safeDirectory(): Promise<OrganizationDirectoryEntry[]> {
   try {
     return await withOneRetry(() => listPublishedOrganizations());
   } catch (error) {
-    console.error("homepage: organization directory fetch failed, hiding the business carousel", error);
+    console.error("homepage: organization directory fetch failed, hiding the open-now cards", error);
     return [];
   }
 }
@@ -53,13 +53,11 @@ async function safeDirectory(): Promise<OrganizationDirectoryEntry[]> {
 // Title, description, and Open Graph/Twitter tags are inherited from the
 // root layout -- they're identical for "/", so there's nothing to override.
 
-// force-dynamic: the hero reads live program and wedding-site data.
+// force-dynamic: the cards read live program and wedding-site data.
 export const dynamic = "force-dynamic";
 
-const COMING_LANES = [
-  { slug: "venues", title: "Venues", tag: "Coming soon", copy: "Beaches, halls, studios and private estates, held by the hour or the day.", now: "Add-ons priced as you build the booking." },
-  { slug: "entertainment", title: "Entertainment", tag: "Coming soon", copy: "Events, DJs and sound equipment.", now: "Ticketed nights, DJs and AV hire, booked the same way as everything else on PortPass." },
-] as const;
+// Below this many businesses the carousel is replaced by equal cards.
+const CAROUSEL_FROM = 4;
 
 export default async function Home() {
   const [availability, weddingSettings, directory] = await Promise.all([
@@ -69,27 +67,27 @@ export default async function Home() {
   ]);
   const futprepProgram = availability[0];
   const spotsThisWeek = availability.reduce((sum, program) => sum + program.spotsRemaining, 0);
-  const sportsBusinesses = directory.filter((biz) => biz.primaryCategory === "sports-fitness");
-  const weddingsBusinesses = directory.filter((biz) => biz.primaryCategory === "weddings");
+  const liveSlugs = new Set(directory.map((biz) => biz.primaryCategory).filter((c): c is string => Boolean(c)));
 
-  const frames: HeroFrame[] = [
-    futprepProgram && {
-      world: "futprep" as const,
-      chip: "Open now",
-      name: "Futprep Athletics",
-      meta: `${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location} · ${spotsThisWeek} spots open`,
-      cta: "Register a child",
-      href: "/sports-fitness/futprep-athletics",
-    },
-    {
-      world: "portpass" as const,
-      chip: "Open now",
-      name: "Bahamas Weddings By The Sea",
-      meta: `${weddingSettings.yearsExperience} years · ${weddingSettings.reviewCount} five-star reviews · Nassau`,
-      cta: "Plan a wedding",
-      href: "/weddings/bahamas-weddings-by-the-sea",
-    },
-  ].filter((frame): frame is HeroFrame => Boolean(frame));
+  // The two businesses that are live today get their real numbers; anyone
+  // who joins later gets their one-liner and an "Explore" button until
+  // their own live line exists.
+  const cards: OpenNowCard[] = directory.map((biz) => {
+    const base = {
+      slug: biz.slug,
+      name: biz.name,
+      logoUrl: biz.logoUrl,
+      brand: biz.brandColor ?? "#e8794a",
+      href: directoryHref(biz.slug, biz.primaryCategory),
+    };
+    if (biz.slug === "futprep" && futprepProgram) {
+      return { ...base, line: `${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location} · ${spotsThisWeek} spots open`, cta: "Register a child" };
+    }
+    if (biz.slug === "bahamas-weddings") {
+      return { ...base, line: `${weddingSettings.yearsExperience} years · ${weddingSettings.reviewCount} five-star reviews · Nassau`, cta: "Plan a wedding" };
+    }
+    return { ...base, line: biz.oneLiner ?? (biz.primaryCategory ? categoryLabel(biz.primaryCategory) : ""), cta: "Explore" };
+  });
 
   return (
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`} data-world="portpass">
@@ -97,9 +95,17 @@ export default async function Home() {
       <a className="home-skip-link" href="#chooser">Skip to browse</a>
 
       <SiteHeader />
-      <HomeHero frames={frames} />
+      <HomeHero />
 
-      <BusinessCarousel businesses={directory} />
+      {directory.length >= CAROUSEL_FROM ? <BusinessCarousel businesses={directory} /> : <OpenNowCards cards={cards} />}
+
+      <section className="home-chooser" id="chooser">
+        <div className="home-section-heading">
+          <span className="home-eyebrow">What PortPass covers</span>
+          <h2>Where do you want to go?</h2>
+        </div>
+        <SectionGrid liveSlugs={liveSlugs} />
+      </section>
 
       <section className="home-how" id="how-it-works">
         <div className="home-section-heading">
@@ -126,58 +132,13 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="home-chooser" id="chooser">
-        <div className="home-section-heading">
-          <span className="home-eyebrow">What PortPass covers</span>
-          <h2>Where do you want to go?</h2>
-        </div>
-        <div className="home-lane-grid">
-          <div className="home-lane home-lane-live">
-            <span className="home-lane-tag home-lane-tag-live">Live now</span>
-            <h3>Sports &amp; Fitness</h3>
-            <p>Youth training, camps and weekend sessions you register for online.</p>
-            <div className="home-lane-chips">
-              {sportsBusinesses.map((biz) => (
-                <Link key={biz.slug} href={directoryHref(biz.slug, biz.primaryCategory)} className="home-lane-chip">
-                  <BusinessLogo logoUrl={biz.logoUrl} name={biz.name} brand={biz.brandColor ?? "#e8794a"} size="sm" />
-                  <span>{biz.name}</span>
-                </Link>
-              ))}
-            </div>
-            <Link className="home-lane-action" href="/sports-fitness">Explore →</Link>
-          </div>
-          <div className="home-lane home-lane-live">
-            <span className="home-lane-tag home-lane-tag-live">Live now</span>
-            <h3>Weddings</h3>
-            <p>Island ceremonies planned end to end: officiant, venue, photography, paperwork.</p>
-            <div className="home-lane-chips">
-              {weddingsBusinesses.map((biz) => (
-                <Link key={biz.slug} href={directoryHref(biz.slug, biz.primaryCategory)} className="home-lane-chip">
-                  <BusinessLogo logoUrl={biz.logoUrl} name={biz.name} brand={biz.brandColor ?? "#e8794a"} size="sm" />
-                  <span>{biz.name}</span>
-                </Link>
-              ))}
-            </div>
-            <Link className="home-lane-action" href="/weddings">Explore →</Link>
-          </div>
-          {COMING_LANES.map((lane) => (
-            <Link className="home-lane home-lane-coming" href={`/${lane.slug}`} key={lane.slug}>
-              <span className="home-lane-tag">{lane.tag}</span>
-              <h3>{lane.title}</h3>
-              <p>{lane.copy}<span className="home-lane-now">{lane.now}</span></p>
-              <span className="home-lane-action">Tell us what you need →</span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
       <section className="home-business">
         <div>
           <span className="home-eyebrow">Run a club or a business?</span>
           <h2>List with PortPass.</h2>
           <p>Bring your organization onto the same system powering Futprep and Bahamas Weddings By The Sea.</p>
         </div>
-        <Link className="home-button home-button-light" href="/apply">Learn more →</Link>
+        <Link className="home-button home-button-light" href="/business">Learn more →</Link>
       </section>
 
       <SiteFooter />

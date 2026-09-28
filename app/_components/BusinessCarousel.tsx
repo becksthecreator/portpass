@@ -109,6 +109,7 @@ export function BusinessCarousel({ businesses }: { businesses: OrganizationDirec
   return (
     <section
       className="carousel"
+      id="open-now"
       aria-label="Open now on PortPass"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -137,7 +138,7 @@ export function BusinessCarousel({ businesses }: { businesses: OrganizationDirec
       >
         {businesses.map((biz) => (
           <Link key={biz.slug} href={directoryHref(biz.slug, biz.primaryCategory)} className="carousel-tile">
-            <BusinessLogo logoUrl={biz.logoUrl} name={biz.name} brand={biz.brandColor ?? "#e8794a"} size="lg" />
+            <BusinessLogo logoUrl={biz.logoUrl} name={biz.name} brand={biz.brandColor ?? "#e8794a"} size="lg" initialsOnly />
             <span className="carousel-tile-name">{biz.name}</span>
             {biz.primaryCategory && <span className="carousel-tile-category">{categoryLabel(biz.primaryCategory)}</span>}
           </Link>
