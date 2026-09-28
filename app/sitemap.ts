@@ -23,13 +23,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `https://${PLATFORM_HOST}/`, lastModified: now },
     { url: `https://${PLATFORM_HOST}/business`, lastModified: now },
     { url: `https://${PLATFORM_HOST}/apply`, lastModified: now },
+    { url: `https://${PLATFORM_HOST}/about`, lastModified: now },
+    { url: `https://${PLATFORM_HOST}/contact`, lastModified: now },
   ];
 
   try {
     const sections = await listSections();
     for (const section of sections) {
-      entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}`, lastModified: now });
       const businesses = await listSectionBusinesses(section.slug).catch(() => []);
+      // A section below its own coming-soon threshold is noindex, so it
+      // stays out of the sitemap just like a coming-soon subcategory.
+      const liveInSection = businesses.filter((b) => b.isPublished).length;
+      if (liveInSection >= section.comingSoonThreshold) entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}`, lastModified: now });
       for (const sub of section.subcategories) {
         const live = businesses.filter((b) => b.isPublished && b.subcategory === sub.slug).length;
         if (live >= sub.comingSoonThreshold) entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}/${sub.slug}`, lastModified: now });

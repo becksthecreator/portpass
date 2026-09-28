@@ -21,6 +21,9 @@ export default async function NotFound() {
           ))}
         </nav>
         <Link className="primary-button" href="/">Back to PortPass →</Link>
+        <p style={{ marginTop: 22, fontSize: ".9rem" }}>
+          Run a business? <Link href="/business" style={{ color: "var(--coral-deep)", fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 3 }}>List your business →</Link>
+        </p>
       </div>
     </main>
   );

@@ -14,7 +14,7 @@ export function ChangePinForm() {
     event.preventDefault();
     setError("");
     if (newPin !== confirmPin) return setError("New PIN and confirmation don't match.");
-    if (newPin.length < 4 || !/^\d+$/.test(newPin)) return setError("New PIN must be at least 4 digits.");
+    if (!/^\d{6,}$/.test(newPin)) return setError("New PIN must be at least 6 digits.");
 
     setBusy(true);
     try {
@@ -48,7 +48,7 @@ export function ChangePinForm() {
   return (
     <form className="change-pin-form" onSubmit={submit}>
       <label><span>Current PIN</span><input type="password" inputMode="numeric" value={currentPin} onChange={(e) => setCurrentPin(e.target.value)} required /></label>
-      <label><span>New PIN (4+ digits)</span><input type="password" inputMode="numeric" value={newPin} onChange={(e) => setNewPin(e.target.value)} required /></label>
+      <label><span>New PIN (6 digits or more)</span><input type="password" inputMode="numeric" autoComplete="new-password" minLength={6} value={newPin} onChange={(e) => setNewPin(e.target.value)} required /></label>
       <label><span>Confirm new PIN</span><input type="password" inputMode="numeric" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} required /></label>
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="primary-button" type="submit" disabled={busy}>{busy ? "Updating…" : "Update PIN →"}</button>

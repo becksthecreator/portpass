@@ -1,7 +1,7 @@
 "use client";
 import { FormEvent, useState } from "react";
 
-type StaffAccount = { id: number; name: string; accountKey: string; role: "admin" | "coach" | "ceo" | "helper"; active: boolean };
+type StaffAccount = { id: number; name: string; accountKey: string; role: "admin" | "coach" | "ceo" | "helper"; active: boolean; pinChangedAt: string | null };
 
 const ROLE_LABEL: Record<StaffAccount["role"], string> = {
   admin: "Admin",
@@ -73,6 +73,9 @@ export function AccountsManager({ initialAccounts, currentAccountKey }: { initia
             </div>
             <div className="team-manager-flags">
               <span className={account.active ? "flag-on" : "flag-off"}>{account.active ? "Active" : "Deactivated"}</span>
+              <span className={account.pinChangedAt ? "flag-on" : "flag-off"} title={account.pinChangedAt ? `Changed ${new Date(account.pinChangedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : "Still on the PIN an admin set"}>
+                {account.pinChangedAt ? "PIN changed ✓" : "PIN not changed yet"}
+              </span>
             </div>
             <div className="team-manager-actions">
               <button
@@ -105,7 +108,7 @@ export function AccountsManager({ initialAccounts, currentAccountKey }: { initia
                 <option value="helper">Helper — view roster & session plan only</option>
               </select>
             </label>
-            <label><span>Starting PIN</span><input name="pin" inputMode="numeric" placeholder="4+ digits" pattern="\d{4,}" required /></label>
+            <label><span>Starting PIN</span><input name="pin" inputMode="numeric" placeholder="6+ digits — they change it after first sign-in" pattern="\d{6,}" required /></label>
           </div>
           <button className="primary-button" disabled={busy}>{busy ? "Creating…" : "Create account →"}</button>
         </form>
