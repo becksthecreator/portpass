@@ -1,21 +1,26 @@
 import type { OfferingType } from "@/db/organizations";
 
-// Prices across this codebase are stored in cents with a currency code that
-// is always effectively USD-pegged (BSD). Intl's currency formatter doesn't
-// carry a "$" glyph for every currency code in every runtime -- it can fall
-// back to printing the ISO code ("BSD 500") -- so the symbol is fixed
-// rather than derived from a currency code. See the wedding package price
-// fix earlier in this project for the bug this avoids repeating.
-export function formatPriceCents(cents: number): string {
-  return `$${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(cents / 100)}`;
+// Prices across this codebase are stored in cents. The Bahamian dollar is
+// pegged one-to-one to the US dollar and both circulate, so every public
+// price reads "$120 BSD (= USD)" (round 5, §7) -- a tourist knows at once
+// what they will pay, a local sees the currency they use. Intl's currency
+// formatter doesn't carry a "$" glyph for every currency code in every
+// runtime (it can print "BSD 500"), so the symbol and the note are fixed
+// text rather than derived from a currency code.
+export const PRICE_CURRENCY_NOTE = "BSD (= USD)";
+
+export function formatPriceCents(cents: number, options: { currency?: boolean } = {}): string {
+  const whole = cents % 100 === 0;
+  const amount = `$${new Intl.NumberFormat("en-US", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 }).format(cents / 100)}`;
+  return options.currency === false ? amount : `${amount} ${PRICE_CURRENCY_NOTE}`;
 }
 
 const PRICE_UNIT_SUFFIX: Record<string, string> = {
-  per_session: "/session",
-  per_term: "/term",
-  per_hour: "/hr",
-  per_day: "/day",
-  per_person: "/person",
+  per_session: " per session",
+  per_term: " per term",
+  per_hour: " per hour",
+  per_day: " per day",
+  per_person: " per person",
 };
 
 export function formatPrice(cents: number, unit: string | null): string {

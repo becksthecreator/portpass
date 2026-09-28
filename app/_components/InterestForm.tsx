@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import type { InterestCategory } from "@/lib/interestCategories";
+import { PhoneInput } from "./PhoneInput";
 
 export function InterestForm({ category, placeholder, defaultNote }: { category: InterestCategory; placeholder: string; defaultNote?: string }) {
   const [name, setName] = useState("");
@@ -52,7 +53,7 @@ export function InterestForm({ category, placeholder, defaultNote }: { category:
       <div className="form-grid">
         <label><span>Name</span><input value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label><span>Email</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
-        <label><span>Phone</span><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
+        <label><span>Phone</span><PhoneInput value={phone} onChange={setPhone} /></label>
         <label className="full-field"><span>{placeholder}</span><textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></label>
       </div>
       {error && <p className="form-error">{error}</p>}

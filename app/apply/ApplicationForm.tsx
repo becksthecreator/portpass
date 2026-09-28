@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { PhoneInput } from "@/app/_components/PhoneInput";
 import { track } from "@/lib/analytics";
 import { portpassWhatsAppUrl } from "@/lib/contact";
 
@@ -81,7 +82,7 @@ export function ApplicationForm({ sections }: { sections: SectionOption[] }) {
             {sections.map((section) => <option key={section.slug} value={section.slug}>{section.name}</option>)}
           </select>
         </label>
-        <label><span>WhatsApp number *</span><input name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" required placeholder="242-423-8161" maxLength={40} value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} /></label>
+        <label><span>WhatsApp number *</span><PhoneInput name="whatsapp" required value={form.whatsapp} onChange={(v) => set("whatsapp", v)} /></label>
         <label><span>Instagram (optional)</span><input name="instagram" placeholder="@yourbusiness" maxLength={60} value={form.instagram} onChange={(e) => set("instagram", e.target.value)} /></label>
         <label className="full-field"><span>Anything we should know? (optional)</span><input name="note" maxLength={300} placeholder="What you offer, where, and rough prices" value={form.note} onChange={(e) => set("note", e.target.value)} /></label>
       </div>

@@ -4,6 +4,15 @@ import {
   type FutprepRegistrationInput,
 } from "@/db/registrations";
 import { sendFutprepRegistrationReceivedEmail } from "@/lib/email";
+import { normalizePhoneE164 } from "@/lib/phone";
+
+// Phones are stored as E.164 when they can be read as a number (the form
+// sends them that way); anything else is kept as typed rather than
+// rejected, so a registration is never lost over a phone format.
+function phone(body: Record<string, unknown>, field: string): string {
+  const raw = clean(body, field);
+  return normalizePhoneE164(raw) ?? raw;
+}
 
 const limits: Record<string, number> = {
   parentName: 120, parentEmail: 180, parentPhone: 40, relationship: 60,
@@ -69,13 +78,13 @@ export async function POST(request: Request) {
   const input: FutprepRegistrationInput = {
     parentName: clean(body,"parentName"),
     parentEmail,
-    parentPhone: clean(body,"parentPhone"),
+    parentPhone: phone(body,"parentPhone"),
     relationship: clean(body,"relationship"),
     childName: clean(body,"childName"),
     childDob: clean(body,"childDob"),
     gender: clean(body,"gender"),
     emergencyContactName: clean(body,"emergencyContactName"),
-    emergencyContactPhone: clean(body,"emergencyContactPhone"),
+    emergencyContactPhone: phone(body,"emergencyContactPhone"),
     allergies: clean(body,"allergies"),
     medicalConditions: clean(body,"medicalConditions"),
     medications: clean(body,"medications"),
