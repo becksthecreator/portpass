@@ -17,7 +17,10 @@ export const metadata = {
   description: "Real Saturday sessions, ages and prices for sports and fitness programs on PortPass.",
 };
 
-const CATEGORY_HERO_IMAGE = "/futprep/lil-kickers/lil-kickers-training.jpg";
+// No photo on this hero on purpose: every sports photo we hold shows
+// recognisable children, and none may render until consent is confirmed
+// (round 4, item 2). The cards below get their photos through
+// withPhotoConsent, so the hero and the Futprep card can never share one.
 
 // Same resilience as the /weddings category page (25 Sept brief, Part
 // 1a): a transient Supabase clock-skew rejection (PGRST303) or network
@@ -64,7 +67,7 @@ export default async function SportsFitnessPage() {
   return (
     <main className={`tpl-page ${ppDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }]} />
-      <section className="category-hero" style={{ backgroundImage: `url(${CATEGORY_HERO_IMAGE})` }}>
+      <section className="category-hero category-hero-plain">
         <div className="category-hero-inner">
           <span className="category-hero-eyebrow">Sports &amp; Fitness</span>
           <h1>Sports &amp; Fitness in Nassau, The Bahamas.</h1>
@@ -81,7 +84,7 @@ export default async function SportsFitnessPage() {
           return (
             <FeatureCard
               key={org.slug}
-              photoUrl={org.heroImageUrl ?? CATEGORY_HERO_IMAGE}
+              photoUrl={org.heroImageUrl}
               photoAlt={org.name}
               label="Open now"
               name={org.name}

@@ -48,10 +48,11 @@ export type Business = {
   approvedAt: string | null;
   createdByAdmin: boolean;
   claimedAt: string | null;
+  photoConsentRequired: boolean;
 };
 
 const BUSINESS_COLUMNS =
-  "id,slug,name,primary_category,subcategory,island,area,one_liner,description,phone_e164,whatsapp_e164,public_email,website_url,instagram_handle,logo_url,hero_image_url,brand_color,owner_name,owner_bio,payment_methods,bank_transfer_details,status,is_published,submitted_at,approved_at,created_by_admin,claimed_at";
+  "id,slug,name,primary_category,subcategory,island,area,one_liner,description,phone_e164,whatsapp_e164,public_email,website_url,instagram_handle,logo_url,hero_image_url,brand_color,owner_name,owner_bio,payment_methods,bank_transfer_details,status,is_published,submitted_at,approved_at,created_by_admin,claimed_at,photo_consent_required";
 
 function toBusiness(row: Record<string, unknown>): Business {
   const bank = row.bank_transfer_details as Partial<BankTransferDetails> | null;
@@ -91,6 +92,7 @@ function toBusiness(row: Record<string, unknown>): Business {
     approvedAt: (row.approved_at as string | null) ?? null,
     createdByAdmin: Boolean(row.created_by_admin),
     claimedAt: (row.claimed_at as string | null) ?? null,
+    photoConsentRequired: Boolean(row.photo_consent_required),
   };
 }
 
@@ -164,6 +166,9 @@ export async function createDraftBusiness(input: {
       subcategory: input.subcategory,
       status: "draft",
       created_by_admin: input.createdByAdmin ?? false,
+      // Youth sport is where children's photos come from; admins can flip
+      // this either way for any business.
+      photo_consent_required: input.section === "sports-fitness",
       created_at: new Date().toISOString(),
     })
     .select(BUSINESS_COLUMNS)
@@ -242,14 +247,29 @@ export async function updateBusinessDetails(id: number, patch: BusinessDetailsPa
 
 // ---- images ---------------------------------------------------------------
 
-export type BusinessImage = { id: number; url: string; alt: string | null; sortOrder: number };
+export type BusinessImage = { id: number; url: string; alt: string | null; sortOrder: number; consentConfirmed: boolean };
 export const MAX_PHOTOS = 8;
+
+function toBusinessImage(row: Record<string, unknown>): BusinessImage {
+  return { id: Number(row.id), url: row.url as string, alt: (row.alt as string | null) ?? null, sortOrder: Number(row.sort_order ?? 0), consentConfirmed: Boolean(row.consent_confirmed) };
+}
 
 export async function listBusinessImages(id: number): Promise<BusinessImage[]> {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.from("organization_images").select("id,url,alt,sort_order").eq("organization_id", id).order("sort_order", { ascending: true }).order("id", { ascending: true });
+  const { data, error } = await supabase.from("organization_images").select("id,url,alt,sort_order,consent_confirmed").eq("organization_id", id).order("sort_order", { ascending: true }).order("id", { ascending: true });
   throwIfSupabaseError(error, "Could not load photos");
-  return (data ?? []).map((row) => ({ id: Number(row.id), url: row.url as string, alt: (row.alt as string | null) ?? null, sortOrder: Number(row.sort_order ?? 0) }));
+  return (data ?? []).map(toBusinessImage);
+}
+
+// Confirming consent is a statement that the signed forms exist for every
+// child in the photo, so it's audit-logged with who said so and when.
+export async function setImageConsent(id: number, imageId: number, confirmed: boolean, actorUserId: string): Promise<BusinessImage[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from("organization_images").update({ consent_confirmed: confirmed }).eq("organization_id", id).eq("id", imageId).select("url").maybeSingle();
+  throwIfSupabaseError(error, "Could not update photo consent");
+  if (!data) throw new Error("NOT_FOUND");
+  await logAudit({ actorUserId, organizationId: id, action: confirmed ? "image.consent_confirmed" : "image.consent_withdrawn", targetTable: "organization_images", targetId: imageId, after: { url: data.url } });
+  return listBusinessImages(id);
 }
 
 export async function addBusinessImage(id: number, url: string, alt: string | null): Promise<BusinessImage> {
@@ -259,14 +279,14 @@ export async function addBusinessImage(id: number, url: string, alt: string | nu
   const { data, error } = await supabase
     .from("organization_images")
     .insert({ organization_id: id, url, alt, sort_order: existing.length })
-    .select("id,url,alt,sort_order")
+    .select("id,url,alt,sort_order,consent_confirmed")
     .single();
   throwIfSupabaseError(error, "Could not save photo");
   const business = await getBusiness(id);
   if (business && !business.heroImageUrl) {
     await supabase.from("organizations").update({ hero_image_url: url }).eq("id", id);
   }
-  return { id: Number(data!.id), url: data!.url as string, alt: (data!.alt as string | null) ?? null, sortOrder: Number(data!.sort_order ?? 0) };
+  return toBusinessImage(data!);
 }
 
 export async function removeBusinessImage(id: number, imageId: number): Promise<string | null> {

@@ -43,7 +43,7 @@ export default async function Image() {
           Everything worth booking in The Bahamas.
         </div>
         <div style={{ display: "flex", fontSize: 28, color: "#43524f", marginTop: 28, maxWidth: 820 }}>
-          Sports sessions, weddings, venues and events — found, booked and paid for in one place.
+          Sports sessions, weddings, venues and events — found and booked in one place.
         </div>
       </div>
     ),

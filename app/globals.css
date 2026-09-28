@@ -4387,7 +4387,10 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .home-skip-link{background:var(--coral-deep);color:#fff;left:12px;padding:10px 16px;position:absolute;top:-60px;transition:top .15s;z-index:50}
 .home-skip-link:focus{top:12px}
 
-.home-theme a{color:inherit;text-decoration:none}
+/* :where() keeps this at (0,0,1): without it, ".home-theme a" (0,1,1)
+   outranked every button class (0,1,0) and turned white button text ink
+   -- the 2.85:1 "Get listed" button found 27 Sept. */
+:where(.home-theme) a{color:inherit;text-decoration:none}
 .home-theme :focus-visible{outline:3px solid var(--coral);outline-offset:2px}
 
 .home-eyebrow{color:var(--hp-green);font-size:.72rem;font-weight:800;letter-spacing:.14em;margin:0 0 14px;text-transform:uppercase}
@@ -4418,7 +4421,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .pp-hero-name{color:var(--hero-ink);font-family:var(--hp-font-display);font-weight:600;font-size:1rem;transition:color .9s ease}
 .pp-hero-meta{color:var(--hero-ink-soft);font-size:.82rem;transition:color .9s ease}
 .pp-hero-chip{display:inline-block;background:var(--hero-surface);color:var(--hero-ink);font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:5px 11px;border-radius:999px;transition:background-color .9s ease,color .9s ease}
-.pp-hero-go{flex:0 0 auto;margin-left:auto;background:var(--coral);color:#fff;font-size:.85rem;font-weight:700;padding:13px 20px;border-radius:999px;white-space:nowrap}
+.pp-hero-go{flex:0 0 auto;margin-left:auto;background:var(--coral-deep);color:#fff;font-size:.85rem;font-weight:700;padding:13px 20px;border-radius:999px;white-space:nowrap}
 @media(prefers-reduced-motion:reduce){.pp-hero-frame{transition:none}}
 @media(max-width:900px){.pp-hero{min-height:460px;height:auto}.pp-hero-go{margin-left:0}}
 
@@ -4439,7 +4442,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .home-lane p{font-size:.78rem;line-height:1.45;margin:0 0 12px;opacity:.85}
 .home-lane-tag{background:rgba(255,255,255,.18);border-radius:999px;display:inline-block;font-size:.6rem;font-weight:800;letter-spacing:.06em;padding:4px 9px;text-transform:uppercase;width:fit-content}
 .home-lane-coming .home-lane-tag{background:var(--sand)}
-.home-lane-tag-live{background:var(--coral);color:#fff}
+.home-lane-tag-live{background:var(--coral-deep);color:#fff}
 .home-lane-action{font-size:.76rem;font-weight:700;margin-top:auto}
 .home-lane p .home-lane-now{display:inline-block;margin-top:8px;opacity:.72}
 
@@ -4580,6 +4583,12 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .biz-home-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:18px}
 .preview-banner{background:var(--ink);color:#fff;font-size:.9rem;padding:10px 5vw;text-align:center}
 .preview-banner a{color:#fff;text-decoration:underline;margin-left:6px}
+/* Feature card with no photo it may show yet (photo consent): logo tile in the photo slot. */
+.feature-card-photo-tile{display:flex;align-items:center;justify-content:center;background:var(--sand)}
+/* Wizard: per-photo consent state. */
+.wiz-photos figure.is-hidden img{opacity:.5}
+.wiz-consent{display:flex;gap:8px;align-items:flex-start;padding:8px 8px 0;font-size:.72rem;font-weight:700;line-height:1.3}
+.wiz-consent input{width:auto;min-height:0;margin-top:1px}
 @media(max-width:640px){.wiz-two{grid-template-columns:1fr}}
 @media(max-width:640px){
   .auth-card{margin-top:28px;padding:28px 18px}
@@ -4638,7 +4647,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .tpl-identity-split-text{padding:40px 24px}
 }
 
-.tpl-badge{display:inline-block;background:var(--brand-text, var(--coral));color:#fff;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;border-radius:999px;margin-bottom:16px}
+.tpl-badge{display:inline-block;background:var(--brand-text, var(--coral-deep));color:#fff;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;border-radius:999px;margin-bottom:16px}
 .tpl-badge-closed{background:var(--muted)}
 .tpl-identity h1{font-family:var(--font-pp-display),Georgia,serif;font-size:clamp(2.2rem,5vw,3.4rem);font-weight:500;margin:0 0 10px;letter-spacing:-.01em}
 .tpl-identity-meta{font-size:1rem;opacity:.85;margin:0}
@@ -4705,7 +4714,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 /* The primary action on an offering card is a filled button, not a text
    link -- there has to be visible hierarchy between "read more" and
    "register your child." Secondary actions stay tpl-text-link. */
-.tpl-offering-cta{display:inline-flex;align-items:center;gap:10px;background:var(--brand-text, var(--coral));color:#fff;font-size:.9rem;font-weight:700;padding:13px 22px;border-radius:999px;width:fit-content}
+.tpl-offering-cta{display:inline-flex;align-items:center;gap:10px;background:var(--brand-text, var(--coral-deep));color:#fff;font-size:.9rem;font-weight:700;padding:13px 22px;border-radius:999px;width:fit-content}
 .tpl-offering-cta:hover,.tpl-offering-cta:focus-visible{opacity:.9}
 
 /* ============================================================
@@ -4784,7 +4793,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .tpl-questions details>p{margin:14px 0 0;color:var(--muted);font-size:.92rem;line-height:1.7}
 
 .tpl-action{display:flex;justify-content:center;padding:60px 5vw 90px}
-.tpl-button{display:inline-flex;align-items:center;gap:14px;background:var(--brand-text, var(--coral));color:#fff;font-size:1rem;font-weight:700;padding:18px 34px;border-radius:999px}
+.tpl-button{display:inline-flex;align-items:center;gap:14px;background:var(--brand-text, var(--coral-deep));color:#fff;font-size:1rem;font-weight:700;padding:18px 34px;border-radius:999px}
 .tpl-action-sticky{display:none}
 
 @media(max-width:760px){
@@ -4793,7 +4802,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
   .tpl-offerings{padding:50px 5vw}
   .tpl-people{flex-direction:column;text-align:center}
   .tpl-action{display:none}
-  .tpl-action-sticky{display:flex;position:fixed;left:16px;right:16px;bottom:16px;z-index:40;justify-content:center;align-items:center;gap:12px;background:var(--brand-text, var(--coral));color:#fff;font-weight:700;font-size:.95rem;padding:16px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.25);text-align:center}
+  .tpl-action-sticky{display:flex;position:fixed;left:16px;right:16px;bottom:16px;z-index:40;justify-content:center;align-items:center;gap:12px;background:var(--brand-text, var(--coral-deep));color:#fff;font-weight:700;font-size:.95rem;padding:16px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.25);text-align:center}
 }
 
 /* ============================================================
@@ -4996,12 +5005,12 @@ img.biz-logo{object-fit:contain;background:#fff;border:1px solid var(--line)}
 .feature-card-photo{width:100%;height:220px;object-fit:cover;display:block}
 .feature-card-wide .feature-card-photo{height:380px}
 .feature-card-body{padding:26px 24px 28px;display:flex;flex-direction:column;gap:10px}
-.feature-card-label{display:inline-block;background:var(--brand-text, var(--coral));color:#fff;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:999px;width:fit-content}
+.feature-card-label{display:inline-block;background:var(--brand-text, var(--coral-deep));color:#fff;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:999px;width:fit-content}
 .feature-card-heading{display:flex;align-items:center;gap:10px}
 .feature-card-heading h3{font-family:var(--font-pp-display),Georgia,serif;font-size:1.4rem;font-weight:500;margin:0}
 .feature-card-description{color:var(--muted);font-size:.94rem;line-height:1.5;margin:0}
 .feature-card-price{font-family:var(--font-pp-display),Georgia,serif;font-size:1.3rem;font-weight:600;color:var(--ink);margin:0}
-.feature-card-button{display:inline-flex;align-items:center;gap:8px;background:var(--brand-text, var(--coral));color:#fff;font-size:.9rem;font-weight:700;padding:13px 22px;border-radius:999px;width:fit-content;margin-top:6px;text-decoration:none}
+.feature-card-button{display:inline-flex;align-items:center;gap:8px;background:var(--brand-text, var(--coral-deep));color:#fff;font-size:.9rem;font-weight:700;padding:13px 22px;border-radius:999px;width:fit-content;margin-top:6px;text-decoration:none}
 .feature-card-button:hover,.feature-card-button:focus-visible{opacity:.9}
 .category-empty{max-width:1200px;margin:0 auto;padding:0 5vw 70px;color:var(--muted);font-size:.95rem}
 
@@ -5040,7 +5049,7 @@ img.biz-logo{object-fit:contain;background:#fff;border:1px solid var(--line)}
 
 .biz-shell-header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 5vw;background:var(--paper);border-bottom:1px solid var(--line);font-family:var(--font-pp-sans),Arial,sans-serif}
 .biz-shell-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-weight:700;font-size:1rem}
-.biz-shell-cta{background:var(--brand-text, var(--coral));color:#fff;font-size:.85rem;font-weight:700;padding:10px 20px;border-radius:999px;text-decoration:none;white-space:nowrap}
+.biz-shell-cta{background:var(--brand-text, var(--coral-deep));color:#fff;font-size:.85rem;font-weight:700;padding:10px 20px;border-radius:999px;text-decoration:none;white-space:nowrap}
 .biz-shell-cta:hover,.biz-shell-cta:focus-visible{opacity:.9}
 
 .biz-shell-footer{background:var(--sand);border-top:1px solid var(--line);padding:32px 5vw;text-align:center;font-family:var(--font-pp-sans),Arial,sans-serif}

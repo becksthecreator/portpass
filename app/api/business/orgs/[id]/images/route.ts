@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { addBusinessImage, listBusinessImages, MAX_PHOTOS, removeBusinessImage, setBusinessHero, setBusinessLogo } from "@/db/business";
+import { addBusinessImage, listBusinessImages, MAX_PHOTOS, removeBusinessImage, setBusinessHero, setBusinessLogo, setImageConsent } from "@/db/business";
 import { getSupabaseAdmin } from "@/db/supabase";
 import { requireOrgRoleApi } from "@/lib/auth/guards";
 
@@ -75,7 +75,18 @@ export async function PATCH(request: Request, ctx: Ctx) {
   if (!id) return NextResponse.json({ error: "Not found." }, { status: 404 });
   const auth = await requireOrgRoleApi(id, "org_admin");
   if (!auth.ok) return auth.response;
-  const body = (await request.json().catch(() => ({}))) as { heroUrl?: string };
+  const body = (await request.json().catch(() => ({}))) as { heroUrl?: string; imageId?: number; consentConfirmed?: boolean };
+  // Per-photo consent: the owner states the signed forms exist for every
+  // child in the photo. Audit-logged in db/business.ts.
+  if (typeof body.consentConfirmed === "boolean") {
+    if (!Number.isInteger(body.imageId)) return NextResponse.json({ error: "Invalid photo." }, { status: 400 });
+    try {
+      return NextResponse.json({ images: await setImageConsent(id, Number(body.imageId), body.consentConfirmed, auth.session.userId) });
+    } catch (error) {
+      if (error instanceof Error && error.message === "NOT_FOUND") return NextResponse.json({ error: "Invalid photo." }, { status: 404 });
+      throw error;
+    }
+  }
   const images = await listBusinessImages(id);
   const hero = images.find((i) => i.url === body.heroUrl);
   if (!hero) return NextResponse.json({ error: "Pick one of your uploaded photos." }, { status: 400 });

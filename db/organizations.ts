@@ -466,7 +466,7 @@ export type Offering = {
   isFeatured: boolean;
 };
 
-export type OrganizationImage = { id: number; url: string; alt: string | null };
+export type OrganizationImage = { id: number; url: string; alt: string | null; consentConfirmed: boolean };
 export type OrganizationFaq = { id: number; question: string; answer: string; linkUrl: string | null; linkLabel: string | null };
 
 export type Organization = {
@@ -496,6 +496,9 @@ export type Organization = {
   whatsappE164: string | null;
   subcategory: string | null;
   status: string;
+  // This business's photos may include children: only images with
+  // confirmed consent render publicly (see withPhotoConsent).
+  photoConsentRequired: boolean;
 };
 
 // A directory entry is deliberately smaller than Organization -- it's what
@@ -519,7 +522,7 @@ export type OrganizationListing = {
   faqs: OrganizationFaq[];
 };
 
-const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color,logo_url,custom_domain,identity_layout,reviews_url,reviews_platform,whatsapp_e164,subcategory,status";
+const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color,logo_url,custom_domain,identity_layout,reviews_url,reviews_platform,whatsapp_e164,subcategory,status,photo_consent_required";
 
 const LISTING_OFFERING_COLUMNS = "id,organization_id,type,slug,name,summary,price_cents,price_unit,inclusions,schedule_text,age_min,age_max,term_start,term_end,event_date,doors_time,ticket_url,capacity,hourly_rate_cents,day_rate_cents,amenities,lead_time_text,image_url,action_url,is_featured";
 
@@ -551,7 +554,58 @@ function toListingOrganization(row: Record<string, unknown>): Organization {
     whatsappE164: (row.whatsapp_e164 as string | null) ?? null,
     subcategory: (row.subcategory as string | null) ?? null,
     status: (row.status as string | null) ?? "draft",
+    photoConsentRequired: Boolean(row.photo_consent_required),
   };
+}
+
+function toListingImage(row: Record<string, unknown>): OrganizationImage {
+  return { id: Number(row.id), url: row.url as string, alt: (row.alt as string | null) ?? null, consentConfirmed: Boolean(row.consent_confirmed) };
+}
+
+// The children's-photo rule (no recognisable child's face until consent is
+// confirmed, 16 Sept) applied at the data layer so every public surface --
+// template, category cards, OG images, the owner's preview -- gets it for
+// free. Where an organization's photos may include children, only images
+// with confirmed consent survive, and the hero must be one of them or it
+// goes; the template then falls back to the logo tile.
+export function withPhotoConsent(listing: OrganizationListing): OrganizationListing {
+  if (!listing.organization.photoConsentRequired) return listing;
+  const images = listing.images.filter((image) => image.consentConfirmed);
+  const hero = listing.organization.heroImageUrl;
+  const heroAllowed = hero !== null && images.some((image) => image.url === hero);
+  return {
+    ...listing,
+    organization: { ...listing.organization, heroImageUrl: heroAllowed ? hero : (images[0]?.url ?? null) },
+    images,
+  };
+}
+
+// Same rule for the light-weight list shapes (directory, section cards):
+// one extra query for the organizations that need it, so a hero that
+// hasn't been cleared never reaches a card.
+async function gateHeroImages<T extends { id: number; heroImageUrl: string | null; photoConsentRequired: boolean }>(rows: T[]): Promise<T[]> {
+  const gated = rows.filter((row) => row.photoConsentRequired);
+  if (!gated.length) return rows;
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("organization_images")
+    .select("organization_id,url,sort_order")
+    .in("organization_id", gated.map((row) => row.id))
+    .eq("consent_confirmed", true)
+    .order("sort_order", { ascending: true });
+  throwIfSupabaseError(error, "Could not load consented images");
+  const allowed = new Map<number, string[]>();
+  for (const row of data ?? []) {
+    const list = allowed.get(Number(row.organization_id)) ?? [];
+    list.push(row.url as string);
+    allowed.set(Number(row.organization_id), list);
+  }
+  return rows.map((row) => {
+    if (!row.photoConsentRequired) return row;
+    const urls = allowed.get(row.id) ?? [];
+    const hero = row.heroImageUrl && urls.includes(row.heroImageUrl) ? row.heroImageUrl : (urls[0] ?? null);
+    return { ...row, heroImageUrl: hero };
+  });
 }
 
 function toListingOffering(row: Record<string, unknown>): Offering {
@@ -599,17 +653,17 @@ export async function getOrganizationListingBySlug(slug: string): Promise<Organi
 
   const [offeringsResult, imagesResult, faqsResult] = await Promise.all([
     supabase.from("offerings").select(LISTING_OFFERING_COLUMNS).eq("organization_id", organization.id).eq("is_published", true).order("sort_order", { ascending: true }),
-    supabase.from("organization_images").select("id,url,alt").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
+    supabase.from("organization_images").select("id,url,alt,consent_confirmed").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
     supabase.from("organization_faqs").select("id,question,answer,link_url,link_label").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
   ]);
   throwIfSupabaseError(offeringsResult.error, "Could not load offerings");
   throwIfSupabaseError(imagesResult.error, "Could not load organization images");
   throwIfSupabaseError(faqsResult.error, "Could not load organization FAQs");
 
-  return {
+  return withPhotoConsent({
     organization,
     offerings: (offeringsResult.data ?? []).map(toListingOffering),
-    images: (imagesResult.data ?? []).map((row) => ({ id: Number(row.id), url: row.url as string, alt: row.alt as string | null })),
+    images: (imagesResult.data ?? []).map(toListingImage),
     faqs: (faqsResult.data ?? []).map((row) => ({
       id: Number(row.id),
       question: row.question as string,
@@ -617,7 +671,7 @@ export async function getOrganizationListingBySlug(slug: string): Promise<Organi
       linkUrl: row.link_url as string | null,
       linkLabel: row.link_label as string | null,
     })),
-  };
+  });
 }
 
 export type OrganizationExtras = {
@@ -681,19 +735,32 @@ export async function listPublishedOrganizations(category?: string): Promise<Org
   const supabase = getSupabaseAdmin();
   let query = supabase
     .from("organizations")
-    .select("slug,name,primary_category,hero_image_url,logo_url,brand_color,one_liner")
+    .select("id,slug,name,primary_category,hero_image_url,logo_url,brand_color,one_liner,photo_consent_required")
     .eq("is_directory_listed", true);
   if (category) query = query.eq("primary_category", category);
   const { data, error } = await query.order("id", { ascending: true });
   throwIfSupabaseError(error, "Could not load organization directory");
-  return (data ?? []).map((row) => ({
-    slug: row.slug as string,
-    name: row.name as string,
-    primaryCategory: row.primary_category as string | null,
-    heroImageUrl: row.hero_image_url as string | null,
-    logoUrl: row.logo_url as string | null,
-    brandColor: row.brand_color as string | null,
-    oneLiner: row.one_liner as string | null,
+  const gated = await gateHeroImages(
+    (data ?? []).map((row) => ({
+      id: Number(row.id),
+      photoConsentRequired: Boolean(row.photo_consent_required),
+      slug: row.slug as string,
+      name: row.name as string,
+      primaryCategory: row.primary_category as string | null,
+      heroImageUrl: row.hero_image_url as string | null,
+      logoUrl: row.logo_url as string | null,
+      brandColor: row.brand_color as string | null,
+      oneLiner: row.one_liner as string | null,
+    })),
+  );
+  return gated.map((row) => ({
+    slug: row.slug,
+    name: row.name,
+    primaryCategory: row.primaryCategory,
+    heroImageUrl: row.heroImageUrl,
+    logoUrl: row.logoUrl,
+    brandColor: row.brandColor,
+    oneLiner: row.oneLiner,
   }));
 }
 
@@ -743,18 +810,18 @@ export async function getOrganizationListingForPreview(organizationId: number): 
   const organization = toListingOrganization(orgRow);
   const [offeringsResult, imagesResult, faqsResult] = await Promise.all([
     supabase.from("offerings").select(LISTING_OFFERING_COLUMNS).eq("organization_id", organization.id).order("sort_order", { ascending: true }),
-    supabase.from("organization_images").select("id,url,alt").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
+    supabase.from("organization_images").select("id,url,alt,consent_confirmed").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
     supabase.from("organization_faqs").select("id,question,answer,link_url,link_label").eq("organization_id", organization.id).order("sort_order", { ascending: true }),
   ]);
   throwIfSupabaseError(offeringsResult.error, "Could not load offerings");
   throwIfSupabaseError(imagesResult.error, "Could not load organization images");
   throwIfSupabaseError(faqsResult.error, "Could not load organization FAQs");
-  return {
+  return withPhotoConsent({
     organization,
     offerings: (offeringsResult.data ?? []).map(toListingOffering),
-    images: (imagesResult.data ?? []).map((row) => ({ id: Number(row.id), url: row.url as string, alt: row.alt as string | null })),
+    images: (imagesResult.data ?? []).map(toListingImage),
     faqs: (faqsResult.data ?? []).map((row) => ({ id: Number(row.id), question: row.question as string, answer: row.answer as string, linkUrl: row.link_url as string | null, linkLabel: row.link_label as string | null })),
-  };
+  });
 }
 
 export type SectionBusiness = {
@@ -777,23 +844,38 @@ export async function listSectionBusinesses(section: string, subcategory?: strin
   const supabase = getSupabaseAdmin();
   let query = supabase
     .from("organizations")
-    .select("slug,name,primary_category,subcategory,logo_url,brand_color,hero_image_url,one_liner,is_published")
+    .select("id,slug,name,primary_category,subcategory,logo_url,brand_color,hero_image_url,one_liner,is_published,photo_consent_required")
     .eq("primary_category", section)
     .or("status.in.(approved,live),is_published.eq.true");
   if (subcategory) query = query.eq("subcategory", subcategory);
   const { data, error } = await query.order("id", { ascending: true });
   throwIfSupabaseError(error, "Could not load section businesses");
-  return (data ?? [])
-    .filter((row) => typeof row.slug === "string" && row.slug)
-    .map((row) => ({
-      slug: row.slug as string,
-      name: row.name as string,
-      primaryCategory: (row.primary_category as string | null) ?? null,
-      subcategory: (row.subcategory as string | null) ?? null,
-      logoUrl: (row.logo_url as string | null) ?? null,
-      brandColor: (row.brand_color as string | null) ?? null,
-      heroImageUrl: (row.hero_image_url as string | null) ?? null,
-      oneLiner: (row.one_liner as string | null) ?? null,
-      isPublished: Boolean(row.is_published),
-    }));
+  const gated = await gateHeroImages(
+    (data ?? [])
+      .filter((row) => typeof row.slug === "string" && row.slug)
+      .map((row) => ({
+        id: Number(row.id),
+        photoConsentRequired: Boolean(row.photo_consent_required),
+        slug: row.slug as string,
+        name: row.name as string,
+        primaryCategory: (row.primary_category as string | null) ?? null,
+        subcategory: (row.subcategory as string | null) ?? null,
+        logoUrl: (row.logo_url as string | null) ?? null,
+        brandColor: (row.brand_color as string | null) ?? null,
+        heroImageUrl: (row.hero_image_url as string | null) ?? null,
+        oneLiner: (row.one_liner as string | null) ?? null,
+        isPublished: Boolean(row.is_published),
+      })),
+  );
+  return gated.map((row) => ({
+    slug: row.slug,
+    name: row.name,
+    primaryCategory: row.primaryCategory,
+    subcategory: row.subcategory,
+    logoUrl: row.logoUrl,
+    brandColor: row.brandColor,
+    heroImageUrl: row.heroImageUrl,
+    oneLiner: row.oneLiner,
+    isPublished: row.isPublished,
+  }));
 }

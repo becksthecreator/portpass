@@ -161,6 +161,15 @@ export function SetupWizard(props: Props) {
     }
   }
 
+  async function setConsent(imageId: number, consentConfirmed: boolean) {
+    try {
+      const data = await api<{ images: BusinessImage[] }>(`${base}/images`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageId, consentConfirmed }) });
+      setImages(data.images);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update consent.");
+    }
+  }
+
   async function setHero(url: string) {
     try {
       await api(`${base}/images`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ heroUrl: url }) });
@@ -357,11 +366,22 @@ export function SetupWizard(props: Props) {
           </div>
           <div className="wiz-upload">
             <span>Photos ({images.length}/8) — the first, or the one you star, is the main photo</span>
+            {business.photoConsentRequired && (
+              <p className="auth-hint wiz-warn">
+                Photos of children stay hidden from the public page until you confirm, photo by photo, that you hold signed photo consent for every child in it. Photos with no children can be confirmed straight away.
+              </p>
+            )}
             {images.length > 0 && (
               <div className="wiz-photos">
                 {images.map((img) => (
-                  <figure key={img.id} className={business.heroImageUrl === img.url ? "is-hero" : ""}>
+                  <figure key={img.id} className={`${business.heroImageUrl === img.url ? "is-hero" : ""}${business.photoConsentRequired && !img.consentConfirmed ? " is-hidden" : ""}`}>
                     <img src={img.url} alt={img.alt ?? ""} />
+                    {business.photoConsentRequired && (
+                      <label className="wiz-consent">
+                        <input type="checkbox" checked={img.consentConfirmed} onChange={(e) => void setConsent(img.id, e.target.checked)} />
+                        <span>{img.consentConfirmed ? "Consent confirmed · shown" : "Hidden until consent confirmed"}</span>
+                      </label>
+                    )}
                     <div>
                       <button type="button" onClick={() => void setHero(img.url)} disabled={business.heroImageUrl === img.url}>{business.heroImageUrl === img.url ? "★ Main" : "Make main"}</button>
                       <button type="button" onClick={() => void removeImage(img.id)} disabled={busy}>Remove</button>

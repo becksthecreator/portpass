@@ -20,7 +20,10 @@ export function FeatureCard({
   actionLabel,
   wide,
 }: {
-  photoUrl: string;
+  // null when the business has no photo it's allowed to show yet (see
+  // withPhotoConsent in db/organizations.ts): the logo tile takes the slot
+  // rather than a stock image of someone else's business.
+  photoUrl: string | null;
   photoAlt: string;
   label: string;
   name: string;
@@ -35,7 +38,13 @@ export function FeatureCard({
 }) {
   return (
     <div className={`feature-card${wide ? " feature-card-wide" : ""}`} style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}>
-      <img className="feature-card-photo" src={photoUrl} alt={photoAlt} loading="lazy" />
+      {photoUrl ? (
+        <img className="feature-card-photo" src={photoUrl} alt={photoAlt} loading="lazy" />
+      ) : (
+        <div className="feature-card-photo feature-card-photo-tile" aria-hidden="true">
+          <BusinessLogo logoUrl={logoUrl} name={name} brand={brand} size="lg" />
+        </div>
+      )}
       <div className="feature-card-body">
         <span className="feature-card-label">{label}</span>
         <div className="feature-card-heading">

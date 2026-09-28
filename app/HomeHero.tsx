@@ -74,7 +74,7 @@ export function HomeHero({ frames }: { frames: HeroFrame[] }) {
       <div className="pp-hero-centre">
         <p className="pp-hero-kicker">The Bahamas, one pass at a time</p>
         <h1>Everything worth booking in The Bahamas.</h1>
-        <p className="pp-hero-lede">Sports sessions, weddings, venues and events — found, booked and paid for in one place. Two are open right now.</p>
+        <p className="pp-hero-lede">Sports sessions, weddings, venues and events — found and booked in one place. Two are open right now.</p>
       </div>
 
       <div className="pp-hero-bottom">
