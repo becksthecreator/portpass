@@ -28,9 +28,19 @@ beforeAll(async () => {
   await admin.from("profiles").upsert({ user_id: userId, full_name: "TEST — delete owner" });
 });
 
+// audit_log rows reference the organization and the actor without cascade
+// (they're meant to outlive both), so they go first, then the org (which
+// cascades members, invites, offerings), then the user.
 afterAll(async () => {
-  if (orgId) await admin.from("organizations").delete().eq("id", orgId);
-  if (userId) await admin.auth.admin.deleteUser(userId);
+  if (orgId) {
+    await admin.from("audit_log").delete().eq("organization_id", orgId);
+    const { error } = await admin.from("organizations").delete().eq("id", orgId);
+    expect(error).toBeNull();
+  }
+  if (userId) {
+    const { error } = await admin.auth.admin.deleteUser(userId);
+    expect(error).toBeNull();
+  }
 });
 
 describe("owner wizard data rules", () => {
