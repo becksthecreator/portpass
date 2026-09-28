@@ -6,13 +6,6 @@ export function authEnv(): { url: string; key: string } | null {
   return url && key ? { url, key } : null;
 }
 
-// Keeps "Sign in" out of the header until sign-in has been verified end to
-// end on the live site (sender, template, routing). The routes still work
-// with the flag off, they're just not advertised.
-export function authUiEnabled(): boolean {
-  return process.env.AUTH_UI_ENABLED === "true";
-}
-
 // Reserved for the phone/WhatsApp code sign-in (needs Twilio + Meta sender
 // approval); the screen is built to switch it on without a redesign.
 export function phoneOtpEnabled(): boolean {

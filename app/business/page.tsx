@@ -45,6 +45,7 @@ export default async function BusinessPage() {
           <Link className="home-button" href="/apply">Get listed →</Link>
           <a className="home-button home-button-light" href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a>
         </div>
+        <p className="auth-alt">Already on PortPass? <Link href="/login?next=%2Fbusiness%2Fsetup">Sign in to manage your listing.</Link></p>
       </section>
 
       <div className="biz-sections">

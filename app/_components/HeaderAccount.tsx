@@ -1,22 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 type Me =
   | { signedIn: false }
   | { signedIn: true; name: string; initials: string; destinations: { href: string; label: string; detail: string; kind: string }[] };
 
-// Fetched after hydration rather than read in the (server) header so the
-// many statically rendered pages stay static. Renders nothing until it
-// knows, then either "Sign in" or the initials avatar with its menu.
-export function HeaderAccount({ enabled }: { enabled: boolean }) {
+// "Sign in" renders straight away -- on the server and at first paint --
+// so it is findable on every page at every width (the 28 Sept brief: nobody
+// could find it). Who is actually signed in is fetched after hydration,
+// so the many statically rendered pages stay static; once known, a
+// signed-in visitor gets the initials avatar and its menu instead:
+// My account · My business(es) · PortPass Admin (platform roles) · Sign out.
+export function HeaderAccount() {
+  const pathname = usePathname();
   const [me, setMe] = useState<Me | null>(null);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!enabled) return;
     let cancelled = false;
     fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : { signedIn: false }))
@@ -29,7 +33,7 @@ export function HeaderAccount({ enabled }: { enabled: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -47,8 +51,12 @@ export function HeaderAccount({ enabled }: { enabled: boolean }) {
     };
   }, [open]);
 
-  if (!enabled || me === null) return null;
-  if (!me.signedIn) return <Link className="hdr-signin" href="/login">Sign in</Link>;
+  if (!me || !me.signedIn) {
+    // The sign-in and sign-up pages are the door itself.
+    if (pathname === "/login" || pathname === "/signup") return null;
+    const next = pathname && pathname !== "/" ? `?next=${encodeURIComponent(pathname)}` : "";
+    return <Link className="hdr-signin" href={`/login${next}`}>Sign in</Link>;
+  }
 
   async function signOut() {
     await fetch("/api/auth/signout", { method: "POST" }).catch(() => undefined);
