@@ -916,8 +916,15 @@ export async function listSectionBusinesses(section: string, subcategory?: strin
 // subcategories, so a business listed under two subcategories of the same
 // section counts once. Feeds the nav's live counts, the subsection chips,
 // the homepage tiles and the sitemap; a business with is_published false
-// (a coming-soon card) is not "live" anywhere.
-export async function liveCountsByCategory(): Promise<Map<string, number>> {
+// (a coming-soon card) is not "live" anywhere. The header asks on every
+// page, so the answer is kept for 30 seconds per server instance; pass
+// maxAgeMs: 0 (tests do) to force a fresh read.
+const LIVE_COUNTS_TTL_MS = 30_000;
+let liveCountsCache: { counts: Map<string, number>; fetchedAt: number } | null = null;
+
+export async function liveCountsByCategory(options: { maxAgeMs?: number } = {}): Promise<Map<string, number>> {
+  const maxAge = options.maxAgeMs ?? LIVE_COUNTS_TTL_MS;
+  if (liveCountsCache && Date.now() - liveCountsCache.fetchedAt < maxAge) return liveCountsCache.counts;
   const supabase = getSupabaseAdmin();
   const [categories, links] = await Promise.all([
     listCategories(),
@@ -939,5 +946,7 @@ export async function liveCountsByCategory(): Promise<Map<string, number>> {
     const parent = category.parentId === null ? null : byId.get(category.parentId);
     if (parent) add(parent.slug, organizationId);
   }
-  return new Map(Array.from(orgsBySlug, ([slug, set]) => [slug, set.size]));
+  const counts = new Map(Array.from(orgsBySlug, ([slug, set]) => [slug, set.size]));
+  liveCountsCache = { counts, fetchedAt: Date.now() };
+  return counts;
 }

@@ -5,6 +5,10 @@ import { PORTPASS_PHONE_DISPLAY, PORTPASS_PHONE_E164, PORTPASS_SUPPORT_EMAIL } f
 const TITLE = "About | PortPass Bahamas";
 const DESCRIPTION = "PortPass is a booking and payment platform for independent Bahamian businesses.";
 
+// ISR: the header now shows live counts from the database, so a static page
+// regenerates every five minutes rather than only at deploy time.
+export const revalidate = 300;
+
 export const metadata = {
   title: TITLE,
   description: DESCRIPTION,
