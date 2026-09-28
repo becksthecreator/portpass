@@ -4624,10 +4624,6 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .sheet-subs a.sheet-all{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:800}
 .sheet-foot{display:flex;gap:18px;padding:12px 18px 16px;border-top:1px solid var(--line);font-size:.85rem;font-weight:700;flex:0 0 auto}
 .sheet-foot a{color:var(--coral-deep)}
-@media(max-width:1023px){
-  .site-shell-nav{display:none}
-  .site-shell-browse-button{display:inline-flex}
-}
 @media(prefers-reduced-motion:reduce){
   .sheet,.sheet-backdrop{animation:none}
 }
@@ -4973,6 +4969,13 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .nav-panel-list a{display:flex;justify-content:space-between;align-items:center;gap:16px;border-radius:8px;color:var(--ink);font-size:.9rem;font-weight:600;padding:9px 12px;text-decoration:none}
 .nav-panel-list a:hover,.nav-panel-list a:focus-visible{background:var(--sand)}
 .nav-panel small,.sheet-subs a small,.sheet-list>li>button small{font-size:.7rem;font-weight:800;color:var(--muted);letter-spacing:.04em}
+/* Below 1024px the triggers give way to the Browse sheet. This block must
+   stay after the .site-shell-nav rule above: same specificity, so order
+   decides. */
+@media(max-width:1023px){
+  .site-shell-nav{display:none}
+  .site-shell-browse-button{display:inline-flex}
+}
 .site-shell-business{font-size:.8rem;font-weight:700;color:var(--coral-deep);flex:0 0 auto;white-space:nowrap}
 .site-shell-breadcrumb{padding:10px 5vw;font-size:.75rem;color:var(--muted);border-top:1px solid var(--line)}
 .site-shell-breadcrumb a{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:600}
