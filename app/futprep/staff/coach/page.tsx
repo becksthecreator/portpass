@@ -45,7 +45,7 @@ export default async function FutprepCoachPage({
     : [];
 
   return (
-    <main className="staff-workspace">
+    <main className="staff-workspace theme-night">
       <header className="staff-workspace-header">
         <div><Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link><span className="staff-workspace-label">Futprep · Coaching workspace</span></div>
         <nav>

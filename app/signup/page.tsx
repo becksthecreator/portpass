@@ -30,7 +30,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
 
   const sections = await getSectionOptions();
   return (
-    <main className="form-page auth-page">
+    <main className="form-page auth-page theme-night">
       <SiteHeader breadcrumb={[{ label: "Create an account", href: "/signup" }]} />
       <OtpForm mode="signup" next={next} initialIntent={initialIntent} phoneEnabled={phoneOtpEnabled()} sections={sections} />
       <SiteFooter />

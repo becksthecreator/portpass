@@ -93,7 +93,7 @@ export function encodeText(text: string, ecc: Ecc = "M"): QrCode {
 // one path. Scales to any size; shape-rendering keeps module edges crisp.
 export function qrToSvg(qr: QrCode, options: { border?: number; dark?: string; light?: string } = {}): string {
   const border = options.border ?? 4;
-  const dark = options.dark ?? "#14303d";
+  const dark = options.dark ?? "#0B2A3C";
   const light = options.light ?? "#ffffff";
   const total = qr.size + border * 2;
   const parts: string[] = [];

@@ -37,7 +37,7 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
   const publicHref = business.primaryCategory ? `/${business.primaryCategory}/${slug}` : null;
 
   return (
-    <main className="form-page auth-page">
+    <main className="form-page auth-page theme-night">
       <SiteHeader breadcrumb={[{ label: "My business", href: `/business/${slug}` }]} />
       <div className="auth-card auth-card-wide">
         <div className="eyebrow"><span className="eyebrow-dot" />{status.label}</div>

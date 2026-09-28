@@ -10,7 +10,7 @@ export default async function WeddingPackagesAdminPage() {
   const packages = await listAllWeddingPackages();
 
   return (
-    <main className="staff-workspace">
+    <main className="staff-workspace theme-night">
       <AdminNav role={role} active="/weddings/admin/packages" />
       <section className="staff-workspace-content">
         <div className="staff-page-intro">

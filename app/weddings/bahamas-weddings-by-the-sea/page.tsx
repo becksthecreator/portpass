@@ -13,7 +13,7 @@ import { ActionBlock } from "@/app/_components/blocks/ActionBlock";
 import { MessageOnWhatsApp, ShareOnWhatsApp } from "@/app/_components/blocks/WhatsAppActions";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
-import { ppDisplay, ppSans } from "@/app/fonts";
+import { bizDisplay, ppSans } from "@/app/fonts";
 
 const ASSET = "/weddings/bahamas-by-the-sea";
 
@@ -114,7 +114,7 @@ export default async function BahamasWeddingsListingPage() {
   }));
 
   return (
-    <div className={`${ppDisplay.variable} ${ppSans.variable}`}>
+    <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "Weddings", href: "/weddings" }, { label: "Bahamas Weddings By The Sea", href: "/weddings/bahamas-weddings-by-the-sea" }]} />
       {/* bws-listing-theme: this listing's own tropical palette (22
           September brief), scoped here only -- most roles (badge, gallery

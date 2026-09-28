@@ -4,7 +4,7 @@ import { OrganizationTemplate } from "@/app/_components/blocks/OrganizationTempl
 import { BusinessHeader, BusinessFooter } from "@/app/_components/BusinessShell";
 import { BusinessArrivalPlate } from "@/app/_components/BusinessArrivalPlate";
 import { computeBrandTokens } from "@/app/_components/blocks/brand";
-import { ppDisplay, ppSans } from "@/app/fonts";
+import { bizDisplay, ppSans } from "@/app/fonts";
 
 // The paid-tier shell: a business's own domain, its own header/footer (no
 // PortPass chrome, no breadcrumb), its own accent -- and the exact same
@@ -76,7 +76,7 @@ export default async function BusinessSitePage({ params }: { params: Promise<{ s
 
   return (
     <div
-      className={`site-shell-business ${ppDisplay.variable} ${ppSans.variable}`}
+      className={`site-shell-business ${bizDisplay.variable} ${ppSans.variable}`}
       style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}
     >
       {slug === "bahamas-weddings" && <BusinessArrivalPlate mark="🌴" word="Bahamas" sub="Weddings by the sea" />}

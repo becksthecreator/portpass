@@ -9,7 +9,7 @@ export default async function WeddingStaffAccountsPage() {
   const [accounts, currentAccountKey] = await Promise.all([listWeddingStaffAccounts(), currentWeddingStaffAccount()]);
 
   return (
-    <main className="staff-workspace">
+    <main className="staff-workspace theme-night">
       <AdminNav role={role} active="/weddings/admin/accounts" />
       <section className="staff-workspace-content">
         <div className="staff-page-intro">

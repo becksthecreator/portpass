@@ -9,7 +9,7 @@ export const dynamic="force-dynamic";
 export default async function PrivateSessionsPage(){
   const role=await requireFutprepStaff(["admin","coach","ceo"],"/futprep/staff/private-sessions");
   const [{schemaReady,requests},{coaches}]=await Promise.all([listPrivateSessionRequests(),listAllCoachProfiles()]);
-  return <main className="staff-workspace">
+  return <main className="staff-workspace theme-night">
     <header className="staff-workspace-header"><div><Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link><span className="staff-workspace-label">Futprep · Private sessions</span></div><nav>{canManageFutprepTeam(role)&&<Link href="/futprep/staff/team">Team</Link>}<Link href="/futprep/coaches">Parent view ↗</Link><StaffLogoutButton /></nav></header>
     <section className="staff-workspace-content">
       <div className="staff-page-intro"><div><span className="section-kicker">Lessons · birthdays · referrals</span><h1>Session requests.</h1></div><p>Accept, decline with a reason, or refer a request to another coach. Referred sessions stay flagged until the parent has been informed.</p></div>

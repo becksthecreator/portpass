@@ -16,7 +16,7 @@ export default async function WeddingLeadDetailPage({ params }: { params: Promis
   if (!lead) notFound();
 
   return (
-    <main className="staff-workspace">
+    <main className="staff-workspace theme-night">
       <AdminNav role={role} active="/weddings/admin" />
       <section className="staff-workspace-content">
         <LeadDetail lead={lead} />

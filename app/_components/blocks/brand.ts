@@ -1,17 +1,17 @@
 // A business supplies one brand colour, or gets the platform default
-// (coral). Either way this is the only mechanism that ever varies the
-// interface per business -- one CSS custom property pair, set inline on
-// that page's own <main> and nowhere else, never on :root or <body> (so
-// it can never reach the SiteHeader/SiteFooter chrome, which reads only
-// the fixed base tokens).
+// (deep teal, since the Aragonite rebrand). Either way this is the only
+// mechanism that ever varies the interface per business -- one CSS custom
+// property pair, set inline on that page's own <main> and nowhere else,
+// never on :root or <body> (so it can never reach the SiteHeader/SiteFooter
+// chrome, which reads only the fixed base tokens).
 //
 // --brand-text is computed here rather than trusted from the database:
 // a business handing over a bright, light colour must not be able to
 // produce unreadable text just by picking a bad hex code. It's derived,
 // not stored, so there's no separate value that can drift out of sync
 // with the source colour.
-const PAPER_HEX = "#fbfaf6";
-const DEFAULT_BRAND = "#e8794a";
+const PAPER_HEX = "#FFFFFF";
+export const DEFAULT_BRAND = "#00737A";
 const MIN_CONTRAST = 4.5;
 
 function hexToRgb(hex: string): [number, number, number] | null {

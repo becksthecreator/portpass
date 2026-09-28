@@ -33,7 +33,7 @@ export default async function BusinessSetupPage() {
     ]);
     const role = session.memberships.find((m) => m.organizationId === draft.id)?.role ?? "org_owner";
     return (
-      <main className="form-page auth-page">
+      <main className="form-page auth-page theme-night">
         <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }, { label: "Set up", href: "/business/setup" }]} />
         <SetupWizard mode="setup" business={draft} images={images} offerings={offerings} invites={invites} team={team} section={section} role={role} initialStep={1} />
         <SiteFooter />
@@ -56,7 +56,7 @@ export default async function BusinessSetupPage() {
   const existing = session.memberships.filter((m) => m.organizationSlug);
 
   return (
-    <main className="form-page auth-page">
+    <main className="form-page auth-page theme-night">
       <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }, { label: "Set up", href: "/business/setup" }]} />
       <div className="auth-card auth-card-wide">
         <div className="eyebrow"><span className="eyebrow-dot" />Your business on PortPass</div>

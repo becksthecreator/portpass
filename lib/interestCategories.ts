@@ -9,6 +9,8 @@ export const INTEREST_CATEGORIES = [
   "entertainment",
   "djs",
   "sound-equipment",
+  "party-rentals",
+  "photo-booths",
   "sports-fitness",
   "weddings",
   "tours",

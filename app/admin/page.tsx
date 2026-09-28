@@ -10,7 +10,7 @@ export default async function AdminPage() {
   await requirePortpassAdmin("/admin");
   const applications = await listApplications();
   return (
-    <main className="admin-page">
+    <main className="admin-page theme-night">
       <header className="site-header admin-header">
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
         <span className="admin-badge">Super admin</span>

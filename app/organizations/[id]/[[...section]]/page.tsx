@@ -56,7 +56,7 @@ export default async function OrganizationPage({
   const title = navigation.find(([key])=>key===section)?.[1] ?? "Dashboard";
 
   return (
-    <main className="organization-app">
+    <main className="organization-app theme-night">
       <aside className="organization-sidebar">
         <Link className="brand organization-brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
         <div className="organization-switcher">

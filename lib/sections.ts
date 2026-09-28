@@ -70,6 +70,8 @@ export const SECTIONS = [
       { slug: "events", name: "Events" },
       { slug: "djs", name: "DJs" },
       { slug: "sound-equipment", name: "Sound Equipment" },
+      { slug: "party-rentals", name: "Party Rentals" },
+      { slug: "photo-booths", name: "Photo Booths" },
     ],
   },
   {

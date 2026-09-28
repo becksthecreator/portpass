@@ -1,41 +1,41 @@
 .staff-login-page{background:var(--sand);min-height:100vh}
 .staff-login-shell{margin:0 auto;max-width:620px;padding:90px 24px}
-.staff-login-shell h1{font-family:Georgia,serif;font-size:clamp(3.6rem,8vw,6.5rem);font-weight:400;letter-spacing:-.06em;line-height:.9;margin:26px 0 18px}
+.staff-login-shell h1{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:clamp(3.6rem,8vw,6.5rem);font-weight:700;letter-spacing:-.06em;line-height:.9;margin:26px 0 18px}
 .staff-login-shell>p{color:var(--muted);line-height:1.6;margin-bottom:34px}
 .staff-login-form{background:var(--paper);border:1px solid var(--line);padding:30px}
 .staff-role-choice{display:grid;gap:12px;grid-template-columns:1fr 1fr;margin-bottom:28px}
 .staff-role-choice button{background:transparent;border:1px solid var(--line);cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:20px;text-align:left}
-.staff-role-choice button.is-active{background:#edf2e8;border-color:var(--green)}
-.staff-role-choice strong{font-family:Georgia,serif;font-size:1.3rem;font-weight:400}
+.staff-role-choice button.is-active{background:var(--sand);border-color:var(--teal)}
+.staff-role-choice strong{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:1.3rem;font-weight:700}
 .staff-role-choice span{color:var(--muted);font-size:.72rem}
 .staff-login-form label{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
 .staff-login-form label span{font-size:.72rem;font-weight:800}
 
-.staff-workspace{background:#f4f4ef;min-height:100vh}
+.staff-workspace{background:var(--sand);min-height:100vh}
 .staff-workspace-header{align-items:center;background:var(--ink);color:white;display:flex;justify-content:space-between;padding:18px 4vw;position:sticky;top:0;z-index:10}
 .staff-workspace-header>div{align-items:center;display:flex;gap:24px}
-.staff-workspace-header .brand-mark{background:var(--lime);color:var(--ink)}
-.staff-workspace-label{border-left:1px solid #53645e;color:#c3d0cb;font-size:.7rem;padding-left:24px}
+.staff-workspace-header .brand-mark{background:var(--gold);color:var(--on-gold)}
+.staff-workspace-label{border-left:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);font-size:.7rem;padding-left:24px}
 .staff-workspace-header nav{display:flex;gap:22px}
-.staff-workspace-header nav a{color:#d8e0dd;font-size:.72rem;font-weight:800}
+.staff-workspace-header nav a{color:rgba(255,255,255,.85);font-size:.72rem;font-weight:800}
 .staff-workspace-content{margin:0 auto;max-width:1220px;padding:54px 24px 90px}
 .staff-page-intro{align-items:end;display:grid;gap:50px;grid-template-columns:1.3fr .7fr;margin-bottom:38px}
 .staff-page-intro .section-kicker{margin-bottom:14px}
-.staff-page-intro h1{font-family:Georgia,serif;font-size:clamp(3rem,6vw,5.8rem);font-weight:400;letter-spacing:-.055em;line-height:.92;margin:0}
+.staff-page-intro h1{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:clamp(3rem,6vw,5.8rem);font-weight:700;letter-spacing:-.055em;line-height:.92;margin:0}
 .staff-page-intro>p{color:var(--muted);font-size:.88rem;line-height:1.6;margin:0}
 
 .staff-summary{display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:18px}
 .staff-summary article{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px;padding:20px}
 .staff-summary span{color:var(--muted);font-size:.68rem;text-transform:uppercase}
-.staff-summary strong{font-family:Georgia,serif;font-size:2.5rem;font-weight:400}
+.staff-summary strong{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:2.5rem;font-weight:700}
 .staff-search-input{background:var(--paper);border:1px solid var(--line);font-size:.85rem;height:44px;margin-top:18px;padding:0 14px;width:100%}
 .staff-filter{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0}
 .staff-filter button{background:var(--paper);border:1px solid var(--line);cursor:pointer;font-size:.72rem;font-weight:800;padding:9px 13px}
-.staff-filter button.is-active{background:var(--ink);color:white}
+.staff-filter button.is-active{background:var(--gold);color:var(--on-gold)}
 .staff-registration-list{display:flex;flex-direction:column;gap:14px}
 .staff-registration-card{background:var(--paper);border:1px solid var(--line);padding:26px}
 .staff-registration-head{align-items:flex-start;display:flex;justify-content:space-between}
-.staff-registration-head h2{font-family:Georgia,serif;font-size:2rem;font-weight:400;margin:8px 0 4px}
+.staff-registration-head h2{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:2rem;font-weight:700;margin:8px 0 4px}
 .staff-registration-head p{color:var(--muted);font-size:.78rem;margin:0}
 .staff-status-stack{align-items:flex-end;display:flex;flex-direction:column;gap:7px}
 .pending-details-flag{align-items:center;background:#fdf3d9;border:1px solid #ecd48a;color:#6b5410;display:flex;flex-wrap:wrap;font-size:.74rem;gap:10px;margin-top:16px;padding:10px 14px}
@@ -52,7 +52,7 @@
 .medical-details dl div{background:var(--sand);padding:14px}
 .medical-details dd{font-size:.76rem;line-height:1.5}
 .staff-actions{align-items:center;border-top:1px solid var(--line);display:flex;gap:10px;margin-top:20px;padding-top:18px}
-.staff-actions>button,.record-payment-inline button{background:var(--ink);border:0;color:white;cursor:pointer;font-size:.7rem;font-weight:800;min-height:40px;padding:0 13px}
+.staff-actions>button,.record-payment-inline button{background:var(--gold);border:0;color:var(--on-gold);cursor:pointer;font-size:.7rem;font-weight:800;min-height:40px;padding:0 13px}
 .staff-actions select{border:1px solid var(--line);min-height:40px;padding:0 10px;width:auto}
 .record-payment-inline{align-items:center;display:flex;margin-left:auto}
 .record-payment-inline>span{background:var(--sand);border:1px solid var(--line);border-right:0;display:flex;height:40px;align-items:center;padding:0 9px}
@@ -60,14 +60,14 @@
 
 .session-picker{display:flex;gap:8px;margin:0 0 28px;overflow-x:auto;padding-bottom:8px}
 .session-picker a{background:var(--paper);border:1px solid var(--line);display:flex;flex:0 0 160px;flex-direction:column;gap:4px;padding:14px}
-.session-picker a.is-active{background:var(--green);border-color:var(--green);color:white}
+.session-picker a.is-active{background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
 .session-picker span,.session-picker small{color:var(--muted);font-size:.65rem}
-.session-picker a.is-active span,.session-picker a.is-active small{color:#c8d4d0}
+.session-picker a.is-active span,.session-picker a.is-active small{color:var(--on-gold)}
 .session-picker strong{font-size:.78rem}
 .coach-session-heading{align-items:flex-end;background:var(--paper);border:1px solid var(--line);display:flex;justify-content:space-between;padding:24px}
-.coach-session-heading h2{font-family:Georgia,serif;font-size:2rem;font-weight:400;margin:7px 0}
+.coach-session-heading h2{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:2rem;font-weight:700;margin:7px 0}
 .coach-session-heading p{color:var(--muted);font-size:.75rem;margin:0}
-.coach-session-heading>strong{font-family:Georgia,serif;font-size:2.2rem;font-weight:400}
+.coach-session-heading>strong{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:2.2rem;font-weight:700}
 .coach-roster{background:var(--paper);border:1px solid var(--line);border-top:0}
 .coach-roster>article{align-items:center;border-bottom:1px solid var(--line);display:grid;gap:18px;grid-template-columns:1fr 1.2fr auto;padding:18px 22px}
 .coach-roster>article:last-child{border-bottom:0}
@@ -82,15 +82,15 @@
 .coach-backfill-banner{background:var(--sand);border:1px solid var(--line);color:var(--muted);font-size:.76rem;padding:10px 16px;margin-bottom:14px}
 .coach-attendance-retry{align-items:center;display:flex;gap:10px;grid-column:1/-1;justify-content:flex-end}
 .coach-attendance-retry span{color:#8d2330;font-size:.7rem}
-.coach-attendance-retry button{background:var(--ink);border:0;color:#fff;cursor:pointer;font-size:.68rem;font-weight:800;padding:6px 10px}
+.coach-attendance-retry button{background:var(--gold);border:0;color:var(--on-gold);cursor:pointer;font-size:.68rem;font-weight:800;padding:6px 10px}
 .coach-cash-inline{grid-column:1/-1;justify-content:flex-end;margin-left:0}
 .coach-attendance-state{color:var(--muted);font-size:.66rem;margin:6px 0 0}
 .attendance-actions{display:flex;gap:5px}
 .attendance-actions button{background:transparent;border:1px solid var(--line);cursor:pointer;font-size:.64rem;padding:7px 8px;text-transform:capitalize}
-.attendance-actions button.is-active{background:var(--ink);color:white}
+.attendance-actions button.is-active{background:var(--gold);color:var(--on-gold)}
 .coach-walkin{align-items:center;background:var(--paper);border:1px dashed var(--line);display:flex;gap:10px;margin-bottom:16px;padding:12px 14px}
 .coach-walkin input{border:1px solid var(--line);flex:1;font-size:.8rem;padding:9px 12px}
-.coach-walkin button{background:var(--ink);border:0;color:#fff;cursor:pointer;font-size:.72rem;font-weight:800;padding:9px 16px;white-space:nowrap}
+.coach-walkin button{background:var(--gold);border:0;color:var(--on-gold);cursor:pointer;font-size:.72rem;font-weight:800;padding:9px 16px;white-space:nowrap}
 .coach-walkin button:disabled{opacity:.6;cursor:default}
 .coach-walkin-error{color:#8d2330;font-size:.7rem}
 @media(max-width:600px){
@@ -99,7 +99,7 @@
 }
 .cash-section{margin-top:46px}
 .cash-section>.section-kicker{margin-bottom:8px}
-.cash-section>h2{font-family:Georgia,serif;font-size:2.6rem;font-weight:400;margin:0 0 20px}
+.cash-section>h2{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:2.6rem;font-weight:700;margin:0 0 20px}
 .cash-list{background:var(--paper);border:1px solid var(--line)}
 .cash-list article{align-items:center;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;padding:16px 18px}
 .cash-list article:last-child{border-bottom:0}
@@ -136,27 +136,27 @@
 
 /* Named Futprep staff accounts and operations */
 .staff-role-choice-three{grid-template-columns:repeat(3,1fr)}
-.staff-logout-button{background:transparent;border:0;color:#d8e0dd;cursor:pointer;font-size:.72rem;font-weight:800;padding:0}
+.staff-logout-button{background:transparent;border:0;color:rgba(255,255,255,.85);cursor:pointer;font-size:.72rem;font-weight:800;padding:0}
 .staff-nav-actions{align-items:center;display:flex;gap:16px}
 .change-pin-page{max-width:480px}
 .change-pin-form{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:20px;padding:32px}
 .change-pin-form label{display:flex;flex-direction:column;gap:8px}
 .change-pin-form label>span{font-size:.74rem;font-weight:800}
-.change-pin-form input{background:#fff;border:1px solid var(--line);font-size:.92rem;height:46px;padding:0 14px}
+.change-pin-form input{background:var(--card);border:1px solid var(--line);font-size:.92rem;height:46px;padding:0 14px}
 .registration-share-card{align-items:center;background:#e9f8f5;border:1px solid #b9dfd7;display:flex;gap:30px;justify-content:space-between;margin-bottom:18px;padding:22px}
 .registration-share-card>div{display:flex;flex-direction:column;gap:6px}
-.registration-share-card strong{font-family:Georgia,serif;font-size:1.15rem;font-weight:400}
+.registration-share-card strong{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:1.15rem;font-weight:700}
 .registration-share-card p{color:var(--muted);font-size:.75rem;line-height:1.5;margin:0}
-.registration-share-card button{background:var(--ink);border:0;color:white;cursor:pointer;font-size:.72rem;font-weight:800;min-height:42px;padding:0 15px;white-space:nowrap}
+.registration-share-card button{background:var(--gold);border:0;color:var(--on-gold);cursor:pointer;font-size:.72rem;font-weight:800;min-height:42px;padding:0 15px;white-space:nowrap}
 .staff-summary-four{grid-template-columns:repeat(4,1fr)}
 .coach-tools-grid{display:grid;gap:16px;grid-template-columns:1.2fr .8fr;margin-bottom:28px}
 .coach-tool-panel{background:var(--paper);border:1px solid var(--line);padding:26px}
 .coach-tool-panel>.section-kicker{margin-bottom:9px}
-.coach-tool-panel h2{font-family:Georgia,serif;font-size:2rem;font-weight:400;margin:0 0 24px}
+.coach-tool-panel h2{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:2rem;font-weight:700;margin:0 0 24px}
 .coach-tool-panel label{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
 .coach-tool-panel label>span{font-size:.7rem;font-weight:800}
 .coach-tool-panel label small{color:var(--muted);font-weight:400}
-.coach-tool-panel textarea{background:white}
+.coach-tool-panel textarea{background:var(--card)}
 .coach-tool-hint,.cash-section-note{color:var(--muted);font-size:.72rem;line-height:1.55}
 .coach-work-grid{display:grid;gap:14px;grid-template-columns:1fr 1fr}
 .calculated-hours{background:#e9f8f5;border:1px solid #b9dfd7;cursor:pointer;font-size:.68rem;font-weight:800;margin:-4px 0 18px;padding:8px 10px}
@@ -168,7 +168,7 @@
 .coach-payment-badge.payment-waived{background:#e8e8e4;color:#555!important}
 .cash-section-note{margin:-10px 0 18px;max-width:720px}
 .attendance-actions-readonly span{background:var(--sand);border:1px solid var(--line);display:inline-block;font-size:.66rem;font-weight:800;padding:6px 10px;text-transform:capitalize}
-.attendance-actions-readonly span.is-active{background:var(--ink);color:#fff}
+.attendance-actions-readonly span.is-active{background:var(--gold);color:var(--on-gold)}
 .coach-tool-readonly-text{color:var(--ink);font-size:.85rem;line-height:1.6;white-space:pre-wrap}
 
 @media(max-width:900px){
@@ -187,18 +187,18 @@
 .ceo-summary-grid{display:grid;grid-template-columns:repeat(5,1fr);margin-bottom:22px}
 .ceo-summary-grid article{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:5px;min-height:145px;padding:20px}
 .ceo-summary-grid span{color:var(--muted);font-size:.67rem;text-transform:uppercase}
-.ceo-summary-grid strong{font-family:Georgia,serif;font-size:2.4rem;font-weight:400}
+.ceo-summary-grid strong{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:2.4rem;font-weight:700}
 .ceo-summary-grid small{color:var(--muted);font-size:.66rem;line-height:1.4}
 .ceo-access-grid{display:grid;gap:16px;grid-template-columns:1fr 1fr;margin-bottom:22px}
 .ceo-access-grid>a{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;min-height:250px;padding:26px}
 .ceo-access-grid>a:first-child{border-top:5px solid #f0245c}
 .ceo-access-grid>a:last-child{border-top:5px solid #2cb8a0}
-.ceo-access-grid h2{font-family:Georgia,serif;font-size:2.2rem;font-weight:400;margin:14px 0 10px}
+.ceo-access-grid h2{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:2.2rem;font-weight:700;margin:14px 0 10px}
 .ceo-access-grid p{color:var(--muted);font-size:.8rem;line-height:1.55;margin:0 0 28px;max-width:460px}
 .ceo-access-grid>a>strong{font-size:.72rem;margin-top:auto}
 .ceo-panel{background:var(--paper);border:1px solid var(--line);margin-top:18px;padding:26px}
 .ceo-panel-head{align-items:flex-end;display:flex;gap:20px;justify-content:space-between;margin-bottom:22px}
-.ceo-panel-head h2{font-family:Georgia,serif;font-size:2.1rem;font-weight:400;margin:8px 0 0}
+.ceo-panel-head h2{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:2.1rem;font-weight:700;margin:8px 0 0}
 .ceo-panel-head>a{font-size:.7rem;font-weight:800}
 .ceo-registration-table,.ceo-session-table{border-top:1px solid var(--line)}
 .ceo-registration-table>div,.ceo-session-table>a{align-items:center;border-bottom:1px solid var(--line);display:grid;gap:16px;grid-template-columns:1.4fr .65fr .65fr .8fr;padding:14px 6px}
@@ -250,13 +250,13 @@
 .team-manager-grid{display:grid;gap:14px;grid-template-columns:repeat(2,1fr)}
 .team-manager-card{background:var(--paper);border:1px solid var(--line);padding:24px}
 .team-manager-card>div:first-child>span{color:var(--muted);font-size:.62rem;font-weight:900;text-transform:uppercase}
-.team-manager-card h2{font-family:Georgia,serif;font-size:1.8rem;font-weight:400;margin:8px 0}
+.team-manager-card h2{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:1.8rem;font-weight:700;margin:8px 0}
 .team-manager-card p{color:var(--muted);font-size:.78rem;line-height:1.5}
 .team-manager-flags{display:flex;gap:7px;margin:16px 0}
 .team-manager-flags span{font-size:.58rem;font-weight:900;padding:5px 7px;text-transform:uppercase}
 .flag-on{background:#ddf5d9;color:#285621}.flag-off{background:#ecece8;color:#666}
 .team-manager-actions{display:flex;flex-wrap:wrap;gap:7px}
-.team-manager-actions button{background:var(--ink);border:0;color:#fff;cursor:pointer;font-size:.65rem;font-weight:800;min-height:38px;padding:0 10px}
+.team-manager-actions button{background:var(--gold);border:0;color:var(--on-gold);cursor:pointer;font-size:.65rem;font-weight:800;min-height:38px;padding:0 10px}
 .team-manager-actions .danger-action{background:#8f3026}
 .team-manager-actions button:disabled{opacity:.4}
 .team-profile-details{border-top:1px solid var(--line);margin-top:18px;padding-top:13px}
@@ -266,15 +266,15 @@
 .team-profile-details dd{font-size:.7rem}
 .team-admin-panels{display:grid;gap:16px;grid-template-columns:1.2fr .8fr;margin-top:20px}
 .team-admin-form{background:var(--paper);border:1px solid var(--line);padding:26px}
-.team-admin-form h2{font-family:Georgia,serif;font-size:2rem;font-weight:400;margin:7px 0 22px}
+.team-admin-form h2{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:2rem;font-weight:700;margin:7px 0 22px}
 .team-admin-form label{display:flex;flex-direction:column;gap:6px;margin-bottom:15px}
 .team-admin-form label>span{font-size:.68rem;font-weight:900}
-.team-admin-form input,.team-admin-form select,.team-admin-form textarea{background:#fff}
+.team-admin-form input,.team-admin-form select,.team-admin-form textarea{background:var(--card)}
 .team-form-two{display:grid;gap:12px;grid-template-columns:1fr 1fr}
 .private-session-manager{display:flex;flex-direction:column;gap:14px}
 .private-request-card{background:var(--paper);border:1px solid var(--line);padding:24px}
 .private-request-head{align-items:flex-start;display:flex;justify-content:space-between}
-.private-request-head h2{font-family:Georgia,serif;font-size:1.9rem;font-weight:400;margin:8px 0 4px}
+.private-request-head h2{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:1.9rem;font-weight:700;margin:8px 0 4px}
 .private-request-head p{color:var(--muted);font-size:.75rem;margin:0}
 .request-type,.request-status{font-size:.58rem;font-weight:900;padding:5px 7px;text-transform:uppercase}
 .request-private_lesson{background:#e9f8f5;color:#176e60}.request-birthday{background:#fff1f5;color:#a91b47}
@@ -286,7 +286,7 @@
 .request-alert{background:#fff0e9;border-left:4px solid #d56e3f;font-size:.72rem;padding:10px 12px}.request-ok{color:#285621;font-size:.72rem;font-weight:800}
 .private-request-actions{align-items:center;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;padding-top:16px}
 .private-request-actions select{border:1px solid var(--line);min-height:40px;padding:0 8px;width:auto}
-.private-request-actions button{background:var(--ink);border:0;color:#fff;cursor:pointer;font-size:.65rem;font-weight:800;min-height:40px;padding:0 11px}
+.private-request-actions button{background:var(--gold);border:0;color:var(--on-gold);cursor:pointer;font-size:.65rem;font-weight:800;min-height:40px;padding:0 11px}
 .private-request-actions button:disabled{opacity:.4}
 
 .money-outstanding{color:#a91b2c}
@@ -302,7 +302,7 @@
 .wedding-lead-card{display:block;text-decoration:none;color:inherit}
 .wedding-lead-card:hover{border-color:var(--ink)}
 .wedding-admin-panel{background:var(--paper);border:1px solid var(--line);padding:26px;margin-bottom:18px}
-.wedding-admin-panel h2{font-family:Georgia,serif;font-size:1.6rem;font-weight:400;margin:0 0 6px}
+.wedding-admin-panel h2{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:1.6rem;font-weight:700;margin:0 0 6px}
 .wedding-admin-field-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px}
 .wedding-admin-field-grid label{display:flex;flex-direction:column;gap:6px;font-size:.78rem}
 .wedding-admin-field-grid label span{color:var(--muted);font-size:.68rem;text-transform:uppercase}
@@ -320,11 +320,11 @@
 .detail-grid{display:grid;gap:16px;grid-template-columns:repeat(2,1fr)}
 .detail-panel{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:14px;padding:22px}
 .detail-panel-wide{grid-column:1/-1}
-.detail-panel h2{font-family:Georgia,serif;font-size:1.4rem;font-weight:400;margin:0}
+.detail-panel h2{font-family:var(--font-pp-display),Poppins,sans-serif;letter-spacing:-.02em;font-size:1.4rem;font-weight:700;margin:0}
 .detail-panel h3{font-size:.82rem;font-weight:800;margin:0}
 .detail-panel label{display:flex;flex-direction:column;gap:6px}
 .detail-panel label>span{color:var(--muted);font-size:.66rem;font-weight:800;text-transform:uppercase}
-.detail-panel input,.detail-panel select,.detail-panel textarea{background:#fff;border:1px solid var(--line);font-size:.82rem;padding:9px 10px}
+.detail-panel input,.detail-panel select,.detail-panel textarea{background:var(--card);border:1px solid var(--line);font-size:.82rem;padding:9px 10px}
 .detail-hint{color:var(--muted);font-size:.7rem;line-height:1.5;margin:0}
 .detail-money-input{align-items:center;display:flex}
 .detail-money-input>span{background:var(--sand);border:1px solid var(--line);border-right:0;display:flex;height:38px;align-items:center;padding:0 9px}
@@ -333,7 +333,7 @@
 .detail-consent-readonly>span{color:var(--muted);font-size:.66rem;text-transform:uppercase}
 .detail-consent-readonly>small{color:var(--muted);font-size:.7rem}
 .detail-save-bar{align-items:center;display:flex;gap:14px;justify-content:flex-end}
-.detail-save-bar button{background:var(--ink);border:0;color:#fff;cursor:pointer;font-size:.76rem;font-weight:800;min-height:44px;padding:0 20px}
+.detail-save-bar button{background:var(--gold);border:0;color:var(--on-gold);cursor:pointer;font-size:.76rem;font-weight:800;min-height:44px;padding:0 20px}
 .detail-save-bar button:disabled{opacity:.5}
 .detail-error{color:#a91b2c;font-size:.74rem;font-weight:800}
 .detail-saved{color:#2e6026;font-size:.74rem;font-weight:800}
@@ -343,7 +343,7 @@
 .detail-void-button{background:transparent;border:1px solid var(--line);cursor:pointer;font-size:.62rem;font-weight:800;padding:5px 9px}
 .detail-record-payment{border-top:1px solid var(--line);margin-top:18px;padding-top:18px}
 .detail-record-payment-fields{display:grid;gap:12px;grid-template-columns:repeat(5,1fr);margin:12px 0}
-.detail-record-payment button{background:var(--ink);border:0;color:#fff;cursor:pointer;font-size:.72rem;font-weight:800;margin-top:8px;min-height:40px;padding:0 16px}
+.detail-record-payment button{background:var(--gold);border:0;color:var(--on-gold);cursor:pointer;font-size:.72rem;font-weight:800;margin-top:8px;min-height:40px;padding:0 16px}
 .detail-record-payment button:disabled{opacity:.5}
 .detail-edit-log{display:flex;flex-direction:column;font-size:.76rem;gap:12px;list-style:none;margin:0;padding:0}
 .detail-edit-log>li>span{color:var(--muted);font-size:.68rem;margin-left:8px}

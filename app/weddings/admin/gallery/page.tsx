@@ -10,7 +10,7 @@ export default async function WeddingGalleryAdminPage() {
   const images = await listAllWeddingGalleryImages();
 
   return (
-    <main className="staff-workspace">
+    <main className="staff-workspace theme-night">
       <AdminNav role={role} active="/weddings/admin/gallery" />
       <section className="staff-workspace-content">
         <div className="staff-page-intro">

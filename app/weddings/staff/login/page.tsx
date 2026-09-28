@@ -17,7 +17,7 @@ export default async function WeddingStaffLoginPage({
   const hasAccount = await hasAnyWeddingStaffAccount();
 
   return (
-    <main className="staff-login-page">
+    <main className="theme-night staff-login-page">
       <header className="site-header form-header registration-header">
         <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
         <div className="registration-header-right">

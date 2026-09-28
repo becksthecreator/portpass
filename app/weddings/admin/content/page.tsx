@@ -10,7 +10,7 @@ export default async function WeddingContentAdminPage() {
   const settings = await getWeddingSiteSettings();
 
   return (
-    <main className="staff-workspace">
+    <main className="staff-workspace theme-night">
       <AdminNav role={role} active="/weddings/admin/content" />
       <section className="staff-workspace-content">
         <div className="staff-page-intro">

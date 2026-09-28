@@ -40,7 +40,7 @@ export async function POST(request: Request, ctx: Ctx) {
       html: portpassEmailShell(`Join ${business?.name ?? "the team"} on PortPass`, `
         <p>${auth.session.profile?.fullName ?? "Someone"} added you to <strong>${business?.name ?? "a business"}</strong> on PortPass as <strong>${role.replace("org_", "")}</strong>.</p>
         <p>Sign in with this email address and it's yours — no password, we'll send you a code.</p>
-        <p><a href="https://portpassbahamas.com/login?next=${encodeURIComponent(`/business/${business?.slug ?? ""}`)}" style="color:#B9532A">Sign in to PortPass →</a></p>
+        <p><a href="https://portpassbahamas.com/login?next=${encodeURIComponent(`/business/${business?.slug ?? ""}`)}" style="color:#00737A">Sign in to PortPass →</a></p>
         <p>This invitation expires in 14 days.</p>
       `),
     });
