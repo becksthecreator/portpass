@@ -98,7 +98,7 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
             return (
               <FeatureCard
                 key={org.slug}
-                photoUrl={org.heroImageUrl ?? "/weddings/bahamas-by-the-sea/hero.jpg"}
+                photoUrl={org.heroImageUrl}
                 photoAlt={org.name}
                 label="Open now"
                 name={org.name}

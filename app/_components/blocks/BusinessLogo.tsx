@@ -1,7 +1,11 @@
+import { suggestForWhiteText } from "@/lib/color";
+
 // A business's logo, or a wordmark tile at the same dimensions until one
 // exists: the name set in Fraunces on a tile tinted with that business's
 // own --brand. When a real logo file arrives, it drops into the same slot
-// (same size prop, same call site) with no layout change.
+// (same size prop, same call site) with no layout change. The tile carries
+// white text, so the brand is darkened until that reads at 4.5:1 (the
+// platform coral itself only manages 2.9:1).
 export function BusinessLogo({
   logoUrl,
   name,
@@ -21,7 +25,7 @@ export function BusinessLogo({
   return (
     <span
       className={`biz-logo biz-logo-${size} biz-logo-wordmark${mark ? " biz-logo-wordmark-lockup" : ""}`}
-      style={{ "--brand": brand } as React.CSSProperties}
+      style={{ "--brand": suggestForWhiteText(brand) ?? brand } as React.CSSProperties}
     >
       {mark && <span className="biz-logo-mark" aria-hidden="true">{mark}</span>}
       {name}

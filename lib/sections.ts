@@ -4,7 +4,7 @@
 // accounts brief moves this into a `categories` table later; until then
 // this is the one list /business, /apply and the nav copy agree on.
 export const SECTIONS = [
-  { slug: "sports-fitness", name: "Sports & Fitness", line: "Classes, camps and Saturday sessions parents register and pay for online.", href: "/sports-fitness" },
+  { slug: "sports-fitness", name: "Sports & Fitness", line: "Classes, camps and Saturday sessions parents register for online.", href: "/sports-fitness" },
   { slug: "weddings", name: "Weddings", line: "Ceremonies and vow renewals, planned end to end with the Wedding Desk.", href: "/weddings" },
   { slug: "venues", name: "Venues", line: "Beaches, halls and studios, held by the hour or the day.", href: "/venues" },
   { slug: "tours", name: "Tours", line: "Boats, fishing charters, bikes, jeeps and food tours.", href: "/tours" },

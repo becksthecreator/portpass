@@ -4,7 +4,7 @@ import "./globals.css";
 import "./staff.css";
 
 const TITLE = "PortPass Bahamas | Find and Book Sports, Weddings, Venues & Events in Nassau";
-const DESCRIPTION = "Sports sessions, weddings, venues and events — found, booked and paid for in one place.";
+const DESCRIPTION = "Sports sessions, weddings, venues and events — found and booked in one place.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://portpassbahamas.com"),

@@ -23,7 +23,7 @@ export default function AboutPage() {
       </section>
       <article className="legal-body">
         <h2>What we do</h2>
-        <p>PortPass is a booking and payment platform. A business lists what it offers &mdash; a sports program, a wedding package, a venue, an event &mdash; with real prices, and customers book and pay online instead of going back and forth over WhatsApp or a phone call.</p>
+        <p>PortPass is a booking and payment platform. A business lists what it offers &mdash; a sports program, a wedding package, a venue, an event &mdash; with real prices, and customers book online and every payment is recorded, instead of going back and forth over WhatsApp or a phone call. Card payments are coming with a Central Bank-licensed partner.</p>
 
         <h2>Who&rsquo;s live today</h2>
         <p>Futprep Athletics runs its Saturday football programs through PortPass, and Bahamas Weddings By The Sea runs its wedding packages through PortPass. We&rsquo;re early &mdash; two real businesses, not a long list padded out for show.</p>

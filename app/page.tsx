@@ -111,7 +111,7 @@ export default async function Home() {
             <h3>If you&rsquo;re booking</h3>
             <ol>
               <li>Find what you&rsquo;re looking for — sessions, ceremonies, venues</li>
-              <li>Book and pay online, no phone tag</li>
+              <li>Book online, no phone tag. Pay the way the business accepts, and keep one record of it</li>
               <li>Your confirmation and details live in one place</li>
             </ol>
           </div>
@@ -119,7 +119,7 @@ export default async function Home() {
             <h3>If you run a business</h3>
             <ol>
               <li>Your listing goes live with real availability and prices</li>
-              <li>Customers register and pay themselves</li>
+              <li>Customers register themselves, and you see who&rsquo;s paid</li>
               <li>You see who&rsquo;s coming and what&rsquo;s been collected, on one screen</li>
             </ol>
           </div>
@@ -135,7 +135,7 @@ export default async function Home() {
           <div className="home-lane home-lane-live">
             <span className="home-lane-tag home-lane-tag-live">Live now</span>
             <h3>Sports &amp; Fitness</h3>
-            <p>Youth training, camps and weekend sessions you register and pay for online.</p>
+            <p>Youth training, camps and weekend sessions you register for online.</p>
             <div className="home-lane-chips">
               {sportsBusinesses.map((biz) => (
                 <Link key={biz.slug} href={directoryHref(biz.slug, biz.primaryCategory)} className="home-lane-chip">
