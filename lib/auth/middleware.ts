@@ -32,7 +32,9 @@ export async function updateSession(request: NextRequest): Promise<{ response: N
   }
 }
 
-const SESSION_PREFIXES = ["/account", "/where-to", "/api/account", "/api/business"];
+// /api/applications itself (the public /apply POST) stays open; its
+// review endpoint /api/applications/[id] guards itself with requireAdminApi.
+const SESSION_PREFIXES = ["/account", "/where-to", "/api/account", "/api/business", "/admin", "/organizations", "/api/admin"];
 
 // /business itself is the public marketing page; everything under it
 // (/business/setup, /business/[slug]/...) needs a session.

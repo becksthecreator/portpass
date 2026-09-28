@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PORTPASS_ADMIN_COOKIE, verifyAdminToken } from "@/lib/admin-auth";
 import { needsSession, updateSession } from "@/lib/auth/middleware";
 
 // Broadened from the old admin-only matcher so the domain-routing check
@@ -94,6 +93,10 @@ export async function middleware(request: NextRequest) {
   const { response, hasSession } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
 
+  // The admin area (/admin, /organizations, /api/admin, the application
+  // review endpoint) is covered here too: no session -> /login. The
+  // platform role and the two-step check happen in lib/auth/admin.ts on
+  // each page and handler; the old shared PIN is gone (28 Sept brief).
   if (needsSession(pathname) && !hasSession) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Sign in required." }, { status: 401 });
@@ -103,24 +106,5 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
-  // Legacy shared-PIN gate for the super-admin area and the application
-  // review endpoint (PATCH /api/applications/[id]); replaced by the
-  // accounts guards in the admin console rebuild. POST /api/applications
-  // (the public /apply form) is deliberately not behind it.
-  const needsAdminAuth =
-    pathname.startsWith("/admin") || pathname.startsWith("/organizations") || pathname.startsWith("/api/applications/");
-  if (!needsAdminAuth) return response;
-
-  if (pathname === "/admin/login") return response;
-
-  const token = request.cookies.get(PORTPASS_ADMIN_COOKIE)?.value;
-  if (await verifyAdminToken(token)) return response;
-
-  if (pathname.startsWith("/api/")) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
-
-  const loginUrl = new URL("/admin/login", request.url);
-  loginUrl.searchParams.set("returnTo", pathname);
-  return NextResponse.redirect(loginUrl);
+  return response;
 }
