@@ -9,7 +9,7 @@ import {
   listOrganizationStaff,
   listUpcomingSessions,
 } from "@/db/organizations";
-import { requirePortpassAdmin } from "@/lib/admin-session";
+import { requireAdmin } from "@/lib/auth/admin";
 
 const navigation = [
   ["dashboard","Dashboard"],["programs","Programs"],["locations","Locations"],
@@ -32,7 +32,7 @@ export default async function OrganizationPage({
   params: Promise<{ id: string; section?: string[] }>;
 }) {
   const { id, section: parts } = await params;
-  await requirePortpassAdmin(`/organizations/${id}${parts?.length ? `/${parts.join("/")}` : ""}`);
+  await requireAdmin(`/organizations/${id}${parts?.length ? `/${parts.join("/")}` : ""}`);
 
   const organizationId = Number(id);
   if (!Number.isInteger(organizationId) || organizationId < 1) notFound();

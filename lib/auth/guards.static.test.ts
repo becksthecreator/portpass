@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 // protect a handler). A file that is public on purpose says so with a
 // pragma in its first five lines, and the pragma list below must match --
 // so nothing can quietly be public without appearing here.
-const ROOTS = ["app/api/account", "app/api/business", "app/account", "app/business", "app/where-to"];
+const ROOTS = ["app/api/account", "app/api/business", "app/api/admin", "app/account", "app/business", "app/where-to", "app/admin", "app/organizations"];
 
 const PUBLIC_ROUTES = new Set<string>([
   "app/business/page.tsx", // the "PortPass for business" marketing page
@@ -16,7 +16,7 @@ const PUBLIC_ROUTES = new Set<string>([
 
 const HANDLER = /export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE|HEAD)\b|export\s+const\s+(GET|POST|PUT|PATCH|DELETE|HEAD)\s*=/;
 const PAGE = /export\s+default\b/;
-const GUARD = /\brequire(SignedIn|PlatformRole|OrgRole)(Api)?\s*\(/;
+const GUARD = /\brequire(SignedIn|PlatformRole|OrgRole|Admin)(Api)?\s*\(/;
 const PRAGMA = /^\s*\/\/\s*@public-route:/m;
 
 function walk(dir: string): string[] {
@@ -57,7 +57,7 @@ describe("every protected route and page calls an auth guard", () => {
         return;
       }
       expect(PUBLIC_ROUTES.has(rel), `${rel} is listed in PUBLIC_ROUTES but has no @public-route pragma`).toBe(false);
-      expect(GUARD.test(source), `${rel} exports a handler/page without calling requireSignedIn/requirePlatformRole/requireOrgRole`).toBe(true);
+      expect(GUARD.test(source), `${rel} exports a handler/page without calling requireSignedIn/requirePlatformRole/requireOrgRole/requireAdmin`).toBe(true);
     });
   }
 
