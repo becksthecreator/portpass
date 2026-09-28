@@ -8,7 +8,9 @@ import { getOrganizationListingForPreview } from "./organizations";
 // are admin-only: they round-trip through db/licences.ts and appear in no
 // public or owner shape.
 const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
-const slug = `test-delete-licence-${Date.now()}`;
+// "permit", not "licence": the last test asserts the word never appears in
+// a public shape, and the fixture's own slug must not trip it.
+const slug = `test-delete-permit-${Date.now()}`;
 let orgId = 0;
 let userId = "";
 
@@ -16,7 +18,7 @@ beforeAll(async () => {
   const { data, error } = await admin.from("organizations").insert({ name: "TEST — delete Permit Co", slug, primary_category: "services", subcategory: "phone-tech-repair", status: "approved" }).select("id").single();
   expect(error).toBeNull();
   orgId = Number(data!.id);
-  const { data: user, error: userError } = await admin.auth.admin.createUser({ email: `test-delete-licence-${Date.now()}@example.com`, email_confirm: true });
+  const { data: user, error: userError } = await admin.auth.admin.createUser({ email: `test-delete-permit-${Date.now()}@example.com`, email_confirm: true });
   expect(userError).toBeNull();
   userId = user.user!.id;
 });
