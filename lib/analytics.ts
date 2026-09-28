@@ -6,7 +6,16 @@
 // sections, organisation slugs and offering slugs only.
 type Va = (event: "event", payload: { name: string; data?: Record<string, string | number | boolean> }) => void;
 
-export type AnalyticsEvent = "apply_submitted" | "whatsapp_click" | "share_click" | "register_start" | "planner_start";
+export type AnalyticsEvent =
+  | "apply_submitted"
+  | "whatsapp_click"
+  | "share_click"
+  | "register_start"
+  | "planner_start"
+  // Installable app (round 5, §6): the appinstalled event, and an open
+  // from the home screen (start_url carries ?source=pwa).
+  | "pwa_installed"
+  | "pwa_open";
 
 export function track(name: AnalyticsEvent, data?: Record<string, string | number | boolean>) {
   if (typeof window === "undefined") return;
