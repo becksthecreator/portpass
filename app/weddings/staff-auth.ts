@@ -1,7 +1,9 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { logAudit } from "@/db/audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "@/db/supabase";
+import { PIN_PATTERN } from "@/app/futprep/staff-auth";
 
 // Mirrors app/futprep/staff-auth.ts exactly (see that file for the fuller
 // commentary on the design). Two differences: roles are Wedding Desk /
@@ -17,6 +19,7 @@ export type WeddingStaffAccountRecord = {
   accountKey: string;
   role: WeddingStaffRole;
   active: boolean;
+  pinChangedAt: string | null;
 };
 
 const COOKIE = "portpass_wedding_staff";
@@ -153,19 +156,25 @@ export async function changeWeddingPin(
   const account = await accountByKey(accountKey);
   if (!account) return null;
   if ((await digest(currentPin)) !== account.pinHash) return null;
-  if (!/^\d{4,}$/.test(newPin)) throw new Error("INVALID_PIN");
+  if (!PIN_PATTERN.test(newPin)) throw new Error("INVALID_PIN");
 
   const newHash = await digest(newPin);
+  if (newHash === account.pinHash) throw new Error("SAME_PIN");
   const supabase = getSupabaseAdmin();
   const orgId = await weddingOrgId();
   const { error } = await supabase
     .from("staff_members")
-    .update({ pin_hash: newHash })
+    .update({ pin_hash: newHash, pin_changed_at: new Date().toISOString() })
     .eq("organization_id", orgId)
     .eq("account_key", accountKey);
   throwIfSupabaseError(error, "Could not update PIN");
 
   invalidateAccountCache();
+  try {
+    await logAudit({ organizationId: orgId, action: "staff.pin_changed", targetTable: "staff_members", targetId: account.id });
+  } catch (auditError) {
+    console.error("staff.pin_changed audit failed", auditError);
+  }
   return makeWeddingStaffToken(accountKey, newPin);
 }
 
@@ -199,7 +208,7 @@ export async function createWeddingStaffAccount(input: {
   if (!name) throw new Error("NAME_REQUIRED");
   if (!ACCOUNT_KEY_PATTERN.test(accountKey)) throw new Error("INVALID_ACCOUNT_KEY");
   if (!isWeddingStaffRole(input.role)) throw new Error("INVALID_ROLE");
-  if (!/^\d{4,}$/.test(input.pin)) throw new Error("INVALID_PIN");
+  if (!PIN_PATTERN.test(input.pin)) throw new Error("INVALID_PIN");
 
   const supabase = getSupabaseAdmin();
   const { data: existing, error: existingError } = await supabase
@@ -225,13 +234,13 @@ export async function createWeddingStaffAccount(input: {
       active: true,
       created_at: now,
     })
-    .select("id,name,role,account_key,active")
+    .select("id,name,role,account_key,active,pin_changed_at")
     .single();
   throwIfSupabaseError(error, "Could not create wedding staff account");
   if (!data) throw new Error("Could not create wedding staff account");
 
   invalidateAccountCache();
-  return { id: Number(data.id), name: data.name, accountKey: data.account_key, role: data.role as WeddingStaffRole, active: Boolean(data.active) };
+  return { id: Number(data.id), name: data.name, accountKey: data.account_key, role: data.role as WeddingStaffRole, active: Boolean(data.active), pinChangedAt: (data.pin_changed_at as string | null) ?? null };
 }
 
 export async function listWeddingStaffAccounts(): Promise<WeddingStaffAccountRecord[]> {
@@ -239,7 +248,7 @@ export async function listWeddingStaffAccounts(): Promise<WeddingStaffAccountRec
   const orgId = await weddingOrgId();
   const { data, error } = await supabase
     .from("staff_members")
-    .select("id,name,role,account_key,active")
+    .select("id,name,role,account_key,active,pin_changed_at")
     .eq("organization_id", orgId)
     .not("account_key", "is", null)
     .order("active", { ascending: false })
@@ -247,7 +256,7 @@ export async function listWeddingStaffAccounts(): Promise<WeddingStaffAccountRec
   throwIfSupabaseError(error, "Could not load wedding staff accounts");
   return (data ?? [])
     .filter((row) => row.role && isWeddingStaffRole(row.role))
-    .map((row) => ({ id: Number(row.id), name: row.name, accountKey: row.account_key as string, role: row.role as WeddingStaffRole, active: Boolean(row.active) }));
+    .map((row) => ({ id: Number(row.id), name: row.name, accountKey: row.account_key as string, role: row.role as WeddingStaffRole, active: Boolean(row.active), pinChangedAt: (row.pin_changed_at as string | null) ?? null }));
 }
 
 export async function setWeddingStaffAccountActive(id: number, active: boolean) {

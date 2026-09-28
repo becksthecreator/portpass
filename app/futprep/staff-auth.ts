@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { logAudit } from "@/db/audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "@/db/supabase";
 
 // Accounts are created dynamically by an admin (see createStaffAccount below)
@@ -16,7 +17,14 @@ export type FutprepStaffAccountRecord = {
   accountKey: string;
   role: FutprepStaffRole;
   active: boolean;
+  // When the person last changed their own PIN; null means they're still
+  // on the one an admin set for them. Never the PIN, never the hash.
+  pinChangedAt: string | null;
 };
+
+// New and changed PINs are six digits or more (round 4, item 10). Existing
+// shorter PINs keep working until their owner changes them.
+export const PIN_PATTERN = /^\d{6,}$/;
 
 const COOKIE = "portpass_futprep_staff";
 const FUTPREP_ORG_ID = 1;
@@ -146,18 +154,25 @@ export async function changeFutprepPin(
   const account = await accountByKey(accountKey);
   if (!account) return null;
   if ((await digest(currentPin)) !== account.pinHash) return null;
-  if (!/^\d{4,}$/.test(newPin)) throw new Error("INVALID_PIN");
+  if (!PIN_PATTERN.test(newPin)) throw new Error("INVALID_PIN");
 
   const newHash = await digest(newPin);
+  if (newHash === account.pinHash) throw new Error("SAME_PIN");
   const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from("staff_members")
-    .update({ pin_hash: newHash })
+    .update({ pin_hash: newHash, pin_changed_at: new Date().toISOString() })
     .eq("organization_id", FUTPREP_ORG_ID)
     .eq("account_key", accountKey);
   throwIfSupabaseError(error, "Could not update PIN");
 
   invalidateAccountCache();
+  // The change has happened; a failed audit write is logged, not fatal.
+  try {
+    await logAudit({ organizationId: FUTPREP_ORG_ID, action: "staff.pin_changed", targetTable: "staff_members", targetId: account.id });
+  } catch (auditError) {
+    console.error("staff.pin_changed audit failed", auditError);
+  }
   return makeStaffToken(accountKey, newPin);
 }
 
@@ -196,7 +211,7 @@ export async function createStaffAccount(input: {
   if (!name) throw new Error("NAME_REQUIRED");
   if (!ACCOUNT_KEY_PATTERN.test(accountKey)) throw new Error("INVALID_ACCOUNT_KEY");
   if (!isFutprepStaffRole(input.role)) throw new Error("INVALID_ROLE");
-  if (!/^\d{4,}$/.test(input.pin)) throw new Error("INVALID_PIN");
+  if (!PIN_PATTERN.test(input.pin)) throw new Error("INVALID_PIN");
 
   const supabase = getSupabaseAdmin();
   const { data: existing, error: existingError } = await supabase
@@ -221,20 +236,20 @@ export async function createStaffAccount(input: {
       active: true,
       created_at: now,
     })
-    .select("id,name,role,account_key,active")
+    .select("id,name,role,account_key,active,pin_changed_at")
     .single();
   throwIfSupabaseError(error, "Could not create staff account");
   if (!data) throw new Error("Could not create staff account");
 
   invalidateAccountCache();
-  return { id: Number(data.id), name: data.name, accountKey: data.account_key, role: data.role as FutprepStaffRole, active: Boolean(data.active) };
+  return { id: Number(data.id), name: data.name, accountKey: data.account_key, role: data.role as FutprepStaffRole, active: Boolean(data.active), pinChangedAt: (data.pin_changed_at as string | null) ?? null };
 }
 
 export async function listStaffAccounts(): Promise<FutprepStaffAccountRecord[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("staff_members")
-    .select("id,name,role,account_key,active")
+    .select("id,name,role,account_key,active,pin_changed_at")
     .eq("organization_id", FUTPREP_ORG_ID)
     .not("account_key", "is", null)
     .order("active", { ascending: false })
@@ -242,7 +257,7 @@ export async function listStaffAccounts(): Promise<FutprepStaffAccountRecord[]> 
   throwIfSupabaseError(error, "Could not load staff accounts");
   return (data ?? [])
     .filter((row) => row.role && isFutprepStaffRole(row.role))
-    .map((row) => ({ id: Number(row.id), name: row.name, accountKey: row.account_key as string, role: row.role as FutprepStaffRole, active: Boolean(row.active) }));
+    .map((row) => ({ id: Number(row.id), name: row.name, accountKey: row.account_key as string, role: row.role as FutprepStaffRole, active: Boolean(row.active), pinChangedAt: (row.pin_changed_at as string | null) ?? null }));
 }
 
 export async function setStaffAccountActive(id: number, active: boolean) {

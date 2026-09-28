@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     if (message === "ALREADY_BOOTSTRAPPED") return NextResponse.json({ error: "An account already exists. Sign in instead." }, { status: 409 });
     if (message === "NAME_REQUIRED") return NextResponse.json({ error: "Enter your name." }, { status: 400 });
     if (message === "INVALID_ACCOUNT_KEY") return NextResponse.json({ error: "Account name must be 3-40 characters: lowercase letters, numbers, - or _." }, { status: 400 });
-    if (message === "INVALID_PIN") return NextResponse.json({ error: "PIN must be at least 4 digits." }, { status: 400 });
+    if (message === "INVALID_PIN") return NextResponse.json({ error: "PIN must be at least 6 digits." }, { status: 400 });
     if (message === "ACCOUNT_KEY_TAKEN") return NextResponse.json({ error: "That account name is taken." }, { status: 409 });
     console.error("Wedding bootstrap-admin error", error);
     return NextResponse.json({ error: "Could not create the account." }, { status: 500 });

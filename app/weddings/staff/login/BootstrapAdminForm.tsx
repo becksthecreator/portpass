@@ -35,7 +35,7 @@ export function BootstrapAdminForm() {
     <form className="staff-login-form" onSubmit={submit}>
       <label><span>Your name</span><input value={name} onChange={(e)=>setName(e.target.value)} required /></label>
       <label><span>Account name</span><input value={accountKey} onChange={(e)=>setAccountKey(e.target.value)} placeholder="lowercase, no spaces" pattern="[a-z0-9_-]{3,40}" autoComplete="username" autoCapitalize="none" required /></label>
-      <label><span>PIN (4+ digits)</span><input inputMode="numeric" type="password" autoComplete="new-password" value={pin} onChange={(e)=>setPin(e.target.value)} required /></label>
+      <label><span>PIN (6+ digits)</span><input inputMode="numeric" type="password" autoComplete="new-password" value={pin} onChange={(e)=>setPin(e.target.value)} required /></label>
       <label><span>Confirm PIN</span><input inputMode="numeric" type="password" autoComplete="new-password" value={confirmPin} onChange={(e)=>setConfirmPin(e.target.value)} required /></label>
       {error && <p className="form-error">{error}</p>}
       <button className="primary-button" disabled={busy} type="submit">{busy ? "Creating…" : "Create account →"}</button>
