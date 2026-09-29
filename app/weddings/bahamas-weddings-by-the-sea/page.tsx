@@ -1,6 +1,6 @@
 import { getOrganizationExtrasBySlug, type Offering } from "@/db/organizations";
-import { getWeddingSiteSettings } from "@/db/weddingSite";
-import { getPublicWeddingPackages } from "@/db/weddingPackages";
+import { DEFAULT_SETTINGS, getWeddingSiteSettings } from "@/db/weddingSite";
+import { getPublicWeddingPackages, type PublicWeddingPackage } from "@/db/weddingPackages";
 import { IdentityBlock } from "@/app/_components/blocks/IdentityBlock";
 import { ProofBlock } from "@/app/_components/blocks/ProofBlock";
 import { Carousel } from "@/app/_components/blocks/Carousel";
@@ -81,7 +81,7 @@ export const metadata = {
 export default async function BahamasWeddingsListingPage() {
   const [settings, packages, extras] = await Promise.all([
     getWeddingSiteSettings().catch(() => DEFAULT_SETTINGS),
-    getPublicWeddingPackages().catch(() => []),
+    getPublicWeddingPackages().catch((): PublicWeddingPackage[] => []),
     getOrganizationExtrasBySlug("bahamas-weddings").catch(() => ({ ownerName: null, ownerBio: null, ownerImageUrl: null, faqs: [] })),
   ]);
 
