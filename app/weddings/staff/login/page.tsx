@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { hasAnyWeddingStaffAccount } from "../../staff-auth";
 import { StaffLoginForm } from "./StaffLoginForm";
@@ -19,7 +20,7 @@ export default async function WeddingStaffLoginPage({
   return (
     <main className="theme-night staff-login-page">
       <header className="site-header form-header registration-header">
-        <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+        <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
           <Link className="header-link" href="/weddings/bahamas-weddings-by-the-sea">Wedding site</Link>
         </div>

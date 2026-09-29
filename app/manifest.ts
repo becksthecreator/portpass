@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 // The installable app's manifest (round 5, §6). start_url carries
 // ?source=pwa so opens from the home screen are counted (pwa_open in
-// lib/analytics.ts); the maskable icon is the same P mark drawn smaller so
+// lib/analytics.ts); the maskable icon is the same mark drawn smaller so
 // Android's shapes never clip it.
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -13,8 +13,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/?source=pwa",
     scope: "/",
     display: "standalone",
-    background_color: "#F5F1E8",
-    theme_color: "#0B2A3C",
+    background_color: "#F5F6F8",
+    theme_color: "#0D1B3D",
     lang: "en",
     categories: ["sports", "travel", "lifestyle"],
     icons: [

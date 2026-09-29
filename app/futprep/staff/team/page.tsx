@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { requireFutprepStaff } from "../../staff-auth";
 import { listAllCoachProfiles } from "@/db/coaches";
@@ -11,7 +12,7 @@ export default async function FutprepTeamPage(){
   const {schemaReady,coaches}=await listAllCoachProfiles();
   return <main className="staff-workspace theme-night">
     <header className="staff-workspace-header">
-      <div><Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link><span className="staff-workspace-label">Futprep · Team management</span></div>
+      <div><Link className="brand" href="/"><BrandLogo /></Link><span className="staff-workspace-label">Futprep · Team management</span></div>
       <nav><Link href="/futprep/staff/private-sessions">Private sessions</Link><Link href="/futprep/staff/accounts">Staff accounts</Link>{role==="ceo"&&<Link href="/futprep/staff/ceo">CEO overview</Link>}<Link href="/futprep/coaches">Public team ↗</Link><StaffLogoutButton /></nav>
     </header>
     <section className="staff-workspace-content">

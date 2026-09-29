@@ -11,7 +11,7 @@
 // not stored, so there's no separate value that can drift out of sync
 // with the source colour.
 const PAPER_HEX = "#FFFFFF";
-export const DEFAULT_BRAND = "#00737A";
+export const DEFAULT_BRAND = "#2463AE";
 const MIN_CONTRAST = 4.5;
 
 function hexToRgb(hex: string): [number, number, number] | null {

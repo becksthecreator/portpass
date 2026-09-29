@@ -1,9 +1,9 @@
 import { ImageResponse } from "next/og";
 
-// PNG app icons for the web manifest (/icons/192, /icons/512). Same mark
-// as apple-icon.tsx (Aragonite brand: gold tile, ink italic P); generated
-// rather than committed because there is no image tooling in this repo's
-// workflow to produce PNGs by hand.
+// PNG app icons for the web manifest (/icons/192, /icons/512). Interim
+// Harbour Signal tile (navy, white P) until app-icon-192.png and
+// app-icon-512.png from PortPass-Logo-Files.zip are in public/brand/ and
+// the manifest points at them instead.
 // ?purpose=maskable draws the P at half height so it sits inside the safe
 // zone (the inner 80%) whatever shape Android masks the tile to.
 const SIZES = new Set([192, 512]);
@@ -23,8 +23,8 @@ export async function GET(request: Request, context: { params: Promise<{ size: s
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#FFC21A",
-          color: "#0B2A3C",
+          background: "#0D1B3D",
+          color: "#FFFFFF",
           fontFamily: "Georgia, serif",
           fontStyle: "italic",
           fontWeight: 800,

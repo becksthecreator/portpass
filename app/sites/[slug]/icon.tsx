@@ -24,7 +24,7 @@ export default async function Icon({ params }: { params: Promise<{ slug: string 
   const listing = await getOrganizationListingBySlug(slug);
   const org = listing?.organization;
   const initial = (org?.name ?? "P").trim().charAt(0).toUpperCase();
-  const brand = org?.brandColor ?? "#e8794a";
+  const brand = org?.brandColor ?? "#2463AE";
 
   return new ImageResponse(
     (

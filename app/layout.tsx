@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 };
 
 // The installed app's title bar takes this colour (round 5, §6).
-export const viewport: Viewport = { themeColor: "#0B2A3C" };
+export const viewport: Viewport = { themeColor: "#0D1B3D" };
 
 export default function RootLayout({
   children,

@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { requireFutprepStaff, currentFutprepStaffAccount, listStaffAccounts } from "../../staff-auth";
 import { AccountsManager } from "./AccountsManager";
@@ -13,7 +14,7 @@ export default async function FutprepStaffAccountsPage() {
     <main className="staff-workspace theme-night">
       <header className="staff-workspace-header">
         <div>
-          <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+          <Link className="brand" href="/"><BrandLogo /></Link>
           <span className="staff-workspace-label">Futprep · Staff accounts</span>
         </div>
         <nav>

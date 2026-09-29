@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFutprepPendingRegistration } from "@/db/registrations";
@@ -20,7 +21,7 @@ export default async function CompleteRegistrationPage({ params }: { params: Pro
   return (
     <main className="registration-page futprep-theme">
       <header className="site-header form-header registration-header">
-        <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+        <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
           <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>
         </div>
