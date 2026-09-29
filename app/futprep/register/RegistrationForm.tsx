@@ -4,6 +4,7 @@ import { ShareOnWhatsApp } from "@/app/_components/blocks/WhatsAppActions";
 import { formatPriceCents } from "@/app/_components/blocks/format";
 import { PhoneInput } from "@/app/_components/PhoneInput";
 import { track } from "@/lib/analytics";
+import { EMPTY_ATTRIBUTION, HEARD_OPTIONS, type Attribution } from "@/lib/attribution";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -28,6 +29,7 @@ type FormState = {
   allergies: string; medicalConditions: string; medications: string; specialNeeds: string; additionalNotes: string;
   programSlug: string; paymentFrequency: string; paymentMethod: string;
   photoConsent: string; signatureName: string; consentAccepted: boolean;
+  heardAboutUs: string; referralCode: string;
 };
 
 type Availability = {
@@ -60,6 +62,7 @@ const initial: FormState = {
   allergies:"", medicalConditions:"", medications:"", specialNeeds:"", additionalNotes:"",
   programSlug:"", paymentFrequency:"", paymentMethod:"",
   photoConsent:"", signatureName:"", consentAccepted:false,
+  heardAboutUs:"", referralCode:"",
 };
 
 const steps = ["Parent","Child","Health & safety","Class & payment","Consent"];
@@ -75,7 +78,10 @@ function ageAt(dob: string, referenceDate: string) {
   return age;
 }
 
-export function RegistrationForm() {
+// `attribution` is what the page read from the 30-day first-party cookie
+// and this request's URL (growth-tracking brief, 28 Sept). It travels with
+// the submission as hidden values; the server decides what it proves.
+export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribution?: Attribution }) {
   const searchParams = useSearchParams();
   const [form, setForm] = useState<FormState>(() => ({
     ...initial,
@@ -123,6 +129,7 @@ export function RegistrationForm() {
     if (step === 0) {
       if (!form.parentName || !form.parentEmail || !form.parentPhone || !form.relationship) return "Complete all parent/guardian details.";
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.parentEmail)) return "Enter a valid email address.";
+      if (!form.heardAboutUs) return "Tell us how you heard about Futprep.";
     }
     if (step === 1) {
       if (!form.childName || !form.childDob || !form.gender || !form.authorizedPickup) return "Complete the child and pickup details.";
@@ -165,7 +172,7 @@ export function RegistrationForm() {
       const response = await fetch("/api/futprep/registrations", {
         method: "POST",
         headers: { "Content-Type":"application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, ...attribution }),
       });
       const data = await response.json() as { registration?: RegistrationResult; error?: string; referenceCode?: string };
       if (!response.ok || !data.registration) throw new Error(data.error ?? (data.referenceCode ? `Registration already exists: ${data.referenceCode}` : "Registration failed."));
@@ -249,6 +256,16 @@ export function RegistrationForm() {
               <label><span>Relationship *</span><input value={form.relationship} onChange={(e)=>set("relationship",e.target.value)} placeholder="Mother, father, guardian…" /></label>
               <label><span>Email *</span><input type="email" value={form.parentEmail} onChange={(e)=>set("parentEmail",e.target.value)} /></label>
               <label><span>Phone *</span><PhoneInput required value={form.parentPhone} onChange={(v)=>set("parentPhone",v)} /></label>
+              <label className="full-field">
+                <span>How did you hear about Futprep? *</span>
+                <select value={form.heardAboutUs} onChange={(e)=>set("heardAboutUs",e.target.value)}>
+                  <option value="">Choose one</option>
+                  {HEARD_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
+              {form.heardAboutUs === "referral" && (
+                <label className="full-field"><span>Their name or referral code (optional)</span><input value={form.referralCode} maxLength={40} onChange={(e)=>set("referralCode",e.target.value)} placeholder="e.g. Kim Rolle, or a PP- code" /></label>
+              )}
             </div>
           </fieldset>
         )}
