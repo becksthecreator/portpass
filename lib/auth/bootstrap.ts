@@ -5,6 +5,7 @@ import {
   findPersonByUser,
   getProfile,
   linkPersonToUser,
+  linkRegistrationsToPerson,
   listPendingInvitesForEmail,
   markInviteAccepted,
   markOrganizationClaimed,
@@ -74,14 +75,24 @@ export async function bootstrapUser(user: AuthUser): Promise<void> {
       });
     }
 
-    const byUser = await findPersonByUser(user.id);
-    if (!byUser) {
+    let person = await findPersonByUser(user.id);
+    if (!person) {
       const byEmail = await findPersonByEmail(email);
       if (byEmail && !byEmail.authUserId) {
         await linkPersonToUser(byEmail.id, user.id);
+        person = byEmail;
       } else if (!byEmail) {
-        await createPerson({ name: fullName, email, phoneE164: phoneFromSignup ?? user.phone ?? null, authUserId: user.id });
+        person = await createPerson({ name: fullName, email, phoneE164: phoneFromSignup ?? user.phone ?? null, authUserId: user.id });
       }
+    }
+    // Guest registrations made with this email now belong to the account
+    // (speed & sign-in brief, 2.1). Idempotent: only unlinked rows move.
+    if (person) {
+      const linked = await linkRegistrationsToPerson(person.id, email).catch((error) => {
+        console.error("bootstrap: linking registrations failed", error);
+        return 0;
+      });
+      if (linked > 0) await logAudit({ actorUserId: user.id, action: "registrations.linked_to_account", targetTable: "registrations", targetId: person.id, after: { linked } });
     }
   }
 }

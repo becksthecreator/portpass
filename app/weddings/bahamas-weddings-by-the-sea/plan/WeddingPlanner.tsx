@@ -220,6 +220,13 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
         <p>Thank you, {form.names}. A Wedding Desk representative will follow up to refine the details before Antonio reviews your complete plan. Prefer to talk now?</p>
         <a className="bws-button bws-button-dark" href={whatsappHref} target="_blank" rel="noopener noreferrer">Message the Wedding Desk on WhatsApp <span aria-hidden="true">↗</span></a>
         <p className="confirmation-share"><ShareOnWhatsApp url="https://portpassbahamas.com/weddings/bahamas-weddings-by-the-sea" text="We're planning our wedding with Bahamas Weddings By The Sea on PortPass:" /></p>
+        {/* Guest first, account after (speed & sign-in brief, 29 Sept, 2.1). */}
+        {form.email.trim() && (
+          <div className="confirmation-save">
+            <p><strong>Save this to a free PortPass account</strong>Keep your plan and the Wedding Desk&rsquo;s replies in one place.</p>
+            <a className="bws-button" href={`/signup?as=customer&email=${encodeURIComponent(form.email.trim())}&name=${encodeURIComponent(form.names.trim())}&next=${encodeURIComponent("/account")}`}>Save to an account →</a>
+          </div>
+        )}
       </section>
     );
   }

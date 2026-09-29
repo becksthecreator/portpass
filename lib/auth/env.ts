@@ -18,3 +18,10 @@ export function platformOwnerEmails(): string[] {
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
 }
+
+// Passkeys (Face ID / fingerprint) for returning users: Supabase's support
+// is still beta (speed & sign-in brief, 29 Sept, 2.4), so the offer after a
+// successful sign-in stays behind this flag until it is generally available.
+export function passkeysEnabled(): boolean {
+  return process.env.AUTH_PASSKEYS_ENABLED === "true";
+}
