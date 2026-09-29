@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { formatWait } from "@/lib/auth/sendErrors";
 import { SECTIONS } from "@/lib/sections";
 import { PhoneInput } from "../PhoneInput";
 
@@ -22,6 +23,10 @@ type Props = {
 type Fields = { fullName: string; email: string; phone: string; businessName: string; section: string };
 
 const CODE_LENGTH = 6;
+// A pasted code may carry a stray digit or two (the Supabase setting was 8
+// digits until 29 Sept); the box takes up to this many and says so when
+// the length is wrong rather than silently truncating.
+const PASTE_MAX = 8;
 
 // One form for both doors and for sign-in. Step 1 collects what the door
 // needs (sign-in: just the email) and asks for a code; step 2 is the code
@@ -36,6 +41,7 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [resendIn, setResendIn] = useState(0);
+  const [noAccount, setNoAccount] = useState(false);
   const codeRef = useRef<HTMLInputElement>(null);
   const verifying = useRef(false);
 
@@ -68,8 +74,15 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
         }
       }
       const res = await fetch("/api/auth/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "We couldn’t send a code. Please try again.");
+      const data = (await res.json().catch(() => ({}))) as { error?: string; code?: string; retryAfter?: number };
+      if (!res.ok) {
+        // A real wait (the app limits reset in minutes, Supabase's mailer
+        // in an hour) drives the countdown; "no account" gets a sign-up link.
+        if (typeof data.retryAfter === "number" && data.retryAfter > 0) setResendIn(Math.min(data.retryAfter, 3600));
+        setNoAccount(data.code === "no_account");
+        throw new Error(data.error ?? "We couldn’t send a code. Please try again.");
+      }
+      setNoAccount(false);
       setStep("code");
       setCode("");
       setResendIn(30);
@@ -123,10 +136,18 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
   }
 
   function onCodeChange(value: string) {
-    const digits = value.replace(/\D/g, "").slice(0, CODE_LENGTH);
+    const digits = value.replace(/\D/g, "").slice(0, PASTE_MAX);
+    if (digits.length > CODE_LENGTH) {
+      setCode("");
+      setError(`The code is ${CODE_LENGTH} digits; that was ${digits.length}. Check the newest email and try again.`);
+      return;
+    }
+    setError("");
     setCode(digits);
     if (digits.length === CODE_LENGTH) void verify(digits);
   }
+
+  const waitLabel = resendIn > 0 ? formatWait(resendIn) : null;
 
   if (step === "code") {
     return (
@@ -149,7 +170,7 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
               inputMode="numeric"
               pattern="[0-9]*"
               autoComplete="one-time-code"
-              maxLength={CODE_LENGTH}
+              maxLength={PASTE_MAX}
               value={code}
               onChange={(e) => onCodeChange(e.target.value)}
               disabled={busy}
@@ -166,7 +187,7 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
           <div className="auth-actions">
             <button className="primary-button" type="submit" disabled={busy || code.length !== CODE_LENGTH}>{busy ? "Checking…" : "Continue →"}</button>
             <button className="auth-text-button" type="button" disabled={busy || resendIn > 0} onClick={() => void sendCode()}>
-              {resendIn > 0 ? `Send a new code in ${resendIn}s` : "Send a new code"}
+              {waitLabel ? `You can ask for a new code in ${waitLabel}` : "Send a new code"}
             </button>
           </div>
         </form>
@@ -223,9 +244,15 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
             </label>
           </>
         )}
-        {error && <p className="form-error" role="alert">{error}</p>}
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+            {noAccount && mode === "login" && <> <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>Create one →</Link></>}
+            {waitLabel && !noAccount && <> You can try again in {waitLabel}.</>}
+          </p>
+        )}
         <div className="auth-actions">
-          <button className="primary-button" type="submit" disabled={busy || (mode === "signup" && !intent)}>{busy ? "Sending…" : "Send code →"}</button>
+          <button className="primary-button" type="submit" disabled={busy || resendIn > 0 || (mode === "signup" && !intent)}>{busy ? "Sending…" : waitLabel ? `Wait ${waitLabel}` : "Send code →"}</button>
           {phoneEnabled && <button className="auth-text-button" type="button" disabled>Use my phone number instead</button>}
         </div>
       </form>

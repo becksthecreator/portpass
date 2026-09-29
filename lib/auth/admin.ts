@@ -55,23 +55,30 @@ export function adminWindowCookieOptions(): { name: string; value: string; httpO
   };
 }
 
-export type StepUp = { aal2: boolean; windowOpen: boolean; enrolled: boolean };
+export type StepUp = { aal2: boolean; windowOpen: boolean; enrolled: boolean; factorId: string | null };
 
 // What the current session has: AAL2 (a code was entered this session),
-// an open 12-hour window, and whether a TOTP factor exists at all.
+// an open 12-hour window, whether a TOTP factor exists at all, and which
+// one -- the verify screen challenges that id (02 brief, A1: without it a
+// returning admin's code box never unlocked).
 export async function adminStepUp(): Promise<StepUp> {
   let aal2 = false;
   let enrolled = false;
+  let factorId: string | null = null;
   try {
     const client = await createAuthClient();
     const [{ data: aal }, { data: factors }] = await Promise.all([client.auth.mfa.getAuthenticatorAssuranceLevel(), client.auth.mfa.listFactors()]);
     aal2 = aal?.currentLevel === "aal2";
-    enrolled = (factors?.totp ?? []).some((f) => f.status === "verified");
+    const verified = (factors?.totp ?? []).find((f) => f.status === "verified");
+    enrolled = Boolean(verified);
+    factorId = verified?.id ?? null;
   } catch {
     aal2 = false;
+    enrolled = false;
+    factorId = null;
   }
   const windowOpen = adminWindowStartedAt((await cookies()).get(ADMIN_WINDOW_COOKIE)?.value) !== null;
-  return { aal2, windowOpen, enrolled };
+  return { aal2, windowOpen, enrolled, factorId };
 }
 
 function verifyHref(returnTo: string): string {
