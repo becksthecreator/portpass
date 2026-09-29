@@ -29,6 +29,7 @@ async function registerChild() {
         paymentFrequency: "weekly",
         paymentMethod: "cash",
         photoConsent: "yes",
+        heardAboutUs: "instagram",
         consentAccepted: true,
         signatureName: "Lookup Test Parent",
       }),
