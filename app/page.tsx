@@ -67,8 +67,11 @@ async function safeLiveSections(directory: OrganizationDirectoryEntry[]): Promis
 // Title, description, and Open Graph/Twitter tags are inherited from the
 // root layout -- they're identical for "/", so there's nothing to override.
 
-// force-dynamic: the cards read live program and wedding-site data.
-export const dynamic = "force-dynamic";
+// ISR (speed brief, 29 Sept): rendered once, cached five minutes, rebuilt on
+// the next request; every listing write calls lib/revalidate.bumpListings()
+// so edits still appear at once. Nothing here reads cookies or headers --
+// the header's signed-in state is hydrated client-side (HeaderAccount).
+export const revalidate = 300;
 
 // Below this many businesses the carousel is replaced by equal cards.
 const CAROUSEL_FROM = 4;

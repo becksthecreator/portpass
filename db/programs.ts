@@ -105,31 +105,44 @@ export async function listFutprepPrograms(): Promise<FutprepProgramSummary[]> {
   throwIfSupabaseError(programsError, "Could not load Futprep programs");
 
   const output: FutprepProgramSummary[] = [];
+  const programList = programs ?? [];
+  if (programList.length === 0) return output;
 
-  for (const program of programs ?? []) {
-    const { data: term, error: termError } = await db
+  // Two queries for every program, not two per program (speed brief, 29
+  // Sept, 1.3): the latest active term per program and the active
+  // registrations, counted here. Same shape as getFutprepAvailability.
+  const programIds = programList.map((program) => program.id);
+  const [{ data: terms, error: termsError }, { data: activeRegistrations, error: countError }] = await Promise.all([
+    db
       .from("program_terms")
-      .select("id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,registration_fee_cents")
-      .eq("program_id", program.id)
+      .select("id,program_id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,registration_fee_cents")
+      .in("program_id", programIds)
       .eq("active", true)
-      .order("start_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    throwIfSupabaseError(termError, "Could not load program term");
+      .order("start_date", { ascending: false }),
+    db
+      .from("registrations")
+      .select("program_id,term_id")
+      .in("program_id", programIds)
+      .in("registration_status", ["pending_details", "pending", "confirmed"]),
+  ]);
+  throwIfSupabaseError(termsError, "Could not load program term");
+  throwIfSupabaseError(countError, "Could not count registrations");
 
-    let registered = 0;
-    let spotsRemaining: number | null = null;
-    if (term) {
-      const { count, error: countError } = await db
-        .from("registrations")
-        .select("id", { count: "exact", head: true })
-        .eq("program_id", program.id)
-        .eq("term_id", term.id)
-        .in("registration_status", ["pending_details", "pending", "confirmed"]);
-      throwIfSupabaseError(countError, "Could not count registrations");
-      registered = Number(count ?? 0);
-      spotsRemaining = Math.max(0, Number(program.capacity) - registered);
-    }
+  type TermRow = NonNullable<typeof terms>[number];
+  const latestTermByProgram = new Map<number, TermRow>();
+  for (const term of terms ?? []) {
+    if (!latestTermByProgram.has(Number(term.program_id))) latestTermByProgram.set(Number(term.program_id), term);
+  }
+  const registeredByKey = new Map<string, number>();
+  for (const row of activeRegistrations ?? []) {
+    const key = `${row.program_id}:${row.term_id}`;
+    registeredByKey.set(key, (registeredByKey.get(key) ?? 0) + 1);
+  }
+
+  for (const program of programList) {
+    const term = latestTermByProgram.get(Number(program.id)) ?? null;
+    const registered = term ? registeredByKey.get(`${program.id}:${term.id}`) ?? 0 : 0;
+    const spotsRemaining: number | null = term ? Math.max(0, Number(program.capacity) - registered) : null;
 
     output.push({
       id: Number(program.id),

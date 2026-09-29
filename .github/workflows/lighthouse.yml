@@ -1,0 +1,30 @@
+name: Lighthouse (production)
+
+# Speed brief, 29 Sept (1.7): a performance floor on the pages that matter,
+# measured against production after each deploy. Previews are SSO-gated so
+# Lighthouse cannot load them; production is what visitors get anyway.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 11 * * 1" # Mondays 07:00 Nassau
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for the production deploy to settle
+        if: github.event_name == 'push'
+        run: sleep 300
+      - name: Lighthouse (mobile) on /, /sports-fitness, /pricing
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            https://portpassbahamas.com/
+            https://portpassbahamas.com/sports-fitness
+            https://portpassbahamas.com/pricing
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: false

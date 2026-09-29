@@ -1,3 +1,4 @@
+import { bumpListings } from "@/lib/revalidate";
 import { createHash, randomBytes } from "node:crypto";
 import { upsertMembership, type OrgRole } from "./accounts";
 import { logAudit } from "./audit";
@@ -242,6 +243,7 @@ export async function updateBusinessDetails(id: number, patch: BusinessDetailsPa
   const { data, error } = await supabase.from("organizations").update(row).eq("id", id).select(BUSINESS_COLUMNS).single();
   throwIfSupabaseError(error, "Could not save business details");
   await logAudit({ actorUserId, organizationId: id, action: reReview ? "business.updated.re_review" : "business.updated", targetTable: "organizations", targetId: id, after: { changed } });
+  bumpListings();
   return toBusiness(data!);
 }
 
@@ -269,6 +271,7 @@ export async function setImageConsent(id: number, imageId: number, confirmed: bo
   throwIfSupabaseError(error, "Could not update photo consent");
   if (!data) throw new Error("NOT_FOUND");
   await logAudit({ actorUserId, organizationId: id, action: confirmed ? "image.consent_confirmed" : "image.consent_withdrawn", targetTable: "organization_images", targetId: imageId, after: { url: data.url } });
+  bumpListings();
   return listBusinessImages(id);
 }
 
@@ -286,6 +289,7 @@ export async function addBusinessImage(id: number, url: string, alt: string | nu
   if (business && !business.heroImageUrl) {
     await supabase.from("organizations").update({ hero_image_url: url }).eq("id", id);
   }
+  bumpListings();
   return toBusinessImage(data!);
 }
 
@@ -301,6 +305,7 @@ export async function removeBusinessImage(id: number, imageId: number): Promise<
       await supabase.from("organizations").update({ hero_image_url: remaining[0]?.url ?? null }).eq("id", id);
     }
   }
+  bumpListings();
   return url;
 }
 
@@ -308,12 +313,14 @@ export async function setBusinessLogo(id: number, url: string | null): Promise<v
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("organizations").update({ logo_url: url }).eq("id", id);
   throwIfSupabaseError(error, "Could not save logo");
+  bumpListings();
 }
 
 export async function setBusinessHero(id: number, url: string): Promise<void> {
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("organizations").update({ hero_image_url: url }).eq("id", id);
   throwIfSupabaseError(error, "Could not set the main photo");
+  bumpListings();
 }
 
 // ---- offerings -------------------------------------------------------------
@@ -409,6 +416,7 @@ export async function upsertBusinessOffering(id: number, offeringId: number | nu
       if (!error) await logAudit({ actorUserId, organizationId: id, action: "business.went_live", targetTable: "organizations", targetId: id });
     }
   }
+  bumpListings();
   return offering;
 }
 
@@ -416,6 +424,7 @@ export async function removeBusinessOffering(id: number, offeringId: number, act
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("offerings").delete().eq("organization_id", id).eq("id", offeringId);
   throwIfSupabaseError(error, "Could not remove offering");
+  bumpListings();
   await logAudit({ actorUserId, organizationId: id, action: "offering.deleted", targetTable: "offerings", targetId: offeringId });
 }
 
@@ -576,6 +585,7 @@ export async function submitBusiness(id: number, actorUserId: string): Promise<B
     .single();
   throwIfSupabaseError(error, "Could not submit business");
   await logAudit({ actorUserId, organizationId: id, action: "business.submitted", targetTable: "organizations", targetId: id });
+  bumpListings();
   return toBusiness(data!);
 }
 
@@ -634,5 +644,6 @@ export async function setBusinessExtraCategories(id: number, slugs: string[], ac
   if (toRemove.length || toAdd.length) {
     await logAudit({ actorUserId, organizationId: id, action: "business.categories.updated", targetTable: "organization_categories", targetId: id, after: { categories: result } });
   }
+  bumpListings();
   return result;
 }
