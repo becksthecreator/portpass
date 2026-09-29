@@ -23,6 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [
     { url: `https://${PLATFORM_HOST}/`, lastModified: now },
     { url: `https://${PLATFORM_HOST}/business`, lastModified: now },
+    { url: `https://${PLATFORM_HOST}/pricing`, lastModified: now },
     { url: `https://${PLATFORM_HOST}/apply`, lastModified: now },
     { url: `https://${PLATFORM_HOST}/about`, lastModified: now },
     { url: `https://${PLATFORM_HOST}/contact`, lastModified: now },

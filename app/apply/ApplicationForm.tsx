@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PhoneInput } from "@/app/_components/PhoneInput";
@@ -8,14 +9,18 @@ import { portpassWhatsAppUrl } from "@/lib/contact";
 
 type FormState = { name: string; businessName: string; section: string; whatsapp: string; instagram: string; note: string };
 type SectionOption = { slug: string; name: string };
+type PlanOption = { code: string; name: string };
 
-// `sections` comes from the page (the categories table, with the compiled
-// list as fallback) so the form never carries its own copy of the list.
-export function ApplicationForm({ sections }: { sections: SectionOption[] }) {
+// `sections` and `plans` come from the page (the categories and
+// pricing_plans tables) so the form never carries its own copy of either.
+export function ApplicationForm({ sections, plans }: { sections: SectionOption[]; plans: PlanOption[] }) {
   const searchParams = useSearchParams();
   // A coming-soon page's "Run a venue? Get listed" link arrives with
   // ?section=venues, so the section is already chosen.
   const presetSection = searchParams.get("section") ?? "";
+  // /pricing's "Start free" arrives with ?plan=growing: shown back, sent
+  // along, never binding ("You can change it later").
+  const picked = plans.find((p) => p.code === searchParams.get("plan")) ?? null;
   const [form, setForm] = useState<FormState>({ name: "", businessName: "", section: sections.some((s) => s.slug === presetSection) ? presetSection : "", whatsapp: "", instagram: "", note: "" });
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -41,6 +46,7 @@ export function ApplicationForm({ sections }: { sections: SectionOption[] }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          plan: picked?.code ?? "",
           utm_source: searchParams.get("utm_source") ?? "",
           utm_medium: searchParams.get("utm_medium") ?? "",
           utm_campaign: searchParams.get("utm_campaign") ?? "",
@@ -48,7 +54,7 @@ export function ApplicationForm({ sections }: { sections: SectionOption[] }) {
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "We couldn’t send that. Please try again.");
-      track("apply_submitted", { section: form.section, source: searchParams.get("utm_source") ?? "" });
+      track("apply_submitted", { section: form.section, plan: picked?.code ?? "", source: searchParams.get("utm_source") ?? "" });
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
@@ -72,6 +78,9 @@ export function ApplicationForm({ sections }: { sections: SectionOption[] }) {
 
   return (
     <form className="application-form" onSubmit={handleSubmit}>
+      {picked && (
+        <p className="apply-picked">You picked <strong>{picked.name}</strong>. You can change it later. <Link href="/pricing">Compare plans</Link></p>
+      )}
       <div className="form-grid">
         <label><span>Your name *</span><input name="name" autoComplete="name" required maxLength={120} value={form.name} onChange={(e) => set("name", e.target.value)} /></label>
         <label><span>Business name *</span><input name="businessName" autoComplete="organization" required maxLength={150} value={form.businessName} onChange={(e) => set("businessName", e.target.value)} /></label>

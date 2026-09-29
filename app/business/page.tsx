@@ -3,8 +3,10 @@ import Link from "next/link";
 import { ppDisplay, ppSans } from "@/app/fonts";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
+import { listPlans } from "@/db/pricing";
 import { portpassWhatsAppUrl } from "@/lib/contact";
 import { getSectionTiles } from "@/lib/navSections";
+import { dollars, percentFromBps } from "@/lib/pricingFormat";
 
 // No openGraph here on purpose: the root file-based image is inherited
 // only when a page doesn't export its own openGraph object.
@@ -25,14 +27,12 @@ const STEPS = [
   ["Share one link", "In your bio, your status and your replies. Bookings and payments land in one place."],
 ] as const;
 
-const PLANS = [
-  { name: "Solo", price: "$65", featured: false },
-  { name: "Growing", price: "$120", featured: true },
-  { name: "Business", price: "$220", featured: false },
-] as const;
-
 export default async function BusinessPage() {
-  const sections = await getSectionTiles();
+  // Prices come from pricing_plans (pricing brief, 28 Sept): nothing on
+  // this page is hard-coded, and the admin's Prices screen changes it live.
+  const [sections, plans] = await Promise.all([getSectionTiles(), listPlans({ publicOnly: true }).catch(() => [])]);
+  const subscriptions = plans.filter((p) => p.kind === "subscription");
+  const marketplace = plans.find((p) => p.kind === "commission") ?? null;
   return (
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }]} />
@@ -78,25 +78,31 @@ export default async function BusinessPage() {
           <span className="home-eyebrow">Pricing</span>
           <h2>First 30 days free.</h2>
         </div>
-        <div className="biz-plans">
-          {PLANS.map((plan) => (
-            <div className={`biz-plan${plan.featured ? " biz-plan-featured" : ""}`} key={plan.name}>
-              <h3>{plan.name}</h3>
-              <strong>{plan.price}</strong>
-              <span>per month</span>
-            </div>
-          ))}
-          <div className="biz-plan">
-            <h3>Marketplace</h3>
-            <strong>$0</strong>
-            <span>no monthly fee</span>
-            <p>8% of the bookings we bring you.</p>
+        {plans.length > 0 && (
+          <div className="biz-plans">
+            {subscriptions.map((plan) => (
+              <div className={`biz-plan${plan.badge ? " biz-plan-featured" : ""}`} key={plan.code}>
+                <h3>{plan.name}</h3>
+                <strong>{dollars(plan.monthlyCents)}</strong>
+                <span>per month</span>
+                {plan.blurb && <p>{plan.blurb}</p>}
+              </div>
+            ))}
+            {marketplace && (
+              <div className="biz-plan">
+                <h3>{marketplace.name}</h3>
+                <strong>{dollars(marketplace.monthlyCents)}</strong>
+                <span>no monthly fee</span>
+                <p>{percentFromBps(marketplace.commissionBps)} of the bookings we bring you.</p>
+              </div>
+            )}
           </div>
-        </div>
+        )}
         <div className="biz-pricing-notes">
           <span>Every plan starts with 30 days free — we&rsquo;ll confirm which one fits on your first call.</span>
           <span>Card payments: coming soon with a licensed partner. Cash and bank transfer work today.</span>
         </div>
+        <p className="biz-pricing-more"><Link href="/pricing">See full pricing →</Link></p>
       </section>
 
       <section className="biz-founders" aria-label="The founders">

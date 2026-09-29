@@ -10,6 +10,7 @@ export const ADMIN_NAV = [
   { href: "/admin/sections", label: "Sections" },
   { href: "/admin/people", label: "People" },
   { href: "/admin/audit", label: "Audit log" },
+  { href: "/admin/settings/prices", label: "Prices" },
 ] as const;
 
 // The Admin Control Center's chrome (28 Sept brief): Night theme, a tool

@@ -91,6 +91,7 @@ export async function sendApplicationReceivedEmail(input: {
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
+  planName?: string | null;
 }) {
   const row = (label: string, value: string) =>
     `<tr><td style="padding:6px 0;color:#647069;vertical-align:top">${label}</td><td style="padding:6px 0;text-align:right">${value}</td></tr>`;
@@ -105,6 +106,7 @@ export async function sendApplicationReceivedEmail(input: {
       <table style="width:100%;border-collapse:collapse;margin:16px 0">
         ${row("Contact", escapeHtml(input.contactPerson))}
         ${row("Section", escapeHtml(input.section))}
+        ${input.planName ? row("Plan picked", escapeHtml(input.planName)) : ""}
         ${row("WhatsApp", `<a href="${waLink}" style="color:#00737A">${escapeHtml(input.whatsappE164)}</a>`)}
         ${input.instagramHandle ? row("Instagram", `<a href="https://instagram.com/${encodeURIComponent(input.instagramHandle)}" style="color:#00737A">@${escapeHtml(input.instagramHandle)}</a>`) : ""}
         ${input.note ? row("Note", escapeHtml(input.note)) : ""}

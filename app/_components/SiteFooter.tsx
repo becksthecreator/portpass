@@ -18,7 +18,7 @@ export async function SiteFooter({ orgLine }: { orgLine?: string }) {
             <a href={`mailto:${PORTPASS_SUPPORT_EMAIL}`}>{PORTPASS_SUPPORT_EMAIL}</a> · <a href={`tel:${PORTPASS_PHONE_E164}`}>{PORTPASS_PHONE_DISPLAY}</a>
           </p>
         </div>
-        <nav className="site-shell-footer-categories" aria-label="Categories">
+        <nav className="site-shell-footer-categories" aria-label="Sections">
           {categoryLinks.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
         </nav>
       </div>
@@ -27,6 +27,7 @@ export async function SiteFooter({ orgLine }: { orgLine?: string }) {
           <Link href="/login">Sign in</Link>
           <Link href="/signup">Create an account</Link>
           <Link href="/apply">For business</Link>
+          <Link href="/pricing">Pricing</Link>
           <Link href="/about">About</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/privacy">Privacy</Link>
