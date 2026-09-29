@@ -48,7 +48,7 @@ export function throwIfSupabaseError(
 // failures, both of which are usually gone a moment later. Anything else
 // (a real query, permission, or schema error) is not retry-worthy and
 // rethrows immediately -- retrying a genuine bug doesn't fix it, it just
-// delays reporting it by half a second.
+// delays reporting it by a second.
 export async function withOneRetry<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
@@ -58,7 +58,7 @@ export async function withOneRetry<T>(fn: () => Promise<T>): Promise<T> {
       error instanceof TypeError ||
       (error instanceof Error && /fetch failed|network|ECONNRESET|ETIMEDOUT/i.test(error.message));
     if (code !== "PGRST303" && !isNetworkError) throw error;
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     return fn();
   }
 }

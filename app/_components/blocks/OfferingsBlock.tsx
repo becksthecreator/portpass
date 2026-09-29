@@ -29,11 +29,17 @@ export function OfferingsBlock({ offerings }: { offerings: Offering[] }) {
                 {offering.inclusions.map((item) => <li key={item}>{item}</li>)}
               </ul>
             )}
-            {offering.actionUrl && (
+            {offering.actionUrl && (/^https?:\/\//i.test(offering.actionUrl) ? (
+              // An external action (a wa.me link, a ticket site) opens in a
+              // new tab so the listing stays where the visitor left it.
+              <a className="tpl-offering-cta" href={offering.actionUrl} target="_blank" rel="noopener noreferrer">
+                {OFFERING_ACTION_LABEL[offering.type]} {offering.name} <span aria-hidden="true">→</span>
+              </a>
+            ) : (
               <Link className="tpl-offering-cta" href={offering.actionUrl}>
                 {OFFERING_ACTION_LABEL[offering.type]} {offering.name} <span aria-hidden="true">→</span>
               </Link>
-            )}
+            ))}
           </div>
         );
       })}
