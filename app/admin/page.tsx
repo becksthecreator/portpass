@@ -11,6 +11,10 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
+// A tile whose count failed shows a dash (db/adminStats.ts logs which one),
+// never an error page.
+const show = (value: number | null) => (value === null ? "—" : String(value));
+
 // The Control Center's first screen: what needs attention, this week,
 // the platform's shape. Each tile is a link to where the work happens.
 export default async function AdminOverviewPage() {
@@ -22,9 +26,9 @@ export default async function AdminOverviewPage() {
       <section className="admin-group" aria-labelledby="needs">
         <h2 id="needs">Needs action</h2>
         <div className="admin-tiles">
-          <Link className={`admin-tile${o.needsAction.businessesAwaiting ? " is-alert" : ""}`} href="/admin/businesses?status=submitted"><strong>{o.needsAction.businessesAwaiting}</strong><span>Businesses awaiting approval</span></Link>
-          <Link className={`admin-tile${o.needsAction.newApplications ? " is-alert" : ""}`} href="/admin/applications"><strong>{o.needsAction.newApplications}</strong><span>New /apply submissions</span></Link>
-          <Link className={`admin-tile${o.needsAction.unansweredLeads ? " is-alert" : ""}`} href="/weddings/admin"><strong>{o.needsAction.unansweredLeads}</strong><span>Unanswered wedding leads</span></Link>
+          <Link className={`admin-tile${o.needsAction.businessesAwaiting ? " is-alert" : ""}`} href="/admin/businesses?status=submitted"><strong>{show(o.needsAction.businessesAwaiting)}</strong><span>Businesses awaiting approval</span></Link>
+          <Link className={`admin-tile${o.needsAction.newApplications ? " is-alert" : ""}`} href="/admin/applications"><strong>{show(o.needsAction.newApplications)}</strong><span>New /apply submissions</span></Link>
+          <Link className={`admin-tile${o.needsAction.unansweredLeads ? " is-alert" : ""}`} href="/weddings/admin"><strong>{show(o.needsAction.unansweredLeads)}</strong><span>Unanswered wedding leads</span></Link>
           <div className="admin-tile is-muted"><strong>—</strong><span>Failed emails</span><small>Messages log arrives in build C</small></div>
           <div className="admin-tile is-muted"><strong>—</strong><span>Site errors (24h)</span><small>Health tiles arrive in build C</small></div>
         </div>
@@ -33,19 +37,19 @@ export default async function AdminOverviewPage() {
       <section className="admin-group" aria-labelledby="week">
         <h2 id="week">This week</h2>
         <div className="admin-tiles">
-          <Link className="admin-tile" href="/admin/people"><strong>{o.thisWeek.signUps}</strong><span>New sign-ups</span></Link>
-          <Link className="admin-tile" href="/admin/businesses"><strong>{o.thisWeek.businesses}</strong><span>New businesses</span></Link>
-          <Link className="admin-tile" href="/futprep/staff/admin"><strong>{o.thisWeek.registrations}</strong><span>Registrations</span></Link>
-          <Link className="admin-tile" href="/futprep/staff/admin"><strong>{o.thisWeek.paymentsCount}</strong><span>Payments recorded</span><small>{formatPriceCents(o.thisWeek.paymentsCents, { currency: false })} received</small></Link>
-          <Link className="admin-tile" href="/weddings/admin"><strong>{o.thisWeek.leads}</strong><span>Wedding leads</span></Link>
+          <Link className="admin-tile" href="/admin/people"><strong>{show(o.thisWeek.signUps)}</strong><span>New sign-ups</span></Link>
+          <Link className="admin-tile" href="/admin/businesses"><strong>{show(o.thisWeek.businesses)}</strong><span>New businesses</span></Link>
+          <Link className="admin-tile" href="/futprep/staff/admin"><strong>{show(o.thisWeek.registrations)}</strong><span>Registrations</span></Link>
+          <Link className="admin-tile" href="/futprep/staff/admin"><strong>{show(o.thisWeek.paymentsCount)}</strong><span>Payments recorded</span><small>{o.thisWeek.paymentsCents === null ? "—" : `${formatPriceCents(o.thisWeek.paymentsCents, { currency: false })} received`}</small></Link>
+          <Link className="admin-tile" href="/weddings/admin"><strong>{show(o.thisWeek.leads)}</strong><span>Wedding leads</span></Link>
         </div>
       </section>
 
       <section className="admin-group" aria-labelledby="platform">
         <h2 id="platform">Platform</h2>
         <div className="admin-tiles">
-          <Link className="admin-tile" href="/admin/businesses"><strong>{o.platform.liveListings}</strong><span>Live businesses</span><small>{o.platform.totalListings} approved or live in total</small></Link>
-          <Link className="admin-tile" href="/admin/people"><strong>{o.platform.accounts}</strong><span>Accounts</span></Link>
+          <Link className="admin-tile" href="/admin/businesses"><strong>{show(o.platform.liveListings)}</strong><span>Live businesses</span><small>{show(o.platform.totalListings)} approved or live in total</small></Link>
+          <Link className="admin-tile" href="/admin/people"><strong>{show(o.platform.accounts)}</strong><span>Accounts</span></Link>
           {o.platform.sections.map((s) => (
             <Link key={s.slug} className={`admin-tile${s.live === 0 ? " is-muted" : ""}`} href={`/admin/businesses?section=${encodeURIComponent(s.slug)}`}>
               <strong>{s.live}</strong>

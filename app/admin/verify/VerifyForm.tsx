@@ -1,12 +1,14 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { verifyState, type VerifyMode } from "./verifyState";
 
-type Props = { mode: "enroll" | "challenge"; factorId: string | null; next: string };
+type Props = { mode: VerifyMode; factorId: string | null; next: string };
 
 // Two-step login for the Admin Control Center. First time: an
 // authenticator QR (plus the secret for manual entry) and a code. After
-// that: just the code. Nothing here is stored in the browser.
+// that: just the code, challenged against the verified factor the page
+// found (02 brief, A1). Nothing here is stored in the browser.
 export function VerifyForm({ mode, factorId: initialFactorId, next }: Props) {
   const [factorId, setFactorId] = useState<string | null>(initialFactorId);
   const [qr, setQr] = useState<string | null>(null);
@@ -14,6 +16,7 @@ export function VerifyForm({ mode, factorId: initialFactorId, next }: Props) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const state = verifyState({ mode, factorId, code, busy });
 
   useEffect(() => {
     if (mode !== "enroll") return;
@@ -74,13 +77,14 @@ export function VerifyForm({ mode, factorId: initialFactorId, next }: Props) {
           )}
         </div>
       )}
+      {state.missingFactorMessage && <p className="form-error" role="alert">{state.missingFactorMessage}</p>}
       <label>
         <span>6-digit code</span>
-        <input inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} disabled={!factorId} />
+        <input inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} disabled={state.inputDisabled} />
       </label>
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="auth-actions">
-        <button className="primary-button" type="submit" disabled={busy || !factorId || code.length !== 6}>{busy ? "Checking…" : mode === "enroll" ? "Turn on two-step login →" : "Continue →"}</button>
+        <button className="primary-button" type="submit" disabled={state.submitDisabled}>{busy ? "Checking…" : mode === "enroll" ? "Turn on two-step login →" : "Continue →"}</button>
       </div>
     </form>
   );

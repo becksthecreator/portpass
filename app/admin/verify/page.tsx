@@ -34,7 +34,7 @@ export default async function AdminVerifyPage({ searchParams }: { searchParams: 
             ? "Admin areas ask for a fresh authenticator code every 12 hours."
             : "Platform accounts need a second step before the admin area opens. It takes a minute and you only do it once."}
         </p>
-        <VerifyForm mode={step.enrolled ? "challenge" : "enroll"} factorId={null} next={next} />
+        <VerifyForm mode={step.enrolled ? "challenge" : "enroll"} factorId={step.factorId} next={next} />
       </div>
       <SiteFooter />
     </main>
