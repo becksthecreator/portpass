@@ -39,6 +39,14 @@ const nextConfig: NextConfig = {
         destination: "/sports-fitness/futprep-athletics",
         permanent: true,
       },
+      // Futprep growth tracking (28 Sept): the short link for the Instagram
+      // bio, tagged as a PortPass link so a registration from it is
+      // attributable (see lib/attribution.ts FUTPREP_LINKS).
+      {
+        source: "/futprep/ig",
+        destination: "/sports-fitness/futprep-athletics?utm_source=portpass&utm_medium=ig_bio&utm_campaign=term2_ig",
+        permanent: false,
+      },
       // Organization-level surfaces moved out from under the lil-kickers
       // program prefix (see go-live brief, section 1d). Query strings are
       // forwarded automatically, so ?program=/?returnTo= keep working.

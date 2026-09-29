@@ -3,6 +3,7 @@ import {
   FUTPREP_PROGRAMS,
   FUTPREP_TERM,
 } from "@/app/futprep/config";
+import { EMPTY_ATTRIBUTION, resolveAttribution, type Attribution, type HeardAnswer, type Resolved } from "@/lib/attribution";
 import { ageOnDate, generateWeeklySessionDates } from "@/lib/scheduling";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -11,6 +12,20 @@ export type RegistrationStatus = "pending_details" | "pending" | "confirmed" | "
 // pending_details row is a real, physically-attending child, so it must
 // count the same as pending/confirmed everywhere capacity is checked.
 const ACTIVE_REGISTRATION_STATUSES: RegistrationStatus[] = ["pending_details", "pending", "confirmed"];
+
+// Growth tracking (28 Sept): a family is "known" when the parent's phone
+// or email appears on any earlier registration of the same organization
+// -- siblings included, cancelled included. Counted, never listed.
+async function countFamilyMatches(db: ReturnType<typeof getSupabaseAdmin>, organizationId: number, column: "parent_phone" | "parent_email", value: string | null): Promise<number> {
+  if (!value) return 0;
+  const { count, error } = await db
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .eq(column, value);
+  throwIfSupabaseError(error, "Could not check family history");
+  return Number(count ?? 0);
+}
 export type PaymentStatus = "pending" | "partial" | "paid" | "overdue" | "waived";
 export type PaymentFrequency = "weekly" | "term";
 export type PaymentMethod = "cash" | "bank_transfer" | "online_banking";
@@ -44,6 +59,13 @@ export type FutprepRegistrationInput = {
   // self-service submission should be.
   enteredByStaff?: string;
   ageOverrideConfirmed?: boolean;
+  // Growth tracking (28 Sept): the parent's answer to "How did you hear
+  // about Futprep?", an optional referral code, and what the first-party
+  // cookie / URL said. The server computes is_new_family and
+  // commission_eligible from these; the form never does.
+  heardAboutUs?: HeardAnswer | null;
+  referralCode?: string | null;
+  attribution?: Attribution;
 };
 
 export type FutprepAvailability = {
@@ -495,6 +517,22 @@ export async function createFutprepRegistration(
       ? Number(term.term_fee_cents)
       : Number(term.weekly_fee_cents);
 
+  // New family = neither the parent's phone nor email is on any earlier
+  // registration here (handbook v1.3 §5). Computed before the insert so
+  // this registration cannot match itself.
+  const parentPhone = input.parentPhone.trim();
+  const [byPhone, byEmail] = await Promise.all([
+    countFamilyMatches(db, Number(program.organization_id), "parent_phone", parentPhone || null),
+    countFamilyMatches(db, Number(program.organization_id), "parent_email", normalizedEmail || null),
+  ]);
+  const isNewFamily = byPhone + byEmail === 0;
+  const attribution = input.attribution ?? EMPTY_ATTRIBUTION;
+  // Staff-entered rows are never commissionable, whatever the link said:
+  // when in doubt, it is not "brought by PortPass".
+  const resolved: Resolved = input.enteredByStaff
+    ? { sourceChannel: input.heardAboutUs ?? "unknown", commissionEligible: false, commissionReason: "Entered by staff" }
+    : resolveAttribution({ heard: input.heardAboutUs ?? null, referralCode: input.referralCode ?? null, attribution, isNewFamily });
+
   const now = new Date().toISOString();
   const referenceCode = `FP-${new Date().getUTCFullYear()}-${crypto
     .randomUUID()
@@ -509,7 +547,7 @@ export async function createFutprepRegistration(
     term_id: term.id,
     parent_name: input.parentName.trim(),
     parent_email: normalizedEmail,
-    parent_phone: input.parentPhone.trim(),
+    parent_phone: parentPhone,
     relationship: input.relationship.trim(),
     child_name: input.childName.trim(),
     child_dob: input.childDob,
@@ -534,6 +572,16 @@ export async function createFutprepRegistration(
     signature_name: input.signatureName.trim(),
     submitted_at: now,
     entered_by_staff: input.enteredByStaff?.trim() || null,
+    source_channel: resolved.sourceChannel,
+    utm_source: attribution.utmSource,
+    utm_medium: attribution.utmMedium,
+    utm_campaign: attribution.utmCampaign,
+    referrer_host: attribution.referrerHost,
+    referral_code: input.referralCode?.trim() || null,
+    heard_about_us: input.heardAboutUs ?? null,
+    is_new_family: isNewFamily,
+    commission_eligible: resolved.commissionEligible,
+    commission_reason: resolved.commissionReason,
   });
   throwIfSupabaseError(insertError, "Could not create Futprep registration");
 
@@ -659,6 +707,11 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
     consent_version: CONSENT_VERSION,
     consent_accepted: false,
     additional_notes: "",
+    // Fast-added by a coach: an existing, attending child. Never
+    // commissionable (growth-tracking brief, 28 Sept).
+    is_new_family: false,
+    commission_eligible: false,
+    commission_reason: "Entered by staff",
     submitted_at: now,
     entered_by_staff: input.enteredByStaff.trim(),
   }).select("id").single();

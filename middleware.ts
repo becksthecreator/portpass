@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ATTRIBUTION_COOKIE, ATTRIBUTION_MAX_AGE_SECONDS, attributionFromRequest, isFutprepPath, mergeAttribution, parseAttributionCookie, serializeAttributionCookie } from "@/lib/attribution";
 import { needsSession, updateSession } from "@/lib/auth/middleware";
 
 // Broadened from the old admin-only matcher so the domain-routing check
@@ -92,6 +93,25 @@ export async function middleware(request: NextRequest) {
   // worked out server-side by lib/auth/guards.ts on each page and route.
   const { response, hasSession } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
+
+  // Futprep growth tracking (28 Sept): remember how a visitor reached a
+  // Futprep page -- UTM tags, an external referrer's host, or that they
+  // came from another PortPass page -- in a first-party cookie for 30
+  // days. Attribution only: no identifiers, no IP, no third-party pixels.
+  // The registration page reads it and the server decides what it proves.
+  if (isFutprepPath(pathname)) {
+    const existing = parseAttributionCookie(request.cookies.get(ATTRIBUTION_COOKIE)?.value);
+    const merged = mergeAttribution(existing, attributionFromRequest({ searchParams: request.nextUrl.searchParams, referer: request.headers.get("referer"), ownHost: request.headers.get("host") }));
+    if (merged && (!existing || serializeAttributionCookie(merged) !== serializeAttributionCookie(existing))) {
+      response.cookies.set(ATTRIBUTION_COOKIE, serializeAttributionCookie(merged), {
+        maxAge: ATTRIBUTION_MAX_AGE_SECONDS,
+        path: "/",
+        sameSite: "lax",
+        httpOnly: true,
+        secure: request.nextUrl.protocol === "https:",
+      });
+    }
+  }
 
   // The admin area (/admin, /organizations, /api/admin, the application
   // review endpoint) is covered here too: no session -> /login. The

@@ -3,6 +3,7 @@ import {
   createFutprepRegistration,
   type FutprepRegistrationInput,
 } from "@/db/registrations";
+import { cleanHost, isHeardAnswer } from "@/lib/attribution";
 import { sendFutprepRegistrationReceivedEmail } from "@/lib/email";
 import { normalizePhoneE164 } from "@/lib/phone";
 
@@ -22,6 +23,9 @@ const limits: Record<string, number> = {
   specialNeeds: 1500, authorizedPickup: 1000, additionalNotes: 1500,
   programSlug: 40, paymentFrequency: 20, paymentMethod: 30,
   photoConsent: 10, signatureName: 120,
+  // Growth tracking (28 Sept): the parent's answer, an optional referral
+  // code, and the attribution the page read from the cookie / URL.
+  heardAboutUs: 40, referralCode: 40, utmSource: 80, utmMedium: 80, utmCampaign: 80, referrerHost: 120,
 };
 
 function clean(body: Record<string, unknown>, field: string) {
@@ -75,6 +79,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Parent/guardian consent is required to register." }, { status: 400 });
   }
 
+  const heardAboutUs = clean(body, "heardAboutUs");
+  if (!isHeardAnswer(heardAboutUs)) {
+    return NextResponse.json({ error: "Tell us how you heard about Futprep." }, { status: 400 });
+  }
+
   const input: FutprepRegistrationInput = {
     parentName: clean(body,"parentName"),
     parentEmail,
@@ -97,6 +106,15 @@ export async function POST(request: Request) {
     photoConsent: photoConsent as FutprepRegistrationInput["photoConsent"],
     consentAccepted: true,
     signatureName: clean(body,"signatureName"),
+    heardAboutUs,
+    referralCode: clean(body, "referralCode") || null,
+    attribution: {
+      utmSource: clean(body, "utmSource") || null,
+      utmMedium: clean(body, "utmMedium") || null,
+      utmCampaign: clean(body, "utmCampaign") || null,
+      referrerHost: cleanHost(clean(body, "referrerHost")),
+      viaPortpass: body.viaPortpass === true,
+    },
   };
 
   try {
