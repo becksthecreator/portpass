@@ -108,7 +108,10 @@ function addonPatch(p: Record<string, unknown>): AddonPatch | string {
 }
 
 function revalidatePrices() {
-  revalidateTag(PRICING_TAG);
+  // { expire: 0 }: the next request is a cache miss, so a price change is
+  // live at once rather than one request later (the "max" profile would
+  // serve the old price once while refreshing).
+  revalidateTag(PRICING_TAG, { expire: 0 });
   for (const path of ["/pricing", "/business", "/apply"]) revalidatePath(path);
 }
 
