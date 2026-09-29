@@ -21,6 +21,7 @@ function basePayload(overrides: Record<string, unknown> = {}) {
     paymentFrequency: "weekly",
     paymentMethod: "cash",
     photoConsent: "yes",
+    heardAboutUs: "instagram",
     consentAccepted: true,
     signatureName: "Test Parent",
     ...overrides,
