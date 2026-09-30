@@ -5491,3 +5491,8 @@ a.admin-tile:hover{border-color:var(--aqua)}
 .camps-promo h2{font-family:var(--font-pp-display),Georgia,serif;margin:0 0 4px;font-size:1.4rem}
 .camps-promo p{margin:0;color:var(--muted)}
 @media(max-width:760px){.camps-promo{margin:0 16px 40px}}
+/* /pricing Monthly/Annual (BillingScope): both prices render; one shows. */
+.pricing-scope .when-annual{display:none}
+.pricing-scope[data-billing="annual"] .when-annual{display:flex}
+.pricing-scope[data-billing="annual"] span.when-annual{display:inline}
+.pricing-scope[data-billing="annual"] .when-monthly{display:none}
