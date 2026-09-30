@@ -1,3 +1,4 @@
+import { bumpListings } from "@/lib/revalidate";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type PublicWeddingPackage = {
@@ -120,8 +121,10 @@ export async function upsertWeddingPackage(id: number | null, input: WeddingPack
   if (id === null) {
     const { error } = await supabase.from("wedding_packages").insert(record);
     throwIfSupabaseError(error, "Could not create the package");
+    bumpListings();
     return;
   }
   const { error } = await supabase.from("wedding_packages").update(record).eq("id", id);
   throwIfSupabaseError(error, "Could not update the package");
+  bumpListings();
 }

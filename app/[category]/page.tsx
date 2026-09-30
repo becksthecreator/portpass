@@ -7,7 +7,14 @@ import { listSections } from "@/db/categories";
 // unless a hand-built one already claims the path (Next serves a static
 // segment before a dynamic one, so /sports-fitness and /weddings keep
 // their own files). Anything that isn't a visible section is a 404.
-export const dynamic = "force-dynamic";
+// ISR (speed brief, 29 Sept): five-minute cache, rebuilt on demand; no
+// build-time prerender (the params list is empty), so CI's credential-less
+// build never has to reach the database.
+export const revalidate = 300;
+export const dynamicParams = true;
+export function generateStaticParams() {
+  return [];
+}
 
 type Params = Promise<{ category: string }>;
 

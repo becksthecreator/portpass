@@ -1,3 +1,4 @@
+import { bumpListings } from "@/lib/revalidate";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type WeddingSiteSettings = {
@@ -69,6 +70,7 @@ export async function updateWeddingSiteSettings(input: WeddingSiteSettingsInput)
     })
     .eq("id", 1);
   throwIfSupabaseError(error, "Could not update wedding site settings");
+  bumpListings();
 }
 
 export type WeddingGalleryImage = {
@@ -147,14 +149,17 @@ export async function upsertWeddingGalleryImage(id: number | null, input: Weddin
   if (id === null) {
     const { error } = await supabase.from("wedding_gallery_images").insert(record);
     throwIfSupabaseError(error, "Could not add the photo");
+    bumpListings();
     return;
   }
   const { error } = await supabase.from("wedding_gallery_images").update(record).eq("id", id);
   throwIfSupabaseError(error, "Could not update the photo");
+  bumpListings();
 }
 
 export async function deleteWeddingGalleryImage(id: number): Promise<void> {
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("wedding_gallery_images").delete().eq("id", id);
   throwIfSupabaseError(error, "Could not remove the photo");
+  bumpListings();
 }

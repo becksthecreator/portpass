@@ -84,34 +84,50 @@ async function rewriteForCustomDomain(request: NextRequest): Promise<NextRespons
   return NextResponse.rewrite(url);
 }
 
+// Futprep growth tracking (28 Sept): remember how a visitor reached a
+// Futprep page -- UTM tags, an external referrer's host, or that they
+// came from another PortPass page -- in a first-party cookie for 30
+// days. Attribution only: no identifiers, no IP, no third-party pixels.
+// The registration page reads it and the server decides what it proves.
+// No network: safe on the fast path below.
+function captureAttribution(request: NextRequest, response: NextResponse) {
+  const { pathname } = request.nextUrl;
+  if (!isFutprepPath(pathname)) return;
+  const existing = parseAttributionCookie(request.cookies.get(ATTRIBUTION_COOKIE)?.value);
+  const merged = mergeAttribution(existing, attributionFromRequest({ searchParams: request.nextUrl.searchParams, referer: request.headers.get("referer"), ownHost: request.headers.get("host") }));
+  if (merged && (!existing || serializeAttributionCookie(merged) !== serializeAttributionCookie(existing))) {
+    response.cookies.set(ATTRIBUTION_COOKIE, serializeAttributionCookie(merged), {
+      maxAge: ATTRIBUTION_MAX_AGE_SECONDS,
+      path: "/",
+      sameSite: "lax",
+      httpOnly: true,
+      secure: request.nextUrl.protocol === "https:",
+    });
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const domainRewrite = await rewriteForCustomDomain(request);
   if (domainRewrite) return domainRewrite;
+
+  const { pathname, search } = request.nextUrl;
+
+  // Fast path (speed brief, 29 Sept, 1.4): a public page never pays for
+  // an auth round trip. Sessions are refreshed where they are read -- on
+  // the session-gated paths below and on /api/auth/* (the header's
+  // account menu calls /api/auth/me, which refreshes the cookies itself).
+  const publicPage = (request.method === "GET" || request.method === "HEAD") && !pathname.startsWith("/api/") && !needsSession(pathname);
+  if (publicPage) {
+    const response = NextResponse.next();
+    captureAttribution(request, response);
+    return response;
+  }
 
   // Refreshes the Supabase session cookies and says whether one exists.
   // Only "signed in or not" is decided here; what the person may do is
   // worked out server-side by lib/auth/guards.ts on each page and route.
   const { response, hasSession } = await updateSession(request);
-  const { pathname, search } = request.nextUrl;
-
-  // Futprep growth tracking (28 Sept): remember how a visitor reached a
-  // Futprep page -- UTM tags, an external referrer's host, or that they
-  // came from another PortPass page -- in a first-party cookie for 30
-  // days. Attribution only: no identifiers, no IP, no third-party pixels.
-  // The registration page reads it and the server decides what it proves.
-  if (isFutprepPath(pathname)) {
-    const existing = parseAttributionCookie(request.cookies.get(ATTRIBUTION_COOKIE)?.value);
-    const merged = mergeAttribution(existing, attributionFromRequest({ searchParams: request.nextUrl.searchParams, referer: request.headers.get("referer"), ownHost: request.headers.get("host") }));
-    if (merged && (!existing || serializeAttributionCookie(merged) !== serializeAttributionCookie(existing))) {
-      response.cookies.set(ATTRIBUTION_COOKIE, serializeAttributionCookie(merged), {
-        maxAge: ATTRIBUTION_MAX_AGE_SECONDS,
-        path: "/",
-        sameSite: "lax",
-        httpOnly: true,
-        secure: request.nextUrl.protocol === "https:",
-      });
-    }
-  }
+  captureAttribution(request, response);
 
   // The admin area (/admin, /organizations, /api/admin, the application
   // review endpoint) is covered here too: no session -> /login. The

@@ -13,7 +13,14 @@ import { getOrganizationListingBySlug } from "@/db/organizations";
 // Slugs are kept from colliding at write time (lib/reservedSlugs.ts plus a
 // check against the categories table), so the order here is a tie-break
 // that should never actually matter.
-export const dynamic = "force-dynamic";
+// ISR (speed brief, 29 Sept): five-minute cache, rebuilt on demand; no
+// build-time prerender (the params list is empty), so CI's credential-less
+// build never has to reach the database.
+export const revalidate = 300;
+export const dynamicParams = true;
+export function generateStaticParams() {
+  return [];
+}
 
 type Params = Promise<{ category: string; slug: string }>;
 

@@ -1,6 +1,6 @@
 import { getOrganizationExtrasBySlug, type Offering } from "@/db/organizations";
-import { getWeddingSiteSettings } from "@/db/weddingSite";
-import { getPublicWeddingPackages } from "@/db/weddingPackages";
+import { DEFAULT_SETTINGS, getWeddingSiteSettings } from "@/db/weddingSite";
+import { getPublicWeddingPackages, type PublicWeddingPackage } from "@/db/weddingPackages";
 import { IdentityBlock } from "@/app/_components/blocks/IdentityBlock";
 import { ProofBlock } from "@/app/_components/blocks/ProofBlock";
 import { Carousel } from "@/app/_components/blocks/Carousel";
@@ -56,10 +56,10 @@ const SERVICE_LIST = [
 
 const WEDDINGWIRE_URL = "https://www.weddingwire.com/biz/bahamas-weddings-by-the-sea-nassau/406f00580a64e27e.html";
 
-// force-dynamic (not ISR/revalidate) because this repo's CI build has no
-// Supabase credentials, so a statically-prerendered page would fail the
-// build fetching live wedding data.
-export const dynamic = "force-dynamic";
+// ISR (speed brief, 29 Sept): five-minute cache, rebuilt on demand. The
+// loaders fall back (settings defaults, no packages, no extras) so CI's
+// credential-less build can prerender this route; Vercel's build has the database.
+export const revalidate = 300;
 
 const TITLE = "Bahamas Weddings By The Sea | PortPass Bahamas";
 const DESCRIPTION = "Antonio Beckford's island wedding ceremonies, summarized: prices, photos, and how to start planning.";
@@ -80,9 +80,9 @@ export const metadata = {
 // PortPass's own header/breadcrumb.
 export default async function BahamasWeddingsListingPage() {
   const [settings, packages, extras] = await Promise.all([
-    getWeddingSiteSettings(),
-    getPublicWeddingPackages(),
-    getOrganizationExtrasBySlug("bahamas-weddings"),
+    getWeddingSiteSettings().catch(() => DEFAULT_SETTINGS),
+    getPublicWeddingPackages().catch((): PublicWeddingPackage[] => []),
+    getOrganizationExtrasBySlug("bahamas-weddings").catch(() => ({ ownerName: null, ownerBio: null, ownerImageUrl: null, faqs: [] })),
   ]);
 
   const offerings: Offering[] = packages.map((pkg) => ({
