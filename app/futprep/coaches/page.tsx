@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listPublicCoachProfiles } from "@/db/coaches";
+import { listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
 import { PrivateSessionBooking } from "./PrivateSessionBooking";
 
 // force-dynamic (not ISR/revalidate) because this repo's CI build has no
@@ -12,8 +12,18 @@ function dayLabel(value:string){
 }
 
 export default async function FutprepCoachesPage(){
-  const {schemaReady,coaches}=await listPublicCoachProfiles();
+  const [{schemaReady,coaches},services]=await Promise.all([
+    listPublicCoachProfiles(),
+    // Only confirmed (published) prices are offered to parents.
+    listFutprepPrivateServices({publishedOnly:true}).catch(()=>[]),
+  ]);
   const bookable=coaches.filter((coach)=>coach.bookable && coach.member_type==="coach");
+  const bookingCoaches=bookable.map((c)=>({id:c.id,displayName:c.display_name,slots:c.availability.filter((s)=>s.status==="available").map((s)=>({id:s.id,date:s.availability_date,startTime:s.start_time,endTime:s.end_time,location:s.location}))}));
+  const bookingServices=services.map((s)=>({slug:s.slug,name:s.name,priceCents:s.priceCents,priceUnit:s.priceUnit,kind:s.kind,durationMinutes:s.durationMinutes}));
+  const fromPrice=(kind:"session"|"party")=>{
+    const cents=services.filter((s)=>s.kind===kind&&s.priceCents!==null).map((s)=>s.priceCents as number);
+    return cents.length?` · from $${Math.min(...cents)/100}`:"";
+  };
 
   return (
     <main className="futprep-team-page">
@@ -26,19 +36,20 @@ export default async function FutprepCoachesPage(){
         <span>Futprep Athletics · Team</span>
         <h1>The people behind<br/>the <em>progress.</em></h1>
         <p>Meet the coaches and team members shaping the Futprep experience on the field and in the community.</p>
-        <PrivateSessionBooking coaches={bookable.map(({id,display_name})=>({id,displayName:display_name}))} schemaReady={schemaReady} triggerLabel="Request a private session →" />
+        <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} triggerLabel="Book a private session →" />
       </section>
 
       <section className="futprep-team-grid">
         {coaches.map((coach)=>(
           <article className="futprep-team-card" key={coach.slug}>
             <div className="futprep-team-photo">
-              {coach.photo_url ? <img src={coach.photo_url} alt={coach.display_name} /> : <div className="futprep-team-initial">{coach.display_name.split(" ").filter(Boolean).slice(-1)[0]?.slice(0,1) ?? "F"}</div>}
+              {coach.photo_url ? <img src={coach.photo_url} alt={coach.display_name} /> : <div className="futprep-team-initial"><span className="coach-initials" aria-hidden="true">{coach.display_name.replace(/^Coach\s+/i,"").split(/\s+/).filter(Boolean).slice(0,2).map((p)=>p[0]?.toUpperCase()??"").join("") || "F"}</span></div>}
               <span>{coach.member_type==="coach" ? "Coach" : "Team"}</span>
             </div>
             <div className="futprep-team-copy">
               <small>{coach.position_title}</small>
               <h2>{coach.display_name}</h2>
+              {coach.nickname && <p className="coach-nickname">&ldquo;{coach.nickname}&rdquo;</p>}
               <p>{coach.bio}</p>
               {(coach.licenses.length>0 || coach.played_at.length>0 || coach.favorite_player || coach.favorite_team) && (
                 <dl className="coach-facts">
@@ -54,7 +65,10 @@ export default async function FutprepCoachesPage(){
                   {coach.availability.length ? coach.availability.slice(0,5).map((slot)=>(
                     <span className={`availability-${slot.status}`} key={slot.id}>{dayLabel(slot.availability_date)} · {slot.start_time}–{slot.end_time} · {slot.status}</span>
                   )) : <span className="availability-unset">Schedule not posted yet — you can still request a time.</span>}
-                  <PrivateSessionBooking coaches={bookable.map(({id,display_name})=>({id,displayName:display_name}))} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} triggerLabel={`Request ${coach.display_name.replace("Coach ","")} →`} />
+                  <div className="coach-book-actions">
+                    <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} defaultKind="session" triggerLabel={`Book a private session${fromPrice("session")} →`} />
+                    <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} defaultKind="party" triggerLabel={`Book a party${fromPrice("party")} →`} />
+                  </div>
                 </div>
               )}
               {coach.testimonial_quote && <blockquote>“{coach.testimonial_quote}”{coach.testimonial_name && <cite>— {coach.testimonial_name}</cite>}</blockquote>}
@@ -67,7 +81,7 @@ export default async function FutprepCoachesPage(){
       <section className="futprep-team-note">
         <div><span>Private lessons + birthdays</span><h2>Request it here. Keep the conversation simple.</h2></div>
         <p>A request is not confirmed until a coach accepts it. If a coach needs to refer the session, Futprep tracks the handoff and the parent must be informed.</p>
-        <PrivateSessionBooking coaches={bookable.map(({id,display_name})=>({id,displayName:display_name}))} schemaReady={schemaReady} triggerLabel="Start a request →" />
+        <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} triggerLabel="Start a request →" />
       </section>
 
       <footer className="futprep-team-footer">
