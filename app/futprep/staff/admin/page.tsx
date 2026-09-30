@@ -43,6 +43,7 @@ export default async function FutprepStaffAdminPage() {
           <p>Send parents the registration link, confirm children, and keep payment status current. Coaches see those updates automatically in their own areas.</p>
         </div>
         <MoneySummary summary={moneySummary} />
+        <p className="coach-export"><a className="secondary-button" href="/futprep/staff/import">Import families from TeamSnap →</a></p>
         <AdminRegistrationManager initialRegistrations={registrations} />
         <div className="team-admin-panels">
           <AddRegistrationForm options={offers.map((offer): StaffClassOption => ({ key: `${offer.programId}:${offer.termId}`, programSlug: offer.slug, termId: offer.termId, label: `${offerHeadline(offer)} (ages ${offer.ageLabel})` }))} />
