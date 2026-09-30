@@ -1,3 +1,6 @@
+import { FUTPREP_BANK_DETAILS } from "@/app/futprep/config";
+import { sendPrivateSessionAcceptedEmail } from "@/lib/email";
+import { isPrivateServiceSlug, PRIVATE_SERVICES, privatePaymentStatus, privateSessionCode, weeklySlotDates, type PrivateServiceSlug } from "@/lib/privateSessions";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type CoachAvailability = {
@@ -16,6 +19,8 @@ export type CoachProfile = {
   organization_id: number;
   slug: string;
   display_name: string;
+  // "Coach Bex" -- shown under the name (brief 06 v2, Part B).
+  nickname: string | null;
   position_title: string;
   member_type: "coach" | "relations" | "admin";
   bio: string;
@@ -57,6 +62,12 @@ export type PrivateSessionRequest = {
   referral_note: string | null;
   parent_notified_at: string | null;
   created_at: string;
+  service_slug: string | null;
+  price_cents: number | null;
+  availability_id: number | null;
+  accepted_at: string | null;
+  payment_status: "unpaid" | "partial" | "paid" | "waived";
+  paid_cents: number;
   preferred_coach_name: string | null;
   assigned_coach_name: string | null;
 };
@@ -272,6 +283,54 @@ export async function listAllCoachProfiles() {
   return {schemaReady:true,coaches:profiles.map((profile)=>({...profile,licenses:profile.licenses??[],played_at:profile.played_at??[],availability:slots.filter((slot)=>slot.coach_id===profile.id)}))};
 }
 
+// A priced service a parent can book (brief 06 v2, Part B): the Futprep
+// offerings rows whose slugs are in PRIVATE_SERVICES. Unpublished rows
+// (placeholder prices) are never offered to parents.
+export type PrivateService = {
+  slug: PrivateServiceSlug;
+  name: string;
+  summary: string | null;
+  priceCents: number | null;
+  priceUnit: string | null;
+  inclusions: string[];
+  isPublished: boolean;
+  requestType: "private_lesson" | "birthday";
+  durationMinutes: number;
+  kind: "session" | "party";
+};
+
+export async function listFutprepPrivateServices(options: { publishedOnly?: boolean } = {}): Promise<PrivateService[]> {
+  const organizationId = await futprepOrganizationId();
+  if (!organizationId) return [];
+  const db = getSupabaseAdmin();
+  let query = db
+    .from("offerings")
+    .select("slug,name,summary,price_cents,price_unit,inclusions,is_published,sort_order")
+    .eq("organization_id", organizationId)
+    .in("slug", Object.keys(PRIVATE_SERVICES))
+    .order("sort_order", { ascending: true });
+  if (options.publishedOnly) query = query.eq("is_published", true);
+  const { data, error } = await query;
+  throwIfSupabaseError(error, "Could not load Futprep private services");
+  return (data ?? [])
+    .filter((row) => isPrivateServiceSlug(row.slug))
+    .map((row) => {
+      const meta = PRIVATE_SERVICES[row.slug as PrivateServiceSlug];
+      return {
+        slug: row.slug as PrivateServiceSlug,
+        name: row.name as string,
+        summary: (row.summary as string | null) ?? null,
+        priceCents: row.price_cents === null ? null : Number(row.price_cents),
+        priceUnit: (row.price_unit as string | null) ?? null,
+        inclusions: (row.inclusions as string[] | null) ?? [],
+        isPublished: Boolean(row.is_published),
+        requestType: meta.requestType,
+        durationMinutes: meta.durationMinutes,
+        kind: meta.kind,
+      };
+    });
+}
+
 export async function createPrivateSessionRequest(input:{
   requestType:"private_lesson"|"birthday";
   preferredCoachId:number|null;
@@ -279,35 +338,67 @@ export async function createPrivateSessionRequest(input:{
   childName:string; childAge:number;
   requestedDate:string; requestedStartTime:string; durationMinutes:number;
   locationPreference:string; sessionGoal:string; notes:string;
+  // Brief 06 v2, Part B: the priced service and, optionally, one of the
+  // coach's open slots (else the date/time above is a suggestion).
+  serviceSlug?:string|null;
+  availabilityId?:number|null;
 }) {
   const ready=await seedProfiles();
   if(!ready) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
   const organizationId=await futprepOrganizationId();
   if(!organizationId) throw new Error("FUTPREP_NOT_FOUND");
-  if(input.preferredCoachId){
-    const db=getSupabaseAdmin();
-    const {data,error}=await db.from("coach_profiles").select("id").eq("id",input.preferredCoachId).eq("organization_id",organizationId).eq("active",true).eq("bookable",true).maybeSingle();
+  const db=getSupabaseAdmin();
+
+  let service: PrivateService | null = null;
+  if (input.serviceSlug) {
+    service = (await listFutprepPrivateServices({ publishedOnly: true })).find((s) => s.slug === input.serviceSlug) ?? null;
+    if (!service) throw new Error("SERVICE_NOT_AVAILABLE");
+  }
+
+  let preferredCoachId = input.preferredCoachId;
+  let requestedDate = input.requestedDate;
+  let requestedStartTime = input.requestedStartTime;
+  let availabilityId: number | null = null;
+  if (input.availabilityId) {
+    const { data: slot, error: slotError } = await db
+      .from("coach_availability")
+      .select("id,coach_id,availability_date,start_time,status")
+      .eq("id", input.availabilityId)
+      .maybeSingle();
+    throwIfSupabaseError(slotError, "Could not load the chosen time");
+    if (!slot || slot.status !== "available" || String(slot.availability_date) < new Date().toISOString().slice(0, 10)) throw new Error("SLOT_NOT_AVAILABLE");
+    if (preferredCoachId && Number(slot.coach_id) !== preferredCoachId) throw new Error("SLOT_NOT_AVAILABLE");
+    preferredCoachId = Number(slot.coach_id);
+    requestedDate = String(slot.availability_date);
+    requestedStartTime = String(slot.start_time);
+    availabilityId = Number(slot.id);
+  }
+
+  if(preferredCoachId){
+    const {data,error}=await db.from("coach_profiles").select("id").eq("id",preferredCoachId).eq("organization_id",organizationId).eq("active",true).eq("bookable",true).maybeSingle();
     throwIfSupabaseError(error,"Could not validate preferred coach");
     if(!data) throw new Error("COACH_NOT_AVAILABLE");
   }
-  const referenceCode=`FP-PS-${new Date().getUTCFullYear()}-${crypto.randomUUID().replaceAll("-","").slice(0,7).toUpperCase()}`;
-  const db=getSupabaseAdmin();
+  const referenceCode=privateSessionCode();
   const {error}=await db.from("private_session_requests").insert({
     reference_code:referenceCode,
     organization_id:organizationId,
-    preferred_coach_id:input.preferredCoachId,
-    request_type:input.requestType,
+    preferred_coach_id:preferredCoachId,
+    request_type:service?.requestType ?? input.requestType,
     parent_name:input.parentName.trim(),
     parent_email:input.parentEmail.trim().toLowerCase(),
     parent_phone:input.parentPhone.trim(),
     child_name:input.childName.trim(),
     child_age:input.childAge,
-    requested_date:input.requestedDate,
-    requested_start_time:input.requestedStartTime,
-    duration_minutes:input.durationMinutes,
+    requested_date:requestedDate,
+    requested_start_time:requestedStartTime,
+    duration_minutes:service?.durationMinutes ?? input.durationMinutes,
     location_preference:input.locationPreference.trim(),
     session_goal:input.sessionGoal.trim(),
     notes:input.notes.trim(),
+    service_slug:service?.slug ?? null,
+    price_cents:service?.priceCents ?? null,
+    availability_id:availabilityId,
     status:"pending",
     updated_at:new Date().toISOString(),
   });
@@ -320,15 +411,88 @@ export async function listPrivateSessionRequests():Promise<{schemaReady:boolean;
   const ready=await seedProfiles().catch((error)=>isMissingTable(error)?false:Promise.reject(error));
   if(!ready) return {schemaReady:false,requests:[]};
   const db=getSupabaseAdmin();
-  const [{data:requests,error},{data:profiles,error:profileError}]=await Promise.all([
+  const [{data:requests,error},{data:profiles,error:profileError},{data:payments,error:paymentsError}]=await Promise.all([
     db.from("private_session_requests").select("*").order("requested_date",{ascending:true}).order("requested_start_time",{ascending:true}),
     db.from("coach_profiles").select("id,display_name").eq("active",true),
+    db.from("payments").select("private_session_request_id,amount_cents").not("private_session_request_id","is",null).eq("status","received"),
   ]);
   if(isMissingTable(error)) return {schemaReady:false,requests:[]};
   throwIfSupabaseError(error,"Could not load private session requests");
   throwIfSupabaseError(profileError,"Could not load coach names");
+  throwIfSupabaseError(paymentsError,"Could not load private session payments");
   const names=new Map((profiles??[]).map((row:{id:number;display_name:string})=>[Number(row.id),row.display_name]));
-  return {schemaReady:true,requests:(requests??[]).map((row:any)=>({...row,preferred_coach_name:row.preferred_coach_id?names.get(Number(row.preferred_coach_id))??null:null,assigned_coach_name:row.assigned_coach_id?names.get(Number(row.assigned_coach_id))??null:null})) as PrivateSessionRequest[]};
+  const paid=new Map<number,number>();
+  for(const p of (payments??[]) as Array<{private_session_request_id:number;amount_cents:number}>) paid.set(Number(p.private_session_request_id),(paid.get(Number(p.private_session_request_id))??0)+Number(p.amount_cents));
+  return {schemaReady:true,requests:(requests??[]).map((row:any)=>({...row,paid_cents:paid.get(Number(row.id))??0,preferred_coach_name:row.preferred_coach_id?names.get(Number(row.preferred_coach_id))??null:null,assigned_coach_name:row.assigned_coach_id?names.get(Number(row.assigned_coach_id))??null:null})) as PrivateSessionRequest[]};
+}
+
+// Coach side (brief 06 v2, Part B): "every Wednesday, 4-4:45 pm, for 6
+// weeks" becomes six open slots. Existing identical slots are left alone.
+export async function addWeeklyCoachSlots(input:{
+  coachId:number; dayOfWeek:string; startTime:string; endTime:string; weeks:number; location:string; actor:string; fromDate?:string;
+}):Promise<number>{
+  const dates=weeklySlotDates({fromDate:input.fromDate ?? new Date().toISOString().slice(0,10),dayOfWeek:input.dayOfWeek,weeks:input.weeks});
+  if(!dates.length) throw new Error("INVALID_DAY");
+  const db=getSupabaseAdmin();
+  const {data:coach,error:coachError}=await db.from("coach_profiles").select("id").eq("id",input.coachId).eq("active",true).maybeSingle();
+  throwIfSupabaseError(coachError,"Could not load coach");
+  if(!coach) throw new Error("COACH_NOT_FOUND");
+  const now=new Date().toISOString();
+  const {data,error}=await db.from("coach_availability").upsert(
+    dates.map((date)=>({coach_id:input.coachId,availability_date:date,start_time:input.startTime.trim(),end_time:input.endTime.trim(),status:"available",location:input.location.trim(),note:"",created_by:input.actor,updated_at:now})),
+    {onConflict:"coach_id,availability_date,start_time,end_time",ignoreDuplicates:true},
+  ).select("id");
+  if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
+  throwIfSupabaseError(error,"Could not add coach slots");
+  return (data??[]).length;
+}
+
+// Money received for a private session, against its PS- code; the
+// request's payment status follows what has been received.
+export async function recordPrivateSessionPayment(input:{
+  requestId:number; amountCents:number; method:"cash"|"bank_transfer"|"online_banking"; reference:string; recordedBy:string;
+}):Promise<{paymentStatus:"unpaid"|"partial"|"paid";paidCents:number}>{
+  if(!Number.isInteger(input.amountCents)||input.amountCents<=0) throw new Error("INVALID_AMOUNT");
+  const db=getSupabaseAdmin();
+  const {data:request,error:loadError}=await db.from("private_session_requests").select("id,price_cents,status").eq("id",input.requestId).maybeSingle();
+  throwIfSupabaseError(loadError,"Could not load private session");
+  if(!request) throw new Error("REQUEST_NOT_FOUND");
+  const now=new Date().toISOString();
+  const {error}=await db.from("payments").insert({private_session_request_id:input.requestId,amount_cents:input.amountCents,method:input.method,reference:input.reference.trim()||null,recorded_by:input.recordedBy,received_at:now,status:"received",note:"Private session"});
+  throwIfSupabaseError(error,"Could not record the payment");
+  const {data:rows,error:sumError}=await db.from("payments").select("amount_cents").eq("private_session_request_id",input.requestId).eq("status","received");
+  throwIfSupabaseError(sumError,"Could not total the payments");
+  const paidCents=(rows??[]).reduce((sum,row)=>sum+Number(row.amount_cents),0);
+  const paymentStatus=privatePaymentStatus(request.price_cents===null?null:Number(request.price_cents),paidCents);
+  const {error:updateError}=await db.from("private_session_requests").update({payment_status:paymentStatus,updated_at:now}).eq("id",input.requestId);
+  throwIfSupabaseError(updateError,"Could not update the payment status");
+  await db.from("private_session_events").insert({request_id:input.requestId,actor_account:input.recordedBy,action:"payment",note:`Recorded ${input.amountCents} cents (${input.method})`});
+  return {paymentStatus,paidCents};
+}
+
+// For the growth report (brief 05 Part 2 / 06 Part B): requested,
+// accepted, paid, and money received, since a date.
+export async function privateSessionStats(sinceIso?:string):Promise<{requested:number;accepted:number;paid:number;revenueCents:number}>{
+  const db=getSupabaseAdmin();
+  let requestsQuery=db.from("private_session_requests").select("id,status,accepted_at,payment_status,created_at");
+  if(sinceIso) requestsQuery=requestsQuery.gte("created_at",sinceIso);
+  const {data:requests,error}=await requestsQuery;
+  if(isMissingTable(error)) return {requested:0,accepted:0,paid:0,revenueCents:0};
+  throwIfSupabaseError(error,"Could not count private sessions");
+  const ids=(requests??[]).map((r)=>Number(r.id));
+  let revenueCents=0;
+  if(ids.length){
+    const {data:payments,error:paymentsError}=await db.from("payments").select("amount_cents").in("private_session_request_id",ids).eq("status","received");
+    throwIfSupabaseError(paymentsError,"Could not total private session payments");
+    revenueCents=(payments??[]).reduce((sum,p)=>sum+Number(p.amount_cents),0);
+  }
+  const rows=(requests??[]) as Array<{status:string;accepted_at:string|null;payment_status:string}>;
+  return {
+    requested:rows.length,
+    accepted:rows.filter((r)=>r.accepted_at!==null||r.status==="accepted"||r.status==="completed").length,
+    paid:rows.filter((r)=>r.payment_status==="paid").length,
+    revenueCents,
+  };
 }
 
 export async function actOnPrivateSessionRequest(input:{
@@ -346,7 +510,14 @@ export async function actOnPrivateSessionRequest(input:{
   let note="";
   if(input.action==="accept"){
     if(!input.coachId) throw new Error("COACH_REQUIRED");
-    patch={...patch,status:"accepted",assigned_coach_id:input.coachId,decline_reason:null};
+    // The parent picked one of a coach's open slots: accepting books it,
+    // and only if it is still open (brief 06 v2, Part B).
+    if(existing.availability_id){
+      const {data:booked,error:slotError}=await db.from("coach_availability").update({status:"booked",updated_at:now}).eq("id",existing.availability_id).eq("status","available").select("id");
+      throwIfSupabaseError(slotError,"Could not book the chosen time");
+      if(!booked?.length && existing.status!=="accepted") throw new Error("SLOT_TAKEN");
+    }
+    patch={...patch,status:"accepted",assigned_coach_id:input.coachId,decline_reason:null,accepted_at:existing.accepted_at??now};
     note=`Accepted by coach #${input.coachId}`;
   }else if(input.action==="decline"){
     if(!input.reason?.trim()) throw new Error("DECLINE_REASON_REQUIRED");
@@ -368,6 +539,35 @@ export async function actOnPrivateSessionRequest(input:{
   throwIfSupabaseError(error,"Could not update private session request");
   const {error:eventError}=await db.from("private_session_events").insert({request_id:input.id,actor_account:input.actor,action:input.action,note});
   throwIfSupabaseError(eventError,"Could not record private session action");
+
+  // Tell the parent: time, place, price and how to pay with the PS- code.
+  // Never blocks the accept (no email configured, a bad address).
+  if(input.action==="accept" && existing.status!=="accepted"){
+    try{
+      const [{data:coach},{data:slot}]=await Promise.all([
+        db.from("coach_profiles").select("display_name").eq("id",input.coachId!).maybeSingle(),
+        existing.availability_id ? db.from("coach_availability").select("location").eq("id",existing.availability_id).maybeSingle() : Promise.resolve({data:null}),
+      ]);
+      const services=existing.service_slug ? await listFutprepPrivateServices() : [];
+      const service=services.find((s)=>s.slug===existing.service_slug);
+      await sendPrivateSessionAcceptedEmail({
+        parentEmail:existing.parent_email,
+        parentName:existing.parent_name,
+        childName:String(existing.child_name).split(" ")[0] ?? existing.child_name,
+        serviceName:service?.name ?? (existing.request_type==="birthday" ? "birthday session" : "private session"),
+        coachName:coach?.display_name ?? "Your Futprep coach",
+        date:existing.requested_date,
+        startTime:existing.requested_start_time,
+        durationMinutes:Number(existing.duration_minutes),
+        location:(slot as {location?:string}|null)?.location || existing.location_preference || "",
+        priceCents:existing.price_cents===null||existing.price_cents===undefined ? null : Number(existing.price_cents),
+        referenceCode:existing.reference_code,
+        bank:FUTPREP_BANK_DETAILS,
+      });
+    }catch(emailError){
+      console.error("private session accepted email failed", emailError);
+    }
+  }
 }
 
 export async function saveCoachProfile(input:{

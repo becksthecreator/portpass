@@ -359,3 +359,10 @@
 .staff-filter a{background:var(--paper);border:1px solid var(--line);font-size:.72rem;font-weight:800;padding:9px 13px;color:var(--ink);text-decoration:none}
 .staff-filter a.is-active{background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
 .coach-export{margin:0 0 18px}
+.private-slots-form{margin-bottom:22px}
+.private-request-payment{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.private-request-payment label{display:flex;flex-direction:column;gap:4px;font-size:.7rem;font-weight:800}
+.private-request-payment input,.private-request-payment select{min-height:38px}
+.private-request-payment button{background:var(--gold);border:0;color:var(--on-gold);cursor:pointer;font-size:.72rem;font-weight:800;min-height:40px;padding:0 14px}
+.staff-summary-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:700px){.staff-summary-4{grid-template-columns:1fr 1fr}}
