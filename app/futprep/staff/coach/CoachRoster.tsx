@@ -130,6 +130,11 @@ export function CoachRoster({
     if (data.entries.length > 0) setCoaches(data.entries.length);
   }
 
+  function changeRole(coachId:number, value:string) {
+    const role: SessionStaffEntry["role"] = value === "assistant" ? "assistant" : "lead";
+    saveStaff(staff.map((other)=>({...other, role: other.coachId===coachId ? role : other.role, unsaved: false})));
+  }
+
   function addCoach() {
     const coach = coachOptions.find((c)=>String(c.id)===adding);
     if (!coach) return;
@@ -319,7 +324,7 @@ export function CoachRoster({
                 {readOnly || entry.paid ? (
                   <span>{entry.role === "lead" ? "Lead" : "Assistant"}{entry.paid ? " · paid" : ""}</span>
                 ) : (
-                  <select aria-label={`${entry.coachName}'s role`} value={entry.role} disabled={staffSaving} onChange={(e)=>saveStaff(staff.map((other)=>other.coachId===entry.coachId ? {...other, role: e.target.value === "assistant" ? "assistant" : "lead", unsaved: false} : other).map((other)=>({...other, unsaved: false})))}>
+                  <select aria-label={`${entry.coachName}'s role`} value={entry.role} disabled={staffSaving} onChange={(e)=>changeRole(entry.coachId, e.target.value)}>
                     <option value="lead">Lead</option>
                     <option value="assistant">Assistant</option>
                   </select>
