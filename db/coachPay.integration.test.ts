@@ -10,6 +10,7 @@ import {
   listProgramPnl,
   markCoachMonthPaid,
   setCoachPayDefaults,
+  setProgramFieldCost,
   setSessionStaff,
 } from "./coachPay";
 import { createFutprepProgram, listFutprepPrograms } from "./programs";
@@ -75,7 +76,7 @@ afterAll(async () => {
   }
   await db().from("coach_profiles").delete().in("id", [leadCoach, assistantCoach].filter(Boolean));
   await db().from("locations").delete().eq("organization_id", orgId).eq("name", locationName);
-  await db().from("audit_log").delete().in("action", ["futprep.coach_pay_marked_paid", "futprep.coach_pay_rates"]).like("after->>by", "TEST — delete%");
+  await db().from("audit_log").delete().in("action", ["futprep.coach_pay_marked_paid", "futprep.coach_pay_rates", "futprep.field_cost"]).like("after->>by", "TEST — delete%");
 });
 
 async function pastSessions(programId: number): Promise<Array<{ id: number; session_date: string }>> {
@@ -204,5 +205,17 @@ describe("program P&L (brief 13)", () => {
     const contract = (await listProgramPnl()).find((l) => l.programName === `${MARK} St Andrew's`)!;
     expect(contract.kind).toBe("contract");
     expect(contract.portpassFeeCents).toBe(0);
+  });
+});
+
+describe("field hire on the P&L (brief 13)", () => {
+  it("lets Alex set the field hire per term, audit-logged", async () => {
+    await setProgramFieldCost({ programId: classId, cents: 15000, actor: MARK });
+    const line = (await listProgramPnl()).find((l) => l.programId === classId)!;
+    expect(line.fieldCostCents).toBe(15000);
+    expect(line.leftCents).toBe(line.feesCollectedCents - line.coachPayCents - 15000 - line.portpassFeeCents);
+    const { count } = await db().from("audit_log").select("id", { count: "exact", head: true }).eq("action", "futprep.field_cost").eq("target_id", String(classId));
+    expect(Number(count)).toBe(1);
+    await expect(setProgramFieldCost({ programId: classId, cents: -5, actor: MARK })).rejects.toThrow("INVALID_AMOUNT");
   });
 });
