@@ -21,6 +21,7 @@ const PRICE_UNIT_SUFFIX: Record<string, string> = {
   per_hour: " per hour",
   per_day: " per day",
   per_person: " per person",
+  per_child: " per child",
 };
 
 export function formatPrice(cents: number, unit: string | null): string {
