@@ -3,7 +3,9 @@
 // in public/brand/ as delivered -- never redrawn in CSS, never the wordmark
 // set in live text. Both colour versions render and CSS shows the right
 // one for the ground (.brand-logo-light on white, .brand-logo-dark on
-// navy: Night, the footer, the admin bar, staff headers).
+// navy: Night, the footer, the admin bar, staff headers). The show/hide
+// classes sit on the <picture>, so the hidden version takes no space in a
+// flex header.
 //
 // Rules from the logo README: clear space equal to the height of the P,
 // never under 120px wide on screen, never stretched, rotated or recoloured.
@@ -15,15 +17,15 @@ const MARK_QUERY = "(max-width: 400px)";
 export function BrandLogo({ className = "" }: { className?: string }) {
   return (
     <>
-      <picture>
+      <picture className="brand-logo-light">
         <source media={MARK_QUERY} srcSet="/brand/logo/portpass-mark-light.svg" width={34} height={34} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className={`brand-logo brand-logo-light ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-light.svg" alt="PortPass Bahamas" width={166} height={36} />
+        <img className={`brand-logo ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-light.svg" alt="PortPass Bahamas" width={166} height={36} />
       </picture>
-      <picture>
+      <picture className="brand-logo-dark">
         <source media={MARK_QUERY} srcSet="/brand/logo/portpass-mark-dark.svg" width={34} height={34} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className={`brand-logo brand-logo-dark ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-dark.svg" alt="PortPass Bahamas" width={166} height={36} />
+        <img className={`brand-logo ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-dark.svg" alt="PortPass Bahamas" width={166} height={36} />
       </picture>
     </>
   );
