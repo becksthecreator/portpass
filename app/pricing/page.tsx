@@ -1,6 +1,7 @@
 // @public-route: the public price list.
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BillingToggle } from "./BillingScope";
 import { ppDisplay, ppSans } from "@/app/fonts";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
@@ -53,9 +54,13 @@ function faqItems(plans: PricingPlan[]): { q: string; a: string }[] {
   ];
 }
 
-export default async function PricingPage({ searchParams }: { searchParams: Promise<{ billing?: string }> }) {
-  const [{ billing }, pricing] = await Promise.all([searchParams, loadPricing()]);
-  const annual = billing === "annual";
+// Cached (speed brief, 29 Sept): the page renders both the monthly and the
+// annual prices and BillingToggle (a small client component reading ?billing=)
+// marks which shows, so no request waits for the server. Price edits revalidate it.
+export const revalidate = 300;
+
+export default async function PricingPage() {
+  const pricing = await loadPricing();
   const { plans, addons, promoteLive } = pricing;
   const subscriptions = plans.filter((p) => p.kind === "subscription");
   const faqs = faqItems(plans);
@@ -74,32 +79,35 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
         <span className="home-eyebrow">Pricing</span>
         <h1>Simple prices. <strong>30 days free.</strong></h1>
         <p>{SUB}</p>
-        <nav className="pricing-toggle" aria-label="Billing period">
-          <Link href="/pricing" aria-current={annual ? undefined : "page"} scroll={false}>Monthly</Link>
-          <Link href="/pricing?billing=annual" aria-current={annual ? "page" : undefined} scroll={false}>Annual</Link>
-        </nav>
-        <span className="pricing-toggle-note" aria-live="polite">{annual ? "Annual: 2 months free and setup waived." : "Pay month to month. Cancel before the end of any month."}</span>
+        <BillingToggle />
       </section>
 
       {plans.length === 0 ? (
         <p className="pricing-fine">Our price list is loading slowly right now. <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a> and we&rsquo;ll send it over.</p>
       ) : (
+        <div className="pricing-scope" data-billing="monthly">
         <section className="pricing-cards" aria-label="Plans">
           {plans.map((plan) => {
             const previous = plan.kind === "subscription" ? subscriptions[subscriptions.indexOf(plan) - 1] ?? null : null;
             const features = addedFeatures(plan, previous);
             const isCommission = plan.kind === "commission";
-            const showAnnual = annual && !isCommission;
             return (
               <article className={`pricing-card${plan.badge ? " pricing-card-featured" : ""}`} key={plan.code}>
                 {plan.badge && <span className="pricing-badge">{plan.badge}</span>}
                 <h2>{plan.name}</h2>
                 <p className="pricing-card-blurb">{isCommission ? `${dollars(plan.monthlyCents)}/month · ${percentFromBps(plan.commissionBps)} of bookings we bring you.` : plan.blurb}</p>
-                <div className="pricing-price">
-                  <strong>{dollars(showAnnual ? annualCents(plan) : plan.monthlyCents)}</strong>
-                  <span>{showAnnual ? "/year" : "/month"}</span>
+                <div className="pricing-price when-monthly">
+                  <strong>{dollars(plan.monthlyCents)}</strong>
+                  <span>/month</span>
                 </div>
-                <p className="pricing-price-note">{isCommission ? plan.blurb : showAnnual ? "2 months free · Setup waived" : "First 30 days free"}</p>
+                {!isCommission && (
+                  <div className="pricing-price when-annual">
+                    <strong>{dollars(annualCents(plan))}</strong>
+                    <span>/year</span>
+                  </div>
+                )}
+                {isCommission && <div className="pricing-price when-annual"><strong>{dollars(plan.monthlyCents)}</strong><span>/month</span></div>}
+                <p className="pricing-price-note">{isCommission ? plan.blurb : <><span className="when-monthly">First 30 days free</span><span className="when-annual">2 months free · Setup waived</span></>}</p>
                 <Link className="home-button" href={`/apply?plan=${encodeURIComponent(plan.code)}&utm_source=pricing`}>Start free</Link>
                 {previous && <p className="pricing-features-lead">Everything in {previous.name}, plus</p>}
                 <ul className="pricing-features">
@@ -109,6 +117,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
             );
           })}
         </section>
+        </div>
       )}
 
       {(addons.length > 0 || !promoteLive) && (
