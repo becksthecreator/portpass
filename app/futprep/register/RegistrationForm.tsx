@@ -6,14 +6,28 @@ import { PhoneInput } from "@/app/_components/PhoneInput";
 import { track } from "@/lib/analytics";
 import { EMPTY_ATTRIBUTION, HEARD_OPTIONS, type Attribution } from "@/lib/attribution";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { FutprepAvailability } from "@/db/registrations";
+import { formatDateRange, offerHeadline } from "@/lib/futprepTerms";
+import { FormEvent, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   FUTPREP_BANK_DETAILS,
-  FUTPREP_TERM,
   normalizeProgramSlug,
   programTimeRange,
 } from "../config";
+
+// One registrable program-in-a-term (a class in Term 1, the October camp):
+// what the page loaded from the database. Nothing in this form names a
+// term or a program itself (brief 06 v2, A1.5).
+type Offer = FutprepAvailability;
+const offerKey = (offer: Pick<Offer, "programId" | "termId">) => `${offer.programId}:${offer.termId}`;
+
+function scheduleLine(offer: Offer): string {
+  if (offer.programType === "camp") {
+    return `${formatDateRange(offer.termStartDate, offer.termEndDate)} · ${offer.dailyStartTime || offer.time}–${offer.dailyEndTime || offer.endTime}`;
+  }
+  return `${offer.day}s ${programTimeRange(offer)} · ${offer.termName}`;
+}
 
 function paymentMethodLabel(method: string) {
   if (method === "cash") return "Cash";
@@ -27,31 +41,16 @@ type FormState = {
   childName: string; childDob: string; gender: string; authorizedPickup: string;
   emergencyContactName: string; emergencyContactPhone: string;
   allergies: string; medicalConditions: string; medications: string; specialNeeds: string; additionalNotes: string;
-  programSlug: string; paymentFrequency: string; paymentMethod: string;
+  offerKey: string; paymentFrequency: string; paymentMethod: string;
   photoConsent: string; signatureName: string; consentAccepted: boolean;
   heardAboutUs: string; referralCode: string;
 };
 
-type Availability = {
-  slug: string;
-  name: string;
-  ageMin: number;
-  ageMax: number;
-  day: string;
-  time: string;
-  endTime: string;
-  location: string;
-  capacity: number;
-  weeklyFeeCents: number;
-  termFeeCents: number;
-  termStartDate: string;
-  registered: number;
-  spotsRemaining: number;
-};
 type RegistrationResult = {
   referenceCode: string;
-  program: { name: string; day: string; time: string; endTime: string };
-  term: { location: string };
+  program: { name: string; programType: "term" | "camp"; day: string; time: string; endTime: string };
+  term: { name: string; startDate: string; endDate: string; location: string };
+  paymentFrequency: "weekly" | "term";
   amountDueCents: number;
 };
 
@@ -60,7 +59,7 @@ const initial: FormState = {
   childName:"", childDob:"", gender:"", authorizedPickup:"",
   emergencyContactName:"", emergencyContactPhone:"",
   allergies:"", medicalConditions:"", medications:"", specialNeeds:"", additionalNotes:"",
-  programSlug:"", paymentFrequency:"", paymentMethod:"",
+  offerKey:"", paymentFrequency:"", paymentMethod:"",
   photoConsent:"", signatureName:"", consentAccepted:false,
   heardAboutUs:"", referralCode:"",
 };
@@ -81,47 +80,68 @@ function ageAt(dob: string, referenceDate: string) {
 // `attribution` is what the page read from the 30-day first-party cookie
 // and this request's URL (growth-tracking brief, 28 Sept). It travels with
 // the submission as hidden values; the server decides what it proves.
-export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribution?: Attribution }) {
+//
+// `offers` come from the page (every public open program-in-a-term, plus
+// the one a direct link names); `initialOfferKey` is that link's choice.
+export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, initialOfferKey = null }: { attribution?: Attribution; offers: Offer[]; initialOfferKey?: string | null }) {
   const searchParams = useSearchParams();
-  const [form, setForm] = useState<FormState>(() => ({
-    ...initial,
-    programSlug: normalizeProgramSlug(searchParams.get("program") ?? ""),
-    parentName: searchParams.get("parentName") ?? "",
-    parentEmail: searchParams.get("parentEmail") ?? "",
-    parentPhone: searchParams.get("parentPhone") ?? "",
-    relationship: searchParams.get("relationship") ?? "",
-  }));
+  const availability = offers;
+  const [form, setForm] = useState<FormState>(() => {
+    // An old link carries only ?program=<slug>: it preselects when that
+    // program has exactly one open term.
+    const legacySlug = normalizeProgramSlug(searchParams.get("program") ?? "");
+    const bySlug = legacySlug ? offers.filter((offer) => offer.slug === legacySlug) : [];
+    const preselected = initialOfferKey ?? (bySlug.length === 1 ? offerKey(bySlug[0]) : "");
+    const preselectedOffer = offers.find((offer) => offerKey(offer) === preselected);
+    return {
+      ...initial,
+      offerKey: preselected,
+      paymentFrequency: preselectedOffer?.programType === "camp" ? "term" : "",
+      parentName: searchParams.get("parentName") ?? "",
+      parentEmail: searchParams.get("parentEmail") ?? "",
+      parentPhone: searchParams.get("parentPhone") ?? "",
+      relationship: searchParams.get("relationship") ?? "",
+    };
+  });
   const [step, setStep] = useState(0);
-  const [availability, setAvailability] = useState<Availability[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<RegistrationResult | null>(null);
 
   const selectedProgram = useMemo(
-    () => availability.find((program) => program.slug === form.programSlug),
-    [availability, form.programSlug],
+    () => availability.find((offer) => offerKey(offer) === form.offerKey),
+    [availability, form.offerKey],
   );
-  const selectedPrice = selectedProgram && form.paymentFrequency
-    ? (form.paymentFrequency === "term" ? selectedProgram.termFeeCents : selectedProgram.weeklyFeeCents)
+  const isCamp = selectedProgram?.programType === "camp";
+  // Camps are paid in full: the camp fee, no weekly/term choice.
+  const selectedPrice = selectedProgram
+    ? isCamp
+      ? selectedProgram.termFeeCents
+      : form.paymentFrequency
+        ? (form.paymentFrequency === "term" ? selectedProgram.termFeeCents : selectedProgram.weeklyFeeCents)
+        : null
     : null;
 
   const overallAgeRange = useMemo(() => {
-    if (!availability.length) return { min: 0, max: 99 };
+    const pool = selectedProgram ? [selectedProgram] : availability;
+    if (!pool.length) return { min: 0, max: 99 };
     return {
-      min: Math.min(...availability.map((program) => program.ageMin)),
-      max: Math.max(...availability.map((program) => program.ageMax)),
+      min: Math.min(...pool.map((program) => program.ageMin)),
+      max: Math.max(...pool.map((program) => program.ageMax)),
     };
-  }, [availability]);
-
-  useEffect(() => {
-    fetch("/api/futprep/availability", { cache: "no-store" })
-      .then((response) => response.ok ? response.json() : null)
-      .then((data) => data?.availability && setAvailability(data.availability))
-      .catch(() => {});
-  }, []);
+  }, [availability, selectedProgram]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+    setError("");
+  }
+
+  function chooseOffer(offer: Offer) {
+    setForm((current) => ({
+      ...current,
+      offerKey: offerKey(offer),
+      paymentFrequency: offer.programType === "camp" ? "term" : current.paymentFrequency,
+    }));
     setError("");
   }
 
@@ -133,15 +153,17 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribut
     }
     if (step === 1) {
       if (!form.childName || !form.childDob || !form.gender || !form.authorizedPickup) return "Complete the child and pickup details.";
-      const referenceDate = availability[0]?.termStartDate ?? FUTPREP_TERM.startDate;
+      const referenceDate = selectedProgram?.termStartDate ?? availability[0]?.termStartDate ?? new Date().toISOString().slice(0, 10);
       const age = ageAt(form.childDob, referenceDate);
       if (age === null || age < overallAgeRange.min || age > overallAgeRange.max) {
-        return `Our current classes serve children ages ${overallAgeRange.min}–${overallAgeRange.max}.`;
+        return selectedProgram ? `${selectedProgram.name} is for ages ${selectedProgram.ageMin}–${selectedProgram.ageMax}.` : `Our current classes serve children ages ${overallAgeRange.min}–${overallAgeRange.max}.`;
       }
     }
     if (step === 2 && (!form.emergencyContactName || !form.emergencyContactPhone)) return "Add an emergency contact.";
     if (step === 3) {
-      if (!form.programSlug || !form.paymentFrequency || !form.paymentMethod) return "Choose a class, payment plan, and payment method.";
+      if (!selectedProgram) return "Choose a class or camp.";
+      if (!isCamp && !form.paymentFrequency) return "Choose a payment plan.";
+      if (!form.paymentMethod) return "Choose a payment method.";
       if (selectedProgram) {
         const age = ageAt(form.childDob, selectedProgram.termStartDate);
         if (age !== null && (age < selectedProgram.ageMin || age > selectedProgram.ageMax)) return `${selectedProgram.name} is for ages ${selectedProgram.ageMin}–${selectedProgram.ageMax}.`;
@@ -172,7 +194,13 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribut
       const response = await fetch("/api/futprep/registrations", {
         method: "POST",
         headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({ ...form, ...attribution }),
+        body: JSON.stringify({
+          ...form,
+          programSlug: selectedProgram?.slug ?? "",
+          termId: selectedProgram?.termId ?? null,
+          paymentFrequency: isCamp ? "term" : form.paymentFrequency,
+          ...attribution,
+        }),
       });
       const data = await response.json() as { registration?: RegistrationResult; error?: string; referenceCode?: string };
       if (!response.ok || !data.registration) throw new Error(data.error ?? (data.referenceCode ? `Registration already exists: ${data.referenceCode}` : "Registration failed."));
@@ -191,14 +219,14 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribut
         <span className="confirmation-mark">✓</span>
         <div className="eyebrow">Registration received</div>
         <h1>{form.childName} is on the list.</h1>
-        <p className="confirmation-lead">Futprep has received the Term 1 registration. Payment stays pending until Futprep records or confirms it.</p>
+        <p className="confirmation-lead">Futprep has received the registration for {result.program.name} · {result.term.name}. Payment stays pending until Futprep records or confirms it.</p>
         <div className="confirmation-reference"><span>Registration reference</span><strong>{result.referenceCode}</strong></div>
         <dl className="confirmation-grid">
           <div><dt>Class</dt><dd>{result.program.name}</dd></div>
-          <div><dt>Time</dt><dd>{result.program.day} · {programTimeRange(result.program)}</dd></div>
+          <div><dt>{result.program.programType === "camp" ? "Dates" : "Time"}</dt><dd>{result.program.programType === "camp" ? `${formatDateRange(result.term.startDate, result.term.endDate)} · ${programTimeRange(result.program)}` : `${result.program.day} · ${programTimeRange(result.program)}`}</dd></div>
           <div><dt>Location</dt><dd>{result.term.location}</dd></div>
-          <div><dt>Plan</dt><dd>{form.paymentFrequency === "term" ? "Full term" : "Weekly"}</dd></div>
-          <div><dt>Amount</dt><dd>{formatPriceCents(result.amountDueCents)}{form.paymentFrequency === "weekly" ? " per class" : ""}</dd></div>
+          <div><dt>Plan</dt><dd>{result.program.programType === "camp" ? "Camp fee" : result.paymentFrequency === "term" ? "Full term" : "Weekly"}</dd></div>
+          <div><dt>Amount</dt><dd>{formatPriceCents(result.amountDueCents)}{result.paymentFrequency === "weekly" && result.program.programType !== "camp" ? " per class" : ""}</dd></div>
           <div><dt>Status</dt><dd><span className="status status-submitted">Payment pending</span></dd></div>
         </dl>
         <p className="confirmation-share"><ShareOnWhatsApp url="https://portpassbahamas.com/sports-fitness/futprep-athletics" text={`${form.childName} is registered with Futprep Athletics on PortPass:`} /></p>
@@ -221,7 +249,7 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribut
           )}
         </div>
         <a className="primary-button" href={`/futprep/my/${result.referenceCode}`}>Check registration status →</a>
-        <a className="secondary-button" href={`/futprep/${selectedProgram?.slug ?? ""}`}>Back to program details</a>
+        <a className="secondary-button" href={isCamp ? "/futprep/camps" : selectedProgram ? `/sports-fitness/futprep-athletics/${selectedProgram.slug}` : "/sports-fitness/futprep-athletics"}>{isCamp ? "Back to camps" : "Back to program details"}</a>
         {/* Guest first, account after (speed & sign-in brief, 29 Sept, 2.1):
             one tap, email and name already filled in; the registration is
             attached to the account when the code is verified. */}
@@ -237,12 +265,12 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribut
     <section className="registration-shell">
       <div className="registration-intro">
         <div>
-          <div className="eyebrow"><span className="eyebrow-dot" />Futprep · Term 1 registration</div>
+          <div className="eyebrow"><span className="eyebrow-dot" />Futprep · {selectedProgram ? `${selectedProgram.termName} registration` : "Registration"}</div>
           <h1>Register your child.</h1>
           {selectedProgram ? (
-            <p>Registering for <strong>{selectedProgram.name}</strong> — {selectedProgram.day}s, {programTimeRange(selectedProgram)}. You can change the class in step 4.</p>
+            <p>Registering for <strong>{offerHeadline(selectedProgram)}</strong>.{isCamp ? ` Camp fee ${formatPriceCents(selectedProgram.termFeeCents)}.` : ""} You can change your choice in step 4.</p>
           ) : (
-            <p>Choose your child&apos;s class below. There&apos;s no registration fee. You&apos;ll choose how to pay the term fee (bank transfer, online banking or cash) in Step 4.</p>
+            <p>Choose your child&apos;s class or camp in step 4. There&apos;s no registration fee. You&apos;ll choose how to pay (bank transfer, online banking or cash) there too.</p>
           )}
         </div>
         <div className="registration-progress">
@@ -308,22 +336,27 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribut
           <fieldset>
             <legend><span>04</span>Class & payment</legend>
             <div className="choice-section">
-              <span className="choice-heading">Choose a class *</span>
+              <span className="choice-heading">Choose a class or camp *</span>
               <div className="class-choice-grid">
-                {availability.length === 0 && <p className="form-hint">Loading classes…</p>}
+                {availability.length === 0 && <p className="form-hint">Nothing is open for registration right now. Message Futprep on WhatsApp and we&apos;ll tell you when the next one opens.</p>}
                 {availability.map((program) => (
-                  <label className={`choice-card ${form.programSlug===program.slug ? "is-selected" : ""}`} key={program.slug}>
-                    <input type="radio" name="program" checked={form.programSlug===program.slug} onChange={()=>set("programSlug",program.slug)} />
+                  <label className={`choice-card ${form.offerKey===offerKey(program) ? "is-selected" : ""}${program.spotsRemaining === 0 ? " is-disabled" : ""}`} key={offerKey(program)}>
+                    <input type="radio" name="program" checked={form.offerKey===offerKey(program)} disabled={program.spotsRemaining === 0} onChange={()=>chooseOffer(program)} />
                     <span className="choice-check" />
+                    {program.programType === "camp" && <span className="coming-soon-pill">Camp</span>}
                     <strong>{program.name}</strong>
-                    <span>Ages {program.ageMin}–{program.ageMax} · {program.day} {programTimeRange(program)}</span>
-                    <small>{program.spotsRemaining} of {program.capacity} spots remaining</small>
+                    <span>Ages {program.ageMin}–{program.ageMax} · {scheduleLine(program)}</span>
+                    <small>{program.spotsRemaining === 0 ? "Full" : `${program.spotsRemaining} of ${program.capacity} spots remaining`}{program.programType === "camp" ? ` · ${formatPriceCents(program.termFeeCents)}` : ""}</small>
                   </label>
                 ))}
               </div>
             </div>
 
-            <div className="choice-section">
+            {isCamp && selectedProgram && (
+              <div className="registration-total"><span>Camp fee ({formatDateRange(selectedProgram.termStartDate, selectedProgram.termEndDate)})</span><strong>{formatPriceCents(selectedProgram.termFeeCents)}</strong></div>
+            )}
+
+            {!isCamp && <div className="choice-section">
               <span className="choice-heading">Payment plan *</span>
               <div className="payment-method-grid">
                 <label className={`choice-card ${form.paymentFrequency==="weekly" ? "is-selected" : ""}`}>
@@ -334,11 +367,11 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribut
                 <label className={`choice-card ${form.paymentFrequency==="term" ? "is-selected" : ""}`}>
                   <input type="radio" checked={form.paymentFrequency==="term"} onChange={()=>set("paymentFrequency","term")} />
                   <span className="choice-check" /><strong>Pay full term</strong>
-                  <span>{selectedProgram ? `${formatPriceCents(selectedProgram.termFeeCents)} for Term 1` : "Choose a class first"}</span>
+                  <span>{selectedProgram ? `${formatPriceCents(selectedProgram.termFeeCents)} for ${selectedProgram.termName}` : "Choose a class first"}</span>
                   <small>Best value</small>
                 </label>
               </div>
-            </div>
+            </div>}
 
             <div className="choice-section">
               <span className="choice-heading">Payment method *</span>
@@ -376,7 +409,7 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribut
               </div>
             )}
 
-            {selectedPrice !== null && <div className="registration-total"><span>{form.paymentFrequency==="term" ? "Term 1 amount" : "Weekly class amount"}</span><strong>{formatPriceCents(selectedPrice)}</strong></div>}
+            {selectedPrice !== null && !isCamp && <div className="registration-total"><span>{form.paymentFrequency==="term" ? `${selectedProgram?.termName ?? "Term"} amount` : "Weekly class amount"}</span><strong>{formatPriceCents(selectedPrice)}</strong></div>}
           </fieldset>
         )}
 
@@ -385,8 +418,8 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribut
             <legend><span>05</span>Review & consent</legend>
             <div className="registration-review">
               <div><span>Child</span><strong>{form.childName}</strong><small>{form.childDob}</small></div>
-              <div><span>Class</span><strong>{selectedProgram?.name}</strong><small>{selectedProgram ? `${selectedProgram.day} · ${programTimeRange(selectedProgram)}` : ""}</small></div>
-              <div><span>Payment</span><strong>{form.paymentFrequency==="term" ? "Full term" : "Weekly"} · {selectedPrice!==null ? formatPriceCents(selectedPrice) : ""}</strong><small>{paymentMethodLabel(form.paymentMethod)}</small></div>
+              <div><span>{isCamp ? "Camp" : "Class"}</span><strong>{selectedProgram?.name}</strong><small>{selectedProgram ? scheduleLine(selectedProgram) : ""}</small></div>
+              <div><span>Payment</span><strong>{isCamp ? "Camp fee" : form.paymentFrequency==="term" ? "Full term" : "Weekly"} · {selectedPrice!==null ? formatPriceCents(selectedPrice) : ""}</strong><small>{paymentMethodLabel(form.paymentMethod)}</small></div>
               <div><span>Parent/guardian</span><strong>{form.parentName}</strong><small>{form.parentEmail}</small></div>
             </div>
 
@@ -417,7 +450,7 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribut
         {error && <p className="form-error registration-error" role="alert">{error}</p>}
 
         <div className="registration-actions">
-          {step > 0 ? <button className="secondary-button" type="button" onClick={()=>setStep((s)=>s-1)} disabled={busy}>← Back</button> : <a className="secondary-button" href={selectedProgram ? `/sports-fitness/futprep-athletics/${selectedProgram.slug}` : "/sports-fitness/futprep-athletics"}>← Program details</a>}
+          {step > 0 ? <button className="secondary-button" type="button" onClick={()=>setStep((s)=>s-1)} disabled={busy}>← Back</button> : <a className="secondary-button" href={isCamp ? "/futprep/camps" : selectedProgram ? `/sports-fitness/futprep-athletics/${selectedProgram.slug}` : "/sports-fitness/futprep-athletics"}>{isCamp ? "← Camp details" : "← Program details"}</a>}
           {step < steps.length - 1
             ? <button className="primary-button" type="button" onClick={next}>Continue →</button>
             : <button className="primary-button" type="submit" disabled={busy}>{busy ? "Submitting…" : "Submit registration →"}</button>}

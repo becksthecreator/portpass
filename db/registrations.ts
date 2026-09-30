@@ -4,7 +4,9 @@ import {
   FUTPREP_TERM,
 } from "@/app/futprep/config";
 import { EMPTY_ATTRIBUTION, resolveAttribution, type Attribution, type HeardAnswer, type Resolved } from "@/lib/attribution";
+import { amountDueCents as amountDueFor, isTermOpen, type ProgramType, type TermWindow } from "@/lib/futprepTerms";
 import { ageOnDate, generateWeeklySessionDates } from "@/lib/scheduling";
+import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type RegistrationStatus = "pending_details" | "pending" | "confirmed" | "cancelled";
@@ -47,6 +49,9 @@ export type FutprepRegistrationInput = {
   authorizedPickup: string;
   additionalNotes: string;
   programSlug: string;
+  // The term being registered for (brief 06 v2, A1.4). Optional only for
+  // callers that predate it: a program with exactly one open term uses that.
+  termId?: number | null;
   paymentFrequency: PaymentFrequency;
   paymentMethod: PaymentMethod;
   photoConsent: "yes" | "no";
@@ -68,9 +73,15 @@ export type FutprepRegistrationInput = {
   attribution?: Attribution;
 };
 
+// One registrable thing: a program in one open term (brief 06 v2, Part A).
+// A class with Term 1 and Term 2 both open is two offers; a camp is one.
 export type FutprepAvailability = {
+  programId: number;
+  termId: number;
   slug: string;
   name: string;
+  programType: ProgramType;
+  isPublic: boolean;
   ageMin: number;
   ageMax: number;
   day: string;
@@ -80,7 +91,14 @@ export type FutprepAvailability = {
   capacity: number;
   weeklyFeeCents: number;
   termFeeCents: number;
+  termName: string;
   termStartDate: string;
+  termEndDate: string;
+  breakDates: string[];
+  dailyStartTime: string | null;
+  dailyEndTime: string | null;
+  whatToBring: string | null;
+  registrationClosesAt: string | null;
   registered: number;
   spotsRemaining: number;
 };
@@ -88,32 +106,26 @@ export type FutprepAvailability = {
 let lastSeedAt = 0;
 let seedPromise: Promise<void> | null = null;
 
-// Checked before the (expensive) full seed. Every page that touches Futprep
-// data calls ensureFutprepPilotData() first, but on Vercel each cold
-// serverless instance starts with an empty in-memory cache - so without this
-// fast path, most real requests were paying for the full ~12-round-trip
-// seed chain below just to confirm nothing had changed. This is 2 cheap
-// queries; if anything looks incomplete it falls through to the real seed.
+// For the integration test that proves the seed never re-activates a term
+// staff switched off: the 60-second throttle would otherwise hide a second
+// call in the same process.
+export function resetFutprepSeedThrottleForTests() {
+  lastSeedAt = 0;
+}
+
+// The seed exists only to bootstrap an empty database (a fresh local stack
+// in CI). Once any of the configured programs exists -- active or not --
+// it is never touched again: Term 2, camps and deactivations made in the
+// database are the truth from then on (brief 06 v2, A1.1).
 async function isFutprepAlreadySeeded(): Promise<boolean> {
   const db = getSupabaseAdmin();
   const slugs = FUTPREP_PROGRAMS.map((program) => program.slug);
-
-  const { data: programs, error: programsError } = await db
+  const { count, error } = await db
     .from("programs")
-    .select("id")
-    .in("slug", slugs)
-    .eq("active", true);
-  if (programsError || (programs?.length ?? 0) < slugs.length) return false;
-
-  const { count, error: termsError } = await db
-    .from("program_terms")
     .select("id", { count: "exact", head: true })
-    .in("program_id", programs!.map((program) => program.id))
-    .eq("name", FUTPREP_TERM.name)
-    .eq("active", true);
-  if (termsError) return false;
-
-  return (count ?? 0) >= slugs.length;
+    .in("slug", slugs);
+  if (error) return false;
+  return (count ?? 0) > 0;
 }
 
 export async function ensureFutprepPilotData() {
@@ -131,6 +143,8 @@ export async function ensureFutprepPilotData() {
   lastSeedAt = Date.now();
 }
 
+// Insert-if-missing only: a program that already exists (by slug) is left
+// exactly as it is, including its terms and whether they are active.
 async function seedFutprepPilot() {
   const db = getSupabaseAdmin();
   const now = new Date().toISOString();
@@ -141,14 +155,9 @@ async function seedFutprepPilot() {
     .or("name.ilike.%futprep%,name.ilike.%footprep%")
     .order("id", { ascending: true })
     .limit(1);
-  throwIfSupabaseError(
-    organizationError,
-    "Could not locate Futprep organization",
-  );
+  throwIfSupabaseError(organizationError, "Could not locate Futprep organization");
 
-  const organization = (organizations?.[0] ?? null) as
-    | { id: number; name: string }
-    | null;
+  const organization = (organizations?.[0] ?? null) as { id: number; name: string } | null;
 
   if (organization) {
     const { error: locationError } = await db.from("locations").upsert(
@@ -160,92 +169,68 @@ async function seedFutprepPilot() {
         active: true,
         created_at: now,
       },
-      { onConflict: "organization_id,name" },
+      { onConflict: "organization_id,name", ignoreDuplicates: true },
     );
     throwIfSupabaseError(locationError, "Could not seed Futprep location");
-
-    // Staff directory rows are no longer seeded with placeholder names here —
-    // accounts are created by an admin through /futprep/staff/accounts.
   }
 
   for (const configured of FUTPREP_PROGRAMS) {
     const { data: existingProgram, error: existingError } = await db
       .from("programs")
-      .select("id,organization_id")
+      .select("id")
       .eq("slug", configured.slug)
       .maybeSingle();
     throwIfSupabaseError(existingError, "Could not load Futprep program");
-
-    const programPayload = {
-      organization_id:
-        organization?.id ??
-        (existingProgram as { organization_id?: number | null } | null)
-          ?.organization_id ??
-        null,
-      slug: configured.slug,
-      name: configured.name,
-      age_min: configured.ageMin,
-      age_max: configured.ageMax,
-      coed: true,
-      location: FUTPREP_TERM.location,
-      day_of_week: configured.day,
-      start_time: configured.time,
-      capacity: configured.capacity,
-      active: true,
-      created_at: now,
-    };
+    if (existingProgram) continue;
 
     const { data: storedProgram, error: programError } = await db
       .from("programs")
-      .upsert(programPayload, { onConflict: "slug" })
-      .select("id,organization_id")
+      .insert({
+        organization_id: organization?.id ?? null,
+        slug: configured.slug,
+        name: configured.name,
+        age_min: configured.ageMin,
+        age_max: configured.ageMax,
+        coed: true,
+        location: FUTPREP_TERM.location,
+        day_of_week: configured.day,
+        start_time: configured.time,
+        end_time: configured.endTime,
+        capacity: configured.capacity,
+        active: true,
+        created_at: now,
+      })
+      .select("id")
       .single();
     throwIfSupabaseError(programError, "Could not seed Futprep program");
     if (!storedProgram) throw new Error("Could not seed Futprep program");
-
     const programId = Number(storedProgram.id);
-
-    if (organization) {
-      const { error: attachError } = await db
-        .from("registrations")
-        .update({ organization_id: organization.id })
-        .eq("program_id", programId)
-        .is("organization_id", null);
-      throwIfSupabaseError(
-        attachError,
-        "Could not attach Futprep registrations to organization",
-      );
-    }
 
     const { data: term, error: termError } = await db
       .from("program_terms")
-      .upsert(
-        {
-          program_id: programId,
-          name: FUTPREP_TERM.name,
-          start_date: FUTPREP_TERM.startDate,
-          end_date: FUTPREP_TERM.endDate,
-          break_dates: FUTPREP_TERM.breakDates,
-          weekly_fee_cents: configured.weeklyFeeCents,
-          term_fee_cents: configured.termFeeCents,
-          registration_fee_cents: 0,
-          active: true,
-          created_at: now,
-        },
-        { onConflict: "program_id,name" },
-      )
+      .insert({
+        program_id: programId,
+        name: FUTPREP_TERM.name,
+        start_date: FUTPREP_TERM.startDate,
+        end_date: FUTPREP_TERM.endDate,
+        break_dates: FUTPREP_TERM.breakDates,
+        weekly_fee_cents: configured.weeklyFeeCents,
+        term_fee_cents: configured.termFeeCents,
+        registration_fee_cents: 0,
+        active: true,
+        created_at: now,
+      })
       .select("id")
       .single();
     throwIfSupabaseError(termError, "Could not seed Futprep term");
     if (!term) throw new Error("Could not seed Futprep term");
 
-    const sessionDates = generateWeeklySessionDates({
+    const sessions = generateWeeklySessionDates({
       startDate: FUTPREP_TERM.startDate,
       endDate: FUTPREP_TERM.endDate,
       dayOfWeek: configured.day,
       breakDates: FUTPREP_TERM.breakDates,
-    });
-    const sessions: Array<Record<string, unknown>> = sessionDates.map((sessionDate) => ({
+    }).map((sessionDate) => ({
       program_id: programId,
       term_id: Number(term.id),
       session_date: sessionDate,
@@ -254,100 +239,82 @@ async function seedFutprepPilot() {
       status: "scheduled",
       created_at: now,
     }));
-
     if (sessions.length) {
       const { error: sessionError } = await db
         .from("sessions")
-        .upsert(sessions, {
-          onConflict: "program_id,term_id,session_date",
-        });
+        .upsert(sessions, { onConflict: "program_id,term_id,session_date", ignoreDuplicates: true });
       throwIfSupabaseError(sessionError, "Could not seed Futprep sessions");
     }
   }
 }
 
-export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
+const PROGRAM_OFFER_COLUMNS = "id,slug,name,program_type,is_public,age_min,age_max,location,day_of_week,start_time,end_time,capacity,organization_id";
+const TERM_OFFER_COLUMNS = "id,program_id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,active,registration_opens_at,registration_closes_at,daily_start_time,daily_end_time,what_to_bring";
+
+type ProgramOfferRow = {
+  id: number; slug: string; name: string; program_type: string; is_public: boolean; age_min: number; age_max: number;
+  location: string; day_of_week: string; start_time: string; end_time: string | null; capacity: number; organization_id: number | null;
+};
+type TermOfferRow = {
+  id: number; program_id: number; name: string; start_date: string; end_date: string; break_dates: string[] | null;
+  weekly_fee_cents: number; term_fee_cents: number; active: boolean; registration_opens_at: string | null; registration_closes_at: string | null;
+  daily_start_time: string | null; daily_end_time: string | null; what_to_bring: string | null;
+};
+
+function termWindow(term: TermOfferRow): TermWindow {
+  return { active: Boolean(term.active), endDate: term.end_date, registrationOpensAt: term.registration_opens_at, registrationClosesAt: term.registration_closes_at };
+}
+
+// Every open offer for Futprep: each active program (public ones only,
+// unless asked) with each of its active terms whose registration window
+// is open. Three queries however many programs and terms there are.
+export async function listFutprepOffers(options: { publicOnly?: boolean; now?: Date } = {}): Promise<FutprepAvailability[]> {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
+  const now = options.now ?? new Date();
 
-  // Dynamic: reads every active Futprep program (whether seeded from the
-  // static Term 1 config or added later by staff, e.g. Futprep Out East)
-  // rather than only the two originally-hardcoded programs.
-  const { data: programs, error: programsError } = await db
+  let programQuery = db
     .from("programs")
-    .select("id,slug,name,age_min,age_max,location,day_of_week,start_time,end_time,capacity,organization_id")
+    .select(PROGRAM_OFFER_COLUMNS)
+    .eq("organization_id", organizationId)
     .eq("active", true)
     .order("id", { ascending: true });
+  if (options.publicOnly) programQuery = programQuery.eq("is_public", true);
+  const { data: programs, error: programsError } = await programQuery;
   throwIfSupabaseError(programsError, "Could not load class availability");
 
-  const output: FutprepAvailability[] = [];
-  const programList = programs ?? [];
-  if (programList.length === 0) return output;
-
+  const programList = (programs ?? []) as ProgramOfferRow[];
+  if (programList.length === 0) return [];
   const programIds = programList.map((program) => program.id);
 
-  // Batched instead of one term lookup + one registration count per program
-  // (was N+1 sequential round trips), so this scales with 2 queries total
-  // regardless of how many programs are active.
-  const [{ data: terms, error: termsError }, { data: activeRegistrations, error: registrationsError }] =
-    await Promise.all([
-      db
-        .from("program_terms")
-        .select("id,program_id,start_date,weekly_fee_cents,term_fee_cents")
-        .in("program_id", programIds)
-        .eq("active", true)
-        .order("start_date", { ascending: false }),
-      db
-        .from("registrations")
-        .select("program_id,term_id")
-        .in("program_id", programIds)
-        .in("registration_status", ACTIVE_REGISTRATION_STATUSES),
-    ]);
+  const [{ data: terms, error: termsError }, { data: activeRegistrations, error: registrationsError }] = await Promise.all([
+    db.from("program_terms").select(TERM_OFFER_COLUMNS).in("program_id", programIds).eq("active", true).order("start_date", { ascending: true }),
+    db.from("registrations").select("program_id,term_id").in("program_id", programIds).in("registration_status", ACTIVE_REGISTRATION_STATUSES),
+  ]);
   throwIfSupabaseError(termsError, "Could not load term availability");
   throwIfSupabaseError(registrationsError, "Could not count registrations");
 
-  const latestTermByProgram = new Map<number, { id: number; start_date: string; weekly_fee_cents: number; term_fee_cents: number }>();
-  for (const term of terms ?? []) {
-    if (!latestTermByProgram.has(term.program_id)) {
-      latestTermByProgram.set(term.program_id, term);
-    }
+  const registeredByKey = new Map<string, number>();
+  for (const row of activeRegistrations ?? []) {
+    const key = `${row.program_id}:${row.term_id}`;
+    registeredByKey.set(key, (registeredByKey.get(key) ?? 0) + 1);
   }
 
-  const registeredCountByKey = new Map<string, number>();
-  for (const registration of activeRegistrations ?? []) {
-    const key = `${registration.program_id}:${registration.term_id}`;
-    registeredCountByKey.set(key, (registeredCountByKey.get(key) ?? 0) + 1);
-  }
-
-  for (const program of programList) {
+  const programById = new Map(programList.map((program) => [program.id, program]));
+  const offers: FutprepAvailability[] = [];
+  for (const term of (terms ?? []) as TermOfferRow[]) {
+    const program = programById.get(Number(term.program_id));
+    if (!program || !isTermOpen(termWindow(term), now)) continue;
     const capacity = Number(program.capacity);
-    const term = latestTermByProgram.get(program.id);
-
-    if (!term) {
-      output.push({
-        slug: program.slug,
-        name: program.name,
-        ageMin: Number(program.age_min),
-        ageMax: Number(program.age_max),
-        day: program.day_of_week,
-        time: program.start_time,
-        endTime: program.end_time ?? program.start_time,
-        location: program.location,
-        capacity,
-        weeklyFeeCents: 0,
-        termFeeCents: 0,
-        termStartDate: new Date().toISOString().slice(0, 10),
-        registered: 0,
-        spotsRemaining: capacity,
-      });
-      continue;
-    }
-
-    const registered = registeredCountByKey.get(`${program.id}:${term.id}`) ?? 0;
-
-    output.push({
+    const registered = registeredByKey.get(`${program.id}:${term.id}`) ?? 0;
+    offers.push({
+      programId: Number(program.id),
+      termId: Number(term.id),
       slug: program.slug,
       name: program.name,
+      programType: program.program_type === "camp" ? "camp" : "term",
+      isPublic: Boolean(program.is_public),
       ageMin: Number(program.age_min),
       ageMax: Number(program.age_max),
       day: program.day_of_week,
@@ -357,13 +324,40 @@ export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
       capacity,
       weeklyFeeCents: Number(term.weekly_fee_cents),
       termFeeCents: Number(term.term_fee_cents),
+      termName: term.name,
       termStartDate: term.start_date,
+      termEndDate: term.end_date,
+      breakDates: (term.break_dates ?? []) as string[],
+      dailyStartTime: term.daily_start_time,
+      dailyEndTime: term.daily_end_time,
+      whatToBring: term.what_to_bring,
+      registrationClosesAt: term.registration_closes_at,
       registered,
       spotsRemaining: Math.max(0, capacity - registered),
     });
   }
+  // Term classes first (by program), then camps by start date.
+  return offers.sort((a, b) =>
+    a.programType === b.programType
+      ? a.programType === "camp"
+        ? a.termStartDate.localeCompare(b.termStartDate)
+        : a.programId - b.programId || a.termStartDate.localeCompare(b.termStartDate)
+      : a.programType === "term" ? -1 : 1,
+  );
+}
 
-  return output;
+// What the public sees: every open offer on a listed (is_public) program.
+export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
+  return listFutprepOffers({ publicOnly: true });
+}
+
+// One offer by program slug (and term, when given), including unlisted
+// programs -- a direct /futprep/register?program=&term= link works for a
+// program that is not on the public list.
+export async function getFutprepOffer(programSlug: string, termId?: number | null): Promise<FutprepAvailability | null> {
+  const offers = (await listFutprepOffers()).filter((offer) => offer.slug === programSlug);
+  if (termId) return offers.find((offer) => offer.termId === termId) ?? null;
+  return offers.length === 1 ? offers[0] : null;
 }
 
 export type FutprepRegistrationStatus = {
@@ -458,23 +452,34 @@ export async function createFutprepRegistration(
 
   const { data: program, error: programError } = await db
     .from("programs")
-    .select("id,organization_id,capacity,name,age_min,age_max,location,day_of_week,start_time,end_time")
+    .select("id,organization_id,capacity,name,age_min,age_max,location,day_of_week,start_time,end_time,program_type")
     .eq("slug", input.programSlug)
     .eq("active", true)
     .maybeSingle();
   throwIfSupabaseError(programError, "Could not load selected program");
   if (!program) throw new Error("INVALID_PROGRAM");
+  const programType: ProgramType = program.program_type === "camp" ? "camp" : "term";
 
-  const { data: term, error: termError } = await db
+  // The term must belong to this program and be taking registrations
+  // (active, not finished, inside its window). Staff entering a child by
+  // hand may use an active term whose public window has closed.
+  const { data: terms, error: termError } = await db
     .from("program_terms")
-    .select("id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents")
+    .select("id,program_id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,active,registration_opens_at,registration_closes_at,daily_start_time,daily_end_time")
     .eq("program_id", program.id)
     .eq("active", true)
-    .order("start_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("start_date", { ascending: true });
   throwIfSupabaseError(termError, "Could not load selected term");
-  if (!term) throw new Error("PROGRAM_NOT_AVAILABLE");
+  const usable = (terms ?? []).filter((row) =>
+    input.enteredByStaff ? true : isTermOpen({ active: Boolean(row.active), endDate: row.end_date, registrationOpensAt: row.registration_opens_at, registrationClosesAt: row.registration_closes_at }),
+  );
+  const term = input.termId
+    ? usable.find((row) => Number(row.id) === Number(input.termId)) ?? null
+    : usable.length === 1 ? usable[0] : null;
+  if (!term) {
+    const requested = input.termId ? (terms ?? []).find((row) => Number(row.id) === Number(input.termId)) : null;
+    throw new Error(requested ? "TERM_CLOSED" : "PROGRAM_NOT_AVAILABLE");
+  }
 
   const age = ageOnDate(input.childDob, term.start_date);
   if (age < Number(program.age_min) || age > Number(program.age_max)) {
@@ -512,10 +517,10 @@ export async function createFutprepRegistration(
     throw new Error(`DUPLICATE:${duplicate.reference_code}`);
   }
 
-  const amountDueCents =
-    input.paymentFrequency === "term"
-      ? Number(term.term_fee_cents)
-      : Number(term.weekly_fee_cents);
+  // Camps are paid in full (the camp fee); the weekly/term choice is for
+  // term programs only (brief 06 v2, A1.4).
+  const paymentFrequency: PaymentFrequency = programType === "camp" ? "term" : input.paymentFrequency;
+  const amountDueCents = amountDueFor({ programType, weeklyFeeCents: Number(term.weekly_fee_cents), termFeeCents: Number(term.term_fee_cents) }, paymentFrequency);
 
   // New family = neither the parent's phone nor email is on any earlier
   // registration here (handbook v1.3 §5). Computed before the insert so
@@ -561,7 +566,7 @@ export async function createFutprepRegistration(
     authorized_pickup: input.authorizedPickup.trim(),
     additional_notes: input.additionalNotes.trim(),
     photo_consent: input.photoConsent,
-    payment_frequency: input.paymentFrequency,
+    payment_frequency: paymentFrequency,
     payment_method: input.paymentMethod,
     amount_due_cents: amountDueCents,
     registration_status: "pending",
@@ -590,22 +595,25 @@ export async function createFutprepRegistration(
     program: {
       slug: input.programSlug,
       name: program.name,
+      programType,
       ageMin: Number(program.age_min),
       ageMax: Number(program.age_max),
       day: program.day_of_week,
-      time: program.start_time,
-      endTime: program.end_time ?? program.start_time,
+      time: term.daily_start_time || program.start_time,
+      endTime: term.daily_end_time || program.end_time || program.start_time,
       capacity: Number(program.capacity),
       weeklyFeeCents: Number(term.weekly_fee_cents),
       termFeeCents: Number(term.term_fee_cents),
     },
     term: {
+      id: Number(term.id),
       name: term.name,
       startDate: term.start_date,
       endDate: term.end_date,
       breakDates: (term.break_dates ?? []) as string[],
       location: program.location,
     },
+    paymentFrequency,
     amountDueCents,
     paymentStatus: "pending" as const,
     registrationStatus: "pending" as const,
@@ -615,6 +623,9 @@ export async function createFutprepRegistration(
 export type FutprepPendingRegistrationInput = {
   childName: string;
   programSlug: string;
+  // Which term (brief 06 v2): a camp and a class can be open at once.
+  // Absent = the program's most recent active term, as before.
+  termId?: number | null;
   parentName?: string;
   parentPhone?: string;
   parentEmail?: string;
@@ -633,18 +644,20 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
 
   const { data: program, error: programError } = await db
     .from("programs")
-    .select("id,organization_id,capacity,name")
+    .select("id,organization_id,capacity,name,program_type")
     .eq("slug", input.programSlug)
     .eq("active", true)
     .maybeSingle();
   throwIfSupabaseError(programError, "Could not load selected program");
   if (!program) throw new Error("INVALID_PROGRAM");
 
-  const { data: term, error: termError } = await db
+  let termQuery = db
     .from("program_terms")
-    .select("id,weekly_fee_cents")
+    .select("id,weekly_fee_cents,term_fee_cents")
     .eq("program_id", program.id)
-    .eq("active", true)
+    .eq("active", true);
+  if (input.termId) termQuery = termQuery.eq("id", input.termId);
+  const { data: term, error: termError } = await termQuery
     .order("start_date", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -700,8 +713,9 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
     // amount_due_cents assumes weekly to start with -- an estimate, not a
     // commitment. The parent picks the real plan (and this gets
     // recalculated) at the completion step.
-    payment_frequency: "weekly",
-    amount_due_cents: Number(term.weekly_fee_cents),
+    // A camp is paid in full, so its estimate is the camp fee.
+    payment_frequency: program.program_type === "camp" ? "term" : "weekly",
+    amount_due_cents: program.program_type === "camp" ? Number(term.term_fee_cents) : Number(term.weekly_fee_cents),
     registration_status: "pending_details",
     payment_status: "pending",
     consent_version: CONSENT_VERSION,
@@ -797,7 +811,7 @@ export async function completeFutprepRegistration(input: FutprepCompletionInput)
   if (registration.registration_status !== "pending_details") throw new Error("ALREADY_COMPLETE");
 
   const [{ data: program, error: programError }, { data: term, error: termError }] = await Promise.all([
-    db.from("programs").select("age_min,age_max").eq("id", registration.program_id).maybeSingle(),
+    db.from("programs").select("age_min,age_max,program_type").eq("id", registration.program_id).maybeSingle(),
     db.from("program_terms").select("start_date,weekly_fee_cents,term_fee_cents").eq("id", registration.term_id).maybeSingle(),
   ]);
   throwIfSupabaseError(programError, "Could not load program");
@@ -809,7 +823,10 @@ export async function completeFutprepRegistration(input: FutprepCompletionInput)
     throw new Error("AGE_MISMATCH");
   }
 
-  const amountDueCents = input.paymentFrequency === "term" ? Number(term.term_fee_cents) : Number(term.weekly_fee_cents);
+  // Camps are paid in full whatever plan the form sent (brief 06 v2).
+  const programType: ProgramType = program.program_type === "camp" ? "camp" : "term";
+  const paymentFrequency: PaymentFrequency = programType === "camp" ? "term" : input.paymentFrequency;
+  const amountDueCents = amountDueFor({ programType, weeklyFeeCents: Number(term.weekly_fee_cents), termFeeCents: Number(term.term_fee_cents) }, paymentFrequency);
   const now = new Date().toISOString();
 
   const { error: updateError } = await db
@@ -829,7 +846,7 @@ export async function completeFutprepRegistration(input: FutprepCompletionInput)
       special_needs: input.specialNeeds.trim(),
       authorized_pickup: input.authorizedPickup.trim(),
       photo_consent: input.photoConsent,
-      payment_frequency: input.paymentFrequency,
+      payment_frequency: paymentFrequency,
       payment_method: input.paymentMethod,
       amount_due_cents: amountDueCents,
       registration_status: "pending",

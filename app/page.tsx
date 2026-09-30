@@ -82,8 +82,10 @@ export default async function Home() {
     safeWeddingSettings(),
     safeDirectory(),
   ]);
-  const futprepProgram = availability[0];
-  const spotsThisWeek = availability.reduce((sum, program) => sum + program.spotsRemaining, 0);
+  // The Saturday-class line: camps have their own page and card.
+  const termClasses = availability.filter((offer) => offer.programType === "term");
+  const futprepProgram = termClasses[0];
+  const spotsThisWeek = termClasses.reduce((sum, program) => sum + program.spotsRemaining, 0);
   const liveSlugs = await safeLiveSections(directory);
 
   // The two businesses that are live today get their real numbers; anyone
