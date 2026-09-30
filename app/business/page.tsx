@@ -51,7 +51,7 @@ export default async function BusinessPage() {
       <div className="biz-sections">
         {sections.map((section) => (
           <div className="biz-section" key={section.slug}>
-            <h3><Link href={section.href}>{section.name}</Link></h3>
+            <h2><Link href={section.href}>{section.name}</Link></h2>
             <p>{section.line}</p>
           </div>
         ))}

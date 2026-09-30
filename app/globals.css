@@ -4461,8 +4461,8 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .biz-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
 .biz-sections{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));max-width:1100px;margin:0 auto;padding:10px 5vw 70px}
 .biz-section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
-.biz-section h3{font-family:var(--hp-font-display);font-size:1.2rem;font-weight:700;margin:0 0 8px}
-.biz-section h3 a{text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:4px}
+.biz-section h2{font-family:var(--hp-font-display);font-size:1.2rem;font-weight:700;margin:0 0 8px}
+.biz-section h2 a{text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:4px}
 .biz-section p{color:var(--muted);font-size:.92rem;line-height:1.55;margin:0}
 .biz-section small{display:inline-block;margin-top:10px;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .biz-steps{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));max-width:1000px;margin:0 auto}
