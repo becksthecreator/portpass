@@ -34,7 +34,9 @@ export async function updateSession(request: NextRequest): Promise<{ response: N
 
 // /api/applications itself (the public /apply POST) stays open; its
 // review endpoint /api/applications/[id] guards itself with requireAdminApi.
-const SESSION_PREFIXES = ["/account", "/where-to", "/api/account", "/api/business", "/admin", "/organizations", "/api/admin"];
+// /futprep/trial: the free first Saturday is a PortPass member perk (brief
+// 06 v2, Part C), so it needs a signed-in parent.
+const SESSION_PREFIXES = ["/account", "/where-to", "/futprep/trial", "/api/account", "/api/business", "/admin", "/organizations", "/api/admin"];
 
 // /business itself is the public marketing page; everything under it
 // (/business/setup, /business/[slug]/...) needs a session.

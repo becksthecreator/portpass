@@ -3,51 +3,81 @@
 import { FormEvent, useMemo, useState } from "react";
 import steamerStyles from "./SteamerLeft.module.css";
 
-type CoachChoice={id:number;displayName:string};
+export type BookingSlot = { id: number; date: string; startTime: string; endTime: string; location: string };
+export type BookingCoach = { id: number; displayName: string; slots: BookingSlot[] };
+export type BookingService = { slug: string; name: string; priceCents: number | null; priceUnit: string | null; kind: "session" | "party"; durationMinutes: number };
 
+const DAY = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+const dayLabel = (iso: string) => DAY.format(new Date(`${iso}T12:00:00Z`));
+const money = (cents: number | null) => (cents === null ? "" : `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`);
+
+// Request a private session or a party (brief 06 v2, Part B): the service
+// and its price, a coach, and one of the coach's open times -- or a
+// suggested time when none suits. It is a request until the coach
+// accepts; the reference is a PS- code.
 export function PrivateSessionBooking({
-  coaches,schemaReady,preferredCoachId,triggerLabel,
-}:{
-  coaches:CoachChoice[];schemaReady:boolean;preferredCoachId?:number;triggerLabel:string;
-}){
-  const [open,setOpen]=useState(false);
-  const [busy,setBusy]=useState(false);
-  const [error,setError]=useState("");
-  const [reference,setReference]=useState("");
-  const today=useMemo(()=>new Date().toISOString().slice(0,10),[]);
+  coaches, services, schemaReady, preferredCoachId, defaultKind = "session", triggerLabel,
+}: {
+  coaches: BookingCoach[]; services: BookingService[]; schemaReady: boolean; preferredCoachId?: number; defaultKind?: "session" | "party"; triggerLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [reference, setReference] = useState("");
+  const firstService = services.find((s) => s.kind === defaultKind) ?? services[0] ?? null;
+  const [serviceSlug, setServiceSlug] = useState<string>(firstService?.slug ?? "");
+  const [coachId, setCoachId] = useState<number | null>(preferredCoachId ?? null);
+  const [slotId, setSlotId] = useState<number | "suggest">("suggest");
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
-  async function submit(event:FormEvent<HTMLFormElement>){
+  const service = services.find((s) => s.slug === serviceSlug) ?? null;
+  const coach = coaches.find((c) => c.id === coachId) ?? null;
+  const slots = coach?.slots ?? [];
+  const legacyType = service?.kind === "party" ? "birthday" : defaultKind === "party" ? "birthday" : "private_lesson";
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBusy(true);setError("");
-    const form=new FormData(event.currentTarget);
-    try{
-      const response=await fetch("/api/futprep/private-sessions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-        requestType:form.get("requestType"),
-        preferredCoachId:Number(form.get("preferredCoachId"))||null,
-        parentName:form.get("parentName"),
-        parentEmail:form.get("parentEmail"),
-        parentPhone:form.get("parentPhone"),
-        childName:form.get("childName"),
-        childAge:Number(form.get("childAge")),
-        requestedDate:form.get("requestedDate"),
-        requestedStartTime:form.get("requestedStartTime"),
-        durationMinutes:Number(form.get("durationMinutes")),
-        locationPreference:form.get("locationPreference"),
-        sessionGoal:form.get("sessionGoal"),
-        notes:form.get("notes"),
-      })});
-      const data=await response.json() as {referenceCode?:string;error?:string};
-      if(!response.ok) throw new Error(data.error??"Could not send your request.");
-      setReference(data.referenceCode??"Sent");
-    }catch(e){setError(e instanceof Error?e.message:"Could not send your request.");}
-    finally{setBusy(false);}
+    setBusy(true);
+    setError("");
+    const form = new FormData(event.currentTarget);
+    const usingSlot = typeof slotId === "number";
+    try {
+      const response = await fetch("/api/futprep/private-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestType: legacyType,
+          serviceSlug: service?.slug ?? null,
+          preferredCoachId: coachId,
+          availabilityId: usingSlot ? slotId : null,
+          parentName: form.get("parentName"),
+          parentEmail: form.get("parentEmail"),
+          parentPhone: form.get("parentPhone"),
+          childName: form.get("childName"),
+          childAge: Number(form.get("childAge")),
+          requestedDate: usingSlot ? "" : form.get("requestedDate"),
+          requestedStartTime: usingSlot ? "" : form.get("requestedStartTime"),
+          durationMinutes: service?.durationMinutes ?? Number(form.get("durationMinutes") ?? 60),
+          locationPreference: form.get("locationPreference"),
+          sessionGoal: form.get("sessionGoal"),
+          notes: form.get("notes"),
+        }),
+      });
+      const data = (await response.json()) as { referenceCode?: string; error?: string };
+      if (!response.ok) throw new Error(data.error ?? "Could not send your request.");
+      setReference(data.referenceCode ?? "Sent");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not send your request.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return <>
-    <button className="private-session-trigger" type="button" onClick={()=>setOpen(true)}>{triggerLabel}</button>
-    {open && <div className="private-session-backdrop" role="presentation" onMouseDown={()=>setOpen(false)}>
-      <aside className="private-session-drawer" role="dialog" aria-modal="true" aria-label="Request a Futprep session" onMouseDown={(e)=>e.stopPropagation()}>
-        <button className="private-session-close" type="button" onClick={()=>setOpen(false)} aria-label="Close">×</button>
+    <button className="private-session-trigger" type="button" onClick={() => setOpen(true)}>{triggerLabel}</button>
+    {open && <div className="private-session-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
+      <aside className="private-session-drawer" role="dialog" aria-modal="true" aria-label="Request a Futprep session" onMouseDown={(e) => e.stopPropagation()}>
+        <button className="private-session-close" type="button" onClick={() => setOpen(false)} aria-label="Close">×</button>
         {reference ? <div className="private-session-success">
           <span>Request mailed</span>
           <div className="request-mail-scene" aria-hidden="true">
@@ -75,44 +105,78 @@ export function PrivateSessionBooking({
             <div className="request-mail-water"><i/><i/><i/></div>
           </div>
           <h2>On its way.</h2>
-          <p>Your request has been mailed to the Futprep coaching team. It is not confirmed until a coach accepts it.</p>
+          <p>Your request has gone to the Futprep coaches. It is not confirmed until a coach accepts it; you will get an email with the time, place and how to pay.</p>
           <div className="request-reference">
-            <small>Request code</small>
-            <strong>{reference.split("-").at(-1)}</strong>
-            <span className="request-reference-full">Full ref: {reference}</span>
+            <small>Your reference</small>
+            <strong>{reference}</strong>
+            <span className="request-reference-full">Use it as the transfer reference if you pay by bank.</span>
           </div>
-          <button type="button" onClick={()=>setOpen(false)}>Done</button>
+          <button type="button" onClick={() => setOpen(false)}>Done</button>
         </div> : <>
-          <span className="private-session-kicker">Futprep private sessions</span>
-          <h2>Tell us what your child needs.</h2>
-          <p className="private-session-intro">Stay on this page while you request a private lesson or birthday session. A coach will review the request before it is confirmed.</p>
-          {!schemaReady && <p className="private-session-warning">Booking storage is being connected. The form will be active after the Futprep coach migration is installed.</p>}
+          <span className="private-session-kicker">Futprep private sessions &amp; parties</span>
+          <h2>{service?.kind === "party" ? "Book a football party." : "Book a private session."}</h2>
+          <p className="private-session-intro">Pick a service, a coach and one of their open times, or suggest a time. A coach confirms before anything is booked.</p>
+          {!schemaReady && <p className="private-session-warning">Booking is being connected. Please try again shortly.</p>}
           <form onSubmit={submit}>
+            {services.length > 0 ? (
+              <fieldset className="private-session-services">
+                <legend>Service</legend>
+                {services.map((s) => (
+                  <label key={s.slug} className={s.slug === serviceSlug ? "is-selected" : ""}>
+                    <input type="radio" name="service" value={s.slug} checked={s.slug === serviceSlug} onChange={() => setServiceSlug(s.slug)} />
+                    <strong>{s.name}</strong>
+                    <span>{money(s.priceCents)}{s.priceUnit === "per_session" ? " per session" : ""} · {s.durationMinutes} min</span>
+                  </label>
+                ))}
+              </fieldset>
+            ) : (
+              <label><span>Request type</span><select name="requestType" defaultValue={legacyType}><option value="private_lesson">Private lesson</option><option value="birthday">Birthday session</option></select></label>
+            )}
+            <label><span>Coach</span>
+              <select value={coachId ?? ""} onChange={(e) => { setCoachId(Number(e.target.value) || null); setSlotId("suggest"); }}>
+                <option value="">Any available coach</option>
+                {coaches.map((c) => <option value={c.id} key={c.id}>{c.displayName}</option>)}
+              </select>
+            </label>
+            {coach && (
+              <fieldset className="private-session-slots">
+                <legend>When</legend>
+                {slots.map((slot) => (
+                  <label key={slot.id} className={slotId === slot.id ? "is-selected" : ""}>
+                    <input type="radio" name="slot" checked={slotId === slot.id} onChange={() => setSlotId(slot.id)} />
+                    {dayLabel(slot.date)} · {slot.startTime}–{slot.endTime}{slot.location ? ` · ${slot.location}` : ""}
+                  </label>
+                ))}
+                <label className={slotId === "suggest" ? "is-selected" : ""}>
+                  <input type="radio" name="slot" checked={slotId === "suggest"} onChange={() => setSlotId("suggest")} />
+                  {slots.length ? "None of these: suggest a time" : "No open times posted yet: suggest a time"}
+                </label>
+              </fieldset>
+            )}
+            {slotId === "suggest" && (
+              <div className="private-session-two">
+                <label><span>Suggested date</span><input name="requestedDate" type="date" min={today} required /></label>
+                <label><span>Suggested start time</span><input name="requestedStartTime" type="time" required /></label>
+              </div>
+            )}
             <div className="private-session-two">
-              <label><span>Request type</span><select name="requestType" defaultValue="private_lesson"><option value="private_lesson">Private lesson</option><option value="birthday">Birthday session</option></select></label>
-              <label><span>Preferred coach</span><select name="preferredCoachId" defaultValue={preferredCoachId??""}><option value="">Any available coach</option>{coaches.map((coach)=><option value={coach.id} key={coach.id}>{coach.displayName}</option>)}</select></label>
+              <label><span>Parent / guardian</span><input name="parentName" autoComplete="name" required /></label>
+              <label><span>Phone</span><input name="parentPhone" type="tel" autoComplete="tel" required /></label>
             </div>
+            <label><span>Email</span><input name="parentEmail" type="email" autoComplete="email" required /></label>
             <div className="private-session-two">
-              <label><span>Parent / guardian</span><input name="parentName" required /></label>
-              <label><span>Phone</span><input name="parentPhone" required /></label>
+              <label><span>Child&apos;s name</span><input name="childName" required /></label>
+              <label><span>Child&apos;s age</span><input name="childAge" type="number" min="1" max="18" required /></label>
             </div>
-            <label><span>Email</span><input name="parentEmail" type="email" required /></label>
-            <div className="private-session-two">
-              <label><span>Child name</span><input name="childName" required /></label>
-              <label><span>Child age</span><input name="childAge" type="number" min="1" max="18" required /></label>
-            </div>
-            <div className="private-session-two">
-              <label><span>Requested date</span><input name="requestedDate" type="date" min={today} required /></label>
-              <label><span>Preferred start time</span><input name="requestedStartTime" type="time" required /></label>
-            </div>
-            <div className="private-session-two">
+            {!service && (
               <label><span>Length</span><select name="durationMinutes" defaultValue="60"><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option></select></label>
-              <label><span>Location preference</span><input name="locationPreference" placeholder="Lyford Cay, home, other…" /></label>
-            </div>
-            <label><span>What should the coach focus on?</span><textarea name="sessionGoal" rows={3} placeholder="Confidence, first touch, shooting, birthday games…" /></label>
+            )}
+            {slotId === "suggest" && <label><span>Where would suit you?</span><input name="locationPreference" placeholder="Lyford Cay, home, other…" /></label>}
+            <label><span>{service?.kind === "party" ? "About the party (how many children, the occasion)" : "What should the coach focus on?"}</span><textarea name="sessionGoal" rows={3} placeholder={service?.kind === "party" ? "Up to 15 children, a 7th birthday…" : "Confidence, first touch, shooting…"} /></label>
             <label><span>Anything else?</span><textarea name="notes" rows={2} /></label>
-            {error && <p className="form-error">{error}</p>}
-            <button className="private-session-submit" disabled={busy || !schemaReady} type="submit">{busy?"Sending…":"Send request →"}</button>
+            {service?.priceCents !== undefined && service?.priceCents !== null && <p className="private-session-price">Price: <strong>{money(service.priceCents)}</strong>. Pay cash at the session or by bank transfer using your PS- reference.</p>}
+            {error && <p className="form-error" role="alert">{error}</p>}
+            <button className="private-session-submit" disabled={busy || !schemaReady} type="submit">{busy ? "Sending…" : "Send request →"}</button>
           </form>
         </>}
       </aside>

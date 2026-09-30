@@ -18,6 +18,7 @@ export async function PATCH(request:Request,{params}:{params:Promise<{id:string}
     const message=error instanceof Error?error.message:"Could not update request.";
     if(message==="DECLINE_REASON_REQUIRED") return NextResponse.json({error:"A reason is required when declining a session."},{status:400});
     if(message==="COACH_REQUIRED") return NextResponse.json({error:"Choose a coach first."},{status:400});
+    if(message==="SLOT_TAKEN") return NextResponse.json({error:"That time is already booked. Decline or refer this request, or agree a new time with the parent."},{status:409});
     return NextResponse.json({error:"Could not update the session request."},{status:500});
   }
 }

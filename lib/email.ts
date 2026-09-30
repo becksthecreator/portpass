@@ -221,3 +221,49 @@ export async function sendFutprepRegistrationConfirmedEmail(input: {
     `),
   });
 }
+
+// A private session or party a coach has accepted (brief 06 v2, Part B):
+// when, where, how much, and how to pay with the PS- code as the transfer
+// reference. Nothing about the child beyond their first name.
+export type PrivateSessionAcceptedInput = {
+  parentName: string;
+  childName: string;
+  serviceName: string;
+  coachName: string;
+  date: string;
+  startTime: string;
+  durationMinutes: number;
+  location: string;
+  priceCents: number | null;
+  referenceCode: string;
+  bank: { bankName: string; accountName: string; accountNumber: string; swiftCode: string };
+};
+
+const SESSION_DAY = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+
+export function privateSessionAcceptedEmail(input: PrivateSessionAcceptedInput): { subject: string; html: string } {
+  const day = SESSION_DAY.format(new Date(`${input.date}T12:00:00Z`)).replace(",", "");
+  const price = input.priceCents === null ? "Your coach will confirm the price" : `$${(input.priceCents / 100).toFixed(input.priceCents % 100 === 0 ? 0 : 2)}`;
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:6px 0;color:#647069">${label}</td><td style="padding:6px 0;text-align:right">${value}</td></tr>`;
+  const subject = `Confirmed: ${input.serviceName} with ${input.coachName}, ${day}`;
+  const html = emailShell("Session confirmed", `
+      <p>Hi ${escapeHtml(input.parentName)},</p>
+      <p>${escapeHtml(input.coachName)} has accepted the ${escapeHtml(input.serviceName)} for <strong>${escapeHtml(input.childName)}</strong>.</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0">
+        ${row("When", `${escapeHtml(day)} · ${escapeHtml(input.startTime)} · ${input.durationMinutes} minutes`)}
+        ${row("Where", escapeHtml(input.location || "Your coach will confirm the place"))}
+        ${row("Price", escapeHtml(price))}
+        ${row("Reference", `<strong>${escapeHtml(input.referenceCode)}</strong>`)}
+      </table>
+      <p><strong>How to pay:</strong> cash to your coach at the session, or a bank transfer before it. For a transfer, use <strong>${escapeHtml(input.referenceCode)}</strong> as the reference so Futprep can match it.</p>
+      <p style="font-size:13px;color:#647069">${escapeHtml(input.bank.bankName)} · ${escapeHtml(input.bank.accountName)} · Account ${escapeHtml(input.bank.accountNumber)} · SWIFT ${escapeHtml(input.bank.swiftCode)}</p>
+      <p>Need to change the time? Reply to this email or message Futprep on WhatsApp.</p>
+    `);
+  return { subject, html };
+}
+
+export async function sendPrivateSessionAcceptedEmail(input: PrivateSessionAcceptedInput & { parentEmail: string }) {
+  const { subject, html } = privateSessionAcceptedEmail(input);
+  await sendEmail({ to: input.parentEmail, subject, html });
+}
