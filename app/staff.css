@@ -384,3 +384,9 @@
 .session-picker a.is-over-cap{border-color:var(--signal)}
 .session-over-cap{display:block;margin-top:4px;font-style:normal;font-size:.66rem;font-weight:800;color:var(--signal-text,#D7232B)}
 .coach-join-link{display:block;margin:8px 0 0;padding:10px 12px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:transparent;color:inherit;font-weight:700;text-align:left;cursor:pointer}
+
+/* Import from TeamSnap (brief 13). */
+.teamsnap-import{display:grid;gap:20px}
+.teamsnap-status{margin:0;font-weight:700}
+.teamsnap-fill{color:var(--link,#8DB8F2)}
+.teamsnap-no_match,.teamsnap-ambiguous{color:var(--signal-text,#FF6B6E)}
