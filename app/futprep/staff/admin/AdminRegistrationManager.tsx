@@ -16,6 +16,18 @@ function paymentMethodLabel(method:string|null) {
   return "Bank transfer";
 }
 
+function whatsappTo(phone: string, message: string) {
+  window.open(`https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+}
+
+// Part C (brief 06 v2): after a free trial, the rest of the term at the
+// prorated price, tagged as a PortPass member perk.
+function openJoinWhatsApp(item: StaffRegistration) {
+  if (!item.parent_phone) return;
+  const link = `${window.location.origin}/futprep/register?program=${encodeURIComponent(item.program_slug)}&term=${item.term_id}&join=${encodeURIComponent(item.reference_code)}&utm_source=portpass&utm_medium=member_perk&utm_campaign=trial_join`;
+  whatsappTo(item.parent_phone, `Hi! Thanks for trying Futprep with ${item.child_name.split(" ")[0]}. Here's the link to join the rest of the term (priced for the Saturdays left): ${link}`);
+}
+
 function openCompletionWhatsApp(item: StaffRegistration) {
   if (!item.parent_phone) return;
   const link = `${window.location.origin}/futprep/my/${item.reference_code}/complete`;
@@ -59,13 +71,36 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
     window.setTimeout(()=>setCopied(false),1800);
   }
 
+  const [notice,setNotice] = useState("");
+
+  // One early-access link for one family (Part C), opened in WhatsApp for
+  // staff to send by hand. Never bulk.
+  async function sendReturnLink(item: StaffRegistration) {
+    if (!item.parent_phone) return;
+    setBusy(item.id);
+    setNotice("");
+    const response = await fetch("/api/futprep/staff/return-links",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({registrationId:item.id})});
+    const data = await response.json().catch(()=>({})) as { url?: string; termNames?: string[]; error?: string };
+    setBusy(null);
+    if (!response.ok || !data.url) { setNotice(data.error ?? "Could not create the link."); return; }
+    await navigator.clipboard?.writeText(data.url).catch(()=>{});
+    const terms = (data.termNames ?? []).join(" / ") || "next term";
+    whatsappTo(item.parent_phone, `Hi! As a Futprep family you get early access to ${terms}. Register ${item.child_name.split(" ")[0]} here before it opens to everyone: ${data.url}`);
+    setNotice(`Return link for ${item.child_name} copied and opened in WhatsApp.`);
+  }
+
   async function patch(id:number, values: Record<string,string>) {
     setBusy(id);
+    setNotice("");
     const response = await fetch(`/api/futprep/staff/registrations/${id}`,{
       method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(values)
     });
     setBusy(null);
-    if (!response.ok) return;
+    if (!response.ok) {
+      const data = await response.json().catch(()=>({})) as { error?: string };
+      setNotice(data.error ?? "Could not update the registration.");
+      return;
+    }
     setItems((current)=>current.map((item)=>item.id===id ? {...item,...{
       ...(values.registrationStatus ? {registration_status:values.registrationStatus}:{}),
       ...(values.paymentStatus ? {payment_status:values.paymentStatus}:{}),
@@ -89,6 +124,7 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
 
   return (
     <>
+      {notice && <p className="coach-manager-message" role="status">{notice}</p>}
       <div className="registration-share-card">
         <div><span className="section-kicker">Parent registration link</span><strong>/futprep/register</strong><p>Send this whenever a parent messages you. Their submission appears here automatically.</p></div>
         <button type="button" onClick={copyRegistrationLink}>{copied ? "Copied ✓" : "Copy registration link"}</button>
@@ -146,8 +182,27 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
               <div><span>Photo / video</span><strong>{item.photo_consent === "yes" ? "Allowed" : item.photo_consent === "no" ? "Not allowed" : "No information on file yet"}</strong></div>
             </div>
 
+            {(item.registration_status==="waitlist" || item.registration_status==="trial") && (
+              <div className="pending-details-flag">
+                {item.registration_status==="waitlist" ? (
+                  <>
+                    <strong>Waitlist</strong> — the class was full when this was sent.
+                    <button type="button" disabled={busy===item.id} onClick={()=>patch(item.id,{registrationStatus:"pending"})}>Promote from waitlist</button>
+                  </>
+                ) : (
+                  <>
+                    <strong>Free trial</strong> — one Saturday, no charge.
+                    {item.parent_phone && <button type="button" onClick={()=>openJoinWhatsApp(item)}>Send &ldquo;join the rest of the term&rdquo; on WhatsApp →</button>}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="staff-actions">
-              <button disabled={busy===item.id || item.registration_status==="pending_details"} title={item.registration_status==="pending_details" ? "The parent needs to finish this registration first" : undefined} onClick={()=>patch(item.id,{registrationStatus:"confirmed"})}>Confirm registration</button>
+              {item.parent_phone && item.registration_status!=="trial" && item.registration_status!=="waitlist" && (
+                <button type="button" disabled={busy===item.id} title="One early-access link for this family, sent by you on WhatsApp" onClick={()=>sendReturnLink(item)}>Copy return link</button>
+              )}
+              <button disabled={busy===item.id || ["pending_details","trial","waitlist"].includes(item.registration_status)} title={item.registration_status==="pending_details" ? "The parent needs to finish this registration first" : item.registration_status==="waitlist" ? "Promote from the waitlist first" : item.registration_status==="trial" ? "A free trial is one Saturday; send the join link instead" : undefined} onClick={()=>patch(item.id,{registrationStatus:"confirmed"})}>Confirm registration</button>
               <select value={item.payment_status} onChange={(e)=>patch(item.id,{paymentStatus:e.target.value})}>
                 <option value="pending">Not paid / pending</option><option value="partial">Partially paid</option><option value="paid">Paid</option><option value="overdue">Overdue</option><option value="waived">Waived</option>
               </select>

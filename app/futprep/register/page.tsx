@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { Suspense } from "react";
-import { RegistrationForm } from "./RegistrationForm";
-import { getFutprepAvailability, getFutprepOffer, type FutprepAvailability } from "@/db/registrations";
+import { RegistrationForm, type JoinQuote } from "./RegistrationForm";
+import { getFutprepAvailability, getFutprepOffer, trialJoinQuote, type FutprepAvailability } from "@/db/registrations";
 import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAttribution, parseAttributionCookie, type Attribution } from "@/lib/attribution";
 import { offerHeadline } from "@/lib/futprepTerms";
 import { normalizeProgramSlug } from "../config";
@@ -11,7 +11,20 @@ import { normalizeProgramSlug } from "../config";
 // all per-request.
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ program?: string; term?: string } & Record<string, string | string[] | undefined>>;
+type SearchParams = Promise<{ program?: string; term?: string; join?: string } & Record<string, string | string[] | undefined>>;
+
+// "Join the rest of the term" after a free trial (brief 06 v2, Part C):
+// ?join=<trial reference> prices the Saturdays left. An unknown code is
+// ignored and the form works as usual.
+async function loadJoinQuote(searchParams: SearchParams, offers: FutprepAvailability[]): Promise<JoinQuote | null> {
+  const { join } = await searchParams;
+  if (typeof join !== "string" || !/^FP-\d{4}-[A-Z0-9]{8}$/i.test(join)) return null;
+  const quote = await trialJoinQuote(join).catch(() => null);
+  if (!quote) return null;
+  const offer = offers.find((o) => o.programId === quote.programId && o.termId === quote.termId);
+  if (!offer) return null;
+  return { code: join, offerKey: `${offer.programId}:${offer.termId}`, remainingSessions: quote.remainingSessions, amountCents: quote.amountCents, weeklyFeeCents: offer.weeklyFeeCents, childName: quote.childName };
+}
 
 // The canonical form is /futprep/register?program=<slug>&term=<id> (brief
 // 06 v2, A1.5). The offers shown are every public open one, plus the one
@@ -54,6 +67,8 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
 
 export default async function FutprepRegisterPage({ searchParams }: { searchParams: SearchParams }) {
   const [{ offers, requested }, attribution] = await Promise.all([loadOffers(searchParams), readAttribution(searchParams)]);
+  const joinQuote = await loadJoinQuote(searchParams, offers);
+  const trialOpen = offers.some((offer) => offer.programType === "term" && offer.trialDates.length > 0);
   const programDetailsHref = requested?.programType === "camp" ? "/futprep/camps" : requested ? `/sports-fitness/futprep-athletics/${requested.slug}` : "/sports-fitness/futprep-athletics";
 
   return (
@@ -68,7 +83,14 @@ export default async function FutprepRegisterPage({ searchParams }: { searchPara
         </div>
       </header>
       <Suspense fallback={null}>
-        <RegistrationForm attribution={attribution} offers={offers} initialOfferKey={requested ? `${requested.programId}:${requested.termId}` : null} />
+        <RegistrationForm
+          attribution={attribution}
+          offers={offers}
+          initialOfferKey={joinQuote ? joinQuote.offerKey : requested ? `${requested.programId}:${requested.termId}` : null}
+          joinQuote={joinQuote}
+          trialHref={trialOpen && !joinQuote ? "/futprep/trial" : null}
+          intro={joinQuote ? { eyebrow: "Futprep · after your free Saturday", title: `Join the rest of the term.`, lead: `Keep ${joinQuote.childName.split(" ")[0]} playing for the ${joinQuote.remainingSessions} Saturdays left in the term. You pay only for those.` } : null}
+        />
       </Suspense>
     </main>
   );

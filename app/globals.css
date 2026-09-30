@@ -5496,3 +5496,10 @@ a.admin-tile:hover{border-color:var(--aqua)}
 .pricing-scope[data-billing="annual"] .when-annual{display:flex}
 .pricing-scope[data-billing="annual"] span.when-annual{display:inline}
 .pricing-scope[data-billing="annual"] .when-monthly{display:none}
+
+/* Futprep Part C (brief 06 v2): waitlist, free first Saturday, return links */
+.registration-waitlist span{max-width:36ch;line-height:1.5}
+.registration-waitlist strong{font-size:1.2rem}
+.registration-trial-note{margin-top:10px;font-size:.9rem}
+.registration-trial-note a{font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.registration-medical-notice{border-left:3px solid currentColor;margin:0 0 16px;padding:8px 12px;font-weight:600}

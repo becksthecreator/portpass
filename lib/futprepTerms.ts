@@ -104,3 +104,18 @@ export function nassauLocalToIso(local: string): string | null {
   const wall = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"));
   return new Date(guess + (guess - wall)).toISOString();
 }
+
+// Early access for returning families (brief 06 v2, Part C): an active,
+// unfinished term whose early_access_until is still ahead takes
+// registrations through a return link even before its public opening.
+export function isTermEarlyAccessOpen(term: TermWindow & { earlyAccessUntil: string | null }, now: Date = new Date()): boolean {
+  if (!term.active || !term.earlyAccessUntil) return false;
+  if (term.endDate < nassauToday(now)) return false;
+  return new Date(term.earlyAccessUntil) > now;
+}
+
+// "Join the rest of the term" after a free trial: the weekly fee for each
+// class still to come after the trial Saturday.
+export function prorateCents(weeklyFeeCents: number, remainingSessions: number): number {
+  return Math.max(0, weeklyFeeCents) * Math.max(0, remainingSessions);
+}

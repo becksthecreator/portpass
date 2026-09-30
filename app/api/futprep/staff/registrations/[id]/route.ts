@@ -43,7 +43,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       }).catch((error) => console.error("Futprep confirmation email error", error));
     }
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "PROGRAM_FULL") return NextResponse.json({ error: "The class is full. Free a spot before promoting from the waitlist." }, { status: 409 });
     return NextResponse.json({ error: "Registration not found." }, { status: 404 });
   }
 }
