@@ -242,6 +242,10 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .registration-progress .is-current span,.registration-progress .is-complete span{background:var(--ink);border-color:var(--ink);color:white}
 .registration-form{background:var(--paper);border:1px solid var(--line);padding:44px}
 .registration-form fieldset{border:0;margin:0;padding:0}
+/* A grid item's automatic minimum is its content, so the phone field
+   (country select + number) held its column at ~345px and pushed step 1
+   3px past a 375px screen. Let the fields shrink to their column. */
+.registration-form .form-grid>*{min-width:0}
 .registration-form legend{align-items:center;display:flex;font-family:Georgia,serif;font-size:2rem;gap:12px;margin-bottom:36px}
 .registration-form legend>span{align-items:center;background:var(--ink);color:#fff;border-radius:50%;display:flex;font-family:Arial,sans-serif;font-size:.65rem;font-weight:800;height:30px;justify-content:center;width:30px}
 .choice-section+.choice-section{margin-top:36px}
