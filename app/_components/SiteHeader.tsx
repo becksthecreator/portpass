@@ -8,16 +8,23 @@ export type Crumb = { label: string; href: string };
 
 const SITE_URL = "https://portpassbahamas.com";
 
+// With the horizontal logo, brand · Browse · Sign in · Pricing · For
+// business need about 481px in one row, so the header shows the mark on
+// every phone (401-440px included), not just under 400px. Keep in step
+// with the max-width:519px rule for .site-shell-brand in globals.css.
+const HEADER_MARK_QUERY = "(max-width: 519px)";
+
 // The one header every PortPass-branded page renders -- homepage included.
 // The only exception is BWS's planner (app/weddings/bahamas-weddings-by-the-sea/
 // plan), which keeps its own bws-theme chrome rather than this header.
 //
 // Sections come from the categories table (lib/navSections.getNavTree) and
-// render through SiteNav: dropdown panels per section from 1024px up, a
+// render through SiteNav: dropdown panels per section from 1200px up, a
 // "Browse" bottom sheet below that (round 5, §2-3). On a phone the header
-// stays one row -- brand, Browse, account, For business -- and the "← back"
-// row is desktop-only (round 4, item 4). The BreadcrumbList JSON-LD is
-// unchanged, so search results still get the trail.
+// stays one row -- mark, Browse, account, Pricing, For business, with
+// Pricing left to the Browse sheet and footer under 375px -- and the
+// "← back" row is desktop-only (round 4, item 4). The BreadcrumbList
+// JSON-LD is unchanged, so search results still get the trail.
 export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
   const sections = await getNavTree();
   // The full trail ("PortPass / Weddings / Bahamas Weddings By The Sea")
@@ -37,7 +44,7 @@ export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
   return (
     <header className="site-shell-header">
       <div className="site-shell-header-top">
-        <Link className="site-shell-brand" href="/"><BrandLogo /></Link>
+        <Link className="site-shell-brand" href="/"><BrandLogo markQuery={HEADER_MARK_QUERY} /></Link>
         <SiteNav sections={sections} />
         <div className="site-shell-header-actions">
           <HeaderAccount />

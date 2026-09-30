@@ -9,21 +9,23 @@
 //
 // Rules from the logo README: clear space equal to the height of the P,
 // never under 120px wide on screen, never stretched, rotated or recoloured.
-// Under 400px each <picture> swaps to the mark alone, so brand, Browse,
-// Sign in and Pricing still fit on one row and a page fetches only the
-// file it shows.
+// Under 400px each <picture> swaps to the mark alone, so a narrow header
+// keeps its links on one row and a page fetches only the file it shows.
+// A header that needs the mark up to a wider screen passes its own
+// markQuery (SiteHeader does) along with a matching CSS rule for the
+// 30px box.
 const MARK_QUERY = "(max-width: 400px)";
 
-export function BrandLogo({ className = "" }: { className?: string }) {
+export function BrandLogo({ className = "", markQuery = MARK_QUERY }: { className?: string; markQuery?: string }) {
   return (
     <>
       <picture className="brand-logo-light">
-        <source media={MARK_QUERY} srcSet="/brand/logo/portpass-mark-light.svg" width={34} height={34} />
+        <source media={markQuery} srcSet="/brand/logo/portpass-mark-light.svg" width={34} height={34} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className={`brand-logo ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-light.svg" alt="PortPass Bahamas" width={166} height={36} />
       </picture>
       <picture className="brand-logo-dark">
-        <source media={MARK_QUERY} srcSet="/brand/logo/portpass-mark-dark.svg" width={34} height={34} />
+        <source media={markQuery} srcSet="/brand/logo/portpass-mark-dark.svg" width={34} height={34} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className={`brand-logo ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-dark.svg" alt="PortPass Bahamas" width={166} height={36} />
       </picture>
