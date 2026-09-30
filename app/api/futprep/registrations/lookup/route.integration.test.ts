@@ -5,7 +5,7 @@ import { POST as lookupPOST } from "./route";
 const SENSITIVE_MARKER = "PEANUT_ALLERGY_MARKER_DO_NOT_LEAK";
 
 async function registerChild() {
-  const childDob = "2024-03-01";
+  const childDob = "2022-01-01";
   const response = await registerPOST(
     new Request("https://portpass.test/api/futprep/registrations", {
       method: "POST",

@@ -36,7 +36,6 @@ async function main() {
 
   const { data: org, error: orgError } = await db.from("organizations").select("id").eq("slug", "futprep").single();
   if (orgError || !org) throw new Error(`Futprep organization missing: ${orgError?.message}`);
-  if (Number(org.id) !== 1) throw new Error("app/futprep/staff-auth.ts expects the Futprep organization to be id 1.");
 
   // Staff accounts: a CEO (sees everything) and a coach.
   const pinHash = createHash("sha256").update(pin).digest("hex");
@@ -45,7 +44,9 @@ async function main() {
     { account_key: "test-coach", name: `${MARK} Coach Bex`, role: "coach" },
   ];
   for (const account of accounts) {
-    const { error } = await db.from("staff_members").insert({ organization_id: org.id, ...account, pin_hash: pinHash, responsibilities: "", active: true });
+    // app/futprep/staff-auth.ts still reads staff accounts from organization
+    // id 1 (FUTPREP_ORG_ID), whichever organisation that is locally.
+    const { error } = await db.from("staff_members").insert({ organization_id: 1, ...account, pin_hash: pinHash, responsibilities: "", active: true });
     if (error) throw new Error(`Could not seed staff account: ${error.message}`);
   }
 

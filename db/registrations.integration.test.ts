@@ -22,7 +22,7 @@ function input(over: Partial<FutprepRegistrationInput> & Pick<FutprepRegistratio
     parentName: MARKER,
     relationship: "Mother",
     childName: `${MARKER} child ${crypto.randomUUID().slice(0, 4)}`,
-    childDob: "2024-03-01", // 30 months on 5 Sept 2026: Lil Kickers (18–47 months)
+    childDob: "2022-03-01", // age 4 on 5 Sept 2026: Lil Kickers (3–5)
     gender: "Female",
     emergencyContactName: MARKER,
     emergencyContactPhone: "+12425550199",
@@ -77,7 +77,7 @@ describe("Futprep registration attribution (handbook v1.3 §5)", () => {
   });
 
   it("the same phone registering a sibling is not new and not eligible", async () => {
-    const { referenceCode } = await createFutprepRegistration(input({ parentPhone: phone, parentEmail: newEmail(), childDob: "2024-06-01", heardAboutUs: "referral", referralCode: "my sister", attribution: QR }));
+    const { referenceCode } = await createFutprepRegistration(input({ parentPhone: phone, parentEmail: newEmail(), childDob: "2022-06-01", heardAboutUs: "referral", referralCode: "my sister", attribution: QR }));
     const row = await stored(referenceCode);
     expect(row.is_new_family).toBe(false);
     expect(row.commission_eligible).toBe(false);
@@ -85,7 +85,7 @@ describe("Futprep registration attribution (handbook v1.3 §5)", () => {
   });
 
   it("the same email (new phone) is also a returning family", async () => {
-    const { referenceCode } = await createFutprepRegistration(input({ parentPhone: newPhone(), parentEmail: email, childDob: "2024-08-01", heardAboutUs: "qr", attribution: QR }));
+    const { referenceCode } = await createFutprepRegistration(input({ parentPhone: newPhone(), parentEmail: email, childDob: "2022-08-01", heardAboutUs: "qr", attribution: QR }));
     expect((await stored(referenceCode)).is_new_family).toBe(false);
   });
 

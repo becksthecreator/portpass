@@ -12,7 +12,7 @@ function basePayload(overrides: Record<string, unknown> = {}) {
     parentPhone: "242-000-0000",
     relationship: "Mother",
     childName: `Test Child ${crypto.randomUUID().slice(0, 8)}`,
-    childDob: "2024-03-01",
+    childDob: "2022-01-01",
     gender: "Female",
     emergencyContactName: "Emergency Contact",
     emergencyContactPhone: "242-000-0001",
