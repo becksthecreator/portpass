@@ -6,6 +6,7 @@ import {
   setFutprepProgramActive,
   type FutprepProgramInput,
 } from "@/db/programs";
+import { nassauLocalToIso } from "@/lib/futprepTerms";
 
 export async function GET() {
   const [account, role] = await Promise.all([currentFutprepStaffAccount(), currentFutprepStaffRole()]);
@@ -67,7 +68,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ages, capacity, and fees must be numbers." }, { status: 400 });
   }
 
+  // Holiday camp (brief 06 v2): weekday sessions come from the database;
+  // an optional registration close time is typed in Nassau local time.
+  const programType = str(body, "programType") === "camp" ? "camp" : "term";
+  const closesLocal = str(body, "registrationClosesAt");
+  const registrationClosesAt = closesLocal ? nassauLocalToIso(closesLocal) : null;
+  if (closesLocal && !registrationClosesAt) {
+    return NextResponse.json({ error: "Enter the registration close as a date and time." }, { status: 400 });
+  }
+
   const input: FutprepProgramInput = {
+    programType,
+    registrationClosesAt,
+    whatToBring: str(body, "whatToBring") || null,
     name,
     ageMin,
     ageMax,

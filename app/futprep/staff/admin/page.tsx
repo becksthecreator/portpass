@@ -2,7 +2,9 @@ import Link from "next/link";
 import { requireFutprepStaff } from "../../staff-auth";
 import { listFutprepStaffRegistrations, getFutprepMoneySummary } from "@/db/staff";
 import { AdminRegistrationManager } from "./AdminRegistrationManager";
-import { AddRegistrationForm } from "./AddRegistrationForm";
+import { AddRegistrationForm, type StaffClassOption } from "./AddRegistrationForm";
+import { listFutprepOffers } from "@/db/registrations";
+import { offerHeadline } from "@/lib/futprepTerms";
 import { MoneySummary } from "./MoneySummary";
 import { StaffLogoutButton } from "../StaffLogoutButton";
 
@@ -10,9 +12,10 @@ export const dynamic = "force-dynamic";
 
 export default async function FutprepStaffAdminPage() {
   const role = await requireFutprepStaff(["admin","ceo"], "/futprep/staff/admin");
-  const [registrations, moneySummary] = await Promise.all([
+  const [registrations, moneySummary, offers] = await Promise.all([
     listFutprepStaffRegistrations(),
     getFutprepMoneySummary(),
+    listFutprepOffers().catch(() => []),
   ]);
 
   return (
@@ -39,7 +42,7 @@ export default async function FutprepStaffAdminPage() {
         <MoneySummary summary={moneySummary} />
         <AdminRegistrationManager initialRegistrations={registrations} />
         <div className="team-admin-panels">
-          <AddRegistrationForm />
+          <AddRegistrationForm options={offers.map((offer): StaffClassOption => ({ key: `${offer.programId}:${offer.termId}`, programSlug: offer.slug, termId: offer.termId, label: `${offerHeadline(offer)} (ages ${offer.ageMin}–${offer.ageMax})` }))} />
         </div>
       </section>
     </main>

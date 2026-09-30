@@ -1,4 +1,5 @@
 import { derivePaymentStatus } from "@/lib/payments";
+import { ageOnDate } from "@/lib/scheduling";
 import { ensureFutprepPilotData, type PaymentFrequency, type PaymentMethod } from "./registrations";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
@@ -41,6 +42,11 @@ export type StaffSession = {
   program_id: number;
   program_name: string;
   program_slug: string;
+  // Brief 06 v2: camps and a second term sit beside Term 1, so the picker
+  // shows program -> term -> day.
+  program_type: "term" | "camp";
+  term_id: number;
+  term_name: string;
   session_date: string;
   start_time: string;
   location: string;
@@ -180,35 +186,43 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
   const db = getSupabaseAdmin();
   const organizationId = await futprepOrganizationId();
 
+  // Active programs only: a camp created switched off (awaiting its
+  // details) keeps its generated days out of the coaches' picker.
   const { data: programs, error: programError } = await db
     .from("programs")
-    .select("id,name,slug")
-    .eq("organization_id", organizationId);
+    .select("id,name,slug,program_type")
+    .eq("organization_id", organizationId)
+    .eq("active", true);
   throwIfSupabaseError(programError, "Could not load Futprep session programs");
 
   const programRows = (programs ?? []) as Array<{
     id: number;
     name: string;
     slug: string;
+    program_type: string;
   }>;
   if (!programRows.length) return [];
 
   const programById = new Map(programRows.map((row) => [row.id, row]));
-  const { data: sessions, error } = await db
-    .from("sessions")
-    .select("id,program_id,session_date,start_time,location,status")
-    .in(
-      "program_id",
-      programRows.map((row) => row.id),
-    )
-    .order("session_date", { ascending: true })
-    .order("start_time", { ascending: true });
+  const programIds = programRows.map((row) => row.id);
+  const [{ data: sessions, error }, { data: terms, error: termsError }] = await Promise.all([
+    db
+      .from("sessions")
+      .select("id,program_id,term_id,session_date,start_time,location,status")
+      .in("program_id", programIds)
+      .order("session_date", { ascending: true })
+      .order("start_time", { ascending: true }),
+    db.from("program_terms").select("id,name").in("program_id", programIds),
+  ]);
   throwIfSupabaseError(error, "Could not load Futprep sessions");
+  throwIfSupabaseError(termsError, "Could not load Futprep terms");
+  const termName = new Map((terms ?? []).map((t: { id: number; name: string }) => [Number(t.id), t.name]));
 
   return (sessions ?? []).map(
     (session: {
       id: number;
       program_id: number;
+      term_id: number;
       session_date: string;
       start_time: string;
       location: string;
@@ -220,6 +234,9 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
         program_id: session.program_id,
         program_name: program?.name ?? "Program",
         program_slug: program?.slug ?? "",
+        program_type: program?.program_type === "camp" ? ("camp" as const) : ("term" as const),
+        term_id: Number(session.term_id),
+        term_name: termName.get(Number(session.term_id)) ?? "",
         session_date: session.session_date,
         start_time: session.start_time,
         location: session.location,
@@ -357,12 +374,14 @@ export async function rosterForSession(
 
   const { data: session, error: sessionError } = await db
     .from("sessions")
-    .select("program_id")
+    .select("program_id,term_id")
     .eq("id", sessionId)
     .maybeSingle();
   throwIfSupabaseError(sessionError, "Could not load session roster");
   if (!session) throw new Error("SESSION_NOT_FOUND");
 
+  // The session's own term only: once Term 2 runs on the same program, a
+  // Term 1 child must not appear on a Term 2 Saturday (brief 06 v2).
   const [{ data: registrations, error }, { data: attendance, error: attendanceError }] =
     await Promise.all([
       db
@@ -371,6 +390,7 @@ export async function rosterForSession(
           "id,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs",
         )
         .eq("program_id", session.program_id)
+        .eq("term_id", session.term_id)
         .in("registration_status", ["pending_details", "pending", "confirmed"])
         .order("child_name", { ascending: true }),
       db
@@ -1193,4 +1213,89 @@ export async function getFutprepMoneySummary(): Promise<FutprepMoneySummary> {
   );
 
   return { combined, byProgram };
+}
+
+// ---- camp roster export (brief 06 v2, A1.7) --------------------------------
+
+// Everything the camp roster spreadsheet needs for one program-in-a-term,
+// and nothing more: the registrations select names only non-medical
+// columns, and the row type (lib/rosterCsv.ts) has no medical field to
+// put one in. Attendance comes per camp day.
+export async function rosterExportForTerm(programId: number, termId: number): Promise<{ programName: string; termName: string; days: string[]; rows: import("@/lib/rosterCsv").RosterExportRow[] } | null> {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
+
+  const [{ data: program, error: programError }, { data: term, error: termError }] = await Promise.all([
+    db.from("programs").select("id,name,organization_id").eq("id", programId).maybeSingle(),
+    db.from("program_terms").select("id,name,program_id,start_date").eq("id", termId).maybeSingle(),
+  ]);
+  throwIfSupabaseError(programError, "Could not load program");
+  throwIfSupabaseError(termError, "Could not load term");
+  if (!program || !term || Number(program.organization_id) !== organizationId || Number(term.program_id) !== programId) return null;
+
+  const [{ data: registrations, error }, { data: sessions, error: sessionsError }] = await Promise.all([
+    db
+      .from("registrations")
+      .select("id,reference_code,child_name,child_dob,parent_name,parent_phone,parent_email,authorized_pickup,photo_consent,registration_status,payment_status,amount_due_cents")
+      .eq("program_id", programId)
+      .eq("term_id", termId)
+      .in("registration_status", ["pending_details", "pending", "confirmed"])
+      .order("child_name", { ascending: true }),
+    db.from("sessions").select("id,session_date,status").eq("program_id", programId).eq("term_id", termId).neq("status", "cancelled").order("session_date", { ascending: true }),
+  ]);
+  throwIfSupabaseError(error, "Could not load roster");
+  throwIfSupabaseError(sessionsError, "Could not load camp days");
+
+  const regRows = (registrations ?? []) as Array<Record<string, unknown>>;
+  const sessionRows = (sessions ?? []) as Array<{ id: number; session_date: string }>;
+  const ids = regRows.map((r) => Number(r.id));
+  const [{ data: payments, error: paymentsError }, { data: attendance, error: attendanceError }] = ids.length
+    ? await Promise.all([
+        db.from("payments").select("registration_id,amount_cents").in("registration_id", ids).eq("status", "received"),
+        sessionRows.length
+          ? db.from("attendance").select("registration_id,session_id,status").in("registration_id", ids).in("session_id", sessionRows.map((s) => s.id))
+          : Promise.resolve({ data: [], error: null }),
+      ])
+    : [{ data: [], error: null }, { data: [], error: null }];
+  throwIfSupabaseError(paymentsError, "Could not load payments");
+  throwIfSupabaseError(attendanceError, "Could not load attendance");
+
+  const paid = new Map<number, number>();
+  for (const p of (payments ?? []) as Array<{ registration_id: number; amount_cents: number }>) paid.set(Number(p.registration_id), (paid.get(Number(p.registration_id)) ?? 0) + Number(p.amount_cents));
+  const dayBySession = new Map(sessionRows.map((s) => [Number(s.id), s.session_date]));
+  const marks = new Map<number, Record<string, string>>();
+  for (const a of (attendance ?? []) as Array<{ registration_id: number; session_id: number; status: string }>) {
+    const day = dayBySession.get(Number(a.session_id));
+    if (!day) continue;
+    const entry = marks.get(Number(a.registration_id)) ?? {};
+    entry[day] = a.status;
+    marks.set(Number(a.registration_id), entry);
+  }
+
+  const str = (v: unknown) => (v === null || v === undefined ? null : String(v));
+  return {
+    programName: String(program.name),
+    termName: String(term.name),
+    days: sessionRows.map((s) => s.session_date),
+    rows: regRows.map((r) => {
+      const dob = str(r.child_dob);
+      return {
+        referenceCode: String(r.reference_code),
+        childName: String(r.child_name),
+        childDob: dob,
+        ageAtStart: dob ? ageOnDate(dob, String(term.start_date)) : null,
+        parentName: str(r.parent_name),
+        parentPhone: str(r.parent_phone),
+        parentEmail: str(r.parent_email),
+        authorizedPickup: str(r.authorized_pickup),
+        photoConsent: str(r.photo_consent),
+        registrationStatus: String(r.registration_status),
+        paymentStatus: String(r.payment_status),
+        amountDueCents: Number(r.amount_due_cents),
+        paidCents: paid.get(Number(r.id)) ?? 0,
+        attendance: marks.get(Number(r.id)) ?? {},
+      };
+    }),
+  };
 }

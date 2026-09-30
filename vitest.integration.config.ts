@@ -13,6 +13,9 @@ export default defineConfig({
     include: ["**/*.integration.test.ts"],
     exclude: ["node_modules", ".next"],
     testTimeout: 15000,
+    // Files share one database and some tests switch shared rows (Futprep
+    // Term 1) off and on again, so they run one file at a time.
+    fileParallelism: false,
     setupFiles: ["./vitest.integration.setup.ts"],
   },
   resolve: {

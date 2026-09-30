@@ -1,7 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { FUTPREP_PROGRAMS } from "../../config";
+// Classes and camps come from the page (every open program-in-a-term), not
+// a hard-coded list (brief 06 v2).
+export type StaffClassOption = { key: string; programSlug: string; termId: number; label: string };
 
 function completionMessage(childName: string, code: string, origin: string) {
   return [
@@ -17,7 +19,7 @@ function completionMessage(childName: string, code: string, origin: string) {
 // contact, medical info, consent, signature) is left genuinely unset, not
 // defaulted or blanked, so nobody downstream mistakes "not yet asked" for
 // "no allergies". The parent finishes it at /futprep/my/[code]/complete.
-export function AddRegistrationForm() {
+export function AddRegistrationForm({ options }: { options: StaffClassOption[] }) {
   const [error, setError] = useState("");
   const [added, setAdded] = useState<{ childName: string; referenceCode: string; whatsappHref: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -32,7 +34,8 @@ export function AddRegistrationForm() {
     const parentPhone = String(form.get("parentPhone") ?? "").trim();
     const payload = {
       childName,
-      programSlug: form.get("programSlug"),
+      programSlug: options.find((o) => o.key === form.get("classKey"))?.programSlug ?? "",
+      termId: options.find((o) => o.key === form.get("classKey"))?.termId ?? null,
       parentName: form.get("parentName"),
       parentPhone,
       parentEmail: form.get("parentEmail"),
@@ -69,8 +72,8 @@ export function AddRegistrationForm() {
       <div className="team-form-two">
         <label><span>Child full name *</span><input name="childName" required /></label>
         <label><span>Class *</span>
-          <select name="programSlug" defaultValue={FUTPREP_PROGRAMS[0].slug} required>
-            {FUTPREP_PROGRAMS.map((program) => <option key={program.slug} value={program.slug}>{program.name} (ages {program.ageMin}–{program.ageMax})</option>)}
+          <select name="classKey" defaultValue={options[0]?.key ?? ""} required>
+            {options.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
           </select>
         </label>
       </div>

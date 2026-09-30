@@ -355,4 +355,7 @@
   .detail-record-payment-fields{grid-template-columns:1fr 1fr}
 }
 @media(max-width:850px){.team-manager-grid,.team-admin-panels{grid-template-columns:1fr}.private-request-grid{grid-template-columns:1fr 1fr}.private-request-grid>div:nth-child(3){border-left:0}}
-@media(max-width:560px){.team-form-two,.team-profile-details dl,.private-request-grid{grid-template-columns:1fr}.private-request-grid>div{border-left:0;border-top:1px solid var(--line);padding:10px 0}.private-request-head{flex-direction:column;gap:10px}}
+@media(max-width:560px){.team-form-two,.team-profile-details dl,.private-request-grid{grid-template-columns:1fr}.private-request-grid>div{border-left:0;border-top:1px solid var(--line);padding:10px 0}.private-request-head{flex-direction:column;gap:10px}}/* Program tabs above the day picker (brief 06 v2: program -> term -> day). */
+.staff-filter a{background:var(--paper);border:1px solid var(--line);font-size:.72rem;font-weight:800;padding:9px 13px;color:var(--ink);text-decoration:none}
+.staff-filter a.is-active{background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
+.coach-export{margin:0 0 18px}
