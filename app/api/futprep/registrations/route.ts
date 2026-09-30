@@ -4,6 +4,7 @@ import {
   type FutprepRegistrationInput,
 } from "@/db/registrations";
 import { cleanHost, isHeardAnswer } from "@/lib/attribution";
+import { getSession } from "@/lib/auth/session";
 import { sendFutprepRegistrationReceivedEmail } from "@/lib/email";
 import { normalizePhoneE164 } from "@/lib/phone";
 
@@ -38,6 +39,14 @@ export async function POST(request: Request) {
     body = await request.json() as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  // Part C (brief 06 v2): a free trial and a waitlist entry owe nothing
+  // yet, so they don't ask how the parent will pay.
+  const mode = body.mode === "trial" ? "trial" : body.mode === "waitlist" ? "waitlist" : "standard";
+  if (mode !== "standard") {
+    if (!clean(body, "paymentFrequency")) body.paymentFrequency = "weekly";
+    if (!clean(body, "paymentMethod")) body.paymentMethod = "cash";
   }
 
   const required = [
@@ -109,6 +118,13 @@ export async function POST(request: Request) {
     signatureName: clean(body,"signatureName"),
     heardAboutUs,
     referralCode: clean(body, "referralCode") || null,
+    mode,
+    returnToken: typeof body.returnToken === "string" ? body.returnToken.slice(0, 80) : null,
+    trialSessionId: Number.isInteger(Number(body.trialSessionId)) && Number(body.trialSessionId) > 0 ? Number(body.trialSessionId) : null,
+    joinFromTrialCode: typeof body.joinFromTrialCode === "string" ? body.joinFromTrialCode.slice(0, 40) : null,
+    // A free trial is a member perk: only for a signed-in parent. The
+    // session comes from the cookie, never the request body.
+    signedInUserId: mode === "trial" ? (await getSession())?.userId ?? null : null,
     attribution: {
       utmSource: clean(body, "utmSource") || null,
       utmMedium: clean(body, "utmMedium") || null,
@@ -120,7 +136,10 @@ export async function POST(request: Request) {
 
   try {
     const registration = await createFutprepRegistration(input);
-    sendFutprepRegistrationReceivedEmail({
+    // The "registration received" email carries an amount due and payment
+    // instructions, so it goes only for a real place; a waitlist entry or
+    // a free trial gets its confirmation on screen.
+    if (registration.registrationStatus === "pending") sendFutprepRegistrationReceivedEmail({
       parentEmail: input.parentEmail,
       parentName: input.parentName,
       childName: input.childName,
@@ -138,7 +157,14 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "";
     if (message === "INVALID_PROGRAM" || message === "PROGRAM_NOT_AVAILABLE") return NextResponse.json({ error: "Choose a valid class." }, { status: 400 });
     if (message === "AGE_MISMATCH") return NextResponse.json({ error: "The child’s age does not match the selected class." }, { status: 400 });
+    if (message === "TRIAL_SIGN_IN_REQUIRED") return NextResponse.json({ error: "Sign in to PortPass to book the free Saturday." }, { status: 401 });
+    if (message === "TRIAL_NOT_AVAILABLE") return NextResponse.json({ error: "That Saturday isn't one of the free-trial days. Choose another." }, { status: 400 });
+    if (message === "TRIAL_FULL") return NextResponse.json({ error: "The free-trial spots for that Saturday are taken. Choose the other Saturday." }, { status: 409 });
+    if (message === "TRIAL_ALREADY_USED") return NextResponse.json({ error: "This child has already had a free Saturday. Register for the term to keep playing." }, { status: 409 });
+    if (message === "RETURN_LINK_INVALID") return NextResponse.json({ error: "This early-access link isn't valid any more. Message Futprep on WhatsApp for a new one." }, { status: 400 });
+    if (message === "JOIN_LINK_INVALID") return NextResponse.json({ error: "This join link doesn't match the class. Message Futprep on WhatsApp." }, { status: 400 });
     if (message === "TERM_CLOSED") return NextResponse.json({ error: "Registration for that session has closed. Message Futprep on WhatsApp if you still need a spot." }, { status: 409 });
+    if (message === "SPOT_OPEN") return NextResponse.json({ error: "Good news: a spot has just opened in this class. Reload the page to register for it." }, { status: 409 });
     if (message === "PROGRAM_FULL") return NextResponse.json({ error: "That class has reached capacity." }, { status: 409 });
     if (message.startsWith("DUPLICATE:")) return NextResponse.json({ error: "A registration for this child has already been received for this session.", referenceCode: message.split(":")[1] }, { status: 409 });
     console.error("Futprep registration error", error);

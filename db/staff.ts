@@ -9,6 +9,8 @@ export type StaffRegistration = {
   reference_code: string;
   program_name: string;
   program_slug: string;
+  // Part C: the term, for the "join the rest of the term" link after a trial.
+  term_id: number;
   child_name: string;
   // Nullable: a pending_details registration (staff fast-add, parent hasn't
   // completed it yet) genuinely has none of these on file. null must render
@@ -68,6 +70,8 @@ export type AttendanceRow = {
   medications: string | null;
   special_needs: string | null;
   attendance_status: string | null;
+  // A free-trial child (brief 06 v2, Part C): shown flagged "Trial".
+  is_trial?: boolean;
   // true when this mark was entered after the session's date had already
   // passed -- see app/api/futprep/staff/attendance/route.ts, which
   // computes this server-side rather than trusting the client.
@@ -106,7 +110,7 @@ export async function listFutprepStaffRegistrations(): Promise<
     await Promise.all([
       db
         .from("registrations")
-        .select("id,reference_code,program_id,child_name,child_dob,gender,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,authorized_pickup,photo_consent,signature_name,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,submitted_at")
+        .select("id,reference_code,program_id,term_id,child_name,child_dob,gender,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,authorized_pickup,photo_consent,signature_name,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,submitted_at")
         .in("program_id", programIds)
         .neq("registration_status", "cancelled")
         .order("child_name", { ascending: true }),
@@ -143,6 +147,7 @@ export async function listFutprepStaffRegistrations(): Promise<
         reference_code: String(row.reference_code),
         program_name: program.name,
         program_slug: program.slug,
+        term_id: Number(row.term_id),
         child_name: String(row.child_name),
         child_dob: asNullableString(row.child_dob),
         gender: asNullableString(row.gender),
@@ -212,13 +217,16 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
       .in("program_id", programIds)
       .order("session_date", { ascending: true })
       .order("start_time", { ascending: true }),
-    db.from("program_terms").select("id,name").in("program_id", programIds),
+    db.from("program_terms").select("id,name,active").in("program_id", programIds),
   ]);
   throwIfSupabaseError(error, "Could not load Futprep sessions");
   throwIfSupabaseError(termsError, "Could not load Futprep terms");
   const termName = new Map((terms ?? []).map((t: { id: number; name: string }) => [Number(t.id), t.name]));
+  // A term that is switched off (a placeholder Term 2, say) stays out of
+  // the coaches' picker until it goes live.
+  const activeTerms = new Set((terms ?? []).filter((t: { active: boolean }) => t.active).map((t: { id: number }) => Number(t.id)));
 
-  return (sessions ?? []).map(
+  return (sessions ?? []).filter((session: { term_id: number }) => activeTerms.has(Number(session.term_id))).map(
     (session: {
       id: number;
       program_id: number;
@@ -327,7 +335,7 @@ export async function recordFutprepPayment(input: {
 
 export async function updateFutprepRegistration(input: {
   registrationId: number;
-  registrationStatus?: "pending_details" | "pending" | "confirmed" | "cancelled";
+  registrationStatus?: "pending_details" | "pending" | "confirmed" | "cancelled" | "waitlist";
   paymentStatus?: "pending" | "partial" | "paid" | "overdue" | "waived";
 }) {
   await ensureFutprepPilotData();
@@ -335,6 +343,19 @@ export async function updateFutprepRegistration(input: {
 
   const updates: Record<string, string> = {};
   if (input.registrationStatus) {
+    // Promoting from the waitlist (brief 06 v2, Part C) takes a class
+    // spot, so it needs one free.
+    if (input.registrationStatus !== "cancelled") {
+      const { data: current, error: currentError } = await db.from("registrations").select("registration_status,program_id,term_id").eq("id", input.registrationId).maybeSingle();
+      throwIfSupabaseError(currentError, "Could not load registration");
+      if (current?.registration_status === "waitlist") {
+        const [{ count }, { data: program }] = await Promise.all([
+          db.from("registrations").select("id", { count: "exact", head: true }).eq("program_id", current.program_id).eq("term_id", current.term_id).in("registration_status", ["pending_details", "pending", "confirmed"]),
+          db.from("programs").select("capacity").eq("id", current.program_id).maybeSingle(),
+        ]);
+        if (Number(count ?? 0) >= Number(program?.capacity ?? 0)) throw new Error("PROGRAM_FULL");
+      }
+    }
     updates.registration_status = input.registrationStatus;
   }
   if (input.paymentStatus) updates.payment_status = input.paymentStatus;
@@ -391,7 +412,8 @@ export async function rosterForSession(
         )
         .eq("program_id", session.program_id)
         .eq("term_id", session.term_id)
-        .in("registration_status", ["pending_details", "pending", "confirmed"])
+        // Term children, plus free-trial children booked for this Saturday.
+        .or(`registration_status.in.(pending_details,pending,confirmed),and(registration_status.eq.trial,trial_session_id.eq.${Number(sessionId)})`)
         .order("child_name", { ascending: true }),
       db
         .from("attendance")
@@ -437,6 +459,7 @@ export async function rosterForSession(
       medical_conditions: row.medical_conditions,
       medications: row.medications,
       special_needs: row.special_needs,
+      is_trial: row.registration_status === "trial",
       attendance_status: attendanceByRegistration.get(row.id)?.status ?? null,
       is_backfill: attendanceByRegistration.get(row.id)?.is_backfill ?? false,
     }),

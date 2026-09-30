@@ -366,3 +366,4 @@
 .private-request-payment button{background:var(--gold);border:0;color:var(--on-gold);cursor:pointer;font-size:.72rem;font-weight:800;min-height:40px;padding:0 14px}
 .staff-summary-4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:700px){.staff-summary-4{grid-template-columns:1fr 1fr}}
+.coach-trial-flag{display:inline-block;margin-left:8px;font-size:.66rem;font-weight:800;color:var(--sky,#8DB8F2)}

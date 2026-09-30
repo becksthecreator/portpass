@@ -1,15 +1,16 @@
+import { createHash, randomBytes } from "node:crypto";
 import {
   CONSENT_VERSION,
   FUTPREP_PROGRAMS,
   FUTPREP_TERM,
 } from "@/app/futprep/config";
 import { EMPTY_ATTRIBUTION, resolveAttribution, type Attribution, type HeardAnswer, type Resolved } from "@/lib/attribution";
-import { amountDueCents as amountDueFor, isTermOpen, type ProgramType, type TermWindow } from "@/lib/futprepTerms";
+import { amountDueCents as amountDueFor, isTermEarlyAccessOpen, isTermOpen, nassauToday, prorateCents, type ProgramType, type TermWindow } from "@/lib/futprepTerms";
 import { ageOnDate, generateWeeklySessionDates } from "@/lib/scheduling";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
-export type RegistrationStatus = "pending_details" | "pending" | "confirmed" | "cancelled";
+export type RegistrationStatus = "pending_details" | "pending" | "confirmed" | "cancelled" | "waitlist" | "trial";
 // Statuses that occupy a class spot -- everything except cancelled. A
 // pending_details row is a real, physically-attending child, so it must
 // count the same as pending/confirmed everywhere capacity is checked.
@@ -24,7 +25,9 @@ async function countFamilyMatches(db: ReturnType<typeof getSupabaseAdmin>, organ
     .from("registrations")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", organizationId)
-    .eq(column, value);
+    .eq(column, value)
+    // A free trial or a waitlist entry doesn't make a family "returning".
+    .not("registration_status", "in", "(trial,waitlist)");
   throwIfSupabaseError(error, "Could not check family history");
   return Number(count ?? 0);
 }
@@ -71,6 +74,15 @@ export type FutprepRegistrationInput = {
   heardAboutUs?: HeardAnswer | null;
   referralCode?: string | null;
   attribution?: Attribution;
+  // Part C (brief 06 v2). "waitlist": register, or join the waitlist if
+  // the class is full. "trial": a free first Saturday for a signed-in
+  // parent. A return token opens early access; a trial code prorates a
+  // "join the rest of the term" registration.
+  mode?: "standard" | "waitlist" | "trial";
+  returnToken?: string | null;
+  trialSessionId?: number | null;
+  joinFromTrialCode?: string | null;
+  signedInUserId?: string | null;
 };
 
 // One registrable thing: a program in one open term (brief 06 v2, Part A).
@@ -99,6 +111,10 @@ export type FutprepAvailability = {
   dailyEndTime: string | null;
   whatToBring: string | null;
   registrationClosesAt: string | null;
+  // Part C: open only through a returning family's early-access link.
+  earlyAccessOnly: boolean;
+  trialDates: string[];
+  trialSpotsPerSession: number;
   registered: number;
   spotsRemaining: number;
 };
@@ -249,7 +265,7 @@ async function seedFutprepPilot() {
 }
 
 const PROGRAM_OFFER_COLUMNS = "id,slug,name,program_type,is_public,age_min,age_max,location,day_of_week,start_time,end_time,capacity,organization_id";
-const TERM_OFFER_COLUMNS = "id,program_id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,active,registration_opens_at,registration_closes_at,daily_start_time,daily_end_time,what_to_bring";
+const TERM_OFFER_COLUMNS = "id,program_id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,active,registration_opens_at,registration_closes_at,daily_start_time,daily_end_time,what_to_bring,early_access_until,trial_dates,trial_spots_per_session";
 
 type ProgramOfferRow = {
   id: number; slug: string; name: string; program_type: string; is_public: boolean; age_min: number; age_max: number;
@@ -259,6 +275,7 @@ type TermOfferRow = {
   id: number; program_id: number; name: string; start_date: string; end_date: string; break_dates: string[] | null;
   weekly_fee_cents: number; term_fee_cents: number; active: boolean; registration_opens_at: string | null; registration_closes_at: string | null;
   daily_start_time: string | null; daily_end_time: string | null; what_to_bring: string | null;
+  early_access_until: string | null; trial_dates: string[] | null; trial_spots_per_session: number | null;
 };
 
 function termWindow(term: TermOfferRow): TermWindow {
@@ -268,7 +285,7 @@ function termWindow(term: TermOfferRow): TermWindow {
 // Every open offer for Futprep: each active program (public ones only,
 // unless asked) with each of its active terms whose registration window
 // is open. Three queries however many programs and terms there are.
-export async function listFutprepOffers(options: { publicOnly?: boolean; now?: Date } = {}): Promise<FutprepAvailability[]> {
+export async function listFutprepOffers(options: { publicOnly?: boolean; now?: Date; earlyAccess?: boolean } = {}): Promise<FutprepAvailability[]> {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
   const organizationId = await futprepOrganizationId();
@@ -305,7 +322,10 @@ export async function listFutprepOffers(options: { publicOnly?: boolean; now?: D
   const offers: FutprepAvailability[] = [];
   for (const term of (terms ?? []) as TermOfferRow[]) {
     const program = programById.get(Number(term.program_id));
-    if (!program || !isTermOpen(termWindow(term), now)) continue;
+    if (!program) continue;
+    const publicOpen = isTermOpen(termWindow(term), now);
+    const earlyOpen = Boolean(options.earlyAccess) && isTermEarlyAccessOpen({ ...termWindow(term), earlyAccessUntil: term.early_access_until }, now);
+    if (!publicOpen && !earlyOpen) continue;
     const capacity = Number(program.capacity);
     const registered = registeredByKey.get(`${program.id}:${term.id}`) ?? 0;
     offers.push({
@@ -332,6 +352,9 @@ export async function listFutprepOffers(options: { publicOnly?: boolean; now?: D
       dailyEndTime: term.daily_end_time,
       whatToBring: term.what_to_bring,
       registrationClosesAt: term.registration_closes_at,
+      earlyAccessOnly: !publicOpen,
+      trialDates: (term.trial_dates ?? []) as string[],
+      trialSpotsPerSession: Number(term.trial_spots_per_session ?? 0),
       registered,
       spotsRemaining: Math.max(0, capacity - registered),
     });
@@ -354,8 +377,8 @@ export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
 // One offer by program slug (and term, when given), including unlisted
 // programs -- a direct /futprep/register?program=&term= link works for a
 // program that is not on the public list.
-export async function getFutprepOffer(programSlug: string, termId?: number | null): Promise<FutprepAvailability | null> {
-  const offers = (await listFutprepOffers()).filter((offer) => offer.slug === programSlug);
+export async function getFutprepOffer(programSlug: string, termId?: number | null, options: { earlyAccess?: boolean } = {}): Promise<FutprepAvailability | null> {
+  const offers = (await listFutprepOffers({ earlyAccess: options.earlyAccess })).filter((offer) => offer.slug === programSlug);
   if (termId) return offers.find((offer) => offer.termId === termId) ?? null;
   return offers.length === 1 ? offers[0] : null;
 }
@@ -465,14 +488,20 @@ export async function createFutprepRegistration(
   // hand may use an active term whose public window has closed.
   const { data: terms, error: termError } = await db
     .from("program_terms")
-    .select("id,program_id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,active,registration_opens_at,registration_closes_at,daily_start_time,daily_end_time")
+    .select("id,program_id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,active,registration_opens_at,registration_closes_at,daily_start_time,daily_end_time,early_access_until,trial_dates,trial_spots_per_session")
     .eq("program_id", program.id)
     .eq("active", true)
     .order("start_date", { ascending: true });
   throwIfSupabaseError(termError, "Could not load selected term");
-  const usable = (terms ?? []).filter((row) =>
-    input.enteredByStaff ? true : isTermOpen({ active: Boolean(row.active), endDate: row.end_date, registrationOpensAt: row.registration_opens_at, registrationClosesAt: row.registration_closes_at }),
-  );
+  // A returning family's early-access link opens a term before its public
+  // opening, until early_access_until (Part C).
+  const returnLink = input.returnToken ? await findReturnLink(input.returnToken) : null;
+  if (input.returnToken && !returnLink) throw new Error("RETURN_LINK_INVALID");
+  const usable = (terms ?? []).filter((row) => {
+    if (input.enteredByStaff) return true;
+    const window = { active: Boolean(row.active), endDate: row.end_date, registrationOpensAt: row.registration_opens_at, registrationClosesAt: row.registration_closes_at };
+    return isTermOpen(window) || (returnLink !== null && isTermEarlyAccessOpen({ ...window, earlyAccessUntil: row.early_access_until }));
+  });
   const term = input.termId
     ? usable.find((row) => Number(row.id) === Number(input.termId)) ?? null
     : usable.length === 1 ? usable[0] : null;
@@ -488,16 +517,58 @@ export async function createFutprepRegistration(
     }
   }
 
-  const { count, error: countError } = await db
-    .from("registrations")
-    .select("id", { count: "exact", head: true })
-    .eq("program_id", program.id)
-    .eq("term_id", term.id)
-    .in("registration_status", ACTIVE_REGISTRATION_STATUSES);
-  throwIfSupabaseError(countError, "Could not check program capacity");
+  const mode = input.mode ?? "standard";
+  let registrationStatus: RegistrationStatus = "pending";
+  let trialSessionId: number | null = null;
+  let joinedFrom: { id: number; amountCents: number } | null = null;
 
-  if (Number(count ?? 0) >= Number(program.capacity)) {
-    throw new Error("PROGRAM_FULL");
+  if (mode === "trial") {
+    // First Saturday free with a PortPass account: signed in, a real
+    // session on one of the term's trial dates, a spot left that day, and
+    // once per child (name + date of birth + parent phone).
+    if (!input.signedInUserId) throw new Error("TRIAL_SIGN_IN_REQUIRED");
+    const { data: session, error: sessionError } = await db
+      .from("sessions")
+      .select("id,program_id,term_id,session_date,status")
+      .eq("id", Number(input.trialSessionId))
+      .maybeSingle();
+    throwIfSupabaseError(sessionError, "Could not load the trial Saturday");
+    const trialDates = (term.trial_dates ?? []) as string[];
+    if (!session || Number(session.program_id) !== Number(program.id) || Number(session.term_id) !== Number(term.id) || session.status === "cancelled" || !trialDates.includes(String(session.session_date)) || String(session.session_date) < nassauToday()) {
+      throw new Error("TRIAL_NOT_AVAILABLE");
+    }
+    const [{ count: trialCount, error: trialCountError }, { data: usedTrial, error: usedError }] = await Promise.all([
+      db.from("registrations").select("id", { count: "exact", head: true }).eq("trial_session_id", session.id).eq("registration_status", "trial"),
+      db.from("registrations").select("reference_code").eq("organization_id", program.organization_id).eq("registration_status", "trial").eq("child_dob", input.childDob).ilike("child_name", input.childName.trim()).eq("parent_phone", input.parentPhone.trim()).limit(1).maybeSingle(),
+    ]);
+    throwIfSupabaseError(trialCountError, "Could not count trial spots");
+    throwIfSupabaseError(usedError, "Could not check earlier trials");
+    if (usedTrial) throw new Error("TRIAL_ALREADY_USED");
+    if (Number(trialCount ?? 0) >= Number(term.trial_spots_per_session ?? 0)) throw new Error("TRIAL_FULL");
+    registrationStatus = "trial";
+    trialSessionId = Number(session.id);
+  } else {
+    const { count, error: countError } = await db
+      .from("registrations")
+      .select("id", { count: "exact", head: true })
+      .eq("program_id", program.id)
+      .eq("term_id", term.id)
+      .in("registration_status", ACTIVE_REGISTRATION_STATUSES);
+    throwIfSupabaseError(countError, "Could not check program capacity");
+    if (Number(count ?? 0) >= Number(program.capacity)) {
+      if (mode !== "waitlist") throw new Error("PROGRAM_FULL");
+      registrationStatus = "waitlist";
+    } else if (mode === "waitlist") {
+      // A spot opened since the page loaded: register properly instead.
+      throw new Error("SPOT_OPEN");
+    }
+    // After a trial: the rest of the term at the weekly fee for each class
+    // still to come.
+    if (input.joinFromTrialCode) {
+      const quote = await trialJoinQuote(input.joinFromTrialCode);
+      if (!quote || quote.termId !== Number(term.id) || quote.programId !== Number(program.id)) throw new Error("JOIN_LINK_INVALID");
+      joinedFrom = { id: quote.registrationId, amountCents: quote.amountCents };
+    }
   }
 
   const normalizedEmail = input.parentEmail.trim().toLowerCase();
@@ -508,7 +579,7 @@ export async function createFutprepRegistration(
     .eq("parent_email", normalizedEmail)
     .eq("child_dob", input.childDob)
     .ilike("child_name", input.childName.trim())
-    .in("registration_status", ACTIVE_REGISTRATION_STATUSES)
+    .in("registration_status", mode === "waitlist" ? [...ACTIVE_REGISTRATION_STATUSES, "waitlist"] : ACTIVE_REGISTRATION_STATUSES)
     .limit(1)
     .maybeSingle();
   throwIfSupabaseError(duplicateError, "Could not check duplicate registration");
@@ -519,8 +590,12 @@ export async function createFutprepRegistration(
 
   // Camps are paid in full (the camp fee); the weekly/term choice is for
   // term programs only (brief 06 v2, A1.4).
-  const paymentFrequency: PaymentFrequency = programType === "camp" ? "term" : input.paymentFrequency;
-  const amountDueCents = amountDueFor({ programType, weeklyFeeCents: Number(term.weekly_fee_cents), termFeeCents: Number(term.term_fee_cents) }, paymentFrequency);
+  const paymentFrequency: PaymentFrequency = programType === "camp" || joinedFrom ? "term" : input.paymentFrequency;
+  const amountDueCents = registrationStatus === "trial"
+    ? 0
+    : joinedFrom
+      ? joinedFrom.amountCents
+      : amountDueFor({ programType, weeklyFeeCents: Number(term.weekly_fee_cents), termFeeCents: Number(term.term_fee_cents) }, paymentFrequency);
 
   // New family = neither the parent's phone nor email is on any earlier
   // registration here (handbook v1.3 §5). Computed before the insert so
@@ -536,7 +611,9 @@ export async function createFutprepRegistration(
   // when in doubt, it is not "brought by PortPass".
   const resolved: Resolved = input.enteredByStaff
     ? { sourceChannel: input.heardAboutUs ?? "unknown", commissionEligible: false, commissionReason: "Entered by staff" }
-    : resolveAttribution({ heard: input.heardAboutUs ?? null, referralCode: input.referralCode ?? null, attribution, isNewFamily });
+    : registrationStatus === "trial"
+      ? { sourceChannel: "member_perk", commissionEligible: false, commissionReason: "Free trial (member perk)" }
+      : resolveAttribution({ heard: input.heardAboutUs ?? null, referralCode: input.referralCode ?? null, attribution, isNewFamily });
 
   const now = new Date().toISOString();
   const referenceCode = `FP-${new Date().getUTCFullYear()}-${crypto
@@ -545,7 +622,7 @@ export async function createFutprepRegistration(
     .slice(0, 8)
     .toUpperCase()}`;
 
-  const { error: insertError } = await db.from("registrations").insert({
+  const { data: inserted, error: insertError } = await db.from("registrations").insert({
     reference_code: referenceCode,
     organization_id: program.organization_id,
     program_id: program.id,
@@ -569,8 +646,10 @@ export async function createFutprepRegistration(
     payment_frequency: paymentFrequency,
     payment_method: input.paymentMethod,
     amount_due_cents: amountDueCents,
-    registration_status: "pending",
-    payment_status: "pending",
+    registration_status: registrationStatus,
+    payment_status: registrationStatus === "trial" ? "waived" : "pending",
+    trial_session_id: trialSessionId,
+    joined_from_registration_id: joinedFrom?.id ?? null,
     consent_version: CONSENT_VERSION,
     consent_accepted: true,
     consent_at: now,
@@ -587,8 +666,11 @@ export async function createFutprepRegistration(
     is_new_family: isNewFamily,
     commission_eligible: resolved.commissionEligible,
     commission_reason: resolved.commissionReason,
-  });
+  }).select("id").single();
   throwIfSupabaseError(insertError, "Could not create Futprep registration");
+  if (returnLink && inserted) {
+    await db.from("futprep_return_links").update({ used_registration_id: inserted.id, last_used_at: now }).eq("id", returnLink.id);
+  }
 
   return {
     referenceCode,
@@ -615,8 +697,8 @@ export async function createFutprepRegistration(
     },
     paymentFrequency,
     amountDueCents,
-    paymentStatus: "pending" as const,
-    registrationStatus: "pending" as const,
+    paymentStatus: (registrationStatus === "trial" ? "waived" : "pending") as PaymentStatus,
+    registrationStatus,
   };
 }
 
@@ -859,4 +941,136 @@ export async function completeFutprepRegistration(input: FutprepCompletionInput)
   throwIfSupabaseError(updateError, "Could not complete Futprep registration");
 
   return { referenceCode: input.referenceCode, amountDueCents };
+}
+
+// ---- Part C: return links, trials, joining after a trial ---------------------
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+// A returning family's early-access link. The token is shown to staff
+// once; only its hash is stored.
+export async function createReturnLink(sourceRegistrationId: number, createdBy: string): Promise<{ token: string }> {
+  const db = getSupabaseAdmin();
+  const token = randomBytes(18).toString("base64url");
+  const { error } = await db.from("futprep_return_links").insert({ token_hash: hashToken(token), source_registration_id: sourceRegistrationId, created_by: createdBy });
+  throwIfSupabaseError(error, "Could not create the return link");
+  return { token };
+}
+
+export async function findReturnLink(token: string): Promise<{ id: number; sourceRegistrationId: number } | null> {
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
+  const db = getSupabaseAdmin();
+  const { data, error } = await db.from("futprep_return_links").select("id,source_registration_id").eq("token_hash", hashToken(token)).maybeSingle();
+  throwIfSupabaseError(error, "Could not check the return link");
+  return data ? { id: Number(data.id), sourceRegistrationId: Number(data.source_registration_id) } : null;
+}
+
+// What a return link fills in: parent details, the child's name and date
+// of birth, the class, the emergency contact and the pick-up person.
+// Never medical, allergy or medication fields -- the parent re-enters or
+// confirms those.
+export type ReturnPrefill = {
+  parentName: string; parentEmail: string; parentPhone: string; relationship: string;
+  childName: string; childDob: string; gender: string;
+  emergencyContactName: string; emergencyContactPhone: string; authorizedPickup: string;
+  programSlug: string;
+};
+
+export async function returnLinkPrefill(token: string): Promise<ReturnPrefill | null> {
+  const link = await findReturnLink(token);
+  if (!link) return null;
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
+    .from("registrations")
+    .select("parent_name,parent_email,parent_phone,relationship,child_name,child_dob,gender,emergency_contact_name,emergency_contact_phone,authorized_pickup,program_id")
+    .eq("id", link.sourceRegistrationId)
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load the returning family");
+  if (!data) return null;
+  const { data: program } = await db.from("programs").select("slug").eq("id", data.program_id).maybeSingle();
+  const s = (v: unknown) => (v === null || v === undefined ? "" : String(v));
+  return {
+    parentName: s(data.parent_name), parentEmail: s(data.parent_email), parentPhone: s(data.parent_phone), relationship: s(data.relationship),
+    childName: s(data.child_name), childDob: s(data.child_dob), gender: s(data.gender),
+    emergencyContactName: s(data.emergency_contact_name), emergencyContactPhone: s(data.emergency_contact_phone), authorizedPickup: s(data.authorized_pickup),
+    programSlug: s(program?.slug),
+  };
+}
+
+// What /futprep/register/return/<token> shows. A link is good while some
+// term is in its early-access window (until early_access_until); after
+// that it has expired and the parent registers like everyone else.
+export type ReturnLinkView =
+  | { state: "invalid" }
+  | { state: "expired" }
+  | { state: "open"; prefill: ReturnPrefill; offers: FutprepAvailability[]; preselect: { programId: number; termId: number } | null };
+
+export async function openReturnLink(token: string, now: Date = new Date()): Promise<ReturnLinkView> {
+  const prefill = await returnLinkPrefill(token);
+  if (!prefill) return { state: "invalid" };
+  const offers = await listFutprepOffers({ publicOnly: true, earlyAccess: true, now });
+  const early = offers.filter((offer) => offer.earlyAccessOnly);
+  if (early.length === 0) return { state: "expired" };
+  const same = early.find((offer) => offer.slug === prefill.programSlug) ?? null;
+  return { state: "open", prefill, offers, preselect: same ? { programId: same.programId, termId: same.termId } : null };
+}
+
+// The Saturdays a term offers free trials on, with the spots left each day.
+export type TrialSession = { sessionId: number; date: string; spotsLeft: number };
+
+export async function listTrialSessions(programId: number, termId: number, now: Date = new Date()): Promise<TrialSession[]> {
+  const db = getSupabaseAdmin();
+  const { data: term, error: termError } = await db.from("program_terms").select("trial_dates,trial_spots_per_session").eq("id", termId).eq("program_id", programId).maybeSingle();
+  throwIfSupabaseError(termError, "Could not load trial dates");
+  const today = nassauToday(now);
+  const dates = ((term?.trial_dates ?? []) as string[]).filter((date) => Boolean(date) && date >= today);
+  if (!term || dates.length === 0) return [];
+  const { data: sessions, error } = await db.from("sessions").select("id,session_date,status").eq("program_id", programId).eq("term_id", termId).in("session_date", dates).neq("status", "cancelled").order("session_date");
+  throwIfSupabaseError(error, "Could not load trial Saturdays");
+  const ids = (sessions ?? []).map((s) => Number(s.id));
+  const taken = new Map<number, number>();
+  if (ids.length) {
+    const { data: trials, error: trialsError } = await db.from("registrations").select("trial_session_id").in("trial_session_id", ids).eq("registration_status", "trial");
+    throwIfSupabaseError(trialsError, "Could not count trial spots");
+    for (const t of trials ?? []) taken.set(Number(t.trial_session_id), (taken.get(Number(t.trial_session_id)) ?? 0) + 1);
+  }
+  const spots = Number(term.trial_spots_per_session ?? 0);
+  return (sessions ?? []).map((s) => ({ sessionId: Number(s.id), date: String(s.session_date), spotsLeft: Math.max(0, spots - (taken.get(Number(s.id)) ?? 0)) }));
+}
+
+// "Join the rest of the term" after a trial: the weekly fee for each class
+// after the trial Saturday.
+export async function trialJoinQuote(referenceCode: string): Promise<{ registrationId: number; programId: number; termId: number; remainingSessions: number; amountCents: number; childName: string } | null> {
+  const db = getSupabaseAdmin();
+  const { data: trial, error } = await db
+    .from("registrations")
+    .select("id,program_id,term_id,trial_session_id,registration_status,child_name")
+    .ilike("reference_code", referenceCode.trim())
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load the trial");
+  if (!trial || trial.registration_status !== "trial" || !trial.trial_session_id) return null;
+  const [{ data: session }, { data: term }] = await Promise.all([
+    db.from("sessions").select("session_date").eq("id", trial.trial_session_id).maybeSingle(),
+    db.from("program_terms").select("weekly_fee_cents").eq("id", trial.term_id).maybeSingle(),
+  ]);
+  if (!session || !term) return null;
+  const { count, error: countError } = await db
+    .from("sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("program_id", trial.program_id)
+    .eq("term_id", trial.term_id)
+    .gt("session_date", session.session_date)
+    .neq("status", "cancelled");
+  throwIfSupabaseError(countError, "Could not count the remaining classes");
+  const remainingSessions = Number(count ?? 0);
+  return {
+    registrationId: Number(trial.id),
+    programId: Number(trial.program_id),
+    termId: Number(trial.term_id),
+    remainingSessions,
+    amountCents: prorateCents(Number(term.weekly_fee_cents), remainingSessions),
+    childName: String(trial.child_name),
+  };
 }

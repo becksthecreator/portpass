@@ -70,3 +70,19 @@ describe("nassauLocalToIso", () => {
     expect(nassauLocalToIso("12 Oct")).toBeNull();
   });
 });
+
+describe("early access and proration (Part C)", () => {
+  it("opens early access for an active term until early_access_until", async () => {
+    const { isTermEarlyAccessOpen } = await import("./futprepTerms");
+    const term = { active: true, endDate: "2027-03-20", registrationOpensAt: "2026-11-19T05:00:00Z", registrationClosesAt: null, earlyAccessUntil: "2026-11-19T04:59:00Z" };
+    expect(isTermEarlyAccessOpen(term, new Date("2026-11-10T12:00:00Z"))).toBe(true);
+    expect(isTermEarlyAccessOpen(term, new Date("2026-11-19T05:00:00Z"))).toBe(false);
+    expect(isTermEarlyAccessOpen({ ...term, active: false }, new Date("2026-11-10T12:00:00Z"))).toBe(false);
+    expect(isTermEarlyAccessOpen({ ...term, earlyAccessUntil: null }, new Date("2026-11-10T12:00:00Z"))).toBe(false);
+  });
+  it("prorates the rest of the term", async () => {
+    const { prorateCents } = await import("./futprepTerms");
+    expect(prorateCents(3500, 9)).toBe(31500);
+    expect(prorateCents(3500, -1)).toBe(0);
+  });
+});

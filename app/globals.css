@@ -5502,3 +5502,15 @@ a.admin-tile:hover{border-color:var(--aqua)}
 .private-session-services label.is-selected,.private-session-slots label.is-selected{border-color:#0D1B3D;box-shadow:inset 0 0 0 1px #0D1B3D}
 .private-session-services label span{color:#5B6B75;font-size:.82rem;margin-left:auto}
 .private-session-price{font-size:.9rem;margin:6px 0 10px}
+/* /pricing Monthly/Annual (BillingScope): both prices render; one shows. */
+.pricing-scope .when-annual{display:none}
+.pricing-scope[data-billing="annual"] .when-annual{display:flex}
+.pricing-scope[data-billing="annual"] span.when-annual{display:inline}
+.pricing-scope[data-billing="annual"] .when-monthly{display:none}
+
+/* Futprep Part C (brief 06 v2): waitlist, free first Saturday, return links */
+.registration-waitlist span{max-width:36ch;line-height:1.5}
+.registration-waitlist strong{font-size:1.2rem}
+.registration-trial-note{margin-top:10px;font-size:.9rem}
+.registration-trial-note a{font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.registration-medical-notice{border-left:3px solid currentColor;margin:0 0 16px;padding:8px 12px;font-weight:600}
