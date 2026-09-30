@@ -1,7 +1,7 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { requireFutprepStaff } from "../../staff-auth";
-import { listFutprepPrograms } from "@/db/programs";
+import { listFutprepPrograms, listFutprepSites } from "@/db/programs";
 import { AddProgramManager } from "./AddProgramManager";
 import { StaffLogoutButton } from "../StaffLogoutButton";
 
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function FutprepProgramsPage() {
   const role = await requireFutprepStaff(["admin", "coach", "ceo"], "/futprep/staff/programs");
-  const programs = await listFutprepPrograms();
+  const [programs, sites] = await Promise.all([listFutprepPrograms(), listFutprepSites().catch(() => [])]);
 
   return (
     <main className="staff-workspace theme-night">
@@ -28,10 +28,10 @@ export default async function FutprepProgramsPage() {
       </header>
       <section className="staff-workspace-content">
         <div className="staff-page-intro">
-          <div><span className="section-kicker">Programs & locations</span><h1>Add a new program.</h1></div>
+          <div><span className="section-kicker">Programs by site</span><h1>Programs.</h1></div>
           <p>Create a new class — a new age group, a new day, or a whole new location like Futprep Out East — and it shows up for parents on the registration page immediately, with sessions scheduled automatically for the term.</p>
         </div>
-        <AddProgramManager initialPrograms={programs} />
+        <AddProgramManager initialPrograms={programs} sites={sites} />
       </section>
     </main>
   );

@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import type { FutprepProgramSummary } from "@/db/programs";
+import { FormEvent, useMemo, useState } from "react";
+import type { FutprepProgramSummary, FutprepSite } from "@/db/programs";
 import { formatMoney } from "../../config";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -11,8 +11,22 @@ function dollarsToCents(value: FormDataEntryValue | null) {
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
 }
 
-export function AddProgramManager({ initialPrograms }: { initialPrograms: FutprepProgramSummary[] }) {
+export function AddProgramManager({ initialPrograms, sites = [] }: { initialPrograms: FutprepProgramSummary[]; sites?: FutprepSite[] }) {
   const [programs, setPrograms] = useState(initialPrograms);
+  // Brief 13: the form changes for a school contract, and a chosen site
+  // replaces typing a location.
+  const [programType, setProgramType] = useState<"term" | "camp" | "contract">("term");
+  const [siteId, setSiteId] = useState("");
+  const isContract = programType === "contract";
+  // Programs grouped by site (brief 13).
+  const bySite = useMemo(() => {
+    const groups = new Map<string, FutprepProgramSummary[]>();
+    for (const program of programs) {
+      const key = program.siteName ?? "No site yet";
+      groups.set(key, [...(groups.get(key) ?? []), program]);
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => (a === "No site yet" ? 1 : b === "No site yet" ? -1 : a.localeCompare(b)));
+  }, [programs]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [toggleError, setToggleError] = useState("");
@@ -61,7 +75,11 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
       weeklyFeeCents: dollarsToCents(form.get("weeklyFee")),
       termFeeCents: dollarsToCents(form.get("termFee")),
       registrationFeeCents: dollarsToCents(form.get("registrationFee")),
-      programType: form.get("programType") === "camp" ? "camp" : "term",
+      programType,
+      locationId: siteId ? Number(siteId) : null,
+      contractClient: isContract ? form.get("contractClient") : null,
+      contractFeeCents: isContract ? dollarsToCents(form.get("contractFee")) : null,
+      contractBilling: isContract ? form.get("contractBilling") : null,
       registrationClosesAt: form.get("registrationClosesAt") || "",
       whatToBring: form.get("whatToBring") || "",
     };
@@ -75,7 +93,7 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
       const data = (await response.json()) as { error?: string; programs?: FutprepProgramSummary[] };
       if (!response.ok) throw new Error(data.error ?? "Could not create the program.");
       if (data.programs) setPrograms(data.programs);
-      setMessage("Program created — it's live on the registration page now.");
+      setMessage(isContract ? "School contract created -- its sessions are on the coaches' roster, and it's on the Contracts page." : "Program created — it's live on the registration page now.");
       formEl.reset();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create the program.");
@@ -87,17 +105,23 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
   return (
     <div className="team-manager">
       {toggleError && <p className="form-error" role="alert">{toggleError}</p>}
+      {bySite.map(([site, sitePrograms]) => (
+      <section className="program-site-group" key={site} aria-label={site}>
+      <h2 className="program-site-heading">{site}</h2>
       <div className="team-manager-grid">
-        {programs.map((program) => (
+        {sitePrograms.map((program) => (
           <article className="team-manager-card" key={program.id}>
             <div>
-              <span>Ages {program.ageLabel}</span>
+              <span>{program.programType === "contract" ? `School contract · ${program.contractClient ?? ""}` : program.programType === "camp" ? `Camp · ages ${program.ageLabel}` : `Ages ${program.ageLabel}`}</span>
               <h2>{program.name}</h2>
               <p>{program.dayOfWeek} · {program.startTime}{program.endTime ? `–${program.endTime}` : ""} · {program.location}</p>
             </div>
             <div className="team-manager-flags">
               <span className={program.active ? "flag-on" : "flag-off"}>{program.active ? "Active" : "Inactive"}</span>
-              {program.spotsRemaining !== null && (
+              {program.programType === "contract" && program.contractFeeCents !== null && (
+                <span className="flag-on">{formatMoney(program.contractFeeCents)} {program.contractBilling === "per_term" ? "per term" : "per session"}</span>
+              )}
+              {program.programType !== "contract" && program.spotsRemaining !== null && (
                 <span className="flag-on">{program.spotsRemaining} of {program.capacity} spots open</span>
               )}
             </div>
@@ -123,8 +147,10 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
             </details>
           </article>
         ))}
-        {programs.length === 0 && <p className="coach-manager-message">No programs yet — add the first one below.</p>}
       </div>
+      </section>
+      ))}
+      {programs.length === 0 && <p className="coach-manager-message">No programs yet — add the first one below.</p>}
 
       <div className="team-admin-panels">
         <form className="team-admin-form" onSubmit={submit}>
@@ -138,14 +164,30 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
 
           <div className="team-form-two">
             <label><span>Type *</span>
-              <select name="programType" defaultValue="term">
+              <select name="programType" value={programType} onChange={(e) => setProgramType(e.target.value === "camp" ? "camp" : e.target.value === "contract" ? "contract" : "term")}>
                 <option value="term">Weekly class (a term)</option>
                 <option value="camp">Holiday camp (every weekday between the dates)</option>
+                <option value="contract">School contract (the school pays Futprep)</option>
               </select>
             </label>
             <label><span>Registration closes <small>(optional, Nassau time)</small></span><input name="registrationClosesAt" type="datetime-local" /></label>
           </div>
           <p className="form-hint">For a camp: the day of week is ignored, the start and end times are the daily hours, set the weekly fee to 0 and put the camp fee in &ldquo;Full term fee&rdquo;. Camp days are created automatically, skipping weekends and break dates.</p>
+          {isContract && (
+            <>
+              <p className="form-hint">A school contract is never public or registrable. Staff keep its roster by name (the school holds parent and medical details) and mark attendance; the Contracts page works out what to invoice.</p>
+              <label><span>School (who pays) *</span><input name="contractClient" placeholder="St Andrew's School" required /></label>
+              <div className="team-form-two">
+                <label><span>Contract fee (BSD) *</span><input name="contractFee" type="number" min={0} step="0.01" required /></label>
+                <label><span>Billed *</span>
+                  <select name="contractBilling" defaultValue="per_session">
+                    <option value="per_session">Per session delivered</option>
+                    <option value="per_term">Per term</option>
+                  </select>
+                </label>
+              </div>
+            </>
+          )}
           <label><span>What to bring <small>(optional, shown on the camps page)</small></span><textarea name="whatToBring" rows={2} placeholder="Boots or trainers, shin pads, water bottle, sunscreen, a snack" /></label>
 
           <div className="team-form-two">
@@ -155,10 +197,18 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
 
           <label className="inline-choice"><input name="coed" type="checkbox" defaultChecked /> Co-ed</label>
 
-          <div className="team-form-two">
-            <label><span>Location name *</span><input name="locationName" placeholder="Futprep Out East Field" required /></label>
-            <label><span>Location address</span><input name="locationAddress" placeholder="Street, settlement, island" /></label>
-          </div>
+          <label><span>Site</span>
+            <select name="locationId" value={siteId} onChange={(e) => setSiteId(e.target.value)}>
+              <option value="">A new location (type it below)</option>
+              {sites.map((site) => <option key={site.id} value={site.id}>{site.name}{site.area && site.area !== site.name ? ` · ${site.area}` : ""}</option>)}
+            </select>
+          </label>
+          {!siteId && (
+            <div className="team-form-two">
+              <label><span>Location name *</span><input name="locationName" placeholder="Futprep Out East Field" required /></label>
+              <label><span>Location address</span><input name="locationAddress" placeholder="Street, settlement, island" /></label>
+            </div>
+          )}
 
           <div className="team-form-two">
             <label><span>Day of week *</span>
@@ -185,8 +235,8 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
           </div>
 
           <div className="team-form-two">
-            <label><span>Weekly fee (BSD) *</span><input name="weeklyFee" type="number" min={0} step="0.01" required /></label>
-            <label><span>Full term fee (BSD) *</span><input name="termFee" type="number" min={0} step="0.01" required /></label>
+            <label><span>Weekly fee (BSD){isContract ? "" : " *"}</span><input name="weeklyFee" type="number" min={0} step="0.01" required={!isContract} defaultValue={isContract ? 0 : undefined} /></label>
+            <label><span>Full term fee (BSD){isContract ? "" : " *"}</span><input name="termFee" type="number" min={0} step="0.01" required={!isContract} defaultValue={isContract ? 0 : undefined} /></label>
           </div>
 
           <label><span>Registration fee (BSD)</span><input name="registrationFee" type="number" min={0} step="0.01" defaultValue={0} /></label>

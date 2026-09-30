@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentFutprepStaffRole, currentFutprepStaffAccount } from "@/app/futprep/staff-auth";
 import { clearFutprepAttendance, markFutprepAttendance } from "@/db/staff";
+import { ensureDefaultLead } from "@/db/coachPay";
 
 export async function POST(request: Request) {
   const role = await currentFutprepStaffRole();
@@ -31,6 +32,10 @@ export async function POST(request: Request) {
       status: body.status as "present" | "absent" | "excused" | "late",
       markedBy,
     });
+    // Brief 13: a session that's being marked happened, so its default lead
+    // (Coach Bex for Lil Kickers and Kickers) is recorded as having coached
+    // it unless staff already said who did. Never blocks the mark.
+    await ensureDefaultLead(Number(body.sessionId), markedBy).catch((error) => console.error("default lead error", error));
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Futprep attendance error", error);
