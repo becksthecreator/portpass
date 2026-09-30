@@ -47,7 +47,7 @@ export type StaffSession = {
   program_slug: string;
   // Brief 06 v2: camps and a second term sit beside Term 1, so the picker
   // shows program -> term -> day.
-  program_type: "term" | "camp";
+  program_type: "term" | "camp" | "contract";
   term_id: number;
   term_name: string;
   session_date: string;
@@ -106,6 +106,9 @@ export async function listFutprepStaffRegistrations(): Promise<
     .from("programs")
     .select("id,name,slug,start_time")
     .eq("organization_id", organizationId)
+    // Brief 13: school-contract children have no family to register or
+    // collect from, so they stay off the registration desk.
+    .neq("program_type", "contract")
     .order("start_time", { ascending: true });
   throwIfSupabaseError(programError, "Could not load Futprep programs");
 
@@ -278,7 +281,7 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
         program_id: session.program_id,
         program_name: program?.name ?? "Program",
         program_slug: program?.slug ?? "",
-        program_type: program?.program_type === "camp" ? ("camp" as const) : ("term" as const),
+        program_type: program?.program_type === "camp" ? ("camp" as const) : program?.program_type === "contract" ? ("contract" as const) : ("term" as const),
         term_id: Number(session.term_id),
         term_name: termName.get(Number(session.term_id)) ?? "",
         session_date: session.session_date,

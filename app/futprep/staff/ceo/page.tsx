@@ -54,6 +54,8 @@ export default async function FutprepCeoPage() {
           <Link href="/futprep/staff/team">Team</Link>
           <Link href="/futprep/staff/accounts">Staff accounts</Link>
           <Link href="/futprep/staff/programs">Programs</Link>
+          <Link href="/futprep/staff/pay">Coach pay</Link>
+          <Link href="/futprep/staff/contracts">Contracts</Link>
           <Link href="/futprep/staff/private-sessions">Private sessions</Link>
           <Link href="/futprep/staff/admin">Registration desk</Link>
           <Link href="/futprep/staff/coach">Coaching area</Link>

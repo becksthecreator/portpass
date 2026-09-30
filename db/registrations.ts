@@ -357,6 +357,8 @@ export async function listFutprepOffers(options: { publicOnly?: boolean; now?: D
     .eq("active", true)
     .order("id", { ascending: true });
   if (options.publicOnly) programQuery = programQuery.eq("is_public", true);
+  // A school contract (brief 13) is never registrable, even by direct link.
+  programQuery = programQuery.neq("program_type", "contract");
   const { data: programs, error: programsError } = await programQuery;
   throwIfSupabaseError(programsError, "Could not load class availability");
 
@@ -550,6 +552,9 @@ export async function createFutprepRegistration(
     .maybeSingle();
   throwIfSupabaseError(programError, "Could not load selected program");
   if (!program) throw new Error("INVALID_PROGRAM");
+  // Brief 13: the school holds a contract child's details; there is no
+  // registration for one.
+  if (program.program_type === "contract") throw new Error("INVALID_PROGRAM");
   const programType: ProgramType = program.program_type === "camp" ? "camp" : "term";
 
   // The term must belong to this program and be taking registrations
@@ -871,10 +876,13 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
     // commitment. The parent picks the real plan (and this gets
     // recalculated) at the completion step.
     // A camp is paid in full, so its estimate is the camp fee.
-    payment_frequency: program.program_type === "camp" ? "term" : "weekly",
-    amount_due_cents: program.program_type === "camp" ? Number(term.term_fee_cents) : Number(term.weekly_fee_cents),
-    registration_status: "pending_details",
-    payment_status: "pending",
+    payment_frequency: program.program_type === "camp" || program.program_type === "contract" ? "term" : "weekly",
+    // Brief 13: a school-contract child is on the roster by name only (the
+    // school holds the parent and medical details, and pays Futprep), so
+    // nothing is pending and nothing is owed by a family.
+    amount_due_cents: program.program_type === "contract" ? 0 : program.program_type === "camp" ? Number(term.term_fee_cents) : Number(term.weekly_fee_cents),
+    registration_status: program.program_type === "contract" ? "confirmed" : "pending_details",
+    payment_status: program.program_type === "contract" ? "waived" : "pending",
     consent_version: CONSENT_VERSION,
     consent_accepted: false,
     additional_notes: "",
@@ -882,7 +890,7 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
     // commissionable (growth-tracking brief, 28 Sept).
     is_new_family: false,
     commission_eligible: false,
-    commission_reason: "Entered by staff",
+    commission_reason: program.program_type === "contract" ? "School contract" : "Entered by staff",
     submitted_at: now,
     entered_by_staff: input.enteredByStaff.trim(),
   }).select("id").single();

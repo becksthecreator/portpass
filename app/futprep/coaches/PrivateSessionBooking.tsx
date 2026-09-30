@@ -5,7 +5,20 @@ import steamerStyles from "./SteamerLeft.module.css";
 
 export type BookingSlot = { id: number; date: string; startTime: string; endTime: string; location: string };
 export type BookingCoach = { id: number; displayName: string; slots: BookingSlot[] };
-export type BookingService = { slug: string; name: string; priceCents: number | null; priceUnit: string | null; kind: "session" | "party"; durationMinutes: number };
+export type BookingService = {
+  slug: string; name: string; priceCents: number | null; priceUnit: string | null; kind: "session" | "party"; durationMinutes: number;
+  // Brief 13: tiers priced per child. A group is 4 to 8 children at a
+  // price each; the others are a price for a set number of children.
+  minChildren?: number; maxChildren?: number; perChildCents?: number | null;
+};
+
+// "$120 · $60 per child", "$35 per child · 4–8 children", "$80".
+function priceLine(s: BookingService): string {
+  if (s.priceCents === null) return "";
+  if (s.priceUnit === "per_child") return `${money(s.priceCents)} per child · ${s.minChildren ?? 4}–${s.maxChildren ?? 8} children`;
+  if ((s.minChildren ?? 1) > 1 && s.perChildCents) return `${money(s.priceCents)} · ${money(s.perChildCents)} per child`;
+  return money(s.priceCents);
+}
 
 const DAY = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 const dayLabel = (iso: string) => DAY.format(new Date(`${iso}T12:00:00Z`));
@@ -28,12 +41,16 @@ export function PrivateSessionBooking({
   const [serviceSlug, setServiceSlug] = useState<string>(firstService?.slug ?? "");
   const [coachId, setCoachId] = useState<number | null>(preferredCoachId ?? null);
   const [slotId, setSlotId] = useState<number | "suggest">("suggest");
+  const [children, setChildren] = useState(4);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const service = services.find((s) => s.slug === serviceSlug) ?? null;
   const coach = coaches.find((c) => c.id === coachId) ?? null;
   const slots = coach?.slots ?? [];
   const legacyType = service?.kind === "party" ? "birthday" : defaultKind === "party" ? "birthday" : "private_lesson";
+  const variableChildren = service ? (service.maxChildren ?? 1) > (service.minChildren ?? 1) : false;
+  const childrenCount = service ? (variableChildren ? Math.min(Math.max(children, service.minChildren ?? 1), service.maxChildren ?? 8) : service.minChildren ?? 1) : 1;
+  const totalCents = service?.priceCents === null || service?.priceCents === undefined ? null : service.priceUnit === "per_child" ? service.priceCents * childrenCount : service.priceCents;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,6 +65,7 @@ export function PrivateSessionBooking({
         body: JSON.stringify({
           requestType: legacyType,
           serviceSlug: service?.slug ?? null,
+          childrenCount: service ? childrenCount : null,
           preferredCoachId: coachId,
           availabilityId: usingSlot ? slotId : null,
           parentName: form.get("parentName"),
@@ -125,7 +143,7 @@ export function PrivateSessionBooking({
                   <label key={s.slug} className={s.slug === serviceSlug ? "is-selected" : ""}>
                     <input type="radio" name="service" value={s.slug} checked={s.slug === serviceSlug} onChange={() => setServiceSlug(s.slug)} />
                     <strong>{s.name}</strong>
-                    <span>{money(s.priceCents)}{s.priceUnit === "per_session" ? " per session" : ""} · {s.durationMinutes} min</span>
+                    <span>{priceLine(s)} · {s.durationMinutes} min</span>
                   </label>
                 ))}
               </fieldset>
@@ -168,13 +186,26 @@ export function PrivateSessionBooking({
               <label><span>Child&apos;s name</span><input name="childName" required /></label>
               <label><span>Child&apos;s age</span><input name="childAge" type="number" min="1" max="18" required /></label>
             </div>
+            {variableChildren && service && (
+              <label><span>How many children?</span>
+                <select value={childrenCount} onChange={(e) => setChildren(Number(e.target.value))}>
+                  {Array.from({ length: (service.maxChildren ?? 8) - (service.minChildren ?? 4) + 1 }, (_, i) => (service.minChildren ?? 4) + i).map((count) => <option key={count} value={count}>{count} children</option>)}
+                </select>
+              </label>
+            )}
             {!service && (
               <label><span>Length</span><select name="durationMinutes" defaultValue="60"><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option></select></label>
             )}
             {slotId === "suggest" && <label><span>Where would suit you?</span><input name="locationPreference" placeholder="Lyford Cay, home, other…" /></label>}
             <label><span>{service?.kind === "party" ? "About the party (how many children, the occasion)" : "What should the coach focus on?"}</span><textarea name="sessionGoal" rows={3} placeholder={service?.kind === "party" ? "Up to 15 children, a 7th birthday…" : "Confidence, first touch, shooting…"} /></label>
             <label><span>Anything else?</span><textarea name="notes" rows={2} /></label>
-            {service?.priceCents !== undefined && service?.priceCents !== null && <p className="private-session-price">Price: <strong>{money(service.priceCents)}</strong>. Pay cash at the session or by bank transfer using your PS- reference.</p>}
+            {service && totalCents !== null && (
+              <p className="private-session-price">
+                Price: <strong>{money(totalCents)}</strong>
+                {service.priceUnit === "per_child" ? ` (${money(service.priceCents)} per child × ${childrenCount})` : (service.minChildren ?? 1) > 1 && service.perChildCents ? ` (${money(service.perChildCents)} per child)` : ""}.
+                {" "}Pay cash at the session or by bank transfer using your PS- reference.
+              </p>
+            )}
             {error && <p className="form-error" role="alert">{error}</p>}
             <button className="private-session-submit" disabled={busy || !schemaReady} type="submit">{busy ? "Sending…" : "Send request →"}</button>
           </form>

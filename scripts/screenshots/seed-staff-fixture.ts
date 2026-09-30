@@ -124,6 +124,38 @@ async function main() {
   const { error: regError } = await db.from("registrations").insert(rows);
   if (regError) throw new Error(`Could not seed registrations: ${regError.message}`);
 
+  // Brief 13: coach pay. Two TEST coaches (the lead is tied to the
+  // test-coach login, so that login sees only their own pay), who coached
+  // the three Saturdays already played, one month partly paid.
+  const { data: staffRows } = await db.from("staff_members").select("id,account_key").in("account_key", ["test-coach"]);
+  const coachLoginId = staffRows?.[0]?.id ?? null;
+  const { data: coaches, error: coachError } = await db
+    .from("coach_profiles")
+    .insert([
+      { organization_id: org.id, slug: "test-delete-coach-bex", display_name: `${MARK} Coach Bex`, member_type: "coach", active: true, public_visible: false, bookable: false, default_lead_pay_cents: 5000, staff_member_id: coachLoginId },
+      { organization_id: org.id, slug: "test-delete-coach-dre", display_name: `${MARK} Coach Dre`, member_type: "coach", active: true, public_visible: false, bookable: false, default_assistant_pay_cents: 2500 },
+    ])
+    .select("id,slug");
+  if (coachError || !coaches) throw new Error(`Could not seed coaches: ${coachError?.message}`);
+  const bex = coaches.find((c) => c.slug === "test-delete-coach-bex")!.id;
+  const dre = coaches.find((c) => c.slug === "test-delete-coach-dre")!.id;
+  await db.from("programs").update({ default_lead_coach_id: bex, field_cost_cents_per_term: 20000 }).eq("id", program.id);
+  const { data: played } = await db.from("sessions").select("id,session_date").eq("term_id", term.id).lt("session_date", iso(nextSaturday)).order("session_date");
+  const staffing = (played ?? []).flatMap((s, i) => [
+    { session_id: s.id, coach_id: bex, role: "lead", pay_cents: 5000, paid_at: i === 0 ? now : null, created_by: MARK },
+    { session_id: s.id, coach_id: dre, role: "assistant", pay_cents: 2500, paid_at: null, created_by: MARK },
+  ]);
+  if (staffing.length) {
+    const { error: staffError } = await db.from("session_staff").insert(staffing);
+    if (staffError) throw new Error(`Could not seed who coached: ${staffError.message}`);
+  }
+  // Two families paid: one of them brought in by PortPass (for the P&L).
+  const { data: paidRegs } = await db.from("registrations").select("id,reference_code").eq("program_id", program.id).in("reference_code", ["FP-TEST-0001", "FP-TEST-0002"]);
+  for (const reg of paidRegs ?? []) {
+    await db.from("payments").insert({ registration_id: reg.id, amount_cents: 42000, method: "cash", status: "received", note: MARK, received_at: now });
+    if (reg.reference_code === "FP-TEST-0001") await db.from("registrations").update({ commission_eligible: true }).eq("id", reg.id);
+  }
+
   writeFileSync(out, JSON.stringify({ programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date }, null, 2));
   console.log(`Seeded TEST staff fixture: program ${program.id}, term ${term.id}, session ${session.id} on ${session.session_date}.`);
 }

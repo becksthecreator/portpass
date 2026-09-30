@@ -30,6 +30,8 @@ export default async function FutprepStaffAdminPage() {
           {role==="ceo" && <Link href="/futprep/staff/ceo">CEO overview</Link>}
           <Link href="/futprep/staff/private-sessions">Private sessions</Link>
           <Link href="/futprep/staff/programs">Programs</Link>
+          <Link href="/futprep/staff/contracts">Contracts</Link>
+          <Link href="/futprep/staff/pay">Coach pay</Link>
           <Link href="/futprep/staff/accounts">Staff accounts</Link>
           <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
           <StaffLogoutButton />

@@ -1,6 +1,6 @@
 import { FUTPREP_BANK_DETAILS } from "@/app/futprep/config";
 import { sendPrivateSessionAcceptedEmail } from "@/lib/email";
-import { isPrivateServiceSlug, PRIVATE_SERVICES, privatePaymentStatus, privateSessionCode, weeklySlotDates, type PrivateServiceSlug } from "@/lib/privateSessions";
+import { childrenAllowed, isPrivateServiceSlug, perChildCents, PRIVATE_SERVICES, privatePaymentStatus, privateSessionCode, sessionTotalCents, weeklySlotDates, type PrivateServiceSlug } from "@/lib/privateSessions";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type CoachAvailability = {
@@ -64,6 +64,8 @@ export type PrivateSessionRequest = {
   created_at: string;
   service_slug: string | null;
   price_cents: number | null;
+  // Brief 13: a group session is priced per child.
+  children_count?: number;
   availability_id: number | null;
   accepted_at: string | null;
   payment_status: "unpaid" | "partial" | "paid" | "waived";
@@ -297,6 +299,11 @@ export type PrivateService = {
   requestType: "private_lesson" | "birthday";
   durationMinutes: number;
   kind: "session" | "party";
+  // Brief 13: how many children the service is for, and the price per
+  // child ($120 for a pair is $60 each; a group is $35 each).
+  minChildren: number;
+  maxChildren: number;
+  perChildCents: number | null;
 };
 
 export async function listFutprepPrivateServices(options: { publishedOnly?: boolean } = {}): Promise<PrivateService[]> {
@@ -327,6 +334,9 @@ export async function listFutprepPrivateServices(options: { publishedOnly?: bool
         requestType: meta.requestType,
         durationMinutes: meta.durationMinutes,
         kind: meta.kind,
+        minChildren: meta.children.min,
+        maxChildren: meta.children.max,
+        perChildCents: perChildCents(row.slug as PrivateServiceSlug, row.price_cents === null ? null : Number(row.price_cents), (row.price_unit as string | null) ?? null),
       };
     });
 }
@@ -342,6 +352,8 @@ export async function createPrivateSessionRequest(input:{
   // coach's open slots (else the date/time above is a suggestion).
   serviceSlug?:string|null;
   availabilityId?:number|null;
+  // Brief 13: children in the session (a group session is 4 to 8).
+  childrenCount?:number|null;
 }) {
   const ready=await seedProfiles();
   if(!ready) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
@@ -354,6 +366,8 @@ export async function createPrivateSessionRequest(input:{
     service = (await listFutprepPrivateServices({ publishedOnly: true })).find((s) => s.slug === input.serviceSlug) ?? null;
     if (!service) throw new Error("SERVICE_NOT_AVAILABLE");
   }
+  const childrenCount = service ? (input.childrenCount ?? service.minChildren) : 1;
+  if (service && !childrenAllowed(service.slug, childrenCount)) throw new Error("CHILDREN_OUT_OF_RANGE");
 
   let preferredCoachId = input.preferredCoachId;
   let requestedDate = input.requestedDate;
@@ -397,7 +411,8 @@ export async function createPrivateSessionRequest(input:{
     session_goal:input.sessionGoal.trim(),
     notes:input.notes.trim(),
     service_slug:service?.slug ?? null,
-    price_cents:service?.priceCents ?? null,
+    price_cents:service ? sessionTotalCents(service.priceCents, service.priceUnit, childrenCount) : null,
+    children_count:childrenCount,
     availability_id:availabilityId,
     status:"pending",
     updated_at:new Date().toISOString(),

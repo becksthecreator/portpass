@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { privateSessionAcceptedEmail } from "./email";
-import { isPrivateServiceSlug, privatePaymentStatus, privateSessionCode, weeklySlotDates } from "./privateSessions";
+import { childrenAllowed, isPrivateServiceSlug, perChildCents, privatePaymentStatus, privateSessionCode, sessionTotalCents, weeklySlotDates } from "./privateSessions";
 
 describe("private sessions (brief 06 v2, Part B)", () => {
   it("generates a coach's weekly slots from the next matching day", () => {
@@ -41,5 +41,28 @@ describe("private sessions (brief 06 v2, Part B)", () => {
     for (const part of ["Wed 7 Oct", "4:00 PM", "45 minutes", "Lyford Cay Lower Campus Soccer Field", "$60", "PS-2026-7K3QD9A", "TEST Bank", "000-TEST"]) expect(html).toContain(part);
     expect(html).toContain("TEST &lt;Child&gt;");
     expect(html).not.toMatch(/allerg|medical|medication/i);
+  });
+});
+
+describe("private-session tiers per child (brief 13)", () => {
+  it("prices each tier per child the way Futprep does", () => {
+    expect(perChildCents("private-1on1", 8000, "per_session")).toBe(8000);
+    expect(perChildCents("private-pair", 12000, "per_session")).toBe(6000);
+    expect(perChildCents("private-trio", 13500, "per_session")).toBe(4500);
+    expect(perChildCents("private-group", 3500, "per_child")).toBe(3500);
+    expect(perChildCents("private-1on1", null, "per_session")).toBeNull();
+  });
+
+  it("totals a group session by the number of children, 4 to 8", () => {
+    expect(sessionTotalCents(3500, "per_child", 5)).toBe(17500);
+    expect(sessionTotalCents(13500, "per_session", 3)).toBe(13500);
+    expect(childrenAllowed("private-group", 4)).toBe(true);
+    expect(childrenAllowed("private-group", 8)).toBe(true);
+    expect(childrenAllowed("private-group", 3)).toBe(false);
+    expect(childrenAllowed("private-group", 9)).toBe(false);
+    expect(childrenAllowed("private-trio", 3)).toBe(true);
+    expect(childrenAllowed("private-trio", 2)).toBe(false);
+    expect(isPrivateServiceSlug("private-trio")).toBe(true);
+    expect(isPrivateServiceSlug("private-group")).toBe(true);
   });
 });
