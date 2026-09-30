@@ -25,7 +25,8 @@ export default async function FutprepRegistrationDetailPage({
   ]);
   if (!detail) notFound();
 
-  const programs = availability.map((program) => ({
+  // One entry per program (a program with two open terms appears once).
+  const programs = availability.filter((program, index, all) => all.findIndex((other) => other.slug === program.slug) === index).map((program) => ({
     slug: program.slug,
     name: program.name,
     weeklyFeeCents: program.weeklyFeeCents,

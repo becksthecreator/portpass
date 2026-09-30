@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 // Brand constants for next/og ImageResponse cards (Harbour Signal, 28
 // Sept). Satori needs explicit flex on anything with children, hence the
 // styles here rather than a class.
@@ -13,11 +16,28 @@ export const BRAND = {
   line: "#DCE1E8",
 } as const;
 
-// The mark on a navy card. Interim: a white disc with the navy P until the
-// Prow mark from PortPass-Logo-Files.zip is in public/brand/ (then this
-// renders that SVG instead). Not a redrawing of the Prow -- deliberately
-// the plain old mark, so nothing approximates the real logo.
+// The Prow mark for a navy card: the delivered SVG file itself
+// (public/brand/logo/portpass-mark-dark.svg, white ship on navy), read once
+// and handed to Satori as a data URL. Never redrawn. If the file can't be
+// read the card shows a plain white disc instead of failing the image.
+let markDataUrl: string | null | undefined;
+function prowMark(): string | null {
+  if (markDataUrl !== undefined) return markDataUrl;
+  try {
+    const svg = readFileSync(path.join(process.cwd(), "public", "brand", "logo", "portpass-mark-dark.svg"), "utf8");
+    markDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+  } catch {
+    markDataUrl = null;
+  }
+  return markDataUrl;
+}
+
 export function PMark({ size = 72 }: { size?: number }) {
+  const src = prowMark();
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt="" width={size} height={size} style={{ width: size, height: size }} />;
+  }
   return (
     <div
       style={{
@@ -25,18 +45,9 @@ export function PMark({ size = 72 }: { size?: number }) {
         height: size,
         borderRadius: "50%",
         background: BRAND.paper,
-        color: BRAND.ink,
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: Math.round(size * 0.58),
-        fontStyle: "italic",
-        fontWeight: 800,
-        fontFamily: "Georgia, serif",
       }}
-    >
-      P
-    </div>
+    />
   );
 }
 

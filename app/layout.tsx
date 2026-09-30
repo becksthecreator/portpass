@@ -11,10 +11,13 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://portpassbahamas.com"),
   title: TITLE,
   description: DESCRIPTION,
-  // Listing `apple` here is required: once `icons` is set in config, Next
-  // stops emitting the link for app/apple-icon.tsx on its own (verified
-  // live 27 Sept -- the PNG served, the <link> never appeared).
-  icons: { icon: "/favicon.svg", apple: [{ url: "/apple-icon", sizes: "180x180", type: "image/png" }] },
+  // The Prow icons from PortPass-Logo-Files.zip (Harbour Signal): the SVG
+  // favicon switches for dark mode, the .ico covers old tabs, and the
+  // 180px PNG is the iPhone home-screen tile.
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "48x48 32x32 16x16", type: "image/x-icon" }],
+    apple: [{ url: "/brand/icons/apple-touch-icon-180.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     type: "website",
     siteName: "PortPass Bahamas",
@@ -59,6 +62,19 @@ export default function RootLayout({
           <>
             <script dangerouslySetInnerHTML={{ __html: "window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};" }} />
             <script defer src="/_vercel/insights/script.js" />
+          </>
+        )}
+        {/*
+          Vercel Speed Insights (speed brief, 29 Sept, 1.7): real-visitor
+          Core Web Vitals. Same arrangement as analytics -- Vercel serves
+          the script once Speed Insights is enabled for the project
+          (Project -> Speed Insights -> Enable), so it sits behind
+          VERCEL_SPEED_INSIGHTS=1 until Antonio flips that switch.
+        */}
+        {process.env.VERCEL_SPEED_INSIGHTS === "1" && (
+          <>
+            <script dangerouslySetInnerHTML={{ __html: "window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments)};" }} />
+            <script defer src="/_vercel/speed-insights/script.js" />
           </>
         )}
       </body>

@@ -46,8 +46,9 @@ async function safePackages(): Promise<PublicWeddingPackage[]> {
   }
 }
 
-// force-dynamic: reads live wedding-site data at request time.
-export const dynamic = "force-dynamic";
+// ISR (speed brief, 29 Sept): five-minute cache, rebuilt on demand; the
+// safe* loaders above already fall back when the database is unreachable.
+export const revalidate = 300;
 
 export const metadata = {
   title: "Weddings in The Bahamas | PortPass Bahamas",

@@ -27,9 +27,12 @@ export const bizDisplay = Fraunces({
   display: "swap",
 });
 
+// Body text is not preloaded: only the heading font is (speed brief, 29
+// Sept, 1.6), so the first paint waits for one font file, not two.
 export const ppSans = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-pp-sans",
   display: "swap",
+  preload: false,
 });

@@ -101,6 +101,7 @@ export async function POST(request: Request) {
     authorizedPickup: clean(body,"authorizedPickup"),
     additionalNotes: clean(body,"additionalNotes"),
     programSlug: programSlug as FutprepRegistrationInput["programSlug"],
+    termId: Number.isInteger(Number(body.termId)) && Number(body.termId) > 0 ? Number(body.termId) : null,
     paymentFrequency: paymentFrequency as FutprepRegistrationInput["paymentFrequency"],
     paymentMethod: paymentMethod as FutprepRegistrationInput["paymentMethod"],
     photoConsent: photoConsent as FutprepRegistrationInput["photoConsent"],
@@ -123,7 +124,7 @@ export async function POST(request: Request) {
       parentEmail: input.parentEmail,
       parentName: input.parentName,
       childName: input.childName,
-      programName: registration.program.name,
+      programName: `${registration.program.name} · ${registration.term.name}`,
       day: registration.program.day,
       time: registration.program.time,
       endTime: registration.program.endTime,
@@ -137,8 +138,9 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "";
     if (message === "INVALID_PROGRAM" || message === "PROGRAM_NOT_AVAILABLE") return NextResponse.json({ error: "Choose a valid class." }, { status: 400 });
     if (message === "AGE_MISMATCH") return NextResponse.json({ error: "The child’s age does not match the selected class." }, { status: 400 });
+    if (message === "TERM_CLOSED") return NextResponse.json({ error: "Registration for that session has closed. Message Futprep on WhatsApp if you still need a spot." }, { status: 409 });
     if (message === "PROGRAM_FULL") return NextResponse.json({ error: "That class has reached capacity." }, { status: 409 });
-    if (message.startsWith("DUPLICATE:")) return NextResponse.json({ error: "A Term 1 registration for this child has already been received.", referenceCode: message.split(":")[1] }, { status: 409 });
+    if (message.startsWith("DUPLICATE:")) return NextResponse.json({ error: "A registration for this child has already been received for this session.", referenceCode: message.split(":")[1] }, { status: 409 });
     console.error("Futprep registration error", error);
     return NextResponse.json({ error: "We couldn’t complete the registration. Please try again." }, { status: 500 });
   }

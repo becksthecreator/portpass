@@ -61,6 +61,9 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
       weeklyFeeCents: dollarsToCents(form.get("weeklyFee")),
       termFeeCents: dollarsToCents(form.get("termFee")),
       registrationFeeCents: dollarsToCents(form.get("registrationFee")),
+      programType: form.get("programType") === "camp" ? "camp" : "term",
+      registrationClosesAt: form.get("registrationClosesAt") || "",
+      whatToBring: form.get("whatToBring") || "",
     };
 
     try {
@@ -132,6 +135,18 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
             <label><span>Program name *</span><input name="name" placeholder="Futprep Out East Lil Kickers" required /></label>
             <label><span>Capacity *</span><input name="capacity" type="number" min={1} defaultValue={20} required /></label>
           </div>
+
+          <div className="team-form-two">
+            <label><span>Type *</span>
+              <select name="programType" defaultValue="term">
+                <option value="term">Weekly class (a term)</option>
+                <option value="camp">Holiday camp (every weekday between the dates)</option>
+              </select>
+            </label>
+            <label><span>Registration closes <small>(optional, Nassau time)</small></span><input name="registrationClosesAt" type="datetime-local" /></label>
+          </div>
+          <p className="form-hint">For a camp: the day of week is ignored, the start and end times are the daily hours, set the weekly fee to 0 and put the camp fee in &ldquo;Full term fee&rdquo;. Camp days are created automatically, skipping weekends and break dates.</p>
+          <label><span>What to bring <small>(optional, shown on the camps page)</small></span><textarea name="whatToBring" rows={2} placeholder="Boots or trainers, shin pads, water bottle, sunscreen, a snack" /></label>
 
           <div className="team-form-two">
             <label><span>Age min *</span><input name="ageMin" type="number" min={0} required /></label>

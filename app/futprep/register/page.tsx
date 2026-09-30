@@ -3,23 +3,32 @@ import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { Suspense } from "react";
 import { RegistrationForm } from "./RegistrationForm";
-import { getFutprepAvailability } from "@/db/registrations";
+import { getFutprepAvailability, getFutprepOffer, type FutprepAvailability } from "@/db/registrations";
 import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAttribution, parseAttributionCookie, type Attribution } from "@/lib/attribution";
+import { offerHeadline } from "@/lib/futprepTerms";
 import { normalizeProgramSlug } from "../config";
 
-// force-dynamic: the title/header badge below reads the selected program
-// from the database, and this repo's CI build has no Supabase credentials
-// available at build time. It also reads the attribution cookie.
+// force-dynamic: spots left, the open terms and the attribution cookie are
+// all per-request.
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ program?: string } & Record<string, string | string[] | undefined>>;
+type SearchParams = Promise<{ program?: string; term?: string } & Record<string, string | string[] | undefined>>;
 
-async function resolveProgram(searchParams: SearchParams) {
-  const { program: slug } = await searchParams;
-  if (!slug) return null;
-  const normalized = normalizeProgramSlug(slug);
-  const availability = await getFutprepAvailability();
-  return availability.find((p) => p.slug === normalized) ?? null;
+// The canonical form is /futprep/register?program=<slug>&term=<id> (brief
+// 06 v2, A1.5). The offers shown are every public open one, plus the one
+// the link names even if its program is unlisted (is_public = false).
+async function loadOffers(searchParams: SearchParams): Promise<{ offers: FutprepAvailability[]; requested: FutprepAvailability | null }> {
+  const params = await searchParams;
+  const slug = typeof params.program === "string" ? normalizeProgramSlug(params.program) : "";
+  const termId = typeof params.term === "string" && /^\d+$/.test(params.term) ? Number(params.term) : null;
+  const [offers, requested] = await Promise.all([
+    getFutprepAvailability().catch(() => [] as FutprepAvailability[]),
+    slug ? getFutprepOffer(slug, termId).catch(() => null) : Promise.resolve(null),
+  ]);
+  if (requested && !offers.some((o) => o.programId === requested.programId && o.termId === requested.termId)) {
+    return { offers: [requested, ...offers], requested };
+  }
+  return { offers, requested };
 }
 
 // Growth tracking (28 Sept): what the 30-day first-party cookie remembers
@@ -36,31 +45,31 @@ async function readAttribution(searchParams: SearchParams): Promise<Attribution>
 }
 
 export async function generateMetadata({ searchParams }: { searchParams: SearchParams }) {
-  const program = await resolveProgram(searchParams);
+  const { requested } = await loadOffers(searchParams);
   return {
-    title: program ? `Register | ${program.name}` : "Register | Futprep Athletics",
-    description: program
-      ? `Register a child for ${program.name} Term 1.`
-      : "Register a child for a Futprep Athletics Term 1 program.",
+    title: requested ? `Register | ${requested.name} · ${requested.termName}` : "Register | Futprep Athletics",
+    description: requested ? `Register a child for ${offerHeadline(requested)}.` : "Register a child for a Futprep Athletics class or holiday camp.",
+    robots: { index: false, follow: true },
   };
 }
 
 export default async function FutprepRegisterPage({ searchParams }: { searchParams: SearchParams }) {
-  const [program, attribution] = await Promise.all([resolveProgram(searchParams), readAttribution(searchParams)]);
-  const programDetailsHref = program ? `/sports-fitness/futprep-athletics/${program.slug}` : "/sports-fitness/futprep-athletics";
+  const [{ offers, requested }, attribution] = await Promise.all([loadOffers(searchParams), readAttribution(searchParams)]);
+  const programDetailsHref = requested?.programType === "camp" ? "/futprep/camps" : requested ? `/sports-fitness/futprep-athletics/${requested.slug}` : "/sports-fitness/futprep-athletics";
 
   return (
     <main className="registration-page futprep-theme">
       <header className="site-header form-header registration-header">
         <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
-          <div className="futprep-program-brand compact"><img src="/futprep-logo.png" alt="Futprep Athletics" /><span><b>{program ? program.name.toUpperCase() : "FUTPREP ATHLETICS"}</b><small>by Futprep Athletics</small></span></div>
+          <div className="futprep-program-brand compact"><img src="/futprep-logo.png" alt="Futprep Athletics" /><span><b>{requested ? requested.name.toUpperCase() : "FUTPREP ATHLETICS"}</b><small>by Futprep Athletics</small></span></div>
           <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>
-          <Link className="header-link" href={programDetailsHref}>Program details</Link>
+          <Link className="header-link" href="/futprep/camps">Holiday camps</Link>
+          <Link className="header-link" href={programDetailsHref}>{requested?.programType === "camp" ? "Camp details" : "Program details"}</Link>
         </div>
       </header>
       <Suspense fallback={null}>
-        <RegistrationForm attribution={attribution} />
+        <RegistrationForm attribution={attribution} offers={offers} initialOfferKey={requested ? `${requested.programId}:${requested.termId}` : null} />
       </Suspense>
     </main>
   );

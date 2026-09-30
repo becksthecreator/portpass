@@ -358,3 +358,6 @@
 @media(max-width:560px){.team-form-two,.team-profile-details dl,.private-request-grid{grid-template-columns:1fr}.private-request-grid>div{border-left:0;border-top:1px solid var(--line);padding:10px 0}.private-request-head{flex-direction:column;gap:10px}}
 /* Harbour Signal (28 Sept): Archivo headings, 112% wide at 800. */
 .staff-login-shell h1,.staff-role-choice strong,.staff-page-intro h1,.staff-summary strong,.staff-registration-head h2,.coach-session-heading h2,.coach-session-heading>strong,.cash-section>h2,.registration-share-card strong,.coach-tool-panel h2,.ceo-summary-grid strong,.ceo-access-grid h2,.ceo-panel-head h2,.team-manager-card h2,.team-admin-form h2,.private-request-head h2,.wedding-admin-panel h2,.detail-panel h2{font-stretch:112%;font-weight:800}
+.staff-filter a{background:var(--paper);border:1px solid var(--line);font-size:.72rem;font-weight:800;padding:9px 13px;color:var(--ink);text-decoration:none}
+.staff-filter a.is-active{background:var(--sky);border-color:var(--sky);color:var(--bg)}
+.coach-export{margin:0 0 18px}

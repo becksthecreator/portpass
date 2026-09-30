@@ -35,6 +35,7 @@ export async function POST(request: Request) {
 
   const childName = clean(body, "childName");
   const programSlug = clean(body, "programSlug");
+  const termId = Number.isInteger(Number(body.termId)) && Number(body.termId) > 0 ? Number(body.termId) : null;
   if (!childName || !programSlug) {
     return NextResponse.json({ error: "Enter the child's name and choose a class." }, { status: 400 });
   }
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
     const { referenceCode, registrationId } = await createFutprepPendingRegistration({
       childName,
       programSlug,
+      termId,
       parentName: clean(body, "parentName") || undefined,
       parentPhone: clean(body, "parentPhone") || undefined,
       parentEmail: parentEmail || undefined,

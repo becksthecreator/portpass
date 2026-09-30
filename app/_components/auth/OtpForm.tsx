@@ -18,6 +18,15 @@ type Props = {
   // From the categories table via the page; the compiled list is only the
   // fallback for a caller that has nothing better.
   sections?: SectionOption[];
+  // "Continue with Google" comes first (speed & sign-in brief, 29 Sept,
+  // 2.2 and 2.7); the page builds the href with ?next= and ?mode=.
+  google?: string | null;
+  // A message from a failed Google round trip (?error=), shown at the top.
+  notice?: string | null;
+  // Guest-first (2.1): a confirmation screen's "Save this to a free
+  // PortPass account" arrives with the email and name already known.
+  initialEmail?: string;
+  initialName?: string;
 };
 
 type Fields = { fullName: string; email: string; phone: string; businessName: string; section: string };
@@ -32,10 +41,10 @@ const PASTE_MAX = 8;
 // needs (sign-in: just the email) and asks for a code; step 2 is the code
 // itself -- a single input styled as six boxes rather than six inputs, so
 // iOS/Android one-time-code autofill and paste both land in one place.
-export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false, sections }: Props) {
+export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false, sections, google = null, notice = null, initialEmail = "", initialName = "" }: Props) {
   const sectionOptions: SectionOption[] = sections ?? SECTIONS.map((s) => ({ slug: s.slug, name: s.name }));
   const [intent, setIntent] = useState<Intent | null>(mode === "login" ? "customer" : initialIntent);
-  const [fields, setFields] = useState<Fields>({ fullName: "", email: "", phone: "", businessName: "", section: "" });
+  const [fields, setFields] = useState<Fields>({ fullName: initialName, email: initialEmail, phone: "", businessName: "", section: "" });
   const [step, setStep] = useState<"details" | "code">("details");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -148,6 +157,8 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
   }
 
   const waitLabel = resendIn > 0 ? formatWait(resendIn) : null;
+  const signupHref = next ? `/signup?next=${encodeURIComponent(next)}` : "/signup";
+  const loginHref = next ? `/login?next=${encodeURIComponent(next)}` : "/login";
 
   if (step === "code") {
     return (
@@ -219,8 +230,20 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
       ) : (
         <>
           <div className="eyebrow"><span className="eyebrow-dot" />Sign in</div>
-          <h1>Enter your email.</h1>
-          <p className="auth-lead">We&rsquo;ll send a 6-digit code. No password to remember.</p>
+          <h1>Sign in to PortPass.</h1>
+          <p className="auth-lead">{google ? "Use Google, or we’ll email you a 6-digit code. No password to remember." : "We’ll send a 6-digit code. No password to remember."}</p>
+        </>
+      )}
+
+      {notice && <p className="form-error" role="alert">{notice}</p>}
+
+      {google && (mode === "login" || intent) && (
+        <>
+          <a className="auth-google" href={`${google}${google.includes("?") ? "&" : "?"}intent=${intent ?? ""}`} rel="nofollow">
+            <span className="auth-google-mark" aria-hidden="true">G</span>
+            Continue with Google
+          </a>
+          <div className="auth-divider" role="separator"><span>or continue with email</span></div>
         </>
       )}
 
@@ -247,23 +270,24 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
         {error && (
           <p className="form-error" role="alert">
             {error}
-            {noAccount && mode === "login" && <> <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>Create one →</Link></>}
+            {noAccount && mode === "login" && <> <Link href={signupHref}>Create one →</Link></>}
             {waitLabel && !noAccount && <> You can try again in {waitLabel}.</>}
           </p>
         )}
         <div className="auth-actions">
-          <button className="primary-button" type="submit" disabled={busy || resendIn > 0 || (mode === "signup" && !intent)}>{busy ? "Sending…" : waitLabel ? `Wait ${waitLabel}` : "Send code →"}</button>
+          <button className="primary-button" type="submit" disabled={busy || resendIn > 0 || (mode === "signup" && !intent)}>{busy ? "Sending…" : waitLabel ? `Wait ${waitLabel}` : google ? "Continue with email →" : "Send code →"}</button>
           {phoneEnabled && <button className="auth-text-button" type="button" disabled>Use my phone number instead</button>}
         </div>
       </form>
 
-      <p className="auth-alt">
-        {mode === "login" ? (
-          <>New here? <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>Create an account</Link></>
-        ) : (
-          <>Already have an account? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>Sign in</Link></>
-        )}
-      </p>
+      {mode === "login" ? (
+        <>
+          <p className="auth-alt">New here? You don&rsquo;t need an account to book. <Link href="/">Browse PortPass</Link>. Want one anyway? <Link href={signupHref}>Create an account</Link>.</p>
+          <p className="auth-business-link"><Link href="/business">I run a business</Link></p>
+        </>
+      ) : (
+        <p className="auth-alt">Already have an account? <Link href={loginHref}>Sign in</Link></p>
+      )}
     </div>
   );
 }

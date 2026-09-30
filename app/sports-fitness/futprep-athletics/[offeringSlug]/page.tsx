@@ -6,14 +6,21 @@ import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { bizDisplay, ppSans } from "@/app/fonts";
 
-export const dynamic = "force-dynamic";
+// ISR (speed brief, 29 Sept): five-minute cache, rebuilt on demand; no
+// build-time prerender (the params list is empty), so CI's credential-less
+// build never has to reach the database.
+export const revalidate = 300;
+export const dynamicParams = true;
+export function generateStaticParams() {
+  return [];
+}
 
 const ORG_SLUG = "futprep";
 const ORG_URL = "https://portpassbahamas.com/sports-fitness/futprep-athletics";
 
 export async function generateMetadata({ params }: { params: Promise<{ offeringSlug: string }> }) {
   const { offeringSlug } = await params;
-  const listing = await getOfferingListingBySlug(ORG_SLUG, offeringSlug);
+  const listing = await getOfferingListingBySlug(ORG_SLUG, offeringSlug).catch(() => null);
   if (!listing) return { title: "Futprep Athletics | PortPass Bahamas" };
   const { offering } = listing;
   const ages = offering.ageMin !== null && offering.ageMax !== null ? `Ages ${offering.ageMin}-${offering.ageMax}` : "";
@@ -29,7 +36,7 @@ export async function generateMetadata({ params }: { params: Promise<{ offeringS
 
 export default async function FutprepOfferingPage({ params }: { params: Promise<{ offeringSlug: string }> }) {
   const { offeringSlug } = await params;
-  const listing = await getOfferingListingBySlug(ORG_SLUG, offeringSlug);
+  const listing = await getOfferingListingBySlug(ORG_SLUG, offeringSlug).catch(() => null);
   if (!listing) notFound();
 
   const { organization, offering } = listing;
