@@ -20,6 +20,13 @@ const MARK = `TEST — delete ${crypto.randomUUID().slice(0, 6)}`;
 let coachId = 0;
 let orgId = 0;
 let wasPublished = false;
+let seeded: string[] = [];
+const SERVICE_ROWS = [
+  { slug: "private-1on1", name: "1-on-1 Session", price_cents: 6000, price_unit: "per_session", inclusions: ["45 minutes"], sort_order: 50 },
+  { slug: "private-pair", name: "Pair Session", price_cents: 9000, price_unit: "per_session", inclusions: ["45 minutes", "2 children"], sort_order: 51 },
+  { slug: "private-pack-4", name: "4-Session Pack", price_cents: 22000, price_unit: null, inclusions: ["Four 45-minute sessions"], sort_order: 52 },
+  { slug: "birthday-party", name: "Birthday Football Party", price_cents: 30000, price_unit: null, inclusions: ["90 minutes"], sort_order: 53 },
+];
 
 beforeAll(async () => {
   const { data: org } = await db().from("organizations").select("id").eq("slug", "futprep").single();
@@ -31,6 +38,17 @@ beforeAll(async () => {
     .single();
   expect(error).toBeNull();
   coachId = Number(coach!.id);
+  // The local stack's Futprep organisation is created by an earlier test,
+  // after migrations ran, so the migration's service rows may be missing
+  // here; add the same four (unpublished) if so. Production has them from
+  // 202610010003_private_sessions_bookable.sql.
+  const { data: existing } = await db().from("offerings").select("slug").eq("organization_id", orgId).in("slug", SERVICE_ROWS.map((s) => s.slug));
+  const missing = SERVICE_ROWS.filter((s) => !(existing ?? []).some((e) => e.slug === s.slug));
+  if (missing.length) {
+    const { error: seedError } = await db().from("offerings").insert(missing.map((s) => ({ ...s, organization_id: orgId, type: "service", is_published: false })));
+    expect(seedError).toBeNull();
+    seeded = missing.map((s) => s.slug);
+  }
   const { data: service } = await db().from("offerings").select("is_published").eq("organization_id", orgId).eq("slug", "private-1on1").single();
   wasPublished = Boolean(service?.is_published);
   await db().from("offerings").update({ is_published: true }).eq("organization_id", orgId).eq("slug", "private-1on1");
@@ -40,6 +58,7 @@ afterAll(async () => {
   await db().from("private_session_requests").delete().like("parent_name", "TEST — delete%");
   if (coachId) await db().from("coach_profiles").delete().eq("id", coachId);
   if (orgId) await db().from("offerings").update({ is_published: wasPublished }).eq("organization_id", orgId).eq("slug", "private-1on1");
+  if (orgId && seeded.length) await db().from("offerings").delete().eq("organization_id", orgId).in("slug", seeded);
 });
 
 describe("private sessions (brief 06 v2, Part B)", () => {
