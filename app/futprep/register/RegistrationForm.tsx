@@ -222,6 +222,13 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION }: { attribut
         </div>
         <a className="primary-button" href={`/futprep/my/${result.referenceCode}`}>Check registration status →</a>
         <a className="secondary-button" href={`/futprep/${selectedProgram?.slug ?? ""}`}>Back to program details</a>
+        {/* Guest first, account after (speed & sign-in brief, 29 Sept, 2.1):
+            one tap, email and name already filled in; the registration is
+            attached to the account when the code is verified. */}
+        <div className="confirmation-save">
+          <p><strong>Save this to a free PortPass account</strong>Keep {form.childName.split(" ")[0]}&rsquo;s registration, payments and next term in one place.</p>
+          <a className="secondary-button" href={`/signup?as=customer&email=${encodeURIComponent(form.parentEmail.trim())}&name=${encodeURIComponent(form.parentName.trim())}&next=${encodeURIComponent("/account")}`}>Save to an account →</a>
+        </div>
       </section>
     );
   }

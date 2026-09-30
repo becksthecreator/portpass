@@ -5435,3 +5435,26 @@ a.admin-tile:hover{border-color:var(--aqua)}
 .admin-price-check{flex-direction:row!important;align-items:center;font-size:.86rem!important;color:var(--text)!important}
 .admin-price-check input{width:18px;height:18px;accent-color:var(--gold)}
 .admin-price-actions{display:flex;gap:8px;margin-top:12px}
+
+/* Sign-in doors (speed & sign-in brief, 29 Sept): Google first, then email. */
+.auth-google{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;background:#fff;color:#0D1B3D;border:1px solid var(--line);border-radius:999px;padding:14px 18px;font-size:.95rem;font-weight:700;text-decoration:none;margin:6px 0 4px}
+.auth-google:hover{border-color:#0D1B3D}
+.auth-google-mark{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#fff;border:1px solid var(--line);font-family:Georgia,serif;font-weight:700;font-size:1rem;color:#4285F4}
+.theme-night .auth-google{background:#fff;color:#0A1226;border-color:transparent}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:18px 0 6px;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em}
+.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.auth-business-link{margin:14px 0 0;font-size:.82rem}
+.auth-business-link a{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+/* Guest first: the confirmation screens' "Save this to a free account" card. */
+.confirmation-save{margin:26px auto 0;max-width:520px;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--paper);text-align:left;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.confirmation-save p{margin:0;font-size:.92rem;color:var(--muted);flex:1 1 240px}
+.confirmation-save strong{display:block;color:var(--ink);font-size:.98rem;margin-bottom:2px}
+/* Admin -> Our tools */
+.admin-tools-list{list-style:none;margin:0 0 26px;padding:0;display:grid;gap:10px}
+.admin-tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.admin-tool-main{flex:1 1 320px}
+.admin-tool-main p{margin:4px 0 0;color:var(--muted);font-size:.86rem}
+.admin-tool-title{font-weight:800;font-size:1rem;color:var(--text);text-decoration:underline;text-underline-offset:3px}
+.admin-tool-title.is-missing{text-decoration:none;color:var(--muted)}
+.admin-tool-title small{font-weight:600;font-size:.78rem}
+.admin-tool-actions{display:flex;gap:8px}

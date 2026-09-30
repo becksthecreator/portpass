@@ -186,6 +186,23 @@ export async function linkPersonToUser(personId: number, userId: string): Promis
   throwIfSupabaseError(error, "Could not link person to account");
 }
 
+// Guest first, account after (speed & sign-in brief, 29 Sept, 2.1): a
+// registration made as a guest carries the parent's email; once that
+// email owns an account, the rows are attached to the person so "your
+// registrations" can find them. Only rows with no parent yet, by exact
+// (lower-cased) email. Returns how many were linked.
+export async function linkRegistrationsToPerson(personId: number, email: string): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("registrations")
+    .update({ parent_person_id: personId })
+    .is("parent_person_id", null)
+    .eq("parent_email", email.trim().toLowerCase())
+    .select("id");
+  throwIfSupabaseError(error, "Could not link registrations to account");
+  return (data ?? []).length;
+}
+
 export async function createPerson(input: { name: string; email: string | null; phoneE164: string | null; authUserId?: string | null }): Promise<Person> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
