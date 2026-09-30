@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { RegistrationForm } from "../register/RegistrationForm";
@@ -33,7 +34,7 @@ export default async function FutprepTrialPage() {
   return (
     <main className="registration-page futprep-theme">
       <header className="site-header form-header registration-header">
-        <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+        <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
           <div className="futprep-program-brand compact"><img src="/futprep-logo.png" alt="Futprep Athletics" /><span><b>FREE FIRST SATURDAY</b><small>by Futprep Athletics</small></span></div>
           <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>

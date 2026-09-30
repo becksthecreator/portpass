@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { requireFutprepStaff, currentFutprepStaffName } from "../../staff-auth";
 import {
@@ -54,7 +55,7 @@ export default async function FutprepCoachPage({
   return (
     <main className="staff-workspace theme-night">
       <header className="staff-workspace-header">
-        <div><Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link><span className="staff-workspace-label">Futprep · Coaching workspace</span></div>
+        <div><Link className="brand" href="/"><BrandLogo /></Link><span className="staff-workspace-label">Futprep · Coaching workspace</span></div>
         <nav>
           {role==="ceo" && <Link href="/futprep/staff/ceo">CEO overview</Link>}
           {!readOnly && <Link href="/futprep/staff/private-sessions">Private sessions</Link>}

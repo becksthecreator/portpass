@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import type { WeddingStaffRole } from "../staff-auth";
 import { StaffLogoutButton } from "../staff/StaffLogoutButton";
@@ -17,7 +18,7 @@ export function AdminNav({ role, active }: { role: WeddingStaffRole; active: str
   return (
     <header className="staff-workspace-header">
       <div>
-        <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+        <Link className="brand" href="/"><BrandLogo /></Link>
         <span className="staff-workspace-label">Bahamas Weddings · Admin</span>
       </div>
       <nav>

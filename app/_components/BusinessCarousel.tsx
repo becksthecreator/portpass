@@ -138,7 +138,7 @@ export function BusinessCarousel({ businesses }: { businesses: OrganizationDirec
       >
         {businesses.map((biz) => (
           <Link key={biz.slug} href={directoryHref(biz.slug, biz.primaryCategory)} className="carousel-tile">
-            <BusinessLogo logoUrl={biz.logoUrl} name={biz.name} brand={biz.brandColor ?? "#e8794a"} size="lg" initialsOnly />
+            <BusinessLogo logoUrl={biz.logoUrl} name={biz.name} brand={biz.brandColor ?? "#2463AE"} size="lg" initialsOnly />
             <span className="carousel-tile-name">{biz.name}</span>
             {biz.primaryCategory && <span className="carousel-tile-category">{categoryLabel(biz.primaryCategory)}</span>}
           </Link>

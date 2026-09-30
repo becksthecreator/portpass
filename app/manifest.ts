@@ -2,8 +2,9 @@ import type { MetadataRoute } from "next";
 
 // The installable app's manifest (round 5, §6). start_url carries
 // ?source=pwa so opens from the home screen are counted (pwa_open in
-// lib/analytics.ts); the maskable icon is the same P mark drawn smaller so
-// Android's shapes never clip it.
+// lib/analytics.ts). The icons are the Prow app icons from
+// PortPass-Logo-Files.zip (Harbour Signal); the maskable one keeps the
+// mark inside Android's safe zone so no shape clips it.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
@@ -13,14 +14,14 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/?source=pwa",
     scope: "/",
     display: "standalone",
-    background_color: "#F5F1E8",
-    theme_color: "#0B2A3C",
+    background_color: "#F5F6F8",
+    theme_color: "#0D1B3D",
     lang: "en",
     categories: ["sports", "travel", "lifestyle"],
     icons: [
-      { src: "/icons/192", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/icons/512", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/icons/512?purpose=maskable", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/brand/icons/app-icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/brand/icons/app-icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/brand/icons/app-icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }

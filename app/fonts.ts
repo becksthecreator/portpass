@@ -1,13 +1,14 @@
-import { Fraunces, Inter, Poppins } from "next/font/google";
+import { Archivo, Fraunces, Inter } from "next/font/google";
 
-// PortPass's own type (Aragonite brand, 28 Sept): Poppins for headings --
-// Poppins, not Sora, so the site matches the printed banner and signs --
-// and Inter for body. The CSS variable names are unchanged so every
-// existing `var(--font-pp-display)` rule now resolves to Poppins on
-// PortPass pages.
-export const ppDisplay = Poppins({
+// PortPass's own type (Harbour Signal brand, 28 Sept): Archivo for
+// headings, loaded as a variable font with its width axis so the CSS can
+// set font-stretch 112% (page headings, weight 800) and 125% (the hero
+// line, weight 900) to match the lettering in the Prow logo. Inter stays
+// for body. The CSS variable names are unchanged, so every existing
+// `var(--font-pp-display)` rule now resolves to Archivo on PortPass pages.
+export const ppDisplay = Archivo({
   subsets: ["latin"],
-  weight: ["600", "700"],
+  axes: ["wdth"],
   variable: "--font-pp-display",
   display: "swap",
 });

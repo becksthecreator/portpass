@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import { Suspense, type ReactNode } from "react";
 import { RegistrationForm } from "../../RegistrationForm";
 import { openReturnLink } from "@/db/registrations";
@@ -23,7 +24,7 @@ function Shell({ children }: { children: ReactNode }) {
   return (
     <main className="registration-page futprep-theme">
       <header className="site-header form-header registration-header">
-        <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+        <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
           <div className="futprep-program-brand compact"><img src="/futprep-logo.png" alt="Futprep Athletics" /><span><b>FUTPREP ATHLETICS</b><small>Early access for Futprep families</small></span></div>
           <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>

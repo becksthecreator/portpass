@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { LookupForm } from "./LookupForm";
 
@@ -10,7 +11,7 @@ export default function FutprepMyRegistrationPage() {
   return (
     <main className="futprep-theme my-status-page">
       <header className="site-header form-header registration-header">
-        <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+        <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
           <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>
           <Link className="header-link" href="/sports-fitness/futprep-athletics/lil-kickers">Program details</Link>

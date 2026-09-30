@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { useEffect } from "react";
 
@@ -18,7 +19,7 @@ export default function GlobalError({
     <main style={{ minHeight: "100vh", background: "var(--sand)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
       <div className="dashboard-empty" style={{ maxWidth: 520 }}>
         <Link className="brand" href="/" style={{ justifyContent: "center", marginBottom: 24 }}>
-          <span className="brand-mark">P</span><span>PORTPASS</span>
+          <BrandLogo />
         </Link>
         <h3>Something went wrong.</h3>
         <p>This page hit an unexpected error. Try again, or head back to the homepage.</p>

@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -58,7 +59,7 @@ export default async function OrganizationPage({
   return (
     <main className="organization-app theme-night">
       <aside className="organization-sidebar">
-        <Link className="brand organization-brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+        <Link className="brand organization-brand" href="/"><BrandLogo /></Link>
         <div className="organization-switcher">
           <span>Organization</span><strong>{organization.name}</strong><small>{organization.activity_type}</small>
         </div>

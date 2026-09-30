@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The share cards (lib/og/PMark.tsx) read the Prow mark SVG from public/
+  // at render time, so the file must travel with every opengraph-image
+  // function on Vercel.
+  outputFileTracingIncludes: {
+    "/opengraph-image": ["./public/brand/logo/portpass-mark-dark.svg"],
+    "/**/opengraph-image": ["./public/brand/logo/portpass-mark-dark.svg"],
+  },
   images: {
     // AVIF first, WebP second (speed brief, 29 Sept, 1.5); owner uploads
     // live in Supabase Storage, hence the wildcard supabase.co pattern.

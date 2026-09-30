@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { getNavTree } from "@/lib/navSections";
 import { HeaderAccount } from "./HeaderAccount";
@@ -36,7 +37,7 @@ export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
   return (
     <header className="site-shell-header">
       <div className="site-shell-header-top">
-        <Link className="site-shell-brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+        <Link className="site-shell-brand" href="/"><BrandLogo /></Link>
         <SiteNav sections={sections} />
         <div className="site-shell-header-actions">
           <HeaderAccount />

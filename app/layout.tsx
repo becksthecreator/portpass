@@ -11,10 +11,13 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://portpassbahamas.com"),
   title: TITLE,
   description: DESCRIPTION,
-  // Listing `apple` here is required: once `icons` is set in config, Next
-  // stops emitting the link for app/apple-icon.tsx on its own (verified
-  // live 27 Sept -- the PNG served, the <link> never appeared).
-  icons: { icon: "/favicon.svg", apple: [{ url: "/apple-icon", sizes: "180x180", type: "image/png" }] },
+  // The Prow icons from PortPass-Logo-Files.zip (Harbour Signal): the SVG
+  // favicon switches for dark mode, the .ico covers old tabs, and the
+  // 180px PNG is the iPhone home-screen tile.
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "48x48 32x32 16x16", type: "image/x-icon" }],
+    apple: [{ url: "/brand/icons/apple-touch-icon-180.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     type: "website",
     siteName: "PortPass Bahamas",
@@ -30,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 // The installed app's title bar takes this colour (round 5, §6).
-export const viewport: Viewport = { themeColor: "#0B2A3C" };
+export const viewport: Viewport = { themeColor: "#0D1B3D" };
 
 export default function RootLayout({
   children,

@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireFutprepStaff } from "../../../staff-auth";
@@ -36,7 +37,7 @@ export default async function FutprepRegistrationDetailPage({
     <main className="staff-workspace theme-night">
       <header className="staff-workspace-header">
         <div>
-          <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+          <Link className="brand" href="/"><BrandLogo /></Link>
           <span className="staff-workspace-label">Futprep · {detail.child_name}</span>
         </div>
         <nav>

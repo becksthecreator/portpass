@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { requireFutprepStaff } from "../../staff-auth";
 import { ChangePinForm } from "./ChangePinForm";
@@ -10,7 +11,7 @@ export default async function FutprepChangePinPage() {
     <main className="staff-workspace theme-night">
       <header className="staff-workspace-header">
         <div>
-          <Link className="brand" href="/"><span className="brand-mark">P</span><span>PORTPASS</span></Link>
+          <Link className="brand" href="/"><BrandLogo /></Link>
           <span className="staff-workspace-label">Futprep · Change PIN</span>
         </div>
         <nav>

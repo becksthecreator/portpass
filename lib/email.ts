@@ -69,8 +69,8 @@ function escapeHtml(value: string): string {
 }
 
 export function portpassEmailShell(title: string, bodyHtml: string) {
-  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#0B2A3C">
-    <p style="font-size:12px;font-weight:800;letter-spacing:3px;margin:0 0 18px;color:#0B2A3C">PORTPASS</p>
+  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#0D1B3D">
+    <p style="font-size:12px;font-weight:800;letter-spacing:3px;margin:0 0 18px;color:#0D1B3D">PORTPASS</p>
     <h1 style="font-size:22px;margin:0 0 16px">${title}</h1>
     ${bodyHtml}
     <p style="color:#647069;font-size:12px;margin-top:32px">PortPass Bahamas Technologies · portpassbahamas.com</p>
@@ -107,13 +107,13 @@ export async function sendApplicationReceivedEmail(input: {
         ${row("Contact", escapeHtml(input.contactPerson))}
         ${row("Section", escapeHtml(input.section))}
         ${input.planName ? row("Plan picked", escapeHtml(input.planName)) : ""}
-        ${row("WhatsApp", `<a href="${waLink}" style="color:#00737A">${escapeHtml(input.whatsappE164)}</a>`)}
-        ${input.instagramHandle ? row("Instagram", `<a href="https://instagram.com/${encodeURIComponent(input.instagramHandle)}" style="color:#00737A">@${escapeHtml(input.instagramHandle)}</a>`) : ""}
+        ${row("WhatsApp", `<a href="${waLink}" style="color:#2463AE">${escapeHtml(input.whatsappE164)}</a>`)}
+        ${input.instagramHandle ? row("Instagram", `<a href="https://instagram.com/${encodeURIComponent(input.instagramHandle)}" style="color:#2463AE">@${escapeHtml(input.instagramHandle)}</a>`) : ""}
         ${input.note ? row("Note", escapeHtml(input.note)) : ""}
         ${source ? row("Source", source) : ""}
         ${row("Reference", `#${input.id}`)}
       </table>
-      <p><a href="https://portpassbahamas.com/admin" style="color:#00737A">Open the approvals queue →</a></p>
+      <p><a href="https://portpassbahamas.com/admin" style="color:#2463AE">Open the approvals queue →</a></p>
     `),
   });
 }
@@ -129,7 +129,7 @@ export async function sendBankDetailsChangedEmail(input: { to: string[]; busines
       html: portpassEmailShell("Your payment details were changed", `
         <p>The bank-transfer details customers see for <strong>${escapeHtml(input.businessName)}</strong> were just changed by <strong>${escapeHtml(input.changedBy)}</strong>.</p>
         <p>If that was you or your team, nothing to do. If it wasn't, change them back now and reply to this email so we can help.</p>
-        <p><a href="${input.settingsUrl}" style="color:#00737A">Review payment details →</a></p>
+        <p><a href="${input.settingsUrl}" style="color:#2463AE">Review payment details →</a></p>
       `),
     });
   }
@@ -143,7 +143,7 @@ export async function sendBusinessSubmittedEmail(input: { to: string[]; business
       subject: `Review request — ${input.businessName}`,
       html: portpassEmailShell("A business is ready for review", `
         <p><strong>${escapeHtml(input.businessName)}</strong>${input.section ? ` (${escapeHtml(input.section)})` : ""} was submitted by ${escapeHtml(input.submittedBy)}.</p>
-        <p><a href="${input.previewUrl}" style="color:#00737A">Preview the page →</a> &nbsp; <a href="https://portpassbahamas.com/admin" style="color:#00737A">Open the approvals queue →</a></p>
+        <p><a href="${input.previewUrl}" style="color:#2463AE">Preview the page →</a> &nbsp; <a href="https://portpassbahamas.com/admin" style="color:#2463AE">Open the approvals queue →</a></p>
         <p>The owner has been told to expect a reply within 2 business days.</p>
       `),
     });

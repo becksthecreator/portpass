@@ -1,42 +1,73 @@
-// The PortPass P mark for next/og ImageResponse cards (Aragonite brand,
-// 28 Sept): a gold circle with an ink italic "P". Satori needs explicit
-// flex on anything with children, hence the styles here rather than a
-// class. Keep in step with public/favicon.svg, app/apple-icon.tsx,
-// app/icons/[size]/route.tsx and .brand-mark in app/globals.css.
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
+// Brand constants for next/og ImageResponse cards (Harbour Signal, 28
+// Sept). Satori needs explicit flex on anything with children, hence the
+// styles here rather than a class.
 export const BRAND = {
-  ink: "#0B2A3C",
-  gold: "#FFC21A",
-  tealDeep: "#00737A",
-  teal: "#00A6A6",
-  aqua: "#5FD4D4",
-  sand: "#F5F1E8",
+  ink: "#0D1B3D",
+  signal: "#D7232B",
+  harbour: "#2463AE",
+  deck: "#F5F6F8",
   paper: "#FFFFFF",
-  muted: "#5B6B75",
+  muted: "#566174",
+  tint: "#DCE6F3",
+  sky: "#8DB8F2",
+  line: "#DCE1E8",
 } as const;
 
+// The Prow mark for a navy card: the delivered SVG file itself
+// (public/brand/logo/portpass-mark-dark.svg, white ship on navy), read once
+// and handed to Satori as a data URL. Never redrawn. If the file can't be
+// read the card shows a plain white disc instead of failing the image.
+let markDataUrl: string | null | undefined;
+function prowMark(): string | null {
+  if (markDataUrl !== undefined) return markDataUrl;
+  try {
+    const svg = readFileSync(path.join(process.cwd(), "public", "brand", "logo", "portpass-mark-dark.svg"), "utf8");
+    markDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+  } catch {
+    markDataUrl = null;
+  }
+  return markDataUrl;
+}
+
 export function PMark({ size = 72 }: { size?: number }) {
+  const src = prowMark();
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt="" width={size} height={size} style={{ width: size, height: size }} />;
+  }
   return (
     <div
       style={{
         width: size,
         height: size,
         borderRadius: "50%",
-        background: BRAND.gold,
-        color: BRAND.ink,
+        background: BRAND.paper,
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: Math.round(size * 0.58),
-        fontStyle: "italic",
-        fontWeight: 800,
-        fontFamily: "Georgia, serif",
       }}
-    >
-      P
-    </div>
+    />
   );
 }
 
-// The light card background shared by the PortPass-branded share images:
-// sand into paper into a breath of aqua.
-export const OG_LIGHT_BACKGROUND = "linear-gradient(160deg,#F5F1E8 0%,#FFFFFF 52%,#D8F3F3 100%)";
+// Archivo 900 for the card titles. Satori can't read woff2 or a variable
+// font's axes, so the static 900 woff from Fontsource (jsDelivr) is
+// fetched once per instance and cached; a fetch failure falls back to the
+// system sans rather than failing the image.
+let archivoPromise: Promise<ArrayBuffer | null> | null = null;
+export function archivoBlack(): Promise<ArrayBuffer | null> {
+  if (!archivoPromise) {
+    archivoPromise = fetch("https://cdn.jsdelivr.net/npm/@fontsource/archivo@5/files/archivo-latin-900-normal.woff", { cache: "force-cache" })
+      .then((r) => (r.ok ? r.arrayBuffer() : null))
+      .catch(() => null);
+  }
+  return archivoPromise;
+}
+
+export async function ogFonts() {
+  const data = await archivoBlack();
+  return data ? [{ name: "Archivo", data, weight: 900 as const, style: "normal" as const }] : [];
+}
+
+export const OG_FONT_FAMILY = "Archivo, sans-serif";

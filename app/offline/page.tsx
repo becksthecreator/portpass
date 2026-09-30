@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import { SavedPages } from "./SavedPages";
 
 // The service worker's fallback when a page can't be fetched. Deliberately
@@ -12,7 +13,7 @@ export default function OfflinePage() {
   return (
     <main className="offline-page">
       <div className="offline-card">
-        <span className="brand-mark" aria-hidden="true">P</span>
+        <div className="offline-brand"><BrandLogo /></div>
         <h1>You&rsquo;re offline.</h1>
         <p>Your saved pages are below. Anything you open while connected is kept for next time.</p>
         <SavedPages />

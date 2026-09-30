@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Session } from "@/lib/auth/session";
@@ -23,7 +24,7 @@ export function AdminShell({ session, current, title, lede, children, actions }:
   return (
     <main className="admin-shell theme-night">
       <header className="admin-bar">
-        <Link className="brand admin-brand" href="/admin"><span className="brand-mark">P</span><span>PORTPASS ADMIN</span></Link>
+        <Link className="brand admin-brand" href="/admin"><BrandLogo /><span className="admin-brand-label">ADMIN</span></Link>
         <nav className="admin-tabs" aria-label="Admin">
           {ADMIN_NAV.map((item) => (
             <Link key={item.href} href={item.href} aria-current={item.href === current ? "page" : undefined}>{item.label}</Link>
