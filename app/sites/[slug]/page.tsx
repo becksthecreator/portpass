@@ -13,11 +13,18 @@ import { bizDisplay, ppSans } from "@/app/fonts";
 // and it's also a normal route on portpassbahamas.com/sites/[slug] --
 // which is deliberate, so a business's own site can be reviewed here
 // before its domain exists or is pointed at Vercel.
-export const dynamic = "force-dynamic";
+// ISR (speed brief, 29 Sept): five-minute cache, rebuilt on demand; no
+// build-time prerender (the params list is empty), so CI's credential-less
+// build never has to reach the database.
+export const revalidate = 300;
+export const dynamicParams = true;
+export function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const listing = await getOrganizationListingBySlug(slug);
+  const listing = await getOrganizationListingBySlug(slug).catch(() => null);
   if (!listing) return {};
   const { organization: org } = listing;
   // Every other page on the site carries a descriptive suffix; a bare
@@ -46,7 +53,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function BusinessSitePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const listing = await getOrganizationListingBySlug(slug);
+  const listing = await getOrganizationListingBySlug(slug).catch(() => null);
   if (!listing) notFound();
 
   const { organization: org } = listing;

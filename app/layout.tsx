@@ -61,6 +61,19 @@ export default function RootLayout({
             <script defer src="/_vercel/insights/script.js" />
           </>
         )}
+        {/*
+          Vercel Speed Insights (speed brief, 29 Sept, 1.7): real-visitor
+          Core Web Vitals. Same arrangement as analytics -- Vercel serves
+          the script once Speed Insights is enabled for the project
+          (Project -> Speed Insights -> Enable), so it sits behind
+          VERCEL_SPEED_INSIGHTS=1 until Antonio flips that switch.
+        */}
+        {process.env.VERCEL_SPEED_INSIGHTS === "1" && (
+          <>
+            <script dangerouslySetInnerHTML={{ __html: "window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments)};" }} />
+            <script defer src="/_vercel/speed-insights/script.js" />
+          </>
+        )}
       </body>
     </html>
   );

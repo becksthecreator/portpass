@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import { isOptimisableSrc } from "@/lib/images";
 import { BusinessLogo } from "./BusinessLogo";
 
 // A category page lists businesses, not programs: one of these per live
@@ -39,7 +41,14 @@ export function FeatureCard({
   return (
     <div className={`feature-card${wide ? " feature-card-wide" : ""}`} style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}>
       {photoUrl ? (
-        <img className="feature-card-photo" src={photoUrl} alt={photoAlt} loading="lazy" />
+        isOptimisableSrc(photoUrl) ? (
+          // Resized and served as AVIF/WebP (speed brief, 29 Sept, 1.5); the
+          // class keeps the 220px crop, so nothing moves.
+          <Image className="feature-card-photo" src={photoUrl} alt={photoAlt} width={1200} height={wide ? 380 : 220} sizes={wide ? "(max-width: 1200px) 100vw, 1200px" : "(max-width: 760px) 100vw, 50vw"} loading="lazy" />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element -- a host next/image is not configured for
+          <img className="feature-card-photo" src={photoUrl} alt={photoAlt} loading="lazy" />
+        )
       ) : (
         <div className="feature-card-photo feature-card-photo-tile" aria-hidden="true">
           <BusinessLogo logoUrl={logoUrl} name={name} brand={brand} size="lg" />
