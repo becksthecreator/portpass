@@ -5550,3 +5550,24 @@ a.admin-tile:hover{border-color:var(--sky)}
 .registration-trial-note{margin-top:10px;font-size:.9rem}
 .registration-trial-note a{font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .registration-medical-notice{border-left:3px solid currentColor;margin:0 0 16px;padding:8px 12px;font-weight:600}
+
+/* Futprep registration header on a phone: the logo on its own row, the
+   three links (Futprep home, Holiday camps, Program/Camp details) on the
+   next, so none of them wraps into the wordmark. */
+@media(max-width:640px){
+  .futprep-theme.registration-page .registration-header{flex-wrap:wrap;row-gap:10px}
+  .registration-header-right{width:100%;gap:16px;justify-content:flex-start}
+  .registration-header-right .header-link{white-space:nowrap;font-size:.72rem}
+}
+
+/* Public header under 400px: the Prow mark alone, so brand · Browse ·
+   Sign in · Pricing still fit on one row (the horizontal logo is never
+   shown under 120px wide). Light mark on white, dark mark on Night. */
+.brand-logo-mark{display:none;height:34px;width:34px}
+@media(max-width:400px){
+  .site-shell-brand .brand-logo{display:none}
+  .site-shell-brand .brand-logo-mark-light{display:block}
+  .theme-night .site-shell-brand .brand-logo-mark-light{display:none}
+  .theme-night .site-shell-brand .brand-logo-mark-dark{display:block}
+  .site-shell-header-actions{gap:10px}
+}

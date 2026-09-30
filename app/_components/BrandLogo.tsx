@@ -14,6 +14,12 @@ export function BrandLogo({ className = "" }: { className?: string }) {
       <img className={`brand-logo brand-logo-light ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-light.svg" alt="PortPass Bahamas" width={166} height={36} />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className={`brand-logo brand-logo-dark ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-dark.svg" alt="PortPass Bahamas" width={166} height={36} />
+      {/* Below 400px the public header shows the mark alone (the horizontal
+          logo is never shown under 120px wide); CSS swaps these in. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="brand-logo-mark brand-logo-mark-light" src="/brand/logo/portpass-mark-light.svg" alt="PortPass Bahamas" width={34} height={34} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="brand-logo-mark brand-logo-mark-dark" src="/brand/logo/portpass-mark-dark.svg" alt="PortPass Bahamas" width={34} height={34} />
     </>
   );
 }
