@@ -7,23 +7,24 @@
 //
 // Rules from the logo README: clear space equal to the height of the P,
 // never under 120px wide on screen, never stretched, rotated or recoloured.
-//
-// Only the light horizontal logo loads eagerly; the hidden variants are
-// lazy, so a page never downloads a logo it does not show (Lighthouse on
-// / dipped to 0.84 with all of them eager).
+// Under 400px each <picture> swaps to the mark alone, so brand, Browse,
+// Sign in and Pricing still fit on one row and a page fetches only the
+// file it shows.
+const MARK_QUERY = "(max-width: 400px)";
+
 export function BrandLogo({ className = "" }: { className?: string }) {
   return (
     <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className={`brand-logo brand-logo-light ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-light.svg" alt="PortPass Bahamas" width={166} height={36} />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className={`brand-logo brand-logo-dark ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-dark.svg" alt="PortPass Bahamas" width={166} height={36} loading="lazy" />
-      {/* Below 400px the public header shows the mark alone (the horizontal
-          logo is never shown under 120px wide); CSS swaps these in. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="brand-logo-mark brand-logo-mark-light" src="/brand/logo/portpass-mark-light.svg" alt="PortPass Bahamas" width={34} height={34} loading="lazy" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="brand-logo-mark brand-logo-mark-dark" src="/brand/logo/portpass-mark-dark.svg" alt="PortPass Bahamas" width={34} height={34} loading="lazy" />
+      <picture>
+        <source media={MARK_QUERY} srcSet="/brand/logo/portpass-mark-light.svg" width={34} height={34} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className={`brand-logo brand-logo-light ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-light.svg" alt="PortPass Bahamas" width={166} height={36} />
+      </picture>
+      <picture>
+        <source media={MARK_QUERY} srcSet="/brand/logo/portpass-mark-dark.svg" width={34} height={34} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className={`brand-logo brand-logo-dark ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-dark.svg" alt="PortPass Bahamas" width={166} height={36} />
+      </picture>
     </>
   );
 }

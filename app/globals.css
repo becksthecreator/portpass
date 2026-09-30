@@ -5564,14 +5564,10 @@ a.admin-tile:hover{border-color:var(--sky)}
   .registration-header-right .header-link{white-space:nowrap;font-size:.72rem}
 }
 
-/* Public header under 400px: the Prow mark alone, so brand · Browse ·
-   Sign in · Pricing still fit on one row (the horizontal logo is never
-   shown under 120px wide). Light mark on white, dark mark on Night. */
-.brand-logo-mark{display:none;height:34px;width:34px}
+/* Under 400px BrandLogo swaps to the square mark (a <picture> source), so
+   the logo box is 30px square there; the min-width for the horizontal
+   logo must not apply to it. */
 @media(max-width:400px){
-  .site-shell-brand .brand-logo{display:none}
-  .site-shell-brand .brand-logo-mark-light{display:block}
-  .theme-night .site-shell-brand .brand-logo-mark-light{display:none}
-  .theme-night .site-shell-brand .brand-logo-mark-dark{display:block}
+  .brand-logo{min-width:0;width:30px;height:30px}
   .site-shell-header-actions{gap:10px}
 }
