@@ -44,7 +44,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
     return NextResponse.json({ ok: true });
   } catch (error) {
-    if (error instanceof Error && error.message === "PROGRAM_FULL") return NextResponse.json({ error: "The class is full. Free a spot before promoting from the waitlist." }, { status: 409 });
+    if (error instanceof Error && error.message === "PROGRAM_FULL") return NextResponse.json({ error: "The class is full for the coaches on duty. Add a coach under 201cCoaches today201d on the roster, or free a spot, first." }, { status: 409 });
     return NextResponse.json({ error: "Registration not found." }, { status: 404 });
   }
 }

@@ -13,7 +13,7 @@ export function OfferingsBlock({ offerings }: { offerings: Offering[] }) {
   return (
     <section className={`tpl-offerings${priced.length === 4 ? " tpl-offerings-grid-4" : ""}`} id="offerings" aria-label="Prices">
       {priced.map((offering) => {
-        const ageRange = formatAgeRange(offering.ageMin, offering.ageMax);
+        const ageRange = formatAgeRange(offering.ageMin, offering.ageMax, offering.ageLabel);
         const imageAlt = offering.summary ? `${offering.name} — ${offering.summary}` : offering.name;
         return (
           <div className={`tpl-offering-card${offering.isFeatured ? " tpl-offering-featured" : ""}`} key={offering.id}>

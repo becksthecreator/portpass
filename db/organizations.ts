@@ -452,6 +452,8 @@ export type Offering = {
   scheduleText: string | null;
   ageMin: number | null;
   ageMax: number | null;
+  // Brief 12: how Futprep writes the range ("1½–3"); wins over the years.
+  ageLabel: string | null;
   termStart: string | null;
   termEnd: string | null;
   eventDate: string | null;
@@ -525,7 +527,7 @@ export type OrganizationListing = {
 
 const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color,logo_url,custom_domain,identity_layout,reviews_url,reviews_platform,whatsapp_e164,subcategory,status,photo_consent_required";
 
-const LISTING_OFFERING_COLUMNS = "id,organization_id,type,slug,name,summary,price_cents,price_unit,inclusions,schedule_text,age_min,age_max,term_start,term_end,event_date,doors_time,ticket_url,capacity,hourly_rate_cents,day_rate_cents,amenities,lead_time_text,image_url,action_url,is_featured";
+const LISTING_OFFERING_COLUMNS = "id,organization_id,type,slug,name,summary,price_cents,price_unit,inclusions,schedule_text,age_min,age_max,age_label,term_start,term_end,event_date,doors_time,ticket_url,capacity,hourly_rate_cents,day_rate_cents,amenities,lead_time_text,image_url,action_url,is_featured";
 
 function toListingOrganization(row: Record<string, unknown>): Organization {
   return {
@@ -623,6 +625,7 @@ function toListingOffering(row: Record<string, unknown>): Offering {
     scheduleText: row.schedule_text as string | null,
     ageMin: row.age_min === null || row.age_min === undefined ? null : Number(row.age_min),
     ageMax: row.age_max === null || row.age_max === undefined ? null : Number(row.age_max),
+    ageLabel: (row.age_label as string | null | undefined) ?? null,
     termStart: row.term_start as string | null,
     termEnd: row.term_end as string | null,
     eventDate: row.event_date as string | null,

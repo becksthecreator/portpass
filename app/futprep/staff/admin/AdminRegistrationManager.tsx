@@ -25,7 +25,7 @@ function whatsappTo(phone: string, message: string) {
 function openJoinWhatsApp(item: StaffRegistration) {
   if (!item.parent_phone) return;
   const link = `${window.location.origin}/futprep/register?program=${encodeURIComponent(item.program_slug)}&term=${item.term_id}&join=${encodeURIComponent(item.reference_code)}&utm_source=portpass&utm_medium=member_perk&utm_campaign=trial_join`;
-  whatsappTo(item.parent_phone, `Hi! Thanks for trying Futprep with ${item.child_name.split(" ")[0]}. Here's the link to join the rest of the term (priced for the Saturdays left): ${link}`);
+  whatsappTo(item.parent_phone, `Hi! Thanks for trying Futprep with ${item.child_name.split(" ")[0]}. Here's the link to join the term: ${link}`);
 }
 
 function openCompletionWhatsApp(item: StaffRegistration) {
@@ -191,7 +191,7 @@ export function AdminRegistrationManager({ initialRegistrations }: { initialRegi
                   </>
                 ) : (
                   <>
-                    <strong>Free trial</strong> — one Saturday, no charge.
+                    <strong>Free taster</strong> — one Saturday, no charge.
                     {item.parent_phone && <button type="button" onClick={()=>openJoinWhatsApp(item)}>Send &ldquo;join the rest of the term&rdquo; on WhatsApp →</button>}
                   </>
                 )}

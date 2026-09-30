@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ offeringS
   const listing = await getOfferingListingBySlug(ORG_SLUG, offeringSlug).catch(() => null);
   if (!listing) return { title: "Futprep Athletics | PortPass Bahamas" };
   const { offering } = listing;
-  const ages = offering.ageMin !== null && offering.ageMax !== null ? `Ages ${offering.ageMin}-${offering.ageMax}` : "";
+  const ages = offering.ageLabel ? `Ages ${offering.ageLabel}` : offering.ageMin !== null && offering.ageMax !== null ? `Ages ${offering.ageMin}-${offering.ageMax}` : "";
   const title = `Kids Football Classes ${ages ? `${ages} ` : ""}in Nassau, The Bahamas | Futprep ${offering.name.replace("Futprep ", "")}`;
   const description = offering.summary ?? undefined;
   return {

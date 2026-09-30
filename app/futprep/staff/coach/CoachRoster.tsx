@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { AttendanceRow, StaffRegistration, StaffSession } from "@/db/staff";
+import { ratioSummary } from "@/lib/futprepClasses";
 
 type AttendanceStatus = "present" | "absent" | "excused" | "late";
 // Sentinel stored alongside real statuses in the offline queue: "clear the
@@ -11,6 +12,17 @@ const CLEAR = "__clear__" as const;
 type QueuedChange = AttendanceStatus | typeof CLEAR;
 
 function money(cents:number){return new Intl.NumberFormat("en-BS",{style:"currency",currency:"BSD",minimumFractionDigits:0}).format(cents/100)}
+
+// A taster child marked present gets the "Join the term" link the same
+// day (brief 12). Staff send it by hand on WhatsApp; nothing is sent
+// automatically.
+function sendJoinLink(session: StaffSession, row: AttendanceRow) {
+  if (!row.parent_phone || !row.reference_code) return;
+  const link = `${window.location.origin}/futprep/register?program=${encodeURIComponent(session.program_slug)}&term=${session.term_id}&join=${encodeURIComponent(row.reference_code)}&utm_source=portpass&utm_medium=member_perk&utm_campaign=taster_join`;
+  const first = row.child_name.split(" ")[0];
+  const message = `Hi! Thanks for bringing ${first} to the Futprep taster today. Here's the link to join ${session.term_name}: ${link}`;
+  window.open(`https://wa.me/${row.parent_phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+}
 
 function hasMedicalInfo(row: AttendanceRow) {
   const fields = [row.allergies, row.medical_conditions, row.medications, row.special_needs];
@@ -74,6 +86,26 @@ export function CoachRoster({
   const paymentById = new Map(payments.map((item)=>[item.id,item]));
   const failedQueue = useRef<Record<number,QueuedChange>>({});
   const rosterRef = useRef(roster);
+  // "Coaches today" (brief 12): this session's coaches set its cap.
+  const [coaches,setCoaches] = useState(session.coaches_on_duty);
+  const [coachesSaving,setCoachesSaving] = useState(false);
+  const [coachesError,setCoachesError] = useState("");
+
+  async function changeCoaches(next:number) {
+    if (next < 0 || next > 20 || next === coaches) return;
+    const previous = coaches;
+    setCoaches(next);
+    setCoachesSaving(true);
+    setCoachesError("");
+    const response = await fetch(`/api/futprep/staff/sessions/${session.id}/coaches`,{
+      method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({coaches:next}),
+    }).catch(()=>null);
+    setCoachesSaving(false);
+    if (!response || !response.ok) {
+      setCoaches(previous);
+      setCoachesError("Couldn't save the coaches -- check your connection and try again.");
+    }
+  }
 
   useEffect(() => {
     rosterRef.current = roster;
@@ -203,13 +235,31 @@ export function CoachRoster({
   }
 
   const failedCount = Object.keys(failedIds).length;
+  // Children expected on the field: everyone not marked absent or excused.
+  const expected = roster.filter((row)=>row.attendance_status!=="absent" && row.attendance_status!=="excused").length;
+  const ratio = ratioSummary(expected, coaches, session.children_per_coach);
   const sessionIsPast = session.session_date < new Date().toISOString().slice(0,10);
 
   return (
     <>
       <div className="coach-session-heading">
         <div><span className="panel-kicker">{session.session_date}</span><h2>{session.program_name} · {session.start_time}</h2><p>{session.location}</p></div>
-        <strong>{roster.length} players</strong>
+        <strong>{roster.length} {session.is_taster ? "at the taster" : "players"}</strong>
+      </div>
+
+      <div className={`coach-ratio${ratio.ok ? "" : " is-short"}`} role="group" aria-label="Coaches today">
+        <span className="coach-ratio-label">Coaches today</span>
+        {readOnly ? (
+          <strong className="coach-ratio-count">{coaches}</strong>
+        ) : (
+          <div className="coach-ratio-stepper">
+            <button type="button" aria-label="One fewer coach" disabled={coachesSaving || coaches<=0} onClick={()=>changeCoaches(coaches-1)}>−</button>
+            <output aria-live="polite">{coaches}</output>
+            <button type="button" aria-label="One more coach" disabled={coachesSaving || coaches>=20} onClick={()=>changeCoaches(coaches+1)}>+</button>
+          </div>
+        )}
+        <p className="coach-ratio-summary">{ratio.text}</p>
+        {coachesError && <p className="coach-walkin-error">{coachesError}</p>}
       </div>
 
       {sessionIsPast && !readOnly && (
@@ -250,7 +300,7 @@ export function CoachRoster({
                 <div className="coach-player-name-line">
                   <strong>{row.child_name}</strong>
                   {row.registration_status === "pending_details" && <span className="coach-pending-flag" title="Parent hasn't finished registration yet">● Pending details</span>}
-                  {row.is_trial && <span className="coach-trial-flag" title="Free first Saturday (PortPass member perk)">● Trial</span>}
+                  {row.is_trial && <span className="coach-trial-flag" title="Free taster Saturday (PortPass member perk)">● Taster</span>}
                   {!readOnly && hasMedicalInfo(row) && <span className="coach-medical-flag" title="Has allergy, medical, medication, or special-needs notes">● Medical</span>}
                 </div>
                 <span>{row.parent_name ?? "Parent not on file yet"} · {row.parent_phone ?? ""}</span>
@@ -278,6 +328,9 @@ export function CoachRoster({
                       <span>Couldn&apos;t save {failedChange===CLEAR ? "the undo" : `"${failedChange}"`}.</span>
                       <button type="button" onClick={()=>applyChange(row.registration_id,failedChange)}>Retry now</button>
                     </div>
+                  )}
+                  {row.is_trial && row.attendance_status==="present" && row.parent_phone && row.reference_code && (
+                    <button type="button" className="coach-join-link" onClick={()=>sendJoinLink(session,row)}>Send &ldquo;Join {session.term_name}&rdquo; on WhatsApp →</button>
                   )}
                   {showCash && (
                     <div className="record-payment-inline coach-cash-inline">

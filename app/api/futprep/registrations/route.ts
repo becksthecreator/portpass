@@ -157,10 +157,10 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "";
     if (message === "INVALID_PROGRAM" || message === "PROGRAM_NOT_AVAILABLE") return NextResponse.json({ error: "Choose a valid class." }, { status: 400 });
     if (message === "AGE_MISMATCH") return NextResponse.json({ error: "The child’s age does not match the selected class." }, { status: 400 });
-    if (message === "TRIAL_SIGN_IN_REQUIRED") return NextResponse.json({ error: "Sign in to PortPass to book the free Saturday." }, { status: 401 });
-    if (message === "TRIAL_NOT_AVAILABLE") return NextResponse.json({ error: "That Saturday isn't one of the free-trial days. Choose another." }, { status: 400 });
-    if (message === "TRIAL_FULL") return NextResponse.json({ error: "The free-trial spots for that Saturday are taken. Choose the other Saturday." }, { status: 409 });
-    if (message === "TRIAL_ALREADY_USED") return NextResponse.json({ error: "This child has already had a free Saturday. Register for the term to keep playing." }, { status: 409 });
+    if (message === "TRIAL_SIGN_IN_REQUIRED") return NextResponse.json({ error: "Sign in to PortPass to book the free taster Saturday." }, { status: 401 });
+    if (message === "TRIAL_NOT_AVAILABLE") return NextResponse.json({ error: "That isn't the taster Saturday for this class." }, { status: 400 });
+    if (message === "TRIAL_FULL") return NextResponse.json({ error: "The free taster spots for this class are taken. Register for the term, or message Futprep on WhatsApp." }, { status: 409 });
+    if (message === "TRIAL_ALREADY_USED") return NextResponse.json({ error: "This child has already had a free taster. Register for the term to keep playing." }, { status: 409 });
     if (message === "RETURN_LINK_INVALID") return NextResponse.json({ error: "This early-access link isn't valid any more. Message Futprep on WhatsApp for a new one." }, { status: 400 });
     if (message === "JOIN_LINK_INVALID") return NextResponse.json({ error: "This join link doesn't match the class. Message Futprep on WhatsApp." }, { status: 400 });
     if (message === "TERM_CLOSED") return NextResponse.json({ error: "Registration for that session has closed. Message Futprep on WhatsApp if you still need a spot." }, { status: 409 });

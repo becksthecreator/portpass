@@ -6,7 +6,8 @@ import {
 } from "@/app/futprep/config";
 import { EMPTY_ATTRIBUTION, resolveAttribution, type Attribution, type HeardAnswer, type Resolved } from "@/lib/attribution";
 import { amountDueCents as amountDueFor, isTermEarlyAccessOpen, isTermOpen, nassauToday, prorateCents, type ProgramType, type TermWindow } from "@/lib/futprepTerms";
-import { ageOnDate, generateWeeklySessionDates } from "@/lib/scheduling";
+import { ageLabel, effectiveCap, fitsAgeRule } from "@/lib/futprepClasses";
+import { generateWeeklySessionDates } from "@/lib/scheduling";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -96,11 +97,19 @@ export type FutprepAvailability = {
   isPublic: boolean;
   ageMin: number;
   ageMax: number;
+  // Brief 12: ages in months win when set; ageLabel is how Futprep writes
+  // the range ("1½–3").
+  ageMinMonths: number | null;
+  ageMaxMonths: number | null;
+  ageLabel: string;
   day: string;
   time: string;
   endTime: string;
   location: string;
+  locationNote: string | null;
   capacity: number;
+  // min(capacity, coaches on duty at the next session × children per coach).
+  effectiveCap: number;
   weeklyFeeCents: number;
   termFeeCents: number;
   termName: string;
@@ -113,6 +122,8 @@ export type FutprepAvailability = {
   registrationClosesAt: string | null;
   // Part C: open only through a returning family's early-access link.
   earlyAccessOnly: boolean;
+  // The free taster Saturday (brief 12), or #97's in-term trial dates.
+  tasterDate: string | null;
   trialDates: string[];
   trialSpotsPerSession: number;
   registered: number;
@@ -207,6 +218,8 @@ async function seedFutprepPilot() {
         name: configured.name,
         age_min: configured.ageMin,
         age_max: configured.ageMax,
+        age_min_months: configured.ageMinMonths ?? null,
+        age_max_months: configured.ageMaxMonths ?? null,
         coed: true,
         location: FUTPREP_TERM.location,
         day_of_week: configured.day,
@@ -264,19 +277,65 @@ async function seedFutprepPilot() {
   }
 }
 
-const PROGRAM_OFFER_COLUMNS = "id,slug,name,program_type,is_public,age_min,age_max,location,day_of_week,start_time,end_time,capacity,organization_id";
-const TERM_OFFER_COLUMNS = "id,program_id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,active,registration_opens_at,registration_closes_at,daily_start_time,daily_end_time,what_to_bring,early_access_until,trial_dates,trial_spots_per_session";
+const PROGRAM_OFFER_COLUMNS = "id,slug,name,program_type,is_public,age_min,age_max,age_min_months,age_max_months,location,location_note,day_of_week,start_time,end_time,capacity,children_per_coach,default_coaches,organization_id";
+const TERM_OFFER_COLUMNS = "id,program_id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,active,registration_opens_at,registration_closes_at,daily_start_time,daily_end_time,what_to_bring,early_access_until,trial_dates,trial_spots_per_session,taster_date";
 
 type ProgramOfferRow = {
   id: number; slug: string; name: string; program_type: string; is_public: boolean; age_min: number; age_max: number;
   location: string; day_of_week: string; start_time: string; end_time: string | null; capacity: number; organization_id: number | null;
+  age_min_months: number | null; age_max_months: number | null; location_note: string | null;
+  children_per_coach: number | null; default_coaches: number | null;
 };
 type TermOfferRow = {
   id: number; program_id: number; name: string; start_date: string; end_date: string; break_dates: string[] | null;
   weekly_fee_cents: number; term_fee_cents: number; active: boolean; registration_opens_at: string | null; registration_closes_at: string | null;
   daily_start_time: string | null; daily_end_time: string | null; what_to_bring: string | null;
   early_access_until: string | null; trial_dates: string[] | null; trial_spots_per_session: number | null;
+  taster_date: string | null;
 };
+
+// ---- Effective caps (brief 12) ----------------------------------------------
+// A class is capped by the coaches on duty at its next session:
+// min(capacity, coaches × children per coach). The next session is the
+// first one from today inside the term's own dates (the pre-term taster
+// Saturday doesn't count); none left means the program's default coaches.
+type UpcomingSession = { term_id: number; session_date: string; coaches_on_duty: number | null };
+
+async function loadUpcomingSessions(db: ReturnType<typeof getSupabaseAdmin>, termIds: number[], today: string): Promise<UpcomingSession[]> {
+  if (termIds.length === 0) return [];
+  const { data, error } = await db
+    .from("sessions")
+    .select("term_id,session_date,coaches_on_duty")
+    .in("term_id", termIds)
+    .gte("session_date", today)
+    .neq("status", "cancelled")
+    .order("session_date", { ascending: true });
+  throwIfSupabaseError(error, "Could not load upcoming sessions");
+  return (data ?? []) as UpcomingSession[];
+}
+
+function capForTerm(
+  program: { capacity: number; children_per_coach: number | null; default_coaches: number | null },
+  term: { id: number; start_date: string; taster_date?: string | null },
+  upcoming: UpcomingSession[],
+): number {
+  const next = upcoming.find((s) => Number(s.term_id) === Number(term.id) && s.session_date >= term.start_date && s.session_date !== term.taster_date);
+  return effectiveCap({
+    capacity: Number(program.capacity),
+    childrenPerCoach: program.children_per_coach === null || program.children_per_coach === undefined ? null : Number(program.children_per_coach),
+    coachesOnDuty: next?.coaches_on_duty ?? null,
+    defaultCoaches: Number(program.default_coaches ?? 1),
+  });
+}
+
+function ageRuleOf(program: { age_min: number; age_max: number; age_min_months?: number | null; age_max_months?: number | null }) {
+  return {
+    ageMin: Number(program.age_min),
+    ageMax: Number(program.age_max),
+    ageMinMonths: program.age_min_months === null || program.age_min_months === undefined ? null : Number(program.age_min_months),
+    ageMaxMonths: program.age_max_months === null || program.age_max_months === undefined ? null : Number(program.age_max_months),
+  };
+}
 
 function termWindow(term: TermOfferRow): TermWindow {
   return { active: Boolean(term.active), endDate: term.end_date, registrationOpensAt: term.registration_opens_at, registrationClosesAt: term.registration_closes_at };
@@ -312,6 +371,8 @@ export async function listFutprepOffers(options: { publicOnly?: boolean; now?: D
   throwIfSupabaseError(termsError, "Could not load term availability");
   throwIfSupabaseError(registrationsError, "Could not count registrations");
 
+  const upcoming = await loadUpcomingSessions(db, ((terms ?? []) as TermOfferRow[]).map((t) => Number(t.id)), nassauToday(now));
+
   const registeredByKey = new Map<string, number>();
   for (const row of activeRegistrations ?? []) {
     const key = `${row.program_id}:${row.term_id}`;
@@ -327,7 +388,9 @@ export async function listFutprepOffers(options: { publicOnly?: boolean; now?: D
     const earlyOpen = Boolean(options.earlyAccess) && isTermEarlyAccessOpen({ ...termWindow(term), earlyAccessUntil: term.early_access_until }, now);
     if (!publicOpen && !earlyOpen) continue;
     const capacity = Number(program.capacity);
+    const cap = capForTerm(program, term, upcoming);
     const registered = registeredByKey.get(`${program.id}:${term.id}`) ?? 0;
+    const rule = ageRuleOf(program);
     offers.push({
       programId: Number(program.id),
       termId: Number(term.id),
@@ -337,11 +400,16 @@ export async function listFutprepOffers(options: { publicOnly?: boolean; now?: D
       isPublic: Boolean(program.is_public),
       ageMin: Number(program.age_min),
       ageMax: Number(program.age_max),
+      ageMinMonths: rule.ageMinMonths,
+      ageMaxMonths: rule.ageMaxMonths,
+      ageLabel: ageLabel(rule),
       day: program.day_of_week,
       time: program.start_time,
       endTime: program.end_time ?? program.start_time,
       location: program.location,
+      locationNote: program.location_note ?? null,
       capacity,
+      effectiveCap: cap,
       weeklyFeeCents: Number(term.weekly_fee_cents),
       termFeeCents: Number(term.term_fee_cents),
       termName: term.name,
@@ -353,10 +421,11 @@ export async function listFutprepOffers(options: { publicOnly?: boolean; now?: D
       whatToBring: term.what_to_bring,
       registrationClosesAt: term.registration_closes_at,
       earlyAccessOnly: !publicOpen,
-      trialDates: (term.trial_dates ?? []) as string[],
+      tasterDate: term.taster_date ?? null,
+      trialDates: term.taster_date ? [term.taster_date] : ((term.trial_dates ?? []) as string[]),
       trialSpotsPerSession: Number(term.trial_spots_per_session ?? 0),
       registered,
-      spotsRemaining: Math.max(0, capacity - registered),
+      spotsRemaining: Math.max(0, cap - registered),
     });
   }
   // Term classes first (by program), then camps by start date.
@@ -475,7 +544,7 @@ export async function createFutprepRegistration(
 
   const { data: program, error: programError } = await db
     .from("programs")
-    .select("id,organization_id,capacity,name,age_min,age_max,location,day_of_week,start_time,end_time,program_type")
+    .select("id,organization_id,capacity,name,age_min,age_max,age_min_months,age_max_months,children_per_coach,default_coaches,location,day_of_week,start_time,end_time,program_type")
     .eq("slug", input.programSlug)
     .eq("active", true)
     .maybeSingle();
@@ -488,7 +557,7 @@ export async function createFutprepRegistration(
   // hand may use an active term whose public window has closed.
   const { data: terms, error: termError } = await db
     .from("program_terms")
-    .select("id,program_id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,active,registration_opens_at,registration_closes_at,daily_start_time,daily_end_time,early_access_until,trial_dates,trial_spots_per_session")
+    .select("id,program_id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,active,registration_opens_at,registration_closes_at,daily_start_time,daily_end_time,early_access_until,trial_dates,trial_spots_per_session,taster_date")
     .eq("program_id", program.id)
     .eq("active", true)
     .order("start_date", { ascending: true });
@@ -510,8 +579,8 @@ export async function createFutprepRegistration(
     throw new Error(requested ? "TERM_CLOSED" : "PROGRAM_NOT_AVAILABLE");
   }
 
-  const age = ageOnDate(input.childDob, term.start_date);
-  if (age < Number(program.age_min) || age > Number(program.age_max)) {
+  // Brief 12: in months at the term's start (Lil Kickers from 18 months).
+  if (!fitsAgeRule(input.childDob, term.start_date, ageRuleOf(program))) {
     if (!input.enteredByStaff || !input.ageOverrideConfirmed) {
       throw new Error("AGE_MISMATCH");
     }
@@ -533,7 +602,7 @@ export async function createFutprepRegistration(
       .eq("id", Number(input.trialSessionId))
       .maybeSingle();
     throwIfSupabaseError(sessionError, "Could not load the trial Saturday");
-    const trialDates = (term.trial_dates ?? []) as string[];
+    const trialDates = term.taster_date ? [String(term.taster_date)] : ((term.trial_dates ?? []) as string[]);
     if (!session || Number(session.program_id) !== Number(program.id) || Number(session.term_id) !== Number(term.id) || session.status === "cancelled" || !trialDates.includes(String(session.session_date)) || String(session.session_date) < nassauToday()) {
       throw new Error("TRIAL_NOT_AVAILABLE");
     }
@@ -555,7 +624,13 @@ export async function createFutprepRegistration(
       .eq("term_id", term.id)
       .in("registration_status", ACTIVE_REGISTRATION_STATUSES);
     throwIfSupabaseError(countError, "Could not check program capacity");
-    if (Number(count ?? 0) >= Number(program.capacity)) {
+    // Brief 12: a family registering is capped by the coaches on duty at
+    // the next session; staff entering a child by hand answer to capacity
+    // only (the roster warns when a session is over its cap).
+    const cap = input.enteredByStaff
+      ? Number(program.capacity)
+      : capForTerm(program, term, await loadUpcomingSessions(db, [Number(term.id)], nassauToday()));
+    if (Number(count ?? 0) >= cap) {
       if (mode !== "waitlist") throw new Error("PROGRAM_FULL");
       registrationStatus = "waitlist";
     } else if (mode === "waitlist") {
@@ -893,15 +968,14 @@ export async function completeFutprepRegistration(input: FutprepCompletionInput)
   if (registration.registration_status !== "pending_details") throw new Error("ALREADY_COMPLETE");
 
   const [{ data: program, error: programError }, { data: term, error: termError }] = await Promise.all([
-    db.from("programs").select("age_min,age_max,program_type").eq("id", registration.program_id).maybeSingle(),
+    db.from("programs").select("age_min,age_max,age_min_months,age_max_months,program_type").eq("id", registration.program_id).maybeSingle(),
     db.from("program_terms").select("start_date,weekly_fee_cents,term_fee_cents").eq("id", registration.term_id).maybeSingle(),
   ]);
   throwIfSupabaseError(programError, "Could not load program");
   throwIfSupabaseError(termError, "Could not load term");
   if (!program || !term) throw new Error("NOT_FOUND");
 
-  const age = ageOnDate(input.childDob, term.start_date);
-  if (age < Number(program.age_min) || age > Number(program.age_max)) {
+  if (!fitsAgeRule(input.childDob, term.start_date, ageRuleOf(program))) {
     throw new Error("AGE_MISMATCH");
   }
 
@@ -1022,10 +1096,11 @@ export type TrialSession = { sessionId: number; date: string; spotsLeft: number 
 
 export async function listTrialSessions(programId: number, termId: number, now: Date = new Date()): Promise<TrialSession[]> {
   const db = getSupabaseAdmin();
-  const { data: term, error: termError } = await db.from("program_terms").select("trial_dates,trial_spots_per_session").eq("id", termId).eq("program_id", programId).maybeSingle();
+  const { data: term, error: termError } = await db.from("program_terms").select("trial_dates,trial_spots_per_session,taster_date").eq("id", termId).eq("program_id", programId).maybeSingle();
   throwIfSupabaseError(termError, "Could not load trial dates");
   const today = nassauToday(now);
-  const dates = ((term?.trial_dates ?? []) as string[]).filter((date) => Boolean(date) && date >= today);
+  const configured = term?.taster_date ? [String(term.taster_date)] : ((term?.trial_dates ?? []) as string[]);
+  const dates = configured.filter((date) => Boolean(date) && date >= today);
   if (!term || dates.length === 0) return [];
   const { data: sessions, error } = await db.from("sessions").select("id,session_date,status").eq("program_id", programId).eq("term_id", termId).in("session_date", dates).neq("status", "cancelled").order("session_date");
   throwIfSupabaseError(error, "Could not load trial Saturdays");
@@ -1053,7 +1128,7 @@ export async function trialJoinQuote(referenceCode: string): Promise<{ registrat
   if (!trial || trial.registration_status !== "trial" || !trial.trial_session_id) return null;
   const [{ data: session }, { data: term }] = await Promise.all([
     db.from("sessions").select("session_date").eq("id", trial.trial_session_id).maybeSingle(),
-    db.from("program_terms").select("weekly_fee_cents").eq("id", trial.term_id).maybeSingle(),
+    db.from("program_terms").select("weekly_fee_cents,term_fee_cents,start_date").eq("id", trial.term_id).maybeSingle(),
   ]);
   if (!session || !term) return null;
   const { count, error: countError } = await db
@@ -1062,6 +1137,7 @@ export async function trialJoinQuote(referenceCode: string): Promise<{ registrat
     .eq("program_id", trial.program_id)
     .eq("term_id", trial.term_id)
     .gt("session_date", session.session_date)
+    .gte("session_date", term.start_date)
     .neq("status", "cancelled");
   throwIfSupabaseError(countError, "Could not count the remaining classes");
   const remainingSessions = Number(count ?? 0);
@@ -1070,7 +1146,24 @@ export async function trialJoinQuote(referenceCode: string): Promise<{ registrat
     programId: Number(trial.program_id),
     termId: Number(trial.term_id),
     remainingSessions,
-    amountCents: prorateCents(Number(term.weekly_fee_cents), remainingSessions),
+    // A taster before the term (brief 12) leaves every Saturday to come;
+    // the family never pays more than the full-term price.
+    amountCents: Math.min(prorateCents(Number(term.weekly_fee_cents), remainingSessions), Number(term.term_fee_cents)),
     childName: String(trial.child_name),
   };
+}
+
+// The cap a class has right now (brief 12): min(capacity, coaches on duty
+// at its next session × children per coach). Used when staff promote a
+// family from the waitlist.
+export async function effectiveCapForTerm(programId: number, termId: number): Promise<number> {
+  const db = getSupabaseAdmin();
+  const [{ data: program, error: programError }, { data: term, error: termError }] = await Promise.all([
+    db.from("programs").select("capacity,children_per_coach,default_coaches").eq("id", programId).maybeSingle(),
+    db.from("program_terms").select("id,start_date,taster_date").eq("id", termId).maybeSingle(),
+  ]);
+  throwIfSupabaseError(programError, "Could not load the program");
+  throwIfSupabaseError(termError, "Could not load the term");
+  if (!program || !term) return 0;
+  return capForTerm(program, term, await loadUpcomingSessions(db, [termId], nassauToday()));
 }

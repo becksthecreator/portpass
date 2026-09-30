@@ -84,8 +84,10 @@ export default async function FutprepCoachPage({
 
         <div className="session-picker">
           {pickerSessions.map((item)=>(
-            <Link className={selected?.id===item.id ? "is-active":""} href={`?session=${item.id}`} key={item.id}>
-              <span>{item.session_date}</span><strong>{item.term_name || item.program_name}</strong><small>{item.start_time}</small>
+            <Link className={`${selected?.id===item.id ? "is-active" : ""}${item.over_cap ? " is-over-cap" : ""}`} href={`?session=${item.id}`} key={item.id}>
+              <span>{item.session_date}{item.is_taster ? " · taster" : ""}</span><strong>{item.term_name || item.program_name}</strong><small>{item.start_time}</small>
+              {/* Brief 12: more families registered than the coaches on duty allow. */}
+              {item.over_cap && <em className="session-over-cap" title={`${item.registered} registered; ${item.coaches_on_duty} on duty allow ${item.effective_cap}`}>Over cap: {item.registered}/{item.effective_cap}</em>}
             </Link>
           ))}
         </div>
@@ -93,6 +95,12 @@ export default async function FutprepCoachPage({
         {selected && !readOnly && (
           <p className="coach-export">
             <a className="secondary-button" href={`/api/futprep/staff/roster-csv?program=${selected.program_id}&term=${selected.term_id}`}>Download {selected.program_name} · {selected.term_name} roster (CSV, no medical details) ↓</a>
+          </p>
+        )}
+
+        {selected?.over_cap && (
+          <p className="coach-cap-warning" role="status">
+            {selected.registered} children are registered, but {selected.coaches_on_duty} {selected.coaches_on_duty === 1 ? "coach" : "coaches"} on duty allow {selected.effective_cap}. Add a coach under &ldquo;Coaches today&rdquo;, or new families will keep going to the waitlist.
           </p>
         )}
 

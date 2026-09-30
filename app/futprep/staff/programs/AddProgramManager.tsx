@@ -91,7 +91,7 @@ export function AddProgramManager({ initialPrograms }: { initialPrograms: Futpre
         {programs.map((program) => (
           <article className="team-manager-card" key={program.id}>
             <div>
-              <span>Ages {program.ageMin}–{program.ageMax}</span>
+              <span>Ages {program.ageLabel}</span>
               <h2>{program.name}</h2>
               <p>{program.dayOfWeek} · {program.startTime}{program.endTime ? `–${program.endTime}` : ""} · {program.location}</p>
             </div>

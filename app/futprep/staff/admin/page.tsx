@@ -43,7 +43,7 @@ export default async function FutprepStaffAdminPage() {
         <MoneySummary summary={moneySummary} />
         <AdminRegistrationManager initialRegistrations={registrations} />
         <div className="team-admin-panels">
-          <AddRegistrationForm options={offers.map((offer): StaffClassOption => ({ key: `${offer.programId}:${offer.termId}`, programSlug: offer.slug, termId: offer.termId, label: `${offerHeadline(offer)} (ages ${offer.ageMin}–${offer.ageMax})` }))} />
+          <AddRegistrationForm options={offers.map((offer): StaffClassOption => ({ key: `${offer.programId}:${offer.termId}`, programSlug: offer.slug, termId: offer.termId, label: `${offerHeadline(offer)} (ages ${offer.ageLabel})` }))} />
         </div>
       </section>
     </main>

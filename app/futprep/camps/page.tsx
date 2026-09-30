@@ -75,7 +75,7 @@ export default async function FutprepCampsPage() {
                   </div>
                   <dl className="camps-facts">
                     <div><dt>Daily</dt><dd>{camp.dailyStartTime || camp.time}–{camp.dailyEndTime || camp.endTime}</dd></div>
-                    <div><dt>Ages</dt><dd>{camp.ageMin}–{camp.ageMax}</dd></div>
+                    <div><dt>Ages</dt><dd>{camp.ageLabel}</dd></div>
                     <div><dt>Where</dt><dd>{camp.location}</dd></div>
                     <div><dt>Camp fee</dt><dd>{formatPriceCents(camp.termFeeCents)}</dd></div>
                     <div><dt>Spots left</dt><dd>{full ? "Full" : `${camp.spotsRemaining} of ${camp.capacity}`}</dd></div>
