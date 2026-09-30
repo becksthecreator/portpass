@@ -117,6 +117,7 @@ export function contractsCsv(lines: ContractLine[]): string {
 
 // ---- Program P&L -------------------------------------------------------------
 export type PnlLine = {
+  programId: number;
   programName: string;
   termName: string;
   kind: "term" | "camp" | "contract";

@@ -43,7 +43,7 @@ describe("the PortPass fee (Money Model: Founding Partner)", () => {
   });
 
   it("leaves what's left for Futprep", () => {
-    expect(leftForFutprep({ programName: "Kickers", termName: "Term 1", kind: "term", feesCollectedCents: 462000, coachPayCents: 60000, fieldCostCents: 0, portpassFeeCents: 3360 })).toBe(398640);
+    expect(leftForFutprep({ programId: 2, programName: "Kickers", termName: "Term 1", kind: "term", feesCollectedCents: 462000, coachPayCents: 60000, fieldCostCents: 0, portpassFeeCents: 3360 })).toBe(398640);
   });
 });
 

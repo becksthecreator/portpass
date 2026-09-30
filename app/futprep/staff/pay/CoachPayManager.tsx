@@ -49,6 +49,30 @@ export function CoachPayManager({
     setNotice(`${summary.coachName}: ${monthLabel(summary.month)} marked paid.`);
   }
 
+  // Field hire per term (the Money Model's "ask Alex" box), per program.
+  const [pnlLines, setPnlLines] = useState(pnl);
+  const [fieldInputs, setFieldInputs] = useState<Record<number, string>>(() =>
+    Object.fromEntries(pnl.map((line) => [line.programId, line.fieldCostCents ? dollarsField(line.fieldCostCents) : ""])),
+  );
+
+  async function saveField(line: PnlLine) {
+    const cents = toCents(fieldInputs[line.programId] ?? "");
+    if (Number.isNaN(cents)) return setNotice("Enter the field cost in dollars, or leave it blank.");
+    setBusy(`field:${line.programId}`);
+    setNotice("");
+    const response = await fetch("/api/futprep/staff/pay/field-cost", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ programId: line.programId, cents }),
+    }).catch(() => null);
+    setBusy(null);
+    const data = response ? ((await response.json().catch(() => ({}))) as { error?: string }) : {};
+    if (!response || !response.ok) return setNotice(data.error ?? "Couldn't save the field cost.");
+    const field = cents ?? 0;
+    setPnlLines((current) => current.map((l) => (l.programId === line.programId ? { ...l, fieldCostCents: field, leftCents: l.feesCollectedCents - l.coachPayCents - field - l.portpassFeeCents } : l)));
+    setNotice(`${line.programName}: field cost saved.`);
+  }
+
   async function saveRates(coach: PayCoach) {
     const entry = rates[coach.id];
     const leadCents = toCents(entry.lead);
@@ -123,9 +147,9 @@ export function CoachPayManager({
         <section className="pay-section" aria-labelledby="pay-pnl">
           <div className="pay-section-head"><h2 id="pay-pnl">Program P&amp;L</h2></div>
           <p className="pay-note">Per program and term, as on the Money Model: fees collected, minus coach pay, the field and the PortPass fee (8% of fees from families PortPass brought in, never more than $360 a term).</p>
-          {pnl.length === 0 && <div className="dashboard-empty"><h3>Nothing collected or coached yet.</h3></div>}
+          {pnlLines.length === 0 && <div className="dashboard-empty"><h3>Nothing collected or coached yet.</h3></div>}
           <div className="pay-cards">
-            {pnl.map((line) => (
+            {pnlLines.map((line) => (
               <article className="pay-card" key={`${line.programName}:${line.termName}`}>
                 <div className="pay-card-head"><strong>{line.programName}</strong><span>{line.termName}{line.kind === "contract" ? " · school contract" : ""}</span></div>
                 <dl>
@@ -135,6 +159,12 @@ export function CoachPayManager({
                   <div><dt>PortPass fee</dt><dd>−{money(line.portpassFeeCents)}</dd></div>
                   <div className="pay-left"><dt>Left for Futprep</dt><dd>{money(line.leftCents)}</dd></div>
                 </dl>
+                <div className="pay-field-edit">
+                  <label><span>Field hire per term ($)</span>
+                    <input inputMode="decimal" placeholder="Not set" value={fieldInputs[line.programId] ?? ""} onChange={(e) => setFieldInputs((f) => ({ ...f, [line.programId]: e.target.value }))} />
+                  </label>
+                  <button type="button" disabled={busy === `field:${line.programId}`} onClick={() => saveField(line)}>Save</button>
+                </div>
               </article>
             ))}
           </div>

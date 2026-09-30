@@ -408,6 +408,7 @@ export async function listProgramPnl(): Promise<PnlLine[]> {
     const coachPayCents = coachPay.get(termId) ?? 0;
     if (feesCollectedCents === 0 && coachPayCents === 0) continue;
     const base = {
+      programId: program.id,
       programName: program.name,
       termName: term.name,
       kind,
@@ -421,4 +422,25 @@ export async function listProgramPnl(): Promise<PnlLine[]> {
   return lines
     .sort((a, b) => b.startDate.localeCompare(a.startDate) || a.programName.localeCompare(b.programName))
     .map(({ startDate: _startDate, ...line }) => line);
+}
+
+// Field hire per term for a program (brief 13's P&L; "ask Alex" on the
+// Money Model). Alex and platform owners set it on the Coach pay page;
+// audit-logged.
+export async function setProgramFieldCost(input: { programId: number; cents: number | null; actor: string }): Promise<void> {
+  if (input.cents !== null && (!Number.isInteger(input.cents) || input.cents < 0 || input.cents > 10_000_000)) throw new Error("INVALID_AMOUNT");
+  const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
+  const { data: before } = await db.from("programs").select("id,field_cost_cents_per_term").eq("id", input.programId).eq("organization_id", organizationId).maybeSingle();
+  if (!before) throw new Error("PROGRAM_NOT_FOUND");
+  const { error } = await db.from("programs").update({ field_cost_cents_per_term: input.cents }).eq("id", input.programId);
+  throwIfSupabaseError(error, "Could not save the field cost");
+  await logAudit({
+    organizationId,
+    action: "futprep.field_cost",
+    targetTable: "programs",
+    targetId: input.programId,
+    before: { fieldCostCentsPerTerm: before.field_cost_cents_per_term },
+    after: { fieldCostCentsPerTerm: input.cents, by: input.actor },
+  });
 }
