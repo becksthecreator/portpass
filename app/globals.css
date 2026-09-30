@@ -4981,10 +4981,12 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .nav-panel-list a{display:flex;justify-content:space-between;align-items:center;gap:16px;border-radius:8px;color:var(--ink);font-size:.9rem;font-weight:600;padding:9px 12px;text-decoration:none}
 .nav-panel-list a:hover,.nav-panel-list a:focus-visible{background:var(--deck)}
 .nav-panel small,.sheet-subs a small,.sheet-list>li>button small{font-size:.7rem;font-weight:800;color:var(--muted);letter-spacing:.04em}
-/* Below 1024px the triggers give way to the Browse sheet. This block must
-   stay after the .site-shell-nav rule above: same specificity, so order
-   decides. */
-@media(max-width:1023px){
+/* Below 1200px the triggers give way to the Browse sheet (the seven
+   section triggers, the logo and Sign in / Pricing / For business need
+   about 1160px in one row; at 1024, an iPad in landscape, they
+   overlapped). This block must stay after the .site-shell-nav rule above:
+   same specificity, so order decides. */
+@media(max-width:1199px){
   .site-shell-nav{display:none}
   .site-shell-browse-button{display:inline-flex}
 }
@@ -5466,7 +5468,7 @@ a.admin-tile:hover{border-color:var(--sky)}
    phone, the dark version wherever the ground is navy. Clear space = the
    height of the P; the horizontal logo is never shown under 120px wide. */
 .brand-logo{display:block;height:36px;width:auto;min-width:120px}
-@media(max-width:1023px){.brand-logo{height:30px}}
+@media(max-width:1199px){.brand-logo{height:30px}}
 .brand-logo-dark{display:none}
 .theme-night .brand-logo-light,.site-shell-footer .brand-logo-light,.staff-workspace-header .brand-logo-light,.admin-bar .brand-logo-light,.organization-sidebar .brand-logo-light{display:none}
 .theme-night .brand-logo-dark,.site-shell-footer .brand-logo-dark,.staff-workspace-header .brand-logo-dark,.admin-bar .brand-logo-dark,.organization-sidebar .brand-logo-dark{display:block}
