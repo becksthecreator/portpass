@@ -1,4 +1,5 @@
 import { WEEKDAYS, generateWeeklySessionDates } from "@/lib/scheduling";
+import { ageLabel } from "@/lib/futprepClasses";
 import { slugify } from "@/lib/slug";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -35,6 +36,8 @@ export type FutprepProgramSummary = {
   name: string;
   ageMin: number;
   ageMax: number;
+  // Brief 12: "1½–3" (months win over whole years when set).
+  ageLabel: string;
   coed: boolean;
   location: string;
   dayOfWeek: string;
@@ -106,7 +109,7 @@ export async function listFutprepPrograms(): Promise<FutprepProgramSummary[]> {
 
   const { data: programs, error: programsError } = await db
     .from("programs")
-    .select("id,slug,name,age_min,age_max,coed,location,day_of_week,start_time,end_time,capacity,active")
+    .select("id,slug,name,age_min,age_max,age_min_months,age_max_months,coed,location,day_of_week,start_time,end_time,capacity,active")
     .eq("organization_id", organizationId)
     .order("id", { ascending: true });
   throwIfSupabaseError(programsError, "Could not load Futprep programs");
@@ -157,6 +160,7 @@ export async function listFutprepPrograms(): Promise<FutprepProgramSummary[]> {
       name: program.name,
       ageMin: Number(program.age_min),
       ageMax: Number(program.age_max),
+      ageLabel: ageLabel({ ageMin: Number(program.age_min), ageMax: Number(program.age_max), ageMinMonths: program.age_min_months ?? null, ageMaxMonths: program.age_max_months ?? null }),
       coed: Boolean(program.coed),
       location: program.location,
       dayOfWeek: program.day_of_week,

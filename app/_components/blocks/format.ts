@@ -30,7 +30,10 @@ export function formatPrice(cents: number, unit: string | null): string {
   return suffix ? `${amount}${suffix}` : amount;
 }
 
-export function formatAgeRange(min: number | null, max: number | null): string | null {
+// label (offerings.age_label, brief 12) wins: whole-year columns can't
+// say "1½–3".
+export function formatAgeRange(min: number | null, max: number | null, label?: string | null): string | null {
+  if (label) return `Ages ${label}`;
   if (min === null && max === null) return null;
   if (min !== null && max !== null) return `Ages ${min}-${max}`;
   if (min !== null) return `Ages ${min}+`;

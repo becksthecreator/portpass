@@ -5,6 +5,7 @@ import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { bizDisplay, ppSans } from "@/app/fonts";
 import { FutprepCampsCard } from "@/app/_components/FutprepCampsCard";
+import { FutprepTasterCard } from "@/app/_components/FutprepTasterCard";
 
 // ISR (speed brief, 29 Sept): five-minute cache, rebuilt on demand. The
 // loader swallows a failed read so CI's credential-less build can still
@@ -36,6 +37,7 @@ export default async function FutprepOrganizationPage() {
     <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: listing.organization.name, href: "/sports-fitness/futprep-athletics" }]} />
       <OrganizationTemplate listing={listing} />
+      <FutprepTasterCard />
       <FutprepCampsCard />
       <SiteFooter orgLine={`${listing.organization.name} · Booking and payments powered by PortPass`} />
     </div>

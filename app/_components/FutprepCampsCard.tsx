@@ -22,7 +22,7 @@ export async function FutprepCampsCard() {
         <h2>{camps.length === 1 ? first.name : "Futprep holiday camps"}</h2>
         <p>
           {camps.length === 1
-            ? `${formatDateRange(first.termStartDate, first.termEndDate)} · ${first.dailyStartTime || first.time}–${first.dailyEndTime || first.endTime} · ages ${first.ageMin}–${first.ageMax} · ${formatPriceCents(first.termFeeCents)}`
+            ? `${formatDateRange(first.termStartDate, first.termEndDate)} · ${first.dailyStartTime || first.time}–${first.dailyEndTime || first.endTime} · ages ${first.ageLabel} · ${formatPriceCents(first.termFeeCents)}`
             : `${camps.length} camps open for registration.`}
         </p>
       </div>

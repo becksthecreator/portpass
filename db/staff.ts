@@ -1,6 +1,7 @@
 import { derivePaymentStatus } from "@/lib/payments";
 import { ageOnDate } from "@/lib/scheduling";
-import { ensureFutprepPilotData, type PaymentFrequency, type PaymentMethod } from "./registrations";
+import { effectiveCap } from "@/lib/futprepClasses";
+import { effectiveCapForTerm, ensureFutprepPilotData, type PaymentFrequency, type PaymentMethod } from "./registrations";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -53,10 +54,23 @@ export type StaffSession = {
   start_time: string;
   location: string;
   status: string;
+  // Brief 12: coaches on duty (this session's own number, else the
+  // program's default), the ratio, and whether the class is over its cap.
+  coaches_on_duty: number;
+  coaches_set: boolean;
+  children_per_coach: number | null;
+  capacity: number;
+  effective_cap: number;
+  registered: number;
+  over_cap: boolean;
+  // The pre-term free taster Saturday: its roster is the taster children.
+  is_taster: boolean;
 };
 
 export type AttendanceRow = {
   registration_id: number;
+  // For the "Join the term" link a taster child's parent gets (brief 12).
+  reference_code?: string;
   registration_status: string;
   child_name: string;
   parent_name: string | null;
@@ -195,7 +209,7 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
   // details) keeps its generated days out of the coaches' picker.
   const { data: programs, error: programError } = await db
     .from("programs")
-    .select("id,name,slug,program_type")
+    .select("id,name,slug,program_type,capacity,children_per_coach,default_coaches")
     .eq("organization_id", organizationId)
     .eq("active", true);
   throwIfSupabaseError(programError, "Could not load Futprep session programs");
@@ -205,22 +219,37 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
     name: string;
     slug: string;
     program_type: string;
+    capacity: number;
+    children_per_coach: number | null;
+    default_coaches: number | null;
   }>;
   if (!programRows.length) return [];
 
   const programById = new Map(programRows.map((row) => [row.id, row]));
   const programIds = programRows.map((row) => row.id);
-  const [{ data: sessions, error }, { data: terms, error: termsError }] = await Promise.all([
+  const [{ data: sessions, error }, { data: terms, error: termsError }, { data: counted, error: countedError }] = await Promise.all([
     db
       .from("sessions")
-      .select("id,program_id,term_id,session_date,start_time,location,status")
+      .select("id,program_id,term_id,session_date,start_time,location,status,coaches_on_duty")
       .in("program_id", programIds)
       .order("session_date", { ascending: true })
       .order("start_time", { ascending: true }),
-    db.from("program_terms").select("id,name,active").in("program_id", programIds),
+    db.from("program_terms").select("id,name,active,taster_date").in("program_id", programIds),
+    db.from("registrations").select("term_id,registration_status,trial_session_id").in("program_id", programIds).in("registration_status", ["pending_details", "pending", "confirmed", "trial"]),
   ]);
   throwIfSupabaseError(error, "Could not load Futprep sessions");
   throwIfSupabaseError(termsError, "Could not load Futprep terms");
+  throwIfSupabaseError(countedError, "Could not count Futprep registrations");
+  const tasterDate = new Map((terms ?? []).map((t: { id: number; taster_date: string | null }) => [Number(t.id), t.taster_date]));
+  const registeredByTerm = new Map<number, number>();
+  const tastersBySession = new Map<number, number>();
+  for (const row of (counted ?? []) as Array<{ term_id: number; registration_status: string; trial_session_id: number | null }>) {
+    if (row.registration_status === "trial") {
+      if (row.trial_session_id) tastersBySession.set(Number(row.trial_session_id), (tastersBySession.get(Number(row.trial_session_id)) ?? 0) + 1);
+    } else {
+      registeredByTerm.set(Number(row.term_id), (registeredByTerm.get(Number(row.term_id)) ?? 0) + 1);
+    }
+  }
   const termName = new Map((terms ?? []).map((t: { id: number; name: string }) => [Number(t.id), t.name]));
   // A term that is switched off (a placeholder Term 2, say) stays out of
   // the coaches' picker until it goes live.
@@ -235,8 +264,15 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
       start_time: string;
       location: string;
       status: string;
+      coaches_on_duty: number | null;
     }) => {
       const program = programById.get(session.program_id);
+      const isTaster = tasterDate.get(Number(session.term_id)) === session.session_date;
+      const coaches = session.coaches_on_duty ?? Number(program?.default_coaches ?? 1);
+      const childrenPerCoach = program?.children_per_coach === null || program?.children_per_coach === undefined ? null : Number(program.children_per_coach);
+      const capacity = Number(program?.capacity ?? 0);
+      const cap = effectiveCap({ capacity, childrenPerCoach, coachesOnDuty: session.coaches_on_duty, defaultCoaches: Number(program?.default_coaches ?? 1) });
+      const registered = isTaster ? tastersBySession.get(Number(session.id)) ?? 0 : registeredByTerm.get(Number(session.term_id)) ?? 0;
       return {
         id: session.id,
         program_id: session.program_id,
@@ -249,6 +285,14 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
         start_time: session.start_time,
         location: session.location,
         status: session.status,
+        coaches_on_duty: coaches,
+        coaches_set: session.coaches_on_duty !== null,
+        children_per_coach: childrenPerCoach,
+        capacity,
+        effective_cap: cap,
+        registered,
+        over_cap: !isTaster && registered > cap,
+        is_taster: isTaster,
       };
     },
   );
@@ -349,11 +393,12 @@ export async function updateFutprepRegistration(input: {
       const { data: current, error: currentError } = await db.from("registrations").select("registration_status,program_id,term_id").eq("id", input.registrationId).maybeSingle();
       throwIfSupabaseError(currentError, "Could not load registration");
       if (current?.registration_status === "waitlist") {
-        const [{ count }, { data: program }] = await Promise.all([
+        const [{ count }, cap] = await Promise.all([
           db.from("registrations").select("id", { count: "exact", head: true }).eq("program_id", current.program_id).eq("term_id", current.term_id).in("registration_status", ["pending_details", "pending", "confirmed"]),
-          db.from("programs").select("capacity").eq("id", current.program_id).maybeSingle(),
+          // Brief 12: the cap the coaches on duty allow at the next session.
+          effectiveCapForTerm(Number(current.program_id), Number(current.term_id)),
         ]);
-        if (Number(count ?? 0) >= Number(program?.capacity ?? 0)) throw new Error("PROGRAM_FULL");
+        if (Number(count ?? 0) >= cap) throw new Error("PROGRAM_FULL");
       }
     }
     updates.registration_status = input.registrationStatus;
@@ -395,11 +440,18 @@ export async function rosterForSession(
 
   const { data: session, error: sessionError } = await db
     .from("sessions")
-    .select("program_id,term_id")
+    .select("program_id,term_id,session_date")
     .eq("id", sessionId)
     .maybeSingle();
   throwIfSupabaseError(sessionError, "Could not load session roster");
   if (!session) throw new Error("SESSION_NOT_FOUND");
+  const { data: term } = await db.from("program_terms").select("taster_date").eq("id", session.term_id).maybeSingle();
+  // Brief 12: the pre-term taster Saturday is the taster children only;
+  // families already registered for the term start with the term.
+  const isTaster = term?.taster_date === session.session_date;
+  const who = isTaster
+    ? `and(registration_status.eq.trial,trial_session_id.eq.${Number(sessionId)})`
+    : `registration_status.in.(pending_details,pending,confirmed),and(registration_status.eq.trial,trial_session_id.eq.${Number(sessionId)})`;
 
   // The session's own term only: once Term 2 runs on the same program, a
   // Term 1 child must not appear on a Term 2 Saturday (brief 06 v2).
@@ -408,12 +460,12 @@ export async function rosterForSession(
       db
         .from("registrations")
         .select(
-          "id,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs",
+          "id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs",
         )
         .eq("program_id", session.program_id)
         .eq("term_id", session.term_id)
-        // Term children, plus free-trial children booked for this Saturday.
-        .or(`registration_status.in.(pending_details,pending,confirmed),and(registration_status.eq.trial,trial_session_id.eq.${Number(sessionId)})`)
+        // Term children, plus taster children booked for this Saturday.
+        .or(who)
         .order("child_name", { ascending: true }),
       db
         .from("attendance")
@@ -435,6 +487,7 @@ export async function rosterForSession(
   return (registrations ?? []).map(
     (row: {
       id: number;
+      reference_code: string;
       registration_status: string;
       child_name: string;
       parent_name: string | null;
@@ -448,6 +501,7 @@ export async function rosterForSession(
       special_needs: string | null;
     }) => ({
       registration_id: row.id,
+      reference_code: row.reference_code,
       registration_status: row.registration_status,
       child_name: row.child_name,
       parent_name: row.parent_name,
@@ -464,6 +518,23 @@ export async function rosterForSession(
       is_backfill: attendanceByRegistration.get(row.id)?.is_backfill ?? false,
     }),
   );
+}
+
+// "Coaches today" on the roster (brief 12): null goes back to the
+// program's default. Returns the session's cap with that many coaches.
+export async function setSessionCoaches(sessionId: number, coaches: number | null): Promise<{ coaches: number; effectiveCap: number }> {
+  if (coaches !== null && (!Number.isInteger(coaches) || coaches < 0 || coaches > 20)) throw new Error("INVALID_COACHES");
+  const db = getSupabaseAdmin();
+  const { data: session, error } = await db.from("sessions").update({ coaches_on_duty: coaches }).eq("id", sessionId).select("program_id").maybeSingle();
+  throwIfSupabaseError(error, "Could not save the coaches on duty");
+  if (!session) throw new Error("SESSION_NOT_FOUND");
+  const { data: program, error: programError } = await db.from("programs").select("capacity,children_per_coach,default_coaches").eq("id", session.program_id).maybeSingle();
+  throwIfSupabaseError(programError, "Could not load the program");
+  const defaultCoaches = Number(program?.default_coaches ?? 1);
+  return {
+    coaches: coaches ?? defaultCoaches,
+    effectiveCap: effectiveCap({ capacity: Number(program?.capacity ?? 0), childrenPerCoach: program?.children_per_coach ?? null, coachesOnDuty: coaches, defaultCoaches }),
+  };
 }
 
 export async function markFutprepAttendance(input: {

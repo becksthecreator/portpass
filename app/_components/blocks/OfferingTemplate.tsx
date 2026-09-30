@@ -30,7 +30,7 @@ export function OfferingTemplate({ listing }: { listing: OfferingListing }) {
 
   const practicalFacts: { label: string; value: string }[] = [];
   if (offering.scheduleText) practicalFacts.push({ label: "When", value: offering.scheduleText });
-  const ageRange = formatAgeRange(offering.ageMin, offering.ageMax);
+  const ageRange = formatAgeRange(offering.ageMin, offering.ageMax, offering.ageLabel);
   if (ageRange) practicalFacts.push({ label: "Who it's for", value: ageRange });
   if (offering.capacity) practicalFacts.push({ label: "Spots per session", value: String(offering.capacity) });
   if (offering.termStart && offering.termEnd) {

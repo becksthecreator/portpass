@@ -1,0 +1,83 @@
+name: Staff screenshots (TEST data)
+
+# Staff pages sit behind a staff PIN, so they can't be photographed on a
+# Vercel preview. This job runs the app on localhost against the same
+# throwaway local Supabase stack the integration tests use, seeds "TEST —
+# delete" data and a staff account whose PIN is generated for this run
+# only (masked, never printed), and saves 375px screenshots as an
+# artifact. It never touches the real database and isn't a required check.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/futprep/staff/**"
+      - "db/staff.ts"
+      - "db/coachPay.ts"
+      - "scripts/screenshots/**"
+      - ".github/workflows/staff-screenshots.yml"
+
+concurrency:
+  group: staff-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase
+        run: supabase start
+      - name: Export local Supabase credentials
+        run: |
+          supabase status -o env > supabase-status.env
+          API_URL=$(grep -E '^(API_URL|SUPABASE_URL)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          SERVICE_ROLE_KEY=$(grep -E '^(SERVICE_ROLE_KEY|SUPABASE_SERVICE_ROLE_KEY|SECRET_KEY|SUPABASE_SECRET_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          ANON_KEY=$(grep -E '^(ANON_KEY|SUPABASE_ANON_KEY|PUBLISHABLE_KEY|SUPABASE_PUBLISHABLE_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          PIN=$(shuf -i 10000000-99999999 -n 1)
+          echo "::add-mask::$PIN"
+          echo "SCREENSHOT_PIN=$PIN" >> "$GITHUB_ENV"
+          echo "SCREENSHOT_FIXTURE=$RUNNER_TEMP/staff-fixture.json" >> "$GITHUB_ENV"
+      - name: Seed test data
+        run: |
+          npx tsx scripts/seed-test-data.ts
+          npx tsx scripts/screenshots/seed-staff-fixture.ts
+      - name: Build
+        run: npx next build --webpack
+      - name: Start the app on localhost
+        run: |
+          npx next start -p 3000 > next.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/futprep/staff/login > /dev/null && break; sleep 2; done
+          curl -sf http://localhost:3000/futprep/staff/login > /dev/null
+      - name: Install Playwright (Chromium)
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Capture
+        run: node scripts/screenshots/capture.mjs
+      - name: Server log on failure
+        if: failure()
+        run: tail -n 80 next.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staff-screenshots
+          path: screenshots/
+          if-no-files-found: warn
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop

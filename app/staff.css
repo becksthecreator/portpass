@@ -369,3 +369,18 @@
 .staff-summary-4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:700px){.staff-summary-4{grid-template-columns:1fr 1fr}}
 .coach-trial-flag{display:inline-block;margin-left:8px;font-size:.66rem;font-weight:800;color:var(--sky,#8DB8F2)}
+
+/* Coaches today (brief 12): the stepper sets this session's cap. */
+.coach-ratio{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 16px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.coach-ratio-label{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.coach-ratio-stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.coach-ratio-stepper button{min-width:44px;min-height:44px;border:0;background:transparent;color:inherit;font-size:1.25rem;font-weight:800;cursor:pointer}
+.coach-ratio-stepper button:disabled{opacity:.4;cursor:default}
+.coach-ratio-stepper output,.coach-ratio-count{min-width:32px;text-align:center;font-size:1.1rem;font-weight:800}
+.coach-ratio-summary{flex:1 1 100%;margin:0;font-weight:700}
+.coach-ratio.is-short{border-color:var(--signal)}
+.coach-ratio.is-short .coach-ratio-summary{color:var(--signal-text,#D7232B)}
+.coach-cap-warning{margin:0 0 16px;padding:10px 14px;border-left:3px solid var(--signal);font-weight:600}
+.session-picker a.is-over-cap{border-color:var(--signal)}
+.session-over-cap{display:block;margin-top:4px;font-style:normal;font-size:.66rem;font-weight:800;color:var(--signal-text,#D7232B)}
+.coach-join-link{display:block;margin:8px 0 0;padding:10px 12px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:transparent;color:inherit;font-weight:700;text-align:left;cursor:pointer}

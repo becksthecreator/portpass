@@ -5,7 +5,8 @@ import { Suspense } from "react";
 import { RegistrationForm, type JoinQuote } from "./RegistrationForm";
 import { getFutprepAvailability, getFutprepOffer, trialJoinQuote, type FutprepAvailability } from "@/db/registrations";
 import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAttribution, parseAttributionCookie, type Attribution } from "@/lib/attribution";
-import { offerHeadline } from "@/lib/futprepTerms";
+import { shortDate, upcomingTaster } from "@/lib/futprepClasses";
+import { nassauToday, offerHeadline } from "@/lib/futprepTerms";
 import { normalizeProgramSlug } from "../config";
 
 // force-dynamic: spots left, the open terms and the attribution cookie are
@@ -69,7 +70,8 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
 export default async function FutprepRegisterPage({ searchParams }: { searchParams: SearchParams }) {
   const [{ offers, requested }, attribution] = await Promise.all([loadOffers(searchParams), readAttribution(searchParams)]);
   const joinQuote = await loadJoinQuote(searchParams, offers);
-  const trialOpen = offers.some((offer) => offer.programType === "term" && offer.trialDates.length > 0);
+  // Brief 12: the free taster Saturday, when one is coming up.
+  const taster = upcomingTaster(offers, nassauToday());
   const programDetailsHref = requested?.programType === "camp" ? "/futprep/camps" : requested ? `/sports-fitness/futprep-athletics/${requested.slug}` : "/sports-fitness/futprep-athletics";
 
   return (
@@ -89,8 +91,9 @@ export default async function FutprepRegisterPage({ searchParams }: { searchPara
           offers={offers}
           initialOfferKey={joinQuote ? joinQuote.offerKey : requested ? `${requested.programId}:${requested.termId}` : null}
           joinQuote={joinQuote}
-          trialHref={trialOpen && !joinQuote ? "/futprep/trial" : null}
-          intro={joinQuote ? { eyebrow: "Futprep · after your free Saturday", title: `Join the rest of the term.`, lead: `Keep ${joinQuote.childName.split(" ")[0]} playing for the ${joinQuote.remainingSessions} Saturdays left in the term. You pay only for those.` } : null}
+          trialHref={taster && !joinQuote ? "/futprep/trial" : null}
+          trialLabel={taster ? `Free taster Saturday, ${shortDate(taster.date)}` : null}
+          intro={joinQuote ? { eyebrow: "Futprep · after the free taster", title: `Join the rest of the term.`, lead: `Keep ${joinQuote.childName.split(" ")[0]} playing for the ${joinQuote.remainingSessions} Saturdays left in the term. You pay only for those.` } : null}
         />
       </Suspense>
     </main>

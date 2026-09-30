@@ -14,8 +14,11 @@ export const FUTPREP_PROGRAMS = [
   {
     slug: "lil-kickers",
     name: "Futprep Lil Kickers",
-    ageMin: 3,
-    ageMax: 5,
+    // Brief 12: 1½–3, held in months (18–47); whole years are the fallback.
+    ageMin: 1,
+    ageMax: 3,
+    ageMinMonths: 18,
+    ageMaxMonths: 47,
     day: "Saturday",
     time: "9:00 AM",
     endTime: "9:35 AM",
@@ -26,8 +29,10 @@ export const FUTPREP_PROGRAMS = [
   {
     slug: "kickers",
     name: "Futprep Kickers",
-    ageMin: 5,
-    ageMax: 7,
+    ageMin: 3,
+    ageMax: 6,
+    ageMinMonths: 36,
+    ageMaxMonths: 83,
     day: "Saturday",
     time: "10:00 AM",
     endTime: "10:45 AM",

@@ -26,7 +26,7 @@ export function OrganizationTemplate({ listing }: { listing: OrganizationListing
     .filter((offering) => offering.scheduleText)
     .map((offering) => ({
       label: offering.name,
-      value: [offering.scheduleText, formatAgeRange(offering.ageMin, offering.ageMax)].filter(Boolean).join(" · "),
+      value: [offering.scheduleText, formatAgeRange(offering.ageMin, offering.ageMax, offering.ageLabel)].filter(Boolean).join(" · "),
     }));
 
   const hasPricedOffering = offerings.some((offering) => offering.priceCents !== null);

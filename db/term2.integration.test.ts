@@ -219,11 +219,13 @@ describe("Term 2 early access, trials and the waitlist (brief 06 v2, Part C)", (
     const quote = await trialJoinQuote(trialReference);
     expect(quote).not.toBeNull();
     expect(quote!.remainingSessions).toBe(11);
-    expect(quote!.amountCents).toBe(11 * WEEKLY);
+    // 11 Saturdays at the weekly fee would be 275; the family never pays
+    // more than the full-term price (brief 12).
+    expect(quote!.amountCents).toBe(Math.min(11 * WEEKLY, 25000));
 
     const joined = await createFutprepRegistration({ ...trialChild, mode: "standard", trialSessionId: null, signedInUserId: null, joinFromTrialCode: trialReference });
     expect(joined.registrationStatus).toBe("pending");
-    expect(joined.amountDueCents).toBe(11 * WEEKLY);
+    expect(joined.amountDueCents).toBe(Math.min(11 * WEEKLY, 25000));
     expect(joined.paymentFrequency).toBe("term");
     const { data: row } = await db().from("registrations").select("joined_from_registration_id").eq("reference_code", joined.referenceCode).single();
     expect(row!.joined_from_registration_id).not.toBeNull();
