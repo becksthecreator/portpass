@@ -98,6 +98,7 @@ export default async function BahamasWeddingsListingPage() {
     scheduleText: null,
     ageMin: null,
     ageMax: null,
+    ageLabel: null,
     termStart: null,
     termEnd: null,
     eventDate: null,

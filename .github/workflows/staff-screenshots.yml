@@ -57,7 +57,9 @@ jobs:
           npx tsx scripts/seed-test-data.ts
           npx tsx scripts/screenshots/seed-staff-fixture.ts
       - name: Build
-        run: npx next build --webpack
+        # One retry: next/font's Google Fonts fetch occasionally fails in CI
+        # (a known upstream flake, see ci.yml).
+        run: npx next build --webpack || npx next build --webpack
       - name: Start the app on localhost
         run: |
           npx next start -p 3000 > next.log 2>&1 &
