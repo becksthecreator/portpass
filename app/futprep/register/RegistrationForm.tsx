@@ -6,7 +6,7 @@ import { PhoneInput } from "@/app/_components/PhoneInput";
 import { track } from "@/lib/analytics";
 import { EMPTY_ATTRIBUTION, HEARD_OPTIONS, type Attribution } from "@/lib/attribution";
 
-import type { FutprepAvailability } from "@/db/registrations";
+import type { FutprepAvailability, TrialSession } from "@/db/registrations";
 import { formatDateRange, offerHeadline } from "@/lib/futprepTerms";
 import { FormEvent, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -48,6 +48,7 @@ type FormState = {
 
 type RegistrationResult = {
   referenceCode: string;
+  registrationStatus?: "pending" | "waitlist" | "trial";
   program: { name: string; programType: "term" | "camp"; day: string; time: string; endTime: string };
   term: { name: string; startDate: string; endDate: string; location: string };
   paymentFrequency: "weekly" | "term";
@@ -64,7 +65,22 @@ const initial: FormState = {
   heardAboutUs:"", referralCode:"",
 };
 
-const steps = ["Parent","Child","Health & safety","Class & payment","Consent"];
+const STANDARD_STEPS = ["Parent","Child","Health & safety","Class & payment","Consent"];
+const TRIAL_STEPS = ["Parent","Child","Health & safety","Class & Saturday","Consent"];
+
+// Part C (brief 06 v2) extras, all optional: a returning family's
+// early-access link (prefill without medical fields), the free first
+// Saturday for signed-in parents, and "join the rest of the term" after a
+// trial at the price for the Saturdays left.
+export type JoinQuote = { code: string; offerKey: string; remainingSessions: number; amountCents: number; weeklyFeeCents: number; childName: string };
+export type FormPrefill = Partial<Pick<FormState,
+  "parentName" | "parentEmail" | "parentPhone" | "relationship" | "childName" | "childDob" | "gender" |
+  "emergencyContactName" | "emergencyContactPhone" | "authorizedPickup">>;
+export type RegistrationIntro = { eyebrow: string; title: string; lead: string };
+
+function longDate(iso: string): string {
+  return new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${iso}T12:00:00Z`));
+}
 
 function ageAt(dob: string, referenceDate: string) {
   if (!dob) return null;
@@ -83,9 +99,20 @@ function ageAt(dob: string, referenceDate: string) {
 //
 // `offers` come from the page (every public open program-in-a-term, plus
 // the one a direct link names); `initialOfferKey` is that link's choice.
-export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, initialOfferKey = null }: { attribution?: Attribution; offers: Offer[]; initialOfferKey?: string | null }) {
+export function RegistrationForm({
+  attribution = EMPTY_ATTRIBUTION, offers, initialOfferKey = null,
+  mode = "standard", prefill = null, returnToken = null, trialSessions = {}, joinQuote = null, intro = null, trialHref = null,
+}: {
+  attribution?: Attribution; offers: Offer[]; initialOfferKey?: string | null;
+  mode?: "standard" | "trial"; prefill?: FormPrefill | null; returnToken?: string | null;
+  trialSessions?: Record<string, TrialSession[]>; joinQuote?: JoinQuote | null; intro?: RegistrationIntro | null;
+  trialHref?: string | null;
+}) {
   const searchParams = useSearchParams();
   const availability = offers;
+  const isTrial = mode === "trial";
+  const steps = isTrial ? TRIAL_STEPS : STANDARD_STEPS;
+  const [trialSessionId, setTrialSessionId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(() => {
     // An old link carries only ?program=<slug>: it preselects when that
     // program has exactly one open term.
@@ -101,6 +128,9 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
       parentEmail: searchParams.get("parentEmail") ?? "",
       parentPhone: searchParams.get("parentPhone") ?? "",
       relationship: searchParams.get("relationship") ?? "",
+      // A return link fills in everything it can -- never the medical,
+      // allergy or medication fields.
+      ...(prefill ?? {}),
     };
   });
   const [step, setStep] = useState(0);
@@ -113,8 +143,17 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
     [availability, form.offerKey],
   );
   const isCamp = selectedProgram?.programType === "camp";
+  // A full class takes waitlist entries instead (Part C); nothing to pay.
+  const isWaitlist = !isTrial && selectedProgram !== undefined && selectedProgram.spotsRemaining === 0;
+  const joinApplies = !isTrial && !isWaitlist && joinQuote !== null && joinQuote.offerKey === form.offerKey;
+  const saturdays = selectedProgram ? trialSessions[offerKey(selectedProgram)] ?? [] : [];
+  const chosenSaturday = saturdays.find((s) => s.sessionId === trialSessionId) ?? null;
   // Camps are paid in full: the camp fee, no weekly/term choice.
-  const selectedPrice = selectedProgram
+  const selectedPrice = isTrial || isWaitlist
+    ? null
+    : joinApplies && joinQuote
+      ? joinQuote.amountCents
+      : selectedProgram
     ? isCamp
       ? selectedProgram.termFeeCents
       : form.paymentFrequency
@@ -137,6 +176,7 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
   }
 
   function chooseOffer(offer: Offer) {
+    setTrialSessionId(null);
     setForm((current) => ({
       ...current,
       offerKey: offerKey(offer),
@@ -161,9 +201,10 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
     }
     if (step === 2 && (!form.emergencyContactName || !form.emergencyContactPhone)) return "Add an emergency contact.";
     if (step === 3) {
-      if (!selectedProgram) return "Choose a class or camp.";
-      if (!isCamp && !form.paymentFrequency) return "Choose a payment plan.";
-      if (!form.paymentMethod) return "Choose a payment method.";
+      if (!selectedProgram) return isTrial ? "Choose a class." : "Choose a class or camp.";
+      if (isTrial && !chosenSaturday) return "Choose your free Saturday.";
+      if (!isTrial && !isWaitlist && !isCamp && !joinApplies && !form.paymentFrequency) return "Choose a payment plan.";
+      if (!isTrial && !isWaitlist && !form.paymentMethod) return "Choose a payment method.";
       if (selectedProgram) {
         const age = ageAt(form.childDob, selectedProgram.termStartDate);
         if (age !== null && (age < selectedProgram.ageMin || age > selectedProgram.ageMax)) return `${selectedProgram.name} is for ages ${selectedProgram.ageMin}–${selectedProgram.ageMax}.`;
@@ -198,7 +239,12 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
           ...form,
           programSlug: selectedProgram?.slug ?? "",
           termId: selectedProgram?.termId ?? null,
-          paymentFrequency: isCamp ? "term" : form.paymentFrequency,
+          paymentFrequency: isTrial || isWaitlist ? "" : isCamp || joinApplies ? "term" : form.paymentFrequency,
+          paymentMethod: isTrial || isWaitlist ? "" : form.paymentMethod,
+          mode: isTrial ? "trial" : isWaitlist ? "waitlist" : "standard",
+          returnToken,
+          trialSessionId: isTrial ? chosenSaturday?.sessionId ?? null : null,
+          joinFromTrialCode: joinApplies && joinQuote ? joinQuote.code : null,
           ...attribution,
         }),
       });
@@ -211,6 +257,29 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
     } finally {
       setBusy(false);
     }
+  }
+
+  if (result && (result.registrationStatus === "waitlist" || result.registrationStatus === "trial")) {
+    const trial = result.registrationStatus === "trial";
+    const first = form.childName.split(" ")[0];
+    return (
+      <section className="registration-confirmation">
+        <span className="confirmation-mark">✓</span>
+        <div className="eyebrow">{trial ? "Free Saturday booked" : "Waitlist"}</div>
+        <h1>{trial ? `${first}'s free Saturday is booked.` : `${first} is on the waitlist.`}</h1>
+        <p className="confirmation-lead">{trial
+          ? `See you at ${result.program.name}. There's nothing to pay. Afterwards Futprep will send you a link to join the rest of ${result.term.name} at the price for the Saturdays left.`
+          : `${result.program.name} · ${result.term.name} is full right now. Futprep will message you if a spot opens. There's nothing to pay unless you get a place.`}</p>
+        <div className="confirmation-reference"><span>Reference</span><strong>{result.referenceCode}</strong></div>
+        <dl className="confirmation-grid">
+          <div><dt>Class</dt><dd>{result.program.name}</dd></div>
+          <div><dt>{trial ? "Saturday" : "Time"}</dt><dd>{trial && chosenSaturday ? `${longDate(chosenSaturday.date)} · ${programTimeRange(result.program)}` : `${result.program.day} · ${programTimeRange(result.program)}`}</dd></div>
+          <div><dt>Location</dt><dd>{result.term.location}</dd></div>
+          <div><dt>Status</dt><dd><span className="status status-submitted">{trial ? "Free trial" : "Waitlist"}</span></dd></div>
+        </dl>
+        <a className="secondary-button" href={selectedProgram ? `/sports-fitness/futprep-athletics/${selectedProgram.slug}` : "/sports-fitness/futprep-athletics"}>Back to program details</a>
+      </section>
+    );
   }
 
   if (result) {
@@ -265,13 +334,16 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
     <section className="registration-shell">
       <div className="registration-intro">
         <div>
-          <div className="eyebrow"><span className="eyebrow-dot" />Futprep · {selectedProgram ? `${selectedProgram.termName} registration` : "Registration"}</div>
-          <h1>Register your child.</h1>
-          {selectedProgram ? (
+          <div className="eyebrow"><span className="eyebrow-dot" />{intro ? intro.eyebrow : `Futprep · ${selectedProgram ? `${selectedProgram.termName} registration` : "Registration"}`}</div>
+          <h1>{intro ? intro.title : "Register your child."}</h1>
+          {intro ? (
+            <p>{intro.lead}</p>
+          ) : selectedProgram ? (
             <p>Registering for <strong>{offerHeadline(selectedProgram)}</strong>.{isCamp ? ` Camp fee ${formatPriceCents(selectedProgram.termFeeCents)}.` : ""} You can change your choice in step 4.</p>
           ) : (
             <p>Choose your child&apos;s class or camp in step 4. There&apos;s no registration fee. You&apos;ll choose how to pay (bank transfer, online banking or cash) there too.</p>
           )}
+          {trialHref && !isTrial && <p className="registration-trial-note">New to Futprep? <a href={trialHref}>Your first Saturday is free with a PortPass account →</a></p>}
         </div>
         <div className="registration-progress">
           {steps.map((name,index) => (
@@ -320,6 +392,7 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
         {step === 2 && (
           <fieldset>
             <legend><span>03</span>Health & safety</legend>
+            {returnToken && <p className="form-hint registration-medical-notice" role="note">Please re-enter or confirm your child&apos;s current allergies, conditions and medications.</p>}
             <div className="form-grid">
               <label><span>Emergency contact name *</span><input value={form.emergencyContactName} onChange={(e)=>set("emergencyContactName",e.target.value)} /></label>
               <label><span>Emergency contact phone *</span><PhoneInput required value={form.emergencyContactPhone} onChange={(v)=>set("emergencyContactPhone",v)} /></label>
@@ -334,29 +407,55 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
 
         {step === 3 && (
           <fieldset>
-            <legend><span>04</span>Class & payment</legend>
+            <legend><span>04</span>{isTrial ? "Class & free Saturday" : "Class & payment"}</legend>
             <div className="choice-section">
-              <span className="choice-heading">Choose a class or camp *</span>
+              <span className="choice-heading">{isTrial ? "Choose a class *" : "Choose a class or camp *"}</span>
               <div className="class-choice-grid">
                 {availability.length === 0 && <p className="form-hint">Nothing is open for registration right now. Message Futprep on WhatsApp and we&apos;ll tell you when the next one opens.</p>}
                 {availability.map((program) => (
-                  <label className={`choice-card ${form.offerKey===offerKey(program) ? "is-selected" : ""}${program.spotsRemaining === 0 ? " is-disabled" : ""}`} key={offerKey(program)}>
-                    <input type="radio" name="program" checked={form.offerKey===offerKey(program)} disabled={program.spotsRemaining === 0} onChange={()=>chooseOffer(program)} />
+                  <label className={`choice-card ${form.offerKey===offerKey(program) ? "is-selected" : ""}`} key={offerKey(program)}>
+                    <input type="radio" name="program" checked={form.offerKey===offerKey(program)} onChange={()=>chooseOffer(program)} />
                     <span className="choice-check" />
                     {program.programType === "camp" && <span className="coming-soon-pill">Camp</span>}
                     <strong>{program.name}</strong>
                     <span>Ages {program.ageMin}–{program.ageMax} · {scheduleLine(program)}</span>
-                    <small>{program.spotsRemaining === 0 ? "Full" : `${program.spotsRemaining} of ${program.capacity} spots remaining`}{program.programType === "camp" ? ` · ${formatPriceCents(program.termFeeCents)}` : ""}</small>
+                    <small>{isTrial ? "Free first Saturday" : program.spotsRemaining === 0 ? "Full · join the waitlist" : `${program.spotsRemaining} of ${program.capacity} spots remaining`}{!isTrial && program.programType === "camp" ? ` · ${formatPriceCents(program.termFeeCents)}` : ""}</small>
                   </label>
                 ))}
               </div>
             </div>
 
-            {isCamp && selectedProgram && (
+            {isTrial && selectedProgram && (
+              <div className="choice-section">
+                <span className="choice-heading">Choose your free Saturday *</span>
+                <div className="payment-method-grid">
+                  {saturdays.length === 0 && <p className="form-hint">No free Saturdays left for this class. Register for the term to play.</p>}
+                  {saturdays.map((s) => (
+                    <label className={`choice-card ${trialSessionId===s.sessionId ? "is-selected" : ""}${s.spotsLeft === 0 ? " is-disabled" : ""}`} key={s.sessionId}>
+                      <input type="radio" name="trialSaturday" checked={trialSessionId===s.sessionId} disabled={s.spotsLeft === 0} onChange={()=>{ setTrialSessionId(s.sessionId); setError(""); }} />
+                      <span className="choice-check" /><strong>{longDate(s.date)}</strong>
+                      <span>{programTimeRange(selectedProgram)} · {selectedProgram.location}</span>
+                      <small>{s.spotsLeft === 0 ? "Free spots taken" : `${s.spotsLeft} free ${s.spotsLeft === 1 ? "spot" : "spots"} left`}</small>
+                    </label>
+                  ))}
+                </div>
+                <p className="form-hint">One free Saturday per child. Nothing to pay.</p>
+              </div>
+            )}
+
+            {isWaitlist && selectedProgram && (
+              <div className="registration-total registration-waitlist"><span>{selectedProgram.name} is full. Join the waitlist and Futprep will message you if a spot opens. Nothing to pay now.</span><strong>Waitlist</strong></div>
+            )}
+
+            {joinApplies && joinQuote && (
+              <div className="registration-total"><span>Rest of {selectedProgram?.termName ?? "the term"}: {joinQuote.remainingSessions} {joinQuote.remainingSessions === 1 ? "Saturday" : "Saturdays"} × {formatPriceCents(joinQuote.weeklyFeeCents)}</span><strong>{formatPriceCents(joinQuote.amountCents)}</strong></div>
+            )}
+
+            {isCamp && !isWaitlist && selectedProgram && (
               <div className="registration-total"><span>Camp fee ({formatDateRange(selectedProgram.termStartDate, selectedProgram.termEndDate)})</span><strong>{formatPriceCents(selectedProgram.termFeeCents)}</strong></div>
             )}
 
-            {!isCamp && <div className="choice-section">
+            {!isCamp && !isTrial && !isWaitlist && !joinApplies && <div className="choice-section">
               <span className="choice-heading">Payment plan *</span>
               <div className="payment-method-grid">
                 <label className={`choice-card ${form.paymentFrequency==="weekly" ? "is-selected" : ""}`}>
@@ -373,7 +472,7 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
               </div>
             </div>}
 
-            <div className="choice-section">
+            {!isTrial && !isWaitlist && <div className="choice-section">
               <span className="choice-heading">Payment method *</span>
               <div className="payment-method-grid">
                 <label className={`choice-card ${form.paymentMethod==="cash" ? "is-selected" : ""}`}>
@@ -390,9 +489,9 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
                 </label>
                 <div className="choice-card is-disabled"><span className="coming-soon-pill">Coming soon</span><strong>Online card payment</strong><span>Pay securely through PortPass.</span></div>
               </div>
-            </div>
+            </div>}
 
-            {(form.paymentMethod === "bank_transfer" || form.paymentMethod === "online_banking") && (
+            {!isTrial && !isWaitlist && (form.paymentMethod === "bank_transfer" || form.paymentMethod === "online_banking") && (
               <div className="bank-panel">
                 <div>
                   <span className="choice-heading">{form.paymentMethod === "online_banking" ? "Pay via online banking" : "Futprep bank transfer"}</span>
@@ -409,7 +508,7 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
               </div>
             )}
 
-            {selectedPrice !== null && !isCamp && <div className="registration-total"><span>{form.paymentFrequency==="term" ? `${selectedProgram?.termName ?? "Term"} amount` : "Weekly class amount"}</span><strong>{formatPriceCents(selectedPrice)}</strong></div>}
+            {selectedPrice !== null && !isCamp && !joinApplies && <div className="registration-total"><span>{form.paymentFrequency==="term" ? `${selectedProgram?.termName ?? "Term"} amount` : "Weekly class amount"}</span><strong>{formatPriceCents(selectedPrice)}</strong></div>}
           </fieldset>
         )}
 
@@ -419,7 +518,13 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
             <div className="registration-review">
               <div><span>Child</span><strong>{form.childName}</strong><small>{form.childDob}</small></div>
               <div><span>{isCamp ? "Camp" : "Class"}</span><strong>{selectedProgram?.name}</strong><small>{selectedProgram ? scheduleLine(selectedProgram) : ""}</small></div>
-              <div><span>Payment</span><strong>{isCamp ? "Camp fee" : form.paymentFrequency==="term" ? "Full term" : "Weekly"} · {selectedPrice!==null ? formatPriceCents(selectedPrice) : ""}</strong><small>{paymentMethodLabel(form.paymentMethod)}</small></div>
+              {isTrial ? (
+                <div><span>Free Saturday</span><strong>{chosenSaturday ? longDate(chosenSaturday.date) : ""}</strong><small>Nothing to pay</small></div>
+              ) : isWaitlist ? (
+                <div><span>Waitlist</span><strong>Class full</strong><small>Nothing to pay now</small></div>
+              ) : (
+                <div><span>Payment</span><strong>{isCamp ? "Camp fee" : joinApplies ? "Rest of term" : form.paymentFrequency==="term" ? "Full term" : "Weekly"} · {selectedPrice!==null ? formatPriceCents(selectedPrice) : ""}</strong><small>{paymentMethodLabel(form.paymentMethod)}</small></div>
+              )}
               <div><span>Parent/guardian</span><strong>{form.parentName}</strong><small>{form.parentEmail}</small></div>
             </div>
 
@@ -453,7 +558,7 @@ export function RegistrationForm({ attribution = EMPTY_ATTRIBUTION, offers, init
           {step > 0 ? <button className="secondary-button" type="button" onClick={()=>setStep((s)=>s-1)} disabled={busy}>← Back</button> : <a className="secondary-button" href={isCamp ? "/futprep/camps" : selectedProgram ? `/sports-fitness/futprep-athletics/${selectedProgram.slug}` : "/sports-fitness/futprep-athletics"}>{isCamp ? "← Camp details" : "← Program details"}</a>}
           {step < steps.length - 1
             ? <button className="primary-button" type="button" onClick={next}>Continue →</button>
-            : <button className="primary-button" type="submit" disabled={busy}>{busy ? "Submitting…" : "Submit registration →"}</button>}
+            : <button className="primary-button" type="submit" disabled={busy}>{busy ? "Submitting…" : isTrial ? "Book the free Saturday →" : isWaitlist ? "Join the waitlist →" : "Submit registration →"}</button>}
         </div>
       </form>
     </section>

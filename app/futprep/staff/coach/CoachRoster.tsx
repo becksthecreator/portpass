@@ -250,6 +250,7 @@ export function CoachRoster({
                 <div className="coach-player-name-line">
                   <strong>{row.child_name}</strong>
                   {row.registration_status === "pending_details" && <span className="coach-pending-flag" title="Parent hasn't finished registration yet">● Pending details</span>}
+                  {row.is_trial && <span className="coach-trial-flag" title="Free first Saturday (PortPass member perk)">● Trial</span>}
                   {!readOnly && hasMedicalInfo(row) && <span className="coach-medical-flag" title="Has allergy, medical, medication, or special-needs notes">● Medical</span>}
                 </div>
                 <span>{row.parent_name ?? "Parent not on file yet"} · {row.parent_phone ?? ""}</span>

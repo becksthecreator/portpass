@@ -359,3 +359,4 @@
 .staff-filter a{background:var(--paper);border:1px solid var(--line);font-size:.72rem;font-weight:800;padding:9px 13px;color:var(--ink);text-decoration:none}
 .staff-filter a.is-active{background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
 .coach-export{margin:0 0 18px}
+.coach-trial-flag{display:inline-block;margin-left:8px;font-size:.66rem;font-weight:800;color:var(--sky,#8DB8F2)}
