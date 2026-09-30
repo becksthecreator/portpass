@@ -384,3 +384,42 @@
 .session-picker a.is-over-cap{border-color:var(--signal)}
 .session-over-cap{display:block;margin-top:4px;font-style:normal;font-size:.66rem;font-weight:800;color:var(--signal-text,#D7232B)}
 .coach-join-link{display:block;margin:8px 0 0;padding:10px 12px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:transparent;color:inherit;font-weight:700;text-align:left;cursor:pointer}
+
+/* Who coached (brief 13), under Coaches today on the roster. */
+.coach-staff{flex:1 1 100%;display:grid;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+.coach-staff ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.coach-staff li{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.coach-staff li strong{flex:1 1 140px}
+.coach-staff li.is-suggested strong::after{content:" · suggested";font-weight:500;color:var(--muted)}
+.coach-staff select,.coach-staff button{min-height:40px;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit;padding:0 10px}
+.coach-staff .coach-staff-confirm{border-color:var(--link,#8DB8F2);color:var(--link,#8DB8F2);font-weight:700}
+.coach-staff-add{display:flex;flex-wrap:wrap;gap:8px}
+.coach-staff-add select{flex:1 1 180px}
+.coach-staff-empty{margin:0;color:var(--muted)}
+
+/* Coach pay and school contracts (brief 13). */
+.pay-section{display:grid;gap:12px;margin:0 0 28px}
+.pay-section-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.pay-section-head h2{margin:0}
+.pay-note{margin:0;color:var(--muted);max-width:68ch}
+.pay-cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.pay-card{display:grid;gap:10px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.pay-card-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px}
+.pay-card-head span{color:var(--muted);font-size:.85rem}
+.pay-card dl{margin:0;display:grid;gap:4px}
+.pay-card dl div{display:flex;justify-content:space-between;gap:10px}
+.pay-card dt{color:var(--muted)}
+.pay-card dd{margin:0;font-variant-numeric:tabular-nums;font-weight:700}
+.pay-card dd.is-owed{color:var(--signal-text,#FF6B6E)}
+.pay-card .pay-left{border-top:1px solid var(--line);padding-top:6px}
+.pay-card .pay-left dt,.pay-card .pay-left dd{color:var(--text);font-weight:800}
+.pay-card button{justify-self:start;min-height:40px;padding:0 14px;border-radius:999px;border:0;background:var(--signal);color:#fff;font-weight:800;cursor:pointer}
+.pay-card button:disabled{opacity:.5}
+.pay-rate-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pay-rate-fields label{display:grid;gap:4px;font-size:.8rem}
+.pay-rate-fields input,.pay-rate-fields select{min-height:40px}
+.pay-rate-login{grid-column:1/-1}
+
+/* Programs grouped by site (brief 13). */
+.program-site-group{display:grid;gap:12px;margin:0 0 24px}
+.program-site-heading{margin:0;font-size:1.1rem}

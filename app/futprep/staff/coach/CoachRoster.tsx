@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { AttendanceRow, StaffRegistration, StaffSession } from "@/db/staff";
 import { ratioSummary } from "@/lib/futprepClasses";
+import type { SessionStaffEntry } from "@/db/coachPay";
+
+type StaffPick = SessionStaffEntry & { unsaved?: boolean };
 
 type AttendanceStatus = "present" | "absent" | "excused" | "late";
 // Sentinel stored alongside real statuses in the offline queue: "clear the
@@ -68,11 +71,18 @@ export function CoachRoster({
   initialRoster,
   registrations,
   readOnly = false,
+  coachOptions = [],
+  initialStaff = [],
+  suggestedLead = null,
 }: {
   session: StaffSession;
   initialRoster: AttendanceRow[];
   registrations: StaffRegistration[];
   readOnly?: boolean;
+  // Brief 13: who coached this session, for coach pay. Names only.
+  coachOptions?: Array<{ id: number; name: string }>;
+  initialStaff?: SessionStaffEntry[];
+  suggestedLead?: { coachId: number; coachName: string } | null;
 }) {
   const [roster,setRoster] = useState(initialRoster);
   const [payments,setPayments] = useState(registrations);
@@ -90,6 +100,48 @@ export function CoachRoster({
   const [coaches,setCoaches] = useState(session.coaches_on_duty);
   const [coachesSaving,setCoachesSaving] = useState(false);
   const [coachesError,setCoachesError] = useState("");
+
+  // Who coached (brief 13): saved as a whole list on every change. The
+  // class's default lead (Coach Bex) is suggested until someone confirms.
+  const [staff,setStaff] = useState<StaffPick[]>(() => initialStaff.length || !suggestedLead
+    ? initialStaff
+    : [{ coachId: suggestedLead.coachId, coachName: suggestedLead.coachName, role: "lead", paid: false, unsaved: true }]);
+  const [adding,setAdding] = useState("");
+  const [staffSaving,setStaffSaving] = useState(false);
+  const [staffError,setStaffError] = useState("");
+
+  async function saveStaff(next: StaffPick[]) {
+    const previous = staff;
+    setStaff(next);
+    setStaffSaving(true);
+    setStaffError("");
+    const response = await fetch(`/api/futprep/staff/sessions/${session.id}/staff`,{
+      method:"PUT",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({coaches:next.map((entry)=>({coachId:entry.coachId,role:entry.role}))}),
+    }).catch(()=>null);
+    setStaffSaving(false);
+    const data = response ? await response.json().catch(()=>({})) as { entries?: SessionStaffEntry[]; error?: string } : {};
+    if (!response || !response.ok || !data.entries) {
+      setStaff(previous);
+      setStaffError(data.error ?? "Couldn't save who coached -- try again.");
+      return;
+    }
+    setStaff(data.entries);
+    if (data.entries.length > 0) setCoaches(data.entries.length);
+  }
+
+  function changeRole(coachId:number, value:string) {
+    const role: SessionStaffEntry["role"] = value === "assistant" ? "assistant" : "lead";
+    saveStaff(staff.map((other)=>({...other, role: other.coachId===coachId ? role : other.role, unsaved: false})));
+  }
+
+  function addCoach() {
+    const coach = coachOptions.find((c)=>String(c.id)===adding);
+    if (!coach) return;
+    setAdding("");
+    const saved = staff.filter((entry)=>!entry.unsaved);
+    saveStaff([...saved, { coachId: coach.id, coachName: coach.name, role: saved.some((entry)=>entry.role==="lead") ? "assistant" : "lead", paid: false }]);
+  }
 
   async function changeCoaches(next:number) {
     if (next < 0 || next > 20 || next === coaches) return;
@@ -235,6 +287,7 @@ export function CoachRoster({
   }
 
   const failedCount = Object.keys(failedIds).length;
+  const isContract = session.program_type === "contract";
   // Children expected on the field: everyone not marked absent or excused.
   const expected = roster.filter((row)=>row.attendance_status!=="absent" && row.attendance_status!=="excused").length;
   const ratio = ratioSummary(expected, coaches, session.children_per_coach);
@@ -260,6 +313,42 @@ export function CoachRoster({
         )}
         <p className="coach-ratio-summary">{ratio.text}</p>
         {coachesError && <p className="coach-walkin-error">{coachesError}</p>}
+
+        <div className="coach-staff" aria-label="Who coached">
+          <span className="coach-ratio-label">Who coached</span>
+          {staff.length === 0 && <p className="coach-staff-empty">No coaches recorded yet.</p>}
+          <ul>
+            {staff.map((entry)=>(
+              <li key={entry.coachId} className={entry.unsaved ? "is-suggested" : ""}>
+                <strong>{entry.coachName}</strong>
+                {readOnly || entry.paid ? (
+                  <span>{entry.role === "lead" ? "Lead" : "Assistant"}{entry.paid ? " · paid" : ""}</span>
+                ) : (
+                  <select aria-label={`${entry.coachName}'s role`} value={entry.role} disabled={staffSaving} onChange={(e)=>changeRole(entry.coachId, e.target.value)}>
+                    <option value="lead">Lead</option>
+                    <option value="assistant">Assistant</option>
+                  </select>
+                )}
+                {!readOnly && !entry.paid && !entry.unsaved && (
+                  <button type="button" aria-label={`Remove ${entry.coachName}`} disabled={staffSaving} onClick={()=>saveStaff(staff.filter((other)=>other.coachId!==entry.coachId))}>×</button>
+                )}
+                {entry.unsaved && !readOnly && (
+                  <button type="button" className="coach-staff-confirm" disabled={staffSaving} onClick={()=>saveStaff(staff.map((other)=>({...other, unsaved:false})))}>Confirm</button>
+                )}
+              </li>
+            ))}
+          </ul>
+          {!readOnly && coachOptions.some((c)=>!staff.some((entry)=>entry.coachId===c.id)) && (
+            <div className="coach-staff-add">
+              <select aria-label="Add a coach" value={adding} onChange={(e)=>setAdding(e.target.value)}>
+                <option value="">Add a coach…</option>
+                {coachOptions.filter((c)=>!staff.some((entry)=>entry.coachId===c.id)).map((c)=><option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button type="button" disabled={!adding || staffSaving} onClick={addCoach}>Add</button>
+            </div>
+          )}
+          {staffError && <p className="coach-walkin-error">{staffError}</p>}
+        </div>
       </div>
 
       {sessionIsPast && !readOnly && (
@@ -292,7 +381,7 @@ export function CoachRoster({
         {roster.map((row)=>{
           const payment=paymentById.get(row.registration_id);
           const balanceCents = payment ? Math.max(0, payment.amount_due_cents - payment.paid_cents) : 0;
-          const showCash = payment?.payment_method === "cash" && balanceCents > 0;
+          const showCash = !isContract && payment?.payment_method === "cash" && balanceCents > 0;
           const failedChange = failedIds[row.registration_id];
           return (
             <article key={row.registration_id}>
@@ -303,13 +392,19 @@ export function CoachRoster({
                   {row.is_trial && <span className="coach-trial-flag" title="Free taster Saturday (PortPass member perk)">● Taster</span>}
                   {!readOnly && hasMedicalInfo(row) && <span className="coach-medical-flag" title="Has allergy, medical, medication, or special-needs notes">● Medical</span>}
                 </div>
-                <span>{row.parent_name ?? "Parent not on file yet"} · {row.parent_phone ?? ""}</span>
-                <span className={`coach-payment-badge payment-${payment?.payment_status ?? "pending"}`}>Payment: {payment?.payment_status ?? "pending"}</span>
+                {isContract ? (
+                  <span>School contract · the school holds parent and medical details</span>
+                ) : (
+                  <>
+                    <span>{row.parent_name ?? "Parent not on file yet"} · {row.parent_phone ?? ""}</span>
+                    <span className={`coach-payment-badge payment-${payment?.payment_status ?? "pending"}`}>Payment: {payment?.payment_status ?? "pending"}</span>
+                  </>
+                )}
               </div>
               {/* Helpers are read-only and shouldn't see children's medical
                   details at all; the roster fetch still includes the columns
                   for now (removed at the query level in the accounts work). */}
-              {!readOnly && <details><summary>Safety notes</summary><p><b>Emergency:</b> {row.emergency_contact_name ? `${row.emergency_contact_name} · ${row.emergency_contact_phone ?? ""}` : "No information on file yet"}</p><p><b>Authorized pickup:</b> {row.authorized_pickup ?? "No information on file yet"}</p><p><b>Allergies:</b> {row.allergies === null ? "No information on file yet" : row.allergies || "None provided"}</p><p><b>Medical:</b> {row.medical_conditions === null ? "No information on file yet" : row.medical_conditions || "None provided"}</p><p><b>Medications:</b> {row.medications === null ? "No information on file yet" : row.medications || "None provided"}</p><p><b>Special needs:</b> {row.special_needs === null ? "No information on file yet" : row.special_needs || "None provided"}</p></details>}
+              {!readOnly && !isContract && <details><summary>Safety notes</summary><p><b>Emergency:</b> {row.emergency_contact_name ? `${row.emergency_contact_name} · ${row.emergency_contact_phone ?? ""}` : "No information on file yet"}</p><p><b>Authorized pickup:</b> {row.authorized_pickup ?? "No information on file yet"}</p><p><b>Allergies:</b> {row.allergies === null ? "No information on file yet" : row.allergies || "None provided"}</p><p><b>Medical:</b> {row.medical_conditions === null ? "No information on file yet" : row.medical_conditions || "None provided"}</p><p><b>Medications:</b> {row.medications === null ? "No information on file yet" : row.medications || "None provided"}</p><p><b>Special needs:</b> {row.special_needs === null ? "No information on file yet" : row.special_needs || "None provided"}</p></details>}
               {readOnly ? (
                 <div className="attendance-actions attendance-actions-readonly">
                   <span className={row.attendance_status ? "is-active" : ""}>{row.attendance_status ?? "Not marked yet"}</span>

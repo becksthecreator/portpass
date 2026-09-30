@@ -14,6 +14,10 @@ mkdirSync("screenshots", { recursive: true });
 // [file name, account, path, element to also capture on its own]
 const SHOTS = [
   ["brief12-roster-coaches-today-375", "test-coach", `/futprep/staff/coach?session=${fixture.sessionId}`, ".coach-ratio"],
+  // Brief 13: Alex's Coach pay view, a coach's own view, and who coached.
+  ["brief13-coach-pay-ceo-375", "test-ceo", "/futprep/staff/pay", null],
+  ["brief13-coach-pay-coach-375", "test-coach", "/futprep/staff/pay", null],
+  ["brief13-roster-who-coached-375", "test-coach", `/futprep/staff/coach?session=${fixture.sessionId}`, ".coach-staff"],
 ];
 
 const browser = await chromium.launch();

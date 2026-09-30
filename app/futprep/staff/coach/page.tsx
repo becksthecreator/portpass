@@ -8,6 +8,7 @@ import {
   listFutprepStaffSessions,
   rosterForSession,
 } from "@/db/staff";
+import { getSessionStaff, listPayCoaches } from "@/db/coachPay";
 import { CoachRoster } from "./CoachRoster";
 import { CoachSessionTools } from "./CoachSessionTools";
 import { StaffLogoutButton } from "../StaffLogoutButton";
@@ -39,14 +40,17 @@ export default async function FutprepCoachPage({
   const programTabs = sessions.filter((item, index, all)=>all.findIndex((other)=>other.program_id===item.program_id)===index);
   const pickerSessions = selected ? inProgram(selected.program_id) : [];
 
-  const [roster, registrations, sessionPlan, workLog] = selected
+  const [roster, registrations, sessionPlan, workLog, sessionStaff, payCoaches] = selected
     ? await Promise.all([
         rosterForSession(selected.id),
         listFutprepStaffRegistrations(),
         getFutprepSessionPlan(selected.id),
         getFutprepWorkLog(selected.id, staffName ?? role),
+        // Brief 13: who coached (names and roles only; never pay).
+        getSessionStaff(selected.id).catch(() => ({ entries: [], suggestedLead: null })),
+        listPayCoaches().catch(() => []),
       ])
-    : [[], [], null, null];
+    : [[], [], null, null, { entries: [], suggestedLead: null }, []];
 
   const paymentRows = selected
     ? registrations.filter((item)=>item.program_slug===selected.program_slug)
@@ -60,13 +64,15 @@ export default async function FutprepCoachPage({
           {role==="ceo" && <Link href="/futprep/staff/ceo">CEO overview</Link>}
           {!readOnly && <Link href="/futprep/staff/private-sessions">Private sessions</Link>}
           {!readOnly && <Link href="/futprep/staff/programs">Programs</Link>}
+          {!readOnly && <Link href="/futprep/staff/pay">Coach pay</Link>}
+          {role==="ceo" && <Link href="/futprep/staff/contracts">Contracts</Link>}
           <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
           <StaffLogoutButton />
         </nav>
       </header>
       <section className="staff-workspace-content">
         <div className="staff-page-intro">
-          <div><span className="section-kicker">{staffName ?? "Coach"} · {readOnly ? "session helper" : "coaching operations"}</span><h1>{selected?.program_type === "camp" ? "Camp days." : "Sessions."}</h1></div>
+          <div><span className="section-kicker">{staffName ?? "Coach"} · {readOnly ? "session helper" : "coaching operations"}</span><h1>{selected?.program_type === "camp" ? "Camp days." : selected?.program_type === "contract" ? "School sessions." : "Sessions."}</h1></div>
           <p>{readOnly
             ? "See which session is up, who's on the roster, and the coach's plan for it."
             : "Plan sessions, tell parents what to expect for the future parent area, track your hours, view payment readiness, see safety information, and mark attendance."}</p>
@@ -107,7 +113,7 @@ export default async function FutprepCoachPage({
         {selected ? (
           <>
             <CoachSessionTools session={selected} initialPlan={sessionPlan} initialWorkLog={workLog} readOnly={readOnly} />
-            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} />
+            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} coachOptions={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
           </>
         ) : <div className="dashboard-empty"><h3>No sessions scheduled.</h3></div>}
       </section>

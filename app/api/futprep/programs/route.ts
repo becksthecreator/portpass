@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     ? Number(body.registrationFeeCents)
     : 0;
 
-  if (!name || !locationName || !dayOfWeek || !startTime || !termStartDate || !termEndDate) {
+  if (!name || (!locationName && !(Number(body.locationId) > 0)) || !dayOfWeek || !startTime || !termStartDate || !termEndDate) {
     return NextResponse.json({ error: "Complete all required program fields." }, { status: 400 });
   }
   if (![ageMin, ageMax, capacity, weeklyFeeCents, termFeeCents].every(Number.isFinite)) {
@@ -70,7 +70,12 @@ export async function POST(request: Request) {
 
   // Holiday camp (brief 06 v2): weekday sessions come from the database;
   // an optional registration close time is typed in Nassau local time.
-  const programType = str(body, "programType") === "camp" ? "camp" : "term";
+  const programTypeRaw = str(body, "programType");
+  const programType = programTypeRaw === "camp" ? "camp" : programTypeRaw === "contract" ? "contract" : "term";
+  // Brief 13: a school contract says who pays, how much and how it's billed.
+  const contractBilling = str(body, "contractBilling") === "per_term" ? "per_term" : str(body, "contractBilling") === "per_session" ? "per_session" : null;
+  const contractFeeCents = Number.isInteger(Number(body.contractFeeCents)) ? Number(body.contractFeeCents) : null;
+  const locationId = Number.isInteger(Number(body.locationId)) && Number(body.locationId) > 0 ? Number(body.locationId) : null;
   const closesLocal = str(body, "registrationClosesAt");
   const registrationClosesAt = closesLocal ? nassauLocalToIso(closesLocal) : null;
   if (closesLocal && !registrationClosesAt) {
@@ -79,6 +84,10 @@ export async function POST(request: Request) {
 
   const input: FutprepProgramInput = {
     programType,
+    locationId,
+    contractClient: programType === "contract" ? str(body, "contractClient") || null : null,
+    contractFeeCents: programType === "contract" ? contractFeeCents : null,
+    contractBilling: programType === "contract" ? contractBilling : null,
     registrationClosesAt,
     whatToBring: str(body, "whatToBring") || null,
     name,
@@ -109,6 +118,8 @@ export async function POST(request: Request) {
     if (message === "INVALID_CAPACITY") return NextResponse.json({ error: "Capacity must be greater than zero." }, { status: 400 });
     if (message === "INVALID_DAY") return NextResponse.json({ error: "Choose a valid day of the week." }, { status: 400 });
     if (message === "INVALID_TERM_DATES") return NextResponse.json({ error: "The term end date must be on or after the start date." }, { status: 400 });
+    if (message === "INVALID_CONTRACT") return NextResponse.json({ error: "For a school contract, enter the school, the fee and how it's billed." }, { status: 400 });
+    if (message === "INVALID_SITE") return NextResponse.json({ error: "Choose one of Futprep's sites, or type a new location." }, { status: 400 });
     if (message === "FUTPREP_ORG_NOT_FOUND") return NextResponse.json({ error: "Could not locate the Futprep organization." }, { status: 500 });
     console.error("Futprep program create error", error);
     return NextResponse.json({ error: "Could not create the program." }, { status: 500 });

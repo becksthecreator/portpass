@@ -121,6 +121,15 @@ export async function currentFutprepStaffRole(): Promise<FutprepStaffRole | null
   return account?.role ?? null;
 }
 
+// The signed-in account's staff_members id: ties a coach's login to their
+// coach profile, so a coach sees only their own pay (brief 13).
+export async function currentFutprepStaffId(): Promise<number | null> {
+  const accountKey = await currentFutprepStaffAccount();
+  if (!accountKey) return null;
+  const account = await accountByKey(accountKey);
+  return account?.id ?? null;
+}
+
 // Real name for the signed-in account, for display/attribution (e.g. "who
 // recorded this payment") instead of a hardcoded per-role label.
 export async function currentFutprepStaffName(): Promise<string | null> {
