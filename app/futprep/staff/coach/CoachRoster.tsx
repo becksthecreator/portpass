@@ -71,7 +71,7 @@ export function CoachRoster({
   initialRoster,
   registrations,
   readOnly = false,
-  coaches = [],
+  coachOptions = [],
   initialStaff = [],
   suggestedLead = null,
 }: {
@@ -80,7 +80,7 @@ export function CoachRoster({
   registrations: StaffRegistration[];
   readOnly?: boolean;
   // Brief 13: who coached this session, for coach pay. Names only.
-  coaches?: Array<{ id: number; name: string }>;
+  coachOptions?: Array<{ id: number; name: string }>;
   initialStaff?: SessionStaffEntry[];
   suggestedLead?: { coachId: number; coachName: string } | null;
 }) {
@@ -131,7 +131,7 @@ export function CoachRoster({
   }
 
   function addCoach() {
-    const coach = coaches.find((c)=>String(c.id)===adding);
+    const coach = coachOptions.find((c)=>String(c.id)===adding);
     if (!coach) return;
     setAdding("");
     const saved = staff.filter((entry)=>!entry.unsaved);
@@ -333,11 +333,11 @@ export function CoachRoster({
               </li>
             ))}
           </ul>
-          {!readOnly && coaches.some((c)=>!staff.some((entry)=>entry.coachId===c.id)) && (
+          {!readOnly && coachOptions.some((c)=>!staff.some((entry)=>entry.coachId===c.id)) && (
             <div className="coach-staff-add">
               <select aria-label="Add a coach" value={adding} onChange={(e)=>setAdding(e.target.value)}>
                 <option value="">Add a coach…</option>
-                {coaches.filter((c)=>!staff.some((entry)=>entry.coachId===c.id)).map((c)=><option key={c.id} value={c.id}>{c.name}</option>)}
+                {coachOptions.filter((c)=>!staff.some((entry)=>entry.coachId===c.id)).map((c)=><option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <button type="button" disabled={!adding || staffSaving} onClick={addCoach}>Add</button>
             </div>

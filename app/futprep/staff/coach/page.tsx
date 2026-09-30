@@ -113,7 +113,7 @@ export default async function FutprepCoachPage({
         {selected ? (
           <>
             <CoachSessionTools session={selected} initialPlan={sessionPlan} initialWorkLog={workLog} readOnly={readOnly} />
-            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} coaches={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
+            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} coachOptions={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
           </>
         ) : <div className="dashboard-empty"><h3>No sessions scheduled.</h3></div>}
       </section>
