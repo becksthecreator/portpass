@@ -20,7 +20,7 @@ export default async function FutprepCoachesPage(){
   ]);
   const bookable=coaches.filter((coach)=>coach.bookable && coach.member_type==="coach");
   const bookingCoaches=bookable.map((c)=>({id:c.id,displayName:c.display_name,slots:c.availability.filter((s)=>s.status==="available").map((s)=>({id:s.id,date:s.availability_date,startTime:s.start_time,endTime:s.end_time,location:s.location}))}));
-  const bookingServices=services.map((s)=>({slug:s.slug,name:s.name,priceCents:s.priceCents,priceUnit:s.priceUnit,kind:s.kind,durationMinutes:s.durationMinutes}));
+  const bookingServices=services.map((s)=>({slug:s.slug,name:s.name,priceCents:s.priceCents,priceUnit:s.priceUnit,kind:s.kind,durationMinutes:s.durationMinutes,minChildren:s.minChildren,maxChildren:s.maxChildren,perChildCents:s.perChildCents}));
   const fromPrice=(kind:"session"|"party")=>{
     const cents=services.filter((s)=>s.kind===kind&&s.priceCents!==null).map((s)=>s.priceCents as number);
     return cents.length?` · from $${Math.min(...cents)/100}`:"";

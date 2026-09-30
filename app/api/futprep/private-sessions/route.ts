@@ -35,6 +35,8 @@ export async function POST(request:Request){
       requestedDate:availabilityId?"1970-01-01":requestedDate,
       requestedStartTime:availabilityId?"00:00":requestedStartTime,
       durationMinutes,
+      // Brief 13: a group session is priced per child (4 to 8).
+      childrenCount:Number.isInteger(Number(body.childrenCount))&&Number(body.childrenCount)>0?Number(body.childrenCount):null,
       locationPreference:String(body.locationPreference??"").slice(0,200),
       sessionGoal:String(body.sessionGoal??"").slice(0,1000),
       notes:String(body.notes??"").slice(0,1000),
@@ -46,6 +48,7 @@ export async function POST(request:Request){
     if(message==="COACH_NOT_AVAILABLE") return NextResponse.json({error:"That coach is not currently bookable. Choose another coach or Any available coach."},{status:409});
     if(message==="SERVICE_NOT_AVAILABLE") return NextResponse.json({error:"That service is not bookable online yet. Message Futprep on WhatsApp and we'll help."},{status:409});
     if(message==="SLOT_NOT_AVAILABLE") return NextResponse.json({error:"That time has just been taken. Choose another time or suggest one."},{status:409});
+    if(message==="CHILDREN_OUT_OF_RANGE") return NextResponse.json({error:"A group session is for 4 to 8 children. For 1, 2 or 3 children choose that session instead."},{status:400});
     console.error("private session request error",error);
     return NextResponse.json({error:"Could not send the request."},{status:500});
   }
