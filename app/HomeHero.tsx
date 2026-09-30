@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 // One static hero, no client JavaScript. It used to cycle between a
@@ -8,7 +9,13 @@ import Link from "next/link";
 export function HomeHero() {
   return (
     <section className="pp-hero" data-world="portpass" aria-label="PortPass">
-      <div className="pp-hero-frame pp-hero-frame-on" data-frame-world="portpass" aria-hidden="true" />
+      {/* The photo is a real, preloaded image (next/image, priority) rather
+          than a CSS background, so the browser finds it in the HTML and
+          fetches an AVIF sized to the screen straight away -- it is the
+          page's largest paint. The gradient blend lives in CSS (::after). */}
+      <div className="pp-hero-frame pp-hero-frame-on" data-frame-world="portpass" aria-hidden="true">
+        <Image src="/weddings/bahamas-by-the-sea/hero.jpg" alt="" fill priority sizes="100vw" quality={70} />
+      </div>
       <div className="pp-hero-scrim" />
       <div className="pp-hero-centre">
         <p className="pp-hero-kicker">The Bahamas, one pass at a time</p>

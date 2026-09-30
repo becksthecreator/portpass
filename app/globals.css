@@ -4417,7 +4417,11 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .pp-hero-frame{position:absolute;inset:0;z-index:-2;opacity:0;filter:saturate(.72) brightness(.82);transition-property:opacity;transition-timing-function:ease}
 .pp-hero-frame-on{opacity:1}
 .pp-hero-frame[data-frame-world="futprep"]{background:radial-gradient(120% 90% at 22% 18%,#1d5f74 0%,transparent 55%),linear-gradient(160deg,#124055 0%,#0e2334 60%,#091a27 100%)}
-.pp-hero-frame[data-frame-world="portpass"]{background:linear-gradient(200deg,#DCE6F3 0%,#F5F6F8 52%,#FFFFFF 100%),url(/weddings/bahamas-by-the-sea/hero.jpg) center/cover;background-blend-mode:soft-light}
+.pp-hero-frame[data-frame-world="portpass"]{background:#DCE6F3}
+/* The photo is an <img> (see HomeHero.tsx); the same soft-light gradient
+   sits over it as a pseudo-element, so the look is unchanged. */
+.pp-hero-frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
+.pp-hero-frame[data-frame-world="portpass"]::after{content:"";position:absolute;inset:0;background:linear-gradient(200deg,#DCE6F3 0%,#F5F6F8 52%,#FFFFFF 100%);mix-blend-mode:soft-light}
 .pp-hero-scrim{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(10,26,34,.55) 0%,rgba(10,26,34,.42) 45%,rgba(10,26,34,.72) 100%)}
 .pp-hero[data-world="portpass"] .pp-hero-scrim{background:linear-gradient(180deg,rgba(255,253,248,.35) 0%,rgba(255,253,248,0) 32%,rgba(11,42,60,.3) 100%)}
 .pp-hero-centre{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 6vw}
