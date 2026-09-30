@@ -2,16 +2,38 @@
 // service list, the weekly-slot dates a coach generates, the PS- code.
 import { nextWeekdayOnOrAfter, WEEKDAYS } from "./scheduling";
 
-export type PrivateServiceSlug = "private-1on1" | "private-pair" | "private-pack-4" | "birthday-party";
+export type PrivateServiceSlug = "private-1on1" | "private-pair" | "private-trio" | "private-group" | "private-pack-4" | "birthday-party";
 
-// How each priced service books: which request type it files as and how
-// long a session lasts. Prices live in the offerings table.
-export const PRIVATE_SERVICES: Record<PrivateServiceSlug, { requestType: "private_lesson" | "birthday"; durationMinutes: 45 | 90; kind: "session" | "party" }> = {
-  "private-1on1": { requestType: "private_lesson", durationMinutes: 45, kind: "session" },
-  "private-pair": { requestType: "private_lesson", durationMinutes: 45, kind: "session" },
-  "private-pack-4": { requestType: "private_lesson", durationMinutes: 45, kind: "session" },
-  "birthday-party": { requestType: "birthday", durationMinutes: 90, kind: "party" },
+// How each priced service books: which request type it files as, how long
+// a session lasts and how many children it is for (brief 13: the tiers are
+// priced per child). Prices live in the offerings table.
+export const PRIVATE_SERVICES: Record<PrivateServiceSlug, { requestType: "private_lesson" | "birthday"; durationMinutes: 45 | 90; kind: "session" | "party"; children: { min: number; max: number } }> = {
+  "private-1on1": { requestType: "private_lesson", durationMinutes: 45, kind: "session", children: { min: 1, max: 1 } },
+  "private-pair": { requestType: "private_lesson", durationMinutes: 45, kind: "session", children: { min: 2, max: 2 } },
+  "private-trio": { requestType: "private_lesson", durationMinutes: 45, kind: "session", children: { min: 3, max: 3 } },
+  "private-group": { requestType: "private_lesson", durationMinutes: 45, kind: "session", children: { min: 4, max: 8 } },
+  "private-pack-4": { requestType: "private_lesson", durationMinutes: 45, kind: "session", children: { min: 1, max: 1 } },
+  "birthday-party": { requestType: "birthday", durationMinutes: 90, kind: "party", children: { min: 1, max: 1 } },
 };
+
+// A price per child (the group session) is multiplied by the children;
+// any other price is for the session. $120 for 2 children is $60 each.
+export function perChildCents(slug: PrivateServiceSlug, priceCents: number | null, priceUnit: string | null): number | null {
+  if (priceCents === null) return null;
+  if (priceUnit === "per_child") return priceCents;
+  const { min, max } = PRIVATE_SERVICES[slug].children;
+  return min === max ? Math.round(priceCents / min) : null;
+}
+
+export function sessionTotalCents(priceCents: number | null, priceUnit: string | null, children: number): number | null {
+  if (priceCents === null) return null;
+  return priceUnit === "per_child" ? priceCents * children : priceCents;
+}
+
+export function childrenAllowed(slug: PrivateServiceSlug, children: number): boolean {
+  const { min, max } = PRIVATE_SERVICES[slug].children;
+  return Number.isInteger(children) && children >= min && children <= max;
+}
 
 export function isPrivateServiceSlug(value: unknown): value is PrivateServiceSlug {
   return typeof value === "string" && value in PRIVATE_SERVICES;
