@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { logAudit } from "@/db/audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "@/db/supabase";
+import { issueStaffToken, readStaffToken, staffTokenValid } from "@/lib/staffSession";
 import { PIN_PATTERN } from "@/app/futprep/staff-auth";
 
 // Mirrors app/futprep/staff-auth.ts exactly (see that file for the fuller
@@ -97,25 +98,21 @@ export async function makeWeddingStaffToken(accountKey: string, pin: string) {
   if (!account) return null;
   const submittedHash = await digest(pin);
   if (submittedHash !== account.pinHash) return null;
-  const signature = await digest(`portpass:weddings:${accountKey}:${account.role}:${account.pinHash}`);
-  return `${accountKey}.${account.role}.${signature}`;
+  // Signed with a server secret and dated (lib/staffSession.ts).
+  return issueStaffToken("weddings", { accountKey, role: account.role, pinHash: account.pinHash });
 }
 
 export async function currentWeddingStaffAccount(): Promise<string | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE)?.value;
-  if (!token) return null;
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
+  const parts = readStaffToken(token);
+  if (!parts || !isWeddingStaffRole(parts.role)) return null;
 
-  const [accountKey, roleValue, signature] = parts;
-  if (!isWeddingStaffRole(roleValue)) return null;
+  const account = await accountByKey(parts.accountKey);
+  if (!account) return null;
 
-  const account = await accountByKey(accountKey);
-  if (!account || account.role !== roleValue) return null;
-
-  const expected = await digest(`portpass:weddings:${accountKey}:${account.role}:${account.pinHash}`);
-  return signature === expected ? accountKey : null;
+  // Our signature, this account as it is now, and no older than 12 hours.
+  return staffTokenValid("weddings", parts, { role: account.role, pinHash: account.pinHash }) ? parts.accountKey : null;
 }
 
 export async function currentWeddingStaffRole(): Promise<WeddingStaffRole | null> {

@@ -4,6 +4,7 @@ import {
   type FutprepRegistrationInput,
 } from "@/db/registrations";
 import { cleanHost, isHeardAnswer } from "@/lib/attribution";
+import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { getSession } from "@/lib/auth/session";
 import { sendFutprepRegistrationReceivedEmail } from "@/lib/email";
 import { normalizePhoneE164 } from "@/lib/phone";
@@ -29,6 +30,13 @@ const limits: Record<string, number> = {
   heardAboutUs: 40, referralCode: 40, utmSource: 80, utmMedium: 80, utmCampaign: 80, referrerHost: 120,
 };
 
+// Each submission sends an email to whatever address was typed, so the
+// form is limited per address and per parent email: generous enough for a
+// busy sign-up table on one Wi-Fi, tight enough that it can't be used to
+// flood someone's inbox. (In memory, per server instance.)
+const perAddress = createRateLimiter(30, 10 * 60 * 1000);
+const perParentEmail = createRateLimiter(6, 10 * 60 * 1000);
+
 function clean(body: Record<string, unknown>, field: string) {
   return (typeof body[field] === "string" ? body[field].trim() : "").slice(0, limits[field] ?? 250);
 }
@@ -39,6 +47,11 @@ export async function POST(request: Request) {
     body = await request.json() as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  const typedEmail = clean(body, "parentEmail").toLowerCase();
+  if (perAddress(clientIp(request)) || (typedEmail && perParentEmail(typedEmail))) {
+    return NextResponse.json({ error: "That's a lot of registrations in a short time. Wait a few minutes and try again, or message Futprep on WhatsApp." }, { status: 429 });
   }
 
   // Part C (brief 06 v2): a free trial and a waitlist entry owe nothing
@@ -166,7 +179,9 @@ export async function POST(request: Request) {
     if (message === "TERM_CLOSED") return NextResponse.json({ error: "Registration for that session has closed. Message Futprep on WhatsApp if you still need a spot." }, { status: 409 });
     if (message === "SPOT_OPEN") return NextResponse.json({ error: "Good news: a spot has just opened in this class. Reload the page to register for it." }, { status: 409 });
     if (message === "PROGRAM_FULL") return NextResponse.json({ error: "That class has reached capacity." }, { status: 409 });
-    if (message.startsWith("DUPLICATE:")) return NextResponse.json({ error: "A registration for this child has already been received for this session.", referenceCode: message.split(":")[1] }, { status: 409 });
+    // The existing code is not returned: anyone who knows a parent's email and
+    // a child's name and birthday could otherwise collect it here.
+    if (message.startsWith("DUPLICATE:")) return NextResponse.json({ error: "A registration for this child has already been received for this session. Your reference code is in the email we sent when you registered; message Futprep on WhatsApp if you can't find it." }, { status: 409 });
     console.error("Futprep registration error", error);
     return NextResponse.json({ error: "We couldn’t complete the registration. Please try again." }, { status: 500 });
   }

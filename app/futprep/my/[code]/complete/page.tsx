@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const registration = await getFutprepPendingRegistration(decodeURIComponent(code));
-  return { title: registration ? `Complete registration | ${registration.programName}` : "Complete registration | Futprep" };
+  // The address carries a family's reference code: keep it out of search.
+  return { title: registration ? `Complete registration | ${registration.programName}` : "Complete registration | Futprep", robots: { index: false, follow: false } };
 }
 
 export default async function CompleteRegistrationPage({ params }: { params: Promise<{ code: string }> }) {
