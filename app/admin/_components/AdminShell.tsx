@@ -8,6 +8,7 @@ export const ADMIN_NAV = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/businesses", label: "Businesses" },
   { href: "/admin/applications", label: "Applications" },
+  { href: "/admin/leads", label: "Leads" },
   { href: "/admin/sections", label: "Sections" },
   { href: "/admin/people", label: "People" },
   { href: "/admin/audit", label: "Audit log" },

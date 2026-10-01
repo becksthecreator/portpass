@@ -24,6 +24,12 @@ site_url = "http://127.0.0.1:3000"
 [auth.email]
 enable_signup = false
 
+# Two-step login for /admin (authenticator app codes), so the local stack
+# behaves like the real project.
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
 [realtime]
 enabled = false
 

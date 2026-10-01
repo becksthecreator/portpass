@@ -158,7 +158,47 @@ async function main() {
     if (reg.reference_code === "FP-TEST-0001") await db.from("registrations").update({ commission_eligible: true }).eq("id", reg.id);
   }
 
-  writeFileSync(out, JSON.stringify({ programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date }, null, 2));
+  // Brief 14: a TEST platform owner (the workflow puts this address in
+  // PLATFORM_OWNER_EMAILS for the run) and five TEST leads for Admin -> Leads.
+  const adminEmail = "test-delete-admin@test.portpass.local";
+  const { error: adminError } = await db.auth.admin.createUser({ email: adminEmail, email_confirm: true });
+  if (adminError) throw new Error(`Could not seed the TEST admin: ${adminError.message}`);
+
+  const reason = (key: string, label: string, points: number, why?: string) => ({ key, label, points, ...(why ? { why } : {}) });
+  const leads = [
+    {
+      business_name: "TEST Party Rentals (delete)", section: "entertainment", area: "Nassau", island: "New Providence", what_they_do: "Tents, tables and chairs for hire",
+      booking_method: "whatsapp_dm", prices_text: "Tents from $350", instagram_handle: "test_party_rentals", whatsapp_e164: "+12425550101", status: "new", source: "google_places", score: 85,
+      score_reasons: [reason("books_by_dm", "Books by WhatsApp, DM or phone only", 25, "Bio says DM to book"), reason("publishes_prices", "Publishes prices", 15, "Caption: tents from $350"), reason("high_value", "High value ($300 or more)", 15), reason("posted_recently", "Posted in the last 30 days", 10), reason("real_demand", "Real demand", 10, "Caption: fully booked Saturday"), reason("section_we_fill", "A section we're filling", 10)],
+      source_urls: ["https://maps.google.com/?cid=1", "https://www.instagram.com/test_party_rentals/"], google_rating: 4.7, google_rating_count: 37, next_step: "Call this week",
+      draft_message: "Hi! I saw your tent setups in Nassau. How many times a day do you answer the same price question? I'm a founder of PortPass Bahamas. We'd build you a page with your prices, free to try for 30 days. Want to see it?",
+    },
+    {
+      business_name: "TEST Swim School (delete)", section: "sports-fitness", area: "Cable Beach", island: "New Providence", what_they_do: "Children's swimming lessons",
+      booking_method: "phone", whatsapp_e164: "+12425550102", status: "contacted", source: "founder", score: 60, warm_connection: true, last_contact_on: iso(new Date()), next_step: "Send the page preview",
+      score_reasons: [reason("books_by_dm", "Books by WhatsApp, DM or phone only", 25), reason("publishes_prices", "Publishes prices", 15), reason("real_demand", "Real demand", 10), reason("warm_connection", "Warm connection", 10)],
+    },
+    {
+      business_name: "TEST Beach Venue (delete)", section: "venues", area: "Love Beach", island: "New Providence", what_they_do: "Private beach for small events",
+      booking_method: "instagram_dm", instagram_handle: "test_beach_venue", status: "replied", source: "inbound_form", score: 50, next_step: "Draft their page",
+      score_reasons: [reason("books_by_dm", "Books by WhatsApp, DM or phone only", 25), reason("high_value", "High value ($300 or more)", 15), reason("limited_inventory", "Limited inventory", 10)],
+    },
+    {
+      business_name: "TEST DJ Services (delete)", section: "entertainment", area: "Freeport", island: "Grand Bahama", what_they_do: "DJ and sound for weddings and parties",
+      booking_method: "whatsapp_dm", status: "page_drafted", source: "referral", referral_code: "FUTPREP", score: 45, next_step: "Owner to check the draft",
+      score_reasons: [reason("books_by_dm", "Books by WhatsApp, DM or phone only", 25), reason("posted_recently", "Posted in the last 30 days", 10), reason("section_we_fill", "A section we're filling", 10)],
+    },
+    {
+      business_name: "TEST Boat Tours (delete)", section: "tours", area: "Exuma", island: "Exuma", what_they_do: "Half-day boat trips",
+      booking_method: "website_booking", website_url: "https://testboattours.example/", status: "not_now", source: "tracker_import", priority: 3, score: 0, notes: "Already takes bookings on its own site.",
+      score_reasons: [reason("publishes_prices", "Publishes prices", 15), reason("online_booking", "Already uses online booking", -30)],
+    },
+  ].map((lead) => ({ ...lead, dedupe_key: lead.business_name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() }));
+  const { data: seededLeads, error: leadError } = await db.from("leads").insert(leads).select("id,business_name");
+  if (leadError || !seededLeads) throw new Error(`Could not seed leads: ${leadError?.message}`);
+  const leadId = seededLeads.find((l) => l.business_name.startsWith("TEST Party Rentals"))!.id;
+
+  writeFileSync(out, JSON.stringify({ programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date, adminEmail, leadId }, null, 2));
   console.log(`Seeded TEST staff fixture: program ${program.id}, term ${term.id}, session ${session.id} on ${session.session_date}.`);
 }
 
