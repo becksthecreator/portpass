@@ -277,7 +277,12 @@ export function RegistrationDetailEditor({ detail, programs }: { detail: Futprep
               Medical info currently on file was entered by <strong>{detail.medical_info_source === "staff" ? "staff" : "the parent"}</strong>.
             </p>
           )}
-          {medicalBlank && <p className="detail-hint">No information on file yet — nothing has been asked or answered.</p>}
+          {detail.health_purged_at && (
+            <p className="detail-hint">
+              <strong>Health details removed.</strong> They are deleted 90 days after the programme ends (privacy policy), so a blank box below means &ldquo;removed&rdquo;, not &ldquo;none&rdquo;.
+            </p>
+          )}
+          {medicalBlank && !detail.health_purged_at && <p className="detail-hint">No information on file yet — nothing has been asked or answered.</p>}
           <label><span>Allergies</span><textarea value={allergies} onChange={(e) => setAllergies(e.target.value)} placeholder="No information on file yet" rows={2} /></label>
           <label><span>Medical conditions</span><textarea value={medicalConditions} onChange={(e) => setMedicalConditions(e.target.value)} placeholder="No information on file yet" rows={2} /></label>
           <label><span>Medications</span><textarea value={medications} onChange={(e) => setMedications(e.target.value)} placeholder="No information on file yet" rows={2} /></label>

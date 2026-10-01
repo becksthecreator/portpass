@@ -47,7 +47,9 @@ export default async function FutprepCoachPage({
 
   const [roster, registrations, sessionPlan, workLog, sessionStaff, payCoaches] = selected
     ? await Promise.all([
-        rosterForSession(selected.id),
+        // A helper's roster is fetched without the emergency, pickup and
+        // health columns, so they never reach that browser.
+        rosterForSession(selected.id, { includeSafety: !readOnly }),
         listFutprepStaffRegistrations(),
         getFutprepSessionPlan(selected.id),
         getFutprepWorkLog(selected.id, staffName ?? role),
@@ -57,8 +59,11 @@ export default async function FutprepCoachPage({
       ])
     : [[], [], null, null, { entries: [], suggestedLead: null }, []];
 
+  // Only the payment fields: these rows become page data in the browser.
   const paymentRows = selected
-    ? registrations.filter((item)=>item.program_slug===selected.program_slug)
+    ? registrations
+        .filter((item)=>item.program_slug===selected.program_slug)
+        .map((item)=>({ id: item.id, amount_due_cents: item.amount_due_cents, paid_cents: item.paid_cents, payment_method: item.payment_method, payment_status: item.payment_status }))
     : [];
 
   return (

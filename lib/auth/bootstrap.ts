@@ -9,10 +9,12 @@ import {
   listPendingInvitesForEmail,
   markInviteAccepted,
   markOrganizationClaimed,
+  recordLegalAcceptance,
   upsertMembership,
   upsertProfile,
 } from "@/db/accounts";
 import { logAudit } from "@/db/audit";
+import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/lib/legal";
 import { platformOwnerEmails } from "./env";
 
 type AuthUser = {
@@ -49,6 +51,9 @@ export async function bootstrapUser(user: AuthUser): Promise<void> {
     phoneE164: phoneFromSignup ?? existing?.phoneE164 ?? user.phone ?? null,
     platformRole,
   });
+
+  // A new account: note the Terms and Privacy versions they signed up under.
+  if (!existing) await recordLegalAcceptance(user.id, { terms: TERMS_OF_SERVICE.version, privacy: PRIVACY_POLICY.version });
 
   if (!existing && isFounder) {
     await logAudit({ actorUserId: user.id, action: "profile.platform_owner_granted", targetTable: "profiles", targetId: user.id, after: { email } });

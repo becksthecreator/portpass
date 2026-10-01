@@ -67,6 +67,12 @@ export type StaffSession = {
   is_taster: boolean;
 };
 
+// All the roster screen needs from a registration to show and record a
+// payment. The full StaffRegistration row (contact, emergency and health
+// fields) must never be handed to that client component: it becomes page
+// data in the browser of whoever is signed in, including a helper.
+export type RosterPayment = Pick<StaffRegistration, "id" | "amount_due_cents" | "paid_cents" | "payment_method" | "payment_status">;
+
 export type AttendanceRow = {
   registration_id: number;
   // For the "Join the term" link a taster child's parent gets (brief 12).
@@ -435,9 +441,14 @@ export async function updateFutprepRegistration(input: {
   return null;
 }
 
+// `includeSafety: false` is for the read-only helper login: the emergency
+// contact, pickup and health columns are then never selected, so they
+// cannot reach that person's browser (privacy policy v2, brief 16 D).
 export async function rosterForSession(
   sessionId: number,
+  options: { includeSafety?: boolean } = {},
 ): Promise<AttendanceRow[]> {
+  const includeSafety = options.includeSafety ?? true;
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
 
@@ -463,7 +474,9 @@ export async function rosterForSession(
       db
         .from("registrations")
         .select(
-          "id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs",
+          includeSafety
+            ? "id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs"
+            : "id,reference_code,registration_status,child_name,parent_name,parent_phone",
         )
         .eq("program_id", session.program_id)
         .eq("term_id", session.term_id)
@@ -495,13 +508,13 @@ export async function rosterForSession(
       child_name: string;
       parent_name: string | null;
       parent_phone: string | null;
-      emergency_contact_name: string | null;
-      emergency_contact_phone: string | null;
-      authorized_pickup: string | null;
-      allergies: string | null;
-      medical_conditions: string | null;
-      medications: string | null;
-      special_needs: string | null;
+      emergency_contact_name?: string | null;
+      emergency_contact_phone?: string | null;
+      authorized_pickup?: string | null;
+      allergies?: string | null;
+      medical_conditions?: string | null;
+      medications?: string | null;
+      special_needs?: string | null;
     }) => ({
       registration_id: row.id,
       reference_code: row.reference_code,
@@ -509,13 +522,13 @@ export async function rosterForSession(
       child_name: row.child_name,
       parent_name: row.parent_name,
       parent_phone: row.parent_phone,
-      emergency_contact_name: row.emergency_contact_name,
-      emergency_contact_phone: row.emergency_contact_phone,
-      authorized_pickup: row.authorized_pickup,
-      allergies: row.allergies,
-      medical_conditions: row.medical_conditions,
-      medications: row.medications,
-      special_needs: row.special_needs,
+      emergency_contact_name: row.emergency_contact_name ?? null,
+      emergency_contact_phone: row.emergency_contact_phone ?? null,
+      authorized_pickup: row.authorized_pickup ?? null,
+      allergies: row.allergies ?? null,
+      medical_conditions: row.medical_conditions ?? null,
+      medications: row.medications ?? null,
+      special_needs: row.special_needs ?? null,
       is_trial: row.registration_status === "trial",
       attendance_status: attendanceByRegistration.get(row.id)?.status ?? null,
       is_backfill: attendanceByRegistration.get(row.id)?.is_backfill ?? false,
@@ -842,6 +855,9 @@ export type FutprepRegistrationDetail = {
   medications: string | null;
   special_needs: string | null;
   medical_info_source: "parent" | "staff" | null;
+  // Set once the health details were deleted under the 90-day rule
+  // (privacy policy v2): blank then means "removed", not "none given".
+  health_purged_at: string | null;
   authorized_pickup: string | null;
   photo_consent: string | null;
   signature_name: string | null;
@@ -860,7 +876,7 @@ export type FutprepRegistrationDetail = {
 };
 
 const DETAIL_COLUMNS =
-  "id,reference_code,program_id,term_id,child_name,child_dob,gender,relationship,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,medical_info_source,authorized_pickup,photo_consent,signature_name,consent_accepted,consent_at,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,additional_notes,submitted_at";
+  "id,reference_code,program_id,term_id,child_name,child_dob,gender,relationship,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,medical_info_source,health_purged_at,authorized_pickup,photo_consent,signature_name,consent_accepted,consent_at,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,additional_notes,submitted_at";
 
 function asNullableString(value: unknown): string | null {
   return value === null || value === undefined ? null : String(value);
@@ -930,6 +946,7 @@ export async function getFutprepRegistrationDetail(
     medications: asNullableString(registration.medications),
     special_needs: asNullableString(registration.special_needs),
     medical_info_source: (registration.medical_info_source as "parent" | "staff" | null) ?? null,
+    health_purged_at: asNullableString(registration.health_purged_at),
     authorized_pickup: asNullableString(registration.authorized_pickup),
     photo_consent: asNullableString(registration.photo_consent),
     signature_name: asNullableString(registration.signature_name),

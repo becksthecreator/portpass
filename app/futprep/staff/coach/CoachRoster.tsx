@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { AttendanceRow, StaffRegistration, StaffSession } from "@/db/staff";
+import type { AttendanceRow, RosterPayment, StaffSession } from "@/db/staff";
 import { ratioSummary } from "@/lib/futprepClasses";
 import type { SessionStaffEntry } from "@/db/coachPay";
 
@@ -77,7 +77,7 @@ export function CoachRoster({
 }: {
   session: StaffSession;
   initialRoster: AttendanceRow[];
-  registrations: StaffRegistration[];
+  registrations: RosterPayment[];
   readOnly?: boolean;
   // Brief 13: who coached this session, for coach pay. Names only.
   coachOptions?: Array<{ id: number; name: string }>;
@@ -273,7 +273,7 @@ export function CoachRoster({
     }
   }
 
-  async function cash(item:StaffRegistration) {
+  async function cash(item:RosterPayment) {
     const dollars = Number(amounts[item.id] || item.amount_due_cents/100);
     if (!Number.isFinite(dollars) || dollars<=0) return;
     setCashBusy(item.id);
@@ -401,9 +401,9 @@ export function CoachRoster({
                   </>
                 )}
               </div>
-              {/* Helpers are read-only and shouldn't see children's medical
-                  details at all; the roster fetch still includes the columns
-                  for now (removed at the query level in the accounts work). */}
+              {/* Helpers are read-only and never receive children's health or
+                  emergency details: for a helper the page's roster query
+                  doesn't select those columns at all (db/staff.ts). */}
               {!readOnly && !isContract && <details><summary>Safety notes</summary><p><b>Emergency:</b> {row.emergency_contact_name ? `${row.emergency_contact_name} · ${row.emergency_contact_phone ?? ""}` : "No information on file yet"}</p><p><b>Authorized pickup:</b> {row.authorized_pickup ?? "No information on file yet"}</p><p><b>Allergies:</b> {row.allergies === null ? "No information on file yet" : row.allergies || "None provided"}</p><p><b>Medical:</b> {row.medical_conditions === null ? "No information on file yet" : row.medical_conditions || "None provided"}</p><p><b>Medications:</b> {row.medications === null ? "No information on file yet" : row.medications || "None provided"}</p><p><b>Special needs:</b> {row.special_needs === null ? "No information on file yet" : row.special_needs || "None provided"}</p></details>}
               {readOnly ? (
                 <div className="attendance-actions attendance-actions-readonly">

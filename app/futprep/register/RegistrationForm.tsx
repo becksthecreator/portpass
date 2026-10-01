@@ -541,7 +541,7 @@ export function RegistrationForm({
             <label className="signature-field">
               <span>Parent/guardian electronic signature *</span>
               <input value={form.signatureName} onChange={(e)=>set("signatureName",e.target.value)} placeholder="Type your full name" />
-              <small>Typing your name confirms the consent above. The consent version and submission time are recorded automatically.</small>
+              <small>Typing your name confirms the consent above. The consent version and submission time are recorded automatically. How this information is used and how long it is kept: <a href="/privacy#children" target="_blank" rel="noopener">Privacy Policy</a>.</small>
             </label>
           </fieldset>
         )}
