@@ -68,8 +68,8 @@
 .shop-size{min-width:52px;min-height:48px;border:1.5px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);font:inherit;font-weight:800;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 10px;line-height:1.1}
 .shop-size small{font-size:.62rem;font-weight:700;color:var(--muted)}
 .shop-size[aria-checked=true]{border-color:var(--brand,var(--harbour));box-shadow:0 0 0 2px var(--brand,var(--harbour)) inset}
-.shop-size.is-sold-out{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
-.shop-size.is-sold-out small{text-decoration:none}
+.shop-size.is-sold-out{color:var(--muted)}
+.shop-size.is-sold-out .shop-size-label{text-decoration:line-through;text-decoration-thickness:1px}
 .shop-size:focus-visible{outline:2px solid var(--harbour);outline-offset:2px}
 
 .shop-facts{max-width:1080px;margin:0 auto;padding:18px 16px 0;display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}

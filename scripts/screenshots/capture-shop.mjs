@@ -22,20 +22,30 @@ async function ownerSignIn(page) {
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
   const { data, error } = await supabase.auth.admin.generateLink({ type: "magiclink", email: fixture.ownerEmail });
   if (error || !data?.properties?.email_otp) throw new Error(`Could not issue a sign-in code: ${error?.message ?? "no code"}`);
-  await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/login`, { waitUntil: "load" });
   const verified = await post(page, "/api/auth/verify", { email: fixture.ownerEmail, token: data.properties.email_otp });
   if (verified.status !== 200) throw new Error(`Owner sign-in returned ${verified.status}`);
 }
 
+// "load" plus a short settle, not "networkidle": the third shot of a run
+// once waited 30s for a network that never went idle. A failed shot is
+// logged and the rest still run; the job fails at the end if any did.
+const failures = [];
 async function shoot(page, name, path, { focus = null, before = null } = {}) {
-  await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
-  if (before) await before(page);
-  await page.screenshot({ path: `screenshots/${name}.png`, fullPage: true });
-  if (focus) {
-    await page.locator(focus).first().scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `screenshots/${name}-viewport.png` });
+  try {
+    await page.goto(`${BASE}${path}`, { waitUntil: "load" });
+    await page.waitForTimeout(1200);
+    if (before) await before(page);
+    await page.screenshot({ path: `screenshots/${name}.png`, fullPage: true });
+    if (focus) {
+      await page.locator(focus).first().scrollIntoViewIfNeeded();
+      await page.screenshot({ path: `screenshots/${name}-viewport.png` });
+    }
+    console.log(`captured ${name}`);
+  } catch (error) {
+    failures.push(name);
+    console.error(`failed ${name}:`, error.message);
   }
-  console.log(`captured ${name}`);
 }
 
 const browser = await chromium.launch();
@@ -80,4 +90,8 @@ try {
   await context.close();
 } finally {
   await browser.close();
+}
+if (failures.length) {
+  console.error(`Shots that failed: ${failures.join(", ")}`);
+  process.exit(1);
 }
