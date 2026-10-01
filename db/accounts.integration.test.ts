@@ -19,10 +19,10 @@ afterAll(async () => {
 });
 
 describe("categories seed", () => {
-  it("has the six sections with Events under Entertainment, not top-level", async () => {
+  it("has the seven sections (Shop Bahamian since brief 15) with Events under Entertainment, not top-level", async () => {
     invalidateCategoryCache();
     const sections = await listSections({ includeHidden: true });
-    expect(sections.map((s) => s.slug)).toEqual(["sports-fitness", "weddings", "venues", "tours", "entertainment", "services"]);
+    expect(sections.map((s) => s.slug)).toEqual(["sports-fitness", "weddings", "venues", "tours", "entertainment", "services", "shop"]);
     const entertainment = sections.find((s) => s.slug === "entertainment")!;
     expect(entertainment.subcategories.map((c) => c.slug)).toEqual(["events", "djs", "sound-equipment", "party-rentals", "photo-booths"]);
     // Nine visible plus the three hidden in round 5 (Equestrian, Padel,

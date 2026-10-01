@@ -75,6 +75,21 @@ export function isFutprepPath(pathname: string): boolean {
   return FUTPREP_PATH_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+// Shops (brief 15): the same first-party attribution, one cookie per shop
+// (pp_shop_<org slug>), so a visit to one shop never counts for another.
+// The reservation route reads the cookie of the shop being ordered from.
+export const SHOP_ATTRIBUTION_COOKIE_PREFIX = "pp_shop_";
+export function shopSlugFromPath(pathname: string): string | null {
+  const match = /^\/shop\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/|$)/.exec(pathname);
+  return match ? match[1] : null;
+}
+export function shopAttributionCookie(orgSlug: string): string {
+  return `${SHOP_ATTRIBUTION_COOKIE_PREFIX}${orgSlug}`;
+}
+export function isShopOwnPath(orgSlug: string): (pathname: string) => boolean {
+  return (pathname) => pathname === `/shop/${orgSlug}` || pathname.startsWith(`/shop/${orgSlug}/`);
+}
+
 export type Attribution = {
   utmSource: string | null;
   utmMedium: string | null;
@@ -119,7 +134,10 @@ function sameSite(refererHost: string | null, ownHost: string | null): boolean {
 
 // What one request says on its own: its UTM tags and where it came from.
 // Returns null when there is nothing worth recording.
-export function attributionFromRequest(input: { searchParams: URLSearchParams; referer: string | null; ownHost: string | null }): Attribution | null {
+// isOwnPath: pages that belong to the business itself (Futprep by default;
+// one shop for /shop/<org>), so moving between them is not "found on
+// PortPass".
+export function attributionFromRequest(input: { searchParams: URLSearchParams; referer: string | null; ownHost: string | null; isOwnPath?: (pathname: string) => boolean }): Attribution | null {
   const utmSource = tag(input.searchParams.get("utm_source"));
   const utmMedium = tag(input.searchParams.get("utm_medium"));
   const utmCampaign = tag(input.searchParams.get("utm_campaign"));
@@ -133,7 +151,8 @@ export function attributionFromRequest(input: { searchParams: URLSearchParams; r
       refererPath = null;
     }
   }
-  const viaPortpass = internal && refererPath !== null && !isFutprepPath(refererPath);
+  const isOwnPath = input.isOwnPath ?? isFutprepPath;
+  const viaPortpass = internal && refererPath !== null && !isOwnPath(refererPath);
   const referrerHost = internal ? null : refererHost;
   if (!utmSource && !utmMedium && !utmCampaign && !referrerHost && !viaPortpass) return null;
   return { utmSource, utmMedium, utmCampaign, referrerHost, viaPortpass };

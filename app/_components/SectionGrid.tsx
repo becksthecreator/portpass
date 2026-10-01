@@ -52,6 +52,13 @@ function SectionIcon({ slug }: { slug: string }) {
           <circle cx="12" cy="13" r="3.5" />
         </svg>
       );
+    case "shop":
+      return (
+        <svg {...common}>
+          <path d="M5 8h14l-1 12H6z" />
+          <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+        </svg>
+      );
     default:
       return (
         <svg {...common}>

@@ -78,6 +78,8 @@ const OWNER_NOUN: Record<string, string> = {
   services: "a service business",
   photography: "a photo or video business",
   "phone-tech-repair": "a repair shop",
+  shop: "a Bahamian brand",
+  "apparel-merch": "an apparel or merch brand",
 };
 
 // The sections a visitor can book in today, for the "Bookable now" row on
