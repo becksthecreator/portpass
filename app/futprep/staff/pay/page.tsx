@@ -49,7 +49,7 @@ export default async function CoachPayPage() {
           </div>
           <p>{all
             ? "Sessions coached, owed and paid, per coach and month. Mark a month paid when the money goes out. Coaches see only their own."
-            : "The sessions you coached, what you're owed and what's been paid. Only you and Alex can see this."}</p>
+            : "The sessions you coached, what you're owed and what's been paid. Only you, Alex and PortPass's owners can see this."}</p>
         </div>
         {access.kind === "own" && !ownCoach ? (
           <div className="dashboard-empty">

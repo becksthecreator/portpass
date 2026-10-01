@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createWeddingLead } from "@/db/weddingLeads";
 import { getWeddingPackageBySlug } from "@/db/weddingPackages";
-import { sendEmail } from "@/lib/email";
+import { escapeHtml, sendEmail } from "@/lib/email";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_ATTEMPTS = 8;
@@ -106,9 +106,9 @@ export async function POST(request: NextRequest) {
         subject: `New wedding enquiry — ${lead.names}`,
         html: `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#153c46">
           <h1 style="font-size:20px;margin:0 0 16px">New wedding enquiry</h1>
-          <p><strong>${lead.names}</strong></p>
-          ${selectedPackage ? `<p>Selected package: ${selectedPackage.name}</p>` : ""}
-          <p>Lead reference: ${lead.publicToken}</p>
+          <p><strong>${escapeHtml(lead.names)}</strong></p>
+          ${selectedPackage ? `<p>Selected package: ${escapeHtml(selectedPackage.name)}</p>` : ""}
+          <p>Lead reference: ${escapeHtml(lead.publicToken)}</p>
         </div>`,
       });
     }

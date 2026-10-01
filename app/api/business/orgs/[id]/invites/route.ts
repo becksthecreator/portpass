@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ORG_ROLES, type OrgRole } from "@/db/accounts";
 import { createInvite, getBusiness, listInvites, revokeInvite } from "@/db/business";
 import { requireOrgRoleApi } from "@/lib/auth/guards";
-import { portpassEmailShell, portpassFrom, sendEmail } from "@/lib/email";
+import { escapeHtml, portpassEmailShell, portpassFrom, sendEmail } from "@/lib/email";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -38,7 +38,7 @@ export async function POST(request: Request, ctx: Ctx) {
       from: portpassFrom(),
       subject: `You've been added to ${business?.name ?? "a business"} on PortPass`,
       html: portpassEmailShell(`Join ${business?.name ?? "the team"} on PortPass`, `
-        <p>${auth.session.profile?.fullName ?? "Someone"} added you to <strong>${business?.name ?? "a business"}</strong> on PortPass as <strong>${role.replace("org_", "")}</strong>.</p>
+        <p>${escapeHtml(auth.session.profile?.fullName ?? "Someone")} added you to <strong>${escapeHtml(business?.name ?? "a business")}</strong> on PortPass as <strong>${role.replace("org_", "")}</strong>.</p>
         <p>Sign in with this email address and it's yours — no password, we'll send you a code.</p>
         <p><a href="https://portpassbahamas.com/login?next=${encodeURIComponent(`/business/${business?.slug ?? ""}`)}" style="color:#2463AE">Sign in to PortPass →</a></p>
         <p>This invitation expires in 14 days.</p>

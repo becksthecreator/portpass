@@ -23,7 +23,7 @@ type SendEmailInput = {
 // single endpoint and this avoids adding a dependency.
 export async function sendEmail({ to, subject, html, from: fromOverride }: SendEmailInput): Promise<void> {
   if (to.trim().toLowerCase().endsWith(TEST_EMAIL_DOMAIN)) {
-    console.warn(`[email] Refusing to send to reserved test domain: ${to}`);
+    console.warn("[email] Refusing to send to the reserved test domain.");
     return;
   }
 
@@ -31,7 +31,9 @@ export async function sendEmail({ to, subject, html, from: fromOverride }: SendE
   const from = fromOverride ?? process.env.FUTPREP_FROM_EMAIL;
 
   if (!apiKey || !from) {
-    console.warn(`[email] RESEND_API_KEY or the from address not set — skipping email to ${to}: "${subject}"`);
+    // Never the address or the subject: a subject can carry a child's name,
+    // and these lines are kept in the host's logs.
+    console.warn("[email] RESEND_API_KEY or the from address is not set: an email was skipped.");
     return;
   }
 
@@ -45,16 +47,16 @@ export async function sendEmail({ to, subject, html, from: fromOverride }: SendE
       body: JSON.stringify({ from, to, subject, html }),
     });
     if (!response.ok) {
-      console.error(`[email] Resend send failed (${response.status}) for ${to}: ${await response.text().catch(() => "")}`);
+      console.error(`[email] Resend send failed (${response.status}).`);
     }
   } catch (error) {
-    console.error(`[email] Resend send threw for ${to}`, error);
+    console.error("[email] Resend send threw.", error instanceof Error ? error.message : "");
   }
 }
 
 function emailShell(title: string, bodyHtml: string) {
   return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#171717">
-    <h1 style="font-size:22px;margin:0 0 16px">${title}</h1>
+    <h1 style="font-size:22px;margin:0 0 16px">${escapeHtml(title)}</h1>
     ${bodyHtml}
     <p style="color:#647069;font-size:12px;margin-top:32px">Futprep Athletics · Sent via PortPass</p>
   </div>`;
@@ -64,14 +66,14 @@ export function portpassFrom(): string | undefined {
   return process.env.PORTPASS_FROM_EMAIL ?? process.env.FUTPREP_FROM_EMAIL;
 }
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 export function portpassEmailShell(title: string, bodyHtml: string) {
   return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#0D1B3D">
     <p style="font-size:12px;font-weight:800;letter-spacing:3px;margin:0 0 18px;color:#0D1B3D">PORTPASS</p>
-    <h1 style="font-size:22px;margin:0 0 16px">${title}</h1>
+    <h1 style="font-size:22px;margin:0 0 16px">${escapeHtml(title)}</h1>
     ${bodyHtml}
     <p style="color:#647069;font-size:12px;margin-top:32px">PortPass Bahamas Technologies · portpassbahamas.com</p>
   </div>`;
@@ -168,15 +170,15 @@ export async function sendFutprepRegistrationReceivedEmail(input: {
     to: input.parentEmail,
     subject: `Futprep registration received — ${input.childName}`,
     html: emailShell("Registration received", `
-      <p>Hi ${input.parentName},</p>
-      <p>Futprep has received the registration for <strong>${input.childName}</strong>.</p>
+      <p>Hi ${escapeHtml(input.parentName)},</p>
+      <p>Futprep has received the registration for <strong>${escapeHtml(input.childName)}</strong>.</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0">
-        <tr><td style="padding:6px 0;color:#647069">Class</td><td style="padding:6px 0;text-align:right">${input.programName}</td></tr>
-        <tr><td style="padding:6px 0;color:#647069">Time</td><td style="padding:6px 0;text-align:right">${input.day} · ${input.time}–${input.endTime}</td></tr>
-        <tr><td style="padding:6px 0;color:#647069">Location</td><td style="padding:6px 0;text-align:right">${input.location}</td></tr>
+        <tr><td style="padding:6px 0;color:#647069">Class</td><td style="padding:6px 0;text-align:right">${escapeHtml(input.programName)}</td></tr>
+        <tr><td style="padding:6px 0;color:#647069">Time</td><td style="padding:6px 0;text-align:right">${escapeHtml(input.day)} · ${escapeHtml(input.time)}–${escapeHtml(input.endTime)}</td></tr>
+        <tr><td style="padding:6px 0;color:#647069">Location</td><td style="padding:6px 0;text-align:right">${escapeHtml(input.location)}</td></tr>
         <tr><td style="padding:6px 0;color:#647069">Amount due</td><td style="padding:6px 0;text-align:right">${money}</td></tr>
       </table>
-      <p>Registration code: <strong>${input.referenceCode}</strong> — use this as your payment reference.</p>
+      <p>Registration code: <strong>${escapeHtml(input.referenceCode)}</strong> — use this as your payment reference.</p>
       <p><a href="${input.statusUrl}" style="color:#f0245c">Check your registration status →</a></p>
     `),
   });
@@ -196,8 +198,8 @@ export async function sendFutprepPaymentRecordedEmail(input: {
     to: input.parentEmail,
     subject: `Payment recorded — ${input.childName}`,
     html: emailShell("Payment recorded", `
-      <p>Hi ${input.parentName},</p>
-      <p>Futprep recorded a payment of <strong>${money(input.amountRecordedCents)}</strong> for <strong>${input.childName}</strong>.</p>
+      <p>Hi ${escapeHtml(input.parentName)},</p>
+      <p>Futprep recorded a payment of <strong>${money(input.amountRecordedCents)}</strong> for <strong>${escapeHtml(input.childName)}</strong>.</p>
       <p>${input.balanceCents > 0 ? `Remaining balance: <strong>${money(input.balanceCents)}</strong>.` : "This registration is now fully paid."}</p>
       <p><a href="${input.statusUrl}" style="color:#f0245c">Check your registration status →</a></p>
     `),
@@ -215,8 +217,8 @@ export async function sendFutprepRegistrationConfirmedEmail(input: {
     to: input.parentEmail,
     subject: `Registration confirmed — ${input.childName}`,
     html: emailShell("Registration confirmed", `
-      <p>Hi ${input.parentName},</p>
-      <p>Futprep has confirmed <strong>${input.childName}</strong>'s spot in <strong>${input.programName}</strong>. See you on the field!</p>
+      <p>Hi ${escapeHtml(input.parentName)},</p>
+      <p>Futprep has confirmed <strong>${escapeHtml(input.childName)}</strong>'s spot in <strong>${escapeHtml(input.programName)}</strong>. See you on the field!</p>
       <p><a href="${input.statusUrl}" style="color:#f0245c">View registration details →</a></p>
     `),
   });

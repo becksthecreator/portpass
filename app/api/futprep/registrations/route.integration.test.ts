@@ -56,7 +56,10 @@ describe("POST /api/futprep/registrations", () => {
     expect(second.status).toBe(409);
     const body = (await second.json()) as { error?: string; referenceCode?: string };
     expect(body.error).toMatch(/already been received/i);
-    expect(body.referenceCode).toMatch(/^FP-/);
+    // The existing code is never handed back: knowing a parent's email and a
+    // child's name and birthday must not be enough to collect it.
+    expect(body.referenceCode).toBeUndefined();
+    expect(JSON.stringify(body)).not.toMatch(/FP-[0-9]{4}-/);
   });
 
   it("rejects a registration once the program is at capacity", async () => {
