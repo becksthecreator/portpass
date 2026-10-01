@@ -3,25 +3,16 @@ import {
   FUTPREP_STAFF_COOKIE,
   makeStaffToken,
 } from "@/app/futprep/staff-auth";
+import { staffSignIn } from "@/lib/staffSignIn";
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({})) as { accountKey?: string; pin?: string };
-  const accountKey = String(body.accountKey ?? "").trim().toLowerCase();
-  if (!accountKey) {
-    return NextResponse.json({ error: "Enter your account name." }, { status: 400 });
-  }
+  // Wrong PINs are limited per account and per address (lib/staffSignIn.ts).
+  const result = await staffSignIn(request, "futprep", makeStaffToken);
+  if (!result.ok) return result.response;
 
-  const token = await makeStaffToken(accountKey, String(body.pin ?? ""));
-  if (!token) {
-    return NextResponse.json(
-      { error: "That account name or PIN is incorrect." },
-      { status: 401 }
-    );
-  }
-
-  const [, role] = token.split(".");
-  const response = NextResponse.json({ ok: true, accountKey, role });
-  response.cookies.set(FUTPREP_STAFF_COOKIE, token, {
+  const [, role] = result.token.split(".");
+  const response = NextResponse.json({ ok: true, accountKey: result.accountKey, role });
+  response.cookies.set(FUTPREP_STAFF_COOKIE, result.token, {
     httpOnly: true,
     secure: true,
     sameSite: "strict",
