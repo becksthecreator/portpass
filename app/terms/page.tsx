@@ -75,7 +75,7 @@ export default function TermsPage() {
 
         <h2>Children’s programmes</h2>
         <p>
-          Only a parent, a legal guardian, or an adult they have authorised may register a child online. When you register a child you confirm that you are that person, that the information is accurate and complete, and that you will tell the business if the child’s health details, pickup list or emergency contact change. A business may add a child to its own roster before a parent completes the form.
+          Only a parent, a legal guardian, or an adult they have authorised may register a child online. When you register a child you confirm that you are that person and that the information is accurate and complete. You also agree to tell the business if the child’s health details, pickup list or emergency contact change. A business may add a child to its own roster before a parent completes the form.
         </p>
         <p>
           The consent you sign on the registration form, including accepting the normal risks of the activity, is given to the business running the programme. The business, not PortPass, supervises the children, decides who may collect a child, and is responsible for their safety during its sessions.
@@ -99,7 +99,7 @@ export default function TermsPage() {
 
         <h2>Ratings and reviews</h2>
         <p>
-          PortPass does not collect reviews. A rating, review count or award on a listing comes from the business or from a third-party review site, and we do not verify it.
+          PortPass does not collect reviews. A rating, review count, award or customer quote on a listing comes from the business or from a third-party review site, and we do not verify it.
         </p>
 
         <h2>Using PortPass fairly</h2>
@@ -119,7 +119,7 @@ export default function TermsPage() {
           <li><strong>Your customers’ information.</strong> You may use the information customers give you through PortPass only to provide your service to them. Keep it confidential, give access only to staff who need it, and follow the data protection law of The Bahamas and our <Link href="/privacy">Privacy Policy</Link>. This matters most for children’s health and emergency details.</li>
           <li><strong>Photos and content.</strong> Upload only photos and text you have the right to use. Before you publish a photo that shows a child, you must hold a parent’s or guardian’s consent for every child in it. You give PortPass permission to show your content on the site and in material that promotes your listing.</li>
           <li><strong>Your team.</strong> You decide who you invite to your team and which role each person has, and you are responsible for what they do there. When someone leaves, switch off their staff login if your staff area has that option; otherwise tell us and we will remove their access.</li>
-          <li><strong>Leaving.</strong> You can ask us to take your listing down at any time. We send you your customer, booking and payment records within 14 days, then take the listing off the site. We keep the payment records for 7 years, as the Privacy Policy says.</li>
+          <li><strong>Leaving.</strong> You can ask us to take your listing down at any time. We send you your customer, booking and payment records within 14 days, then take the listing off the site. The copy does not include children’s health details; those are deleted on the schedule in the Privacy Policy. We keep the payment records for 7 years, as the Privacy Policy says.</li>
         </ul>
 
         <h2>Our responsibility to you</h2>
@@ -130,7 +130,7 @@ export default function TermsPage() {
           PortPass is not responsible for the services a listed business provides, or for an injury, loss or dispute arising from them. That is between you and the business.
         </p>
         <p>
-          Nothing in these terms limits a responsibility that the law does not allow us to limit, or takes away rights you have under consumer law. Beyond that, PortPass is not liable for losses we could not reasonably have foreseen, and our total liability to a business that lists with us is limited to the fees it paid us in the 12 months before the claim.
+          Nothing in these terms limits a responsibility that the law does not allow us to limit, or takes away rights you have under consumer law. Beyond that, PortPass is not liable for losses we could not reasonably have foreseen. If you list a business with us, our total liability to you is limited to the fees you paid us in the 12 months before the claim.
         </p>
 
         <h2>Your information</h2>

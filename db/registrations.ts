@@ -1049,12 +1049,20 @@ export async function createReturnLink(sourceRegistrationId: number, createdBy: 
   return { token };
 }
 
+export const RETURN_LINK_MAX_AGE_DAYS = 120;
+
 export async function findReturnLink(token: string): Promise<{ id: number; sourceRegistrationId: number } | null> {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
   const db = getSupabaseAdmin();
-  const { data, error } = await db.from("futprep_return_links").select("id,source_registration_id").eq("token_hash", hashToken(token)).maybeSingle();
+  const { data, error } = await db.from("futprep_return_links").select("id,source_registration_id,created_at").eq("token_hash", hashToken(token)).maybeSingle();
   throwIfSupabaseError(error, "Could not check the return link");
-  return data ? { id: Number(data.id), sourceRegistrationId: Number(data.source_registration_id) } : null;
+  if (!data) return null;
+  // A link fills in a family's details for whoever holds it, so it does not
+  // live for ever: after RETURN_LINK_MAX_AGE_DAYS it is as good as unknown,
+  // and staff send a fresh one for the next term (privacy policy v2).
+  const age = Date.now() - Date.parse(String(data.created_at));
+  if (!Number.isFinite(age) || age > RETURN_LINK_MAX_AGE_DAYS * 24 * 60 * 60 * 1000) return null;
+  return { id: Number(data.id), sourceRegistrationId: Number(data.source_registration_id) };
 }
 
 // What a return link fills in: parent details, the child's name and date

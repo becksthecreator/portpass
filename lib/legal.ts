@@ -6,7 +6,9 @@
 //
 // To publish a change: edit the page, add an entry at the top of that
 // document's changelog, and set `updated` (and `version` when the meaning
-// changes, not for a typo).
+// changes, not for a typo). The wording that comes back from the
+// attorney's review is published as a new version, never as an edit to
+// this one, so the version a person agreed to always names the wording.
 
 export type LegalChange = { version: number; date: string; changes: string[] };
 
@@ -33,6 +35,9 @@ export const PRIVACY_POLICY: LegalDocument = {
         "Lists the companies that handle information for us, and says it is stored in the United States.",
         "Lists the cookies PortPass sets and what is kept on your device, and corrects the analytics section.",
         "Adds how to have your account deleted and how to complain to the Data Protection Commissioner.",
+        "Explains that we record how you found a business, and what that is used for.",
+        "Says how we invite businesses to PortPass, and what we keep about a business that asks not to be contacted.",
+        "Says we answer requests about your information within 40 days.",
       ],
     },
     { version: 1, date: "2026-09-01", changes: ["First published."] },
@@ -53,6 +58,8 @@ export const TERMS_OF_SERVICE: LegalDocument = {
         "Sets out the booking rules for registrations, waitlists, free tasters, private-session requests and enquiries.",
         "Sets out what a business agrees to when it lists on PortPass: review, plans and fees, customers' information, photos and its team.",
         "Says where ratings come from: PortPass does not collect reviews.",
+        "Changes what PortPass is responsible for: see \"Our responsibility to you\".",
+        "Says the courts of The Bahamas decide any dispute, that accounts are for people aged 18 or over, and that the Privacy Policy forms part of these terms.",
       ],
     },
     { version: 1, date: "2026-09-01", changes: ["First published."] },

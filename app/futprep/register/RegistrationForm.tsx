@@ -481,7 +481,7 @@ export function RegistrationForm({
                   <input type="radio" checked={form.paymentMethod==="online_banking"} onChange={()=>set("paymentMethod","online_banking")} />
                   <span className="choice-check" /><strong>Online banking transfer</strong><span>Pay from your own bank&apos;s app.</span>
                 </label>
-                <div className="choice-card is-disabled"><span className="coming-soon-pill">Coming soon</span><strong>Online card payment</strong><span>Pay securely through PortPass.</span></div>
+                <div className="choice-card is-disabled"><span className="coming-soon-pill">Coming soon</span><strong>Online card payment</strong><span>Not available yet.</span></div>
               </div>
             </div>}
 

@@ -18,7 +18,7 @@ export function AttorneyReviewNote() {
     <aside className="legal-review-note" role="note" aria-label="Attorney review">
       <strong>Being reviewed by our attorney.</strong>{" "}
       This version is in effect now. Our attorney is reviewing it, and the wording may change after that review. Any change will be dated and listed under{" "}
-      <a href="#changelog">What changed</a> at the bottom of this page.
+      <a href="#changelog">What changed</a> at the bottom of this page. If a change affects your rights, we will email account holders first.
     </aside>
   );
 }
