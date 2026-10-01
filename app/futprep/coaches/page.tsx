@@ -1,6 +1,9 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
-import { listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
+import { currentFutprepStaffId, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
+import { coachSlotPrompt, listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
+import { isUploadedCoachPhoto } from "@/lib/imageUpload";
+import { initialsOf } from "@/lib/team";
 import { PrivateSessionBooking } from "./PrivateSessionBooking";
 
 // force-dynamic (not ISR/revalidate) because this repo's CI build has no
@@ -13,11 +16,17 @@ function dayLabel(value:string){
 }
 
 export default async function FutprepCoachesPage(){
-  const [{schemaReady,coaches},services]=await Promise.all([
+  const [{schemaReady,coaches},services,staffId]=await Promise.all([
     listPublicCoachProfiles(),
     // Only confirmed (published) prices are offered to parents.
     listFutprepPrivateServices({publishedOnly:true}).catch(()=>[]),
+    // Brief 16, C1: a coach signed in to the staff area sees a prompt on
+    // their own card while their schedule is empty. Parents never do: the
+    // prompt needs the staff cookie and a login linked to this coach. A
+    // helper can't open the slot editor, so a helper never sees it either.
+    Promise.all([currentFutprepStaffId(),currentFutprepStaffRole()]).then(([id,role])=>role&&role!=="helper"?id:null).catch(()=>null),
   ]);
+  const own=staffId?await coachSlotPrompt(staffId).catch(()=>null):null;
   const bookable=coaches.filter((coach)=>coach.bookable && coach.member_type==="coach");
   const bookingCoaches=bookable.map((c)=>({id:c.id,displayName:c.display_name,slots:c.availability.filter((s)=>s.status==="available").map((s)=>({id:s.id,date:s.availability_date,startTime:s.start_time,endTime:s.end_time,location:s.location}))}));
   const bookingServices=services.map((s)=>({slug:s.slug,name:s.name,priceCents:s.priceCents,priceUnit:s.priceUnit,kind:s.kind,durationMinutes:s.durationMinutes,minChildren:s.minChildren,maxChildren:s.maxChildren,perChildCents:s.perChildCents}));
@@ -42,9 +51,9 @@ export default async function FutprepCoachesPage(){
 
       <section className="futprep-team-grid">
         {coaches.map((coach)=>(
-          <article className="futprep-team-card" key={coach.slug}>
-            <div className="futprep-team-photo">
-              {coach.photo_url ? <img src={coach.photo_url} alt={coach.display_name} /> : <div className="futprep-team-initial"><span className="coach-initials" aria-hidden="true">{coach.display_name.replace(/^Coach\s+/i,"").split(/\s+/).filter(Boolean).slice(0,2).map((p)=>p[0]?.toUpperCase()??"").join("") || "F"}</span></div>}
+          <article className="futprep-team-card" id={coach.slug} key={coach.slug}>
+            <div className={isUploadedCoachPhoto(coach.photo_url) ? "futprep-team-photo is-square" : "futprep-team-photo"}>
+              {coach.photo_url ? <img src={coach.photo_url} alt={coach.display_name} /> : <div className="futprep-team-initial"><span className="coach-initials" aria-hidden="true">{initialsOf(coach.display_name)}</span></div>}
               <span>{coach.member_type==="coach" ? "Coach" : "Team"}</span>
             </div>
             <div className="futprep-team-copy">
@@ -59,6 +68,11 @@ export default async function FutprepCoachesPage(){
                   {coach.favorite_player && <div><dt>Favorite player</dt><dd>{coach.favorite_player}</dd></div>}
                   {coach.favorite_team && <div><dt>Favorite team</dt><dd>{coach.favorite_team}</dd></div>}
                 </dl>
+              )}
+              {own?.coachId===coach.id && own.needsSlots && (
+                <Link className="coach-own-prompt" href={`/futprep/staff/private-sessions?coach=${coach.id}#weekly-slots`}>
+                  <strong>This is your card.</strong> <span>Add your weekly slots so parents can book</span> <span className="prompt-arrow" aria-hidden="true">→</span>
+                </Link>
               )}
               {coach.bookable && (
                 <div className="coach-availability">

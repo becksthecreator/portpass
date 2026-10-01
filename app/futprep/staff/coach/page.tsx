@@ -1,6 +1,7 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
-import { requireFutprepStaff, currentFutprepStaffName } from "../../staff-auth";
+import { requireFutprepStaff, currentFutprepStaffId, currentFutprepStaffName } from "../../staff-auth";
+import { coachSlotPrompt } from "@/db/coaches";
 import {
   getFutprepSessionPlan,
   getFutprepWorkLog,
@@ -22,11 +23,15 @@ export default async function FutprepCoachPage({
 }) {
   const role = await requireFutprepStaff(["coach","ceo","helper"], "/futprep/staff/coach");
   const readOnly = role === "helper";
-  const [staffName, sessions, { session, program }] = await Promise.all([
+  const [staffName, sessions, { session, program }, staffId] = await Promise.all([
     currentFutprepStaffName(),
     listFutprepStaffSessions(),
     searchParams,
+    currentFutprepStaffId(),
   ]);
+  // Brief 16, C1: a coach whose login is linked to a bookable profile with
+  // no open times is pointed at the slot editor. Helpers aren't coaches.
+  const slotPrompt = !readOnly && staffId ? await coachSlotPrompt(staffId).catch(() => null) : null;
   // Program -> term -> day (brief 06 v2): a program tab, then its days.
   // A ?session= link wins; else ?program=; else the next session overall.
   const requested = Number(session);
@@ -77,6 +82,13 @@ export default async function FutprepCoachPage({
             ? "See which session is up, who's on the roster, and the coach's plan for it."
             : "Plan sessions, tell parents what to expect for the future parent area, track your hours, view payment readiness, see safety information, and mark attendance."}</p>
         </div>
+
+        {slotPrompt?.needsSlots && (
+          <Link className="staff-prompt" href={`/futprep/staff/private-sessions?coach=${slotPrompt.coachId}#weekly-slots`}>
+            <div><strong>Add your weekly slots so parents can book.</strong><br /><span>Your card on the coaches page says &ldquo;Schedule not posted yet&rdquo; until you do.</span></div>
+            <span className="prompt-arrow">Open the slot editor <span aria-hidden="true">→</span></span>
+          </Link>
+        )}
 
         {programTabs.length > 1 && (
           <nav className="staff-filter" aria-label="Program">

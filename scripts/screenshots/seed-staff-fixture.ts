@@ -132,7 +132,9 @@ async function main() {
   const { data: coaches, error: coachError } = await db
     .from("coach_profiles")
     .insert([
-      { organization_id: org.id, slug: "test-delete-coach-bex", display_name: `${MARK} Coach Bex`, member_type: "coach", active: true, public_visible: false, bookable: false, default_lead_pay_cents: 5000, staff_member_id: coachLoginId },
+      // Public and bookable with no open times, so the coaches page shows the
+      // "add your weekly slots" prompt on this coach's own card (brief 16, C1).
+      { organization_id: org.id, slug: "test-delete-coach-bex", display_name: `${MARK} Coach Bex`, nickname: "Coach Bex", member_type: "coach", active: true, public_visible: true, bookable: true, default_lead_pay_cents: 5000, staff_member_id: coachLoginId },
       { organization_id: org.id, slug: "test-delete-coach-dre", display_name: `${MARK} Coach Dre`, member_type: "coach", active: true, public_visible: false, bookable: false, default_assistant_pay_cents: 2500 },
     ])
     .select("id,slug");

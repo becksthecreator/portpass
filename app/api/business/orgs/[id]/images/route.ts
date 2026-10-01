@@ -3,27 +3,17 @@ import { NextResponse } from "next/server";
 import { addBusinessImage, listBusinessImages, MAX_PHOTOS, removeBusinessImage, setBusinessHero, setBusinessLogo, setImageConsent } from "@/db/business";
 import { getSupabaseAdmin } from "@/db/supabase";
 import { requireOrgRoleApi } from "@/lib/auth/guards";
+import { MAX_IMAGE_UPLOAD_BYTES, ORG_ASSETS_BUCKET, sniffImage, storagePathFromPublicUrl } from "@/lib/imageUpload";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-const BUCKET = "org-assets";
-// Vercel's request body limit is 4.5 MB; the wizard downscales client-side
-// before upload, so this is a backstop, not the normal path.
-const MAX_BYTES = 4 * 1024 * 1024;
+const BUCKET = ORG_ASSETS_BUCKET;
+const MAX_BYTES = MAX_IMAGE_UPLOAD_BYTES;
 
 async function orgId(ctx: Ctx): Promise<number | null> {
   const { id } = await ctx.params;
   const n = Number(id);
   return Number.isInteger(n) && n > 0 ? n : null;
-}
-
-// Declared MIME types are whatever the browser says; the bytes are what
-// counts.
-function sniff(bytes: Buffer): { mime: "image/png" | "image/jpeg" | "image/webp"; ext: string } | null {
-  if (bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return { mime: "image/png", ext: "png" };
-  if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return { mime: "image/jpeg", ext: "jpg" };
-  if (bytes.length > 12 && bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP") return { mime: "image/webp", ext: "webp" };
-  return null;
 }
 
 export async function POST(request: Request, ctx: Ctx) {
@@ -39,7 +29,7 @@ export async function POST(request: Request, ctx: Ctx) {
   if (file.size > MAX_BYTES) return NextResponse.json({ error: "That image is over 4 MB. Try a smaller one." }, { status: 413 });
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  const type = sniff(bytes);
+  const type = sniffImage(bytes);
   if (!type) return NextResponse.json({ error: "Use a PNG, JPEG or WebP image." }, { status: 400 });
 
   if (kind === "photo" && (await listBusinessImages(id)).length >= MAX_PHOTOS) {
@@ -108,7 +98,8 @@ export async function DELETE(request: Request, ctx: Ctx) {
   }
   if (!Number.isInteger(body.imageId)) return NextResponse.json({ error: "Invalid photo." }, { status: 400 });
   const url = await removeBusinessImage(id, Number(body.imageId));
-  const marker = `/object/public/${BUCKET}/`;
-  if (url && url.includes(marker)) await storage.remove([url.slice(url.indexOf(marker) + marker.length)]).catch(() => undefined);
+  // Only ever a file this business uploaded here (org/{id}/...).
+  const path = storagePathFromPublicUrl(url, BUCKET);
+  if (path && path.startsWith(`org/${id}/`)) await storage.remove([path]).catch(() => undefined);
   return NextResponse.json({ images: await listBusinessImages(id) });
 }

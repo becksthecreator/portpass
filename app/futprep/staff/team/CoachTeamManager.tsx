@@ -1,10 +1,75 @@
 "use client";
-import { FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useState } from "react";
 import type { CoachProfile } from "@/db/coaches";
+import { squareCropBox } from "@/lib/imageUpload";
+import { initialsOf } from "@/lib/team";
+
+// Brief 16, C2: a coach photo is cropped to a centred square in the
+// browser and resampled to at most 1000px before upload, so nothing near
+// the 4 MB cap is ever sent.
+// Falls back to the original file where the browser can't draw it.
+async function squarePhoto(file:File):Promise<Blob>{
+  try{
+    const bitmap=await createImageBitmap(file);
+    const {sx,sy,size,out}=squareCropBox(bitmap.width,bitmap.height);
+    const canvas=document.createElement("canvas");
+    canvas.width=out;canvas.height=out;
+    const context=canvas.getContext("2d")!;
+    // JPEG has no transparency: a cut-out PNG would otherwise turn black.
+    context.fillStyle="#ffffff";
+    context.fillRect(0,0,out,out);
+    context.drawImage(bitmap,sx,sy,size,size,0,0,out,out);
+    bitmap.close?.();
+    const blob=await new Promise<Blob|null>((resolve)=>canvas.toBlob(resolve,"image/jpeg",0.86));
+    if(!blob) throw new Error("toBlob failed");
+    return blob;
+  }catch{
+    return file;
+  }
+}
 
 export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:CoachProfile[];schemaReady:boolean}){
   const [coaches,setCoaches]=useState(initialCoaches);
   const [message,setMessage]=useState("");
+  const [uploadingId,setUploadingId]=useState<number|null>(null);
+  // Shown on the coach's own card: the page-level message can be far above
+  // it on a phone.
+  const [photoNote,setPhotoNote]=useState<{id:number;text:string}|null>(null);
+
+  async function uploadPhoto(coach:CoachProfile,event:ChangeEvent<HTMLInputElement>){
+    const input=event.currentTarget;
+    const file=input.files?.[0];
+    if(!file) return;
+    setPhotoNote(null);
+    setUploadingId(coach.id);
+    const body=new FormData();
+    body.append("coachId",String(coach.id));
+    body.append("file",await squarePhoto(file),file.name.replace(/\.[^.]+$/,"")+".jpg");
+    const response=await fetch("/api/futprep/team/photo",{method:"POST",body}).catch(()=>null);
+    const data=response?((await response.json().catch(()=>({}))) as {error?:string;photoUrl?:string|null;coaches?:CoachProfile[]}):{};
+    setUploadingId(null);
+    input.value="";
+    if(!response||!response.ok){setPhotoNote({id:coach.id,text:data.error??"Could not upload that photo."});return;}
+    applyPhoto(coach.id,data);
+    setPhotoNote({id:coach.id,text:"Photo updated. It shows on the coaches page and the Futprep home grid."});
+  }
+
+  async function removePhoto(coach:CoachProfile){
+    if(!confirm(`Remove ${coach.display_name}'s photo? The card shows their initials until a new one is uploaded.`)) return;
+    setPhotoNote(null);
+    const response=await fetch("/api/futprep/team/photo",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({coachId:coach.id})}).catch(()=>null);
+    const data=response?((await response.json().catch(()=>({}))) as {error?:string;photoUrl?:string|null;coaches?:CoachProfile[]}):{};
+    if(!response||!response.ok){setPhotoNote({id:coach.id,text:data.error??"Could not remove that photo."});return;}
+    applyPhoto(coach.id,data);
+    setPhotoNote({id:coach.id,text:"Photo removed."});
+  }
+
+  // The route sends the refreshed list; if that re-read failed, the saved
+  // photo is still patched into this page's copy of the coach.
+  function applyPhoto(coachId:number,data:{photoUrl?:string|null;coaches?:CoachProfile[]}){
+    if(data.coaches){setCoaches(data.coaches);return;}
+    if(data.photoUrl!==undefined) setCoaches((current)=>current.map((c)=>c.id===coachId?{...c,photo_url:data.photoUrl??null}:c));
+  }
 
   async function action(payload:Record<string,unknown>){
     setMessage("");
@@ -31,10 +96,21 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
   }
 
   return <div className="team-manager">
-    {message&&<p className="coach-manager-message">{message}</p>}
+    {message&&<p className="coach-manager-message" role="status">{message}</p>}
     <div className="team-manager-grid">
       {coaches.map((coach)=><article className="team-manager-card" key={coach.id}>
-        <div><span>{coach.position_title}</span><h2>{coach.display_name}</h2><p>{coach.bio||"Bio not added yet."}</p></div>
+        <div className="team-manager-head">
+          {coach.photo_url ? <img className="team-manager-photo" src={coach.photo_url} alt="" /> : <span className="team-manager-photo team-manager-initials" aria-hidden="true">{initialsOf(coach.display_name)}</span>}
+          <div><span>{coach.position_title}</span><h2>{coach.display_name}</h2>{coach.nickname&&<p className="coach-nickname">&ldquo;{coach.nickname}&rdquo;</p>}<p>{coach.bio||"Bio not added yet."}</p></div>
+        </div>
+        {coach.active&&<div className="team-photo-actions">
+          <label className={"team-photo-upload"+(uploadingId===coach.id?" is-busy":"")+(!schemaReady||(uploadingId!==null&&uploadingId!==coach.id)?" is-disabled":"")}>
+            <span>{uploadingId===coach.id?"Uploading…":coach.photo_url?"Replace photo":"Upload photo"}</span>
+            <input type="file" accept="image/png,image/jpeg,image/webp" aria-label={(coach.photo_url?"Replace the photo of ":"Upload a photo of ")+coach.display_name} disabled={!schemaReady||uploadingId!==null} onChange={(event)=>uploadPhoto(coach,event)} />
+          </label>
+          {coach.photo_url&&<button type="button" className="team-photo-remove" disabled={!schemaReady||uploadingId!==null} onClick={()=>removePhoto(coach)}>Remove photo</button>}
+          {photoNote?.id===coach.id&&<span className="team-photo-note" role="status">{photoNote.text}</span>}
+        </div>}
         <div className="team-manager-flags">
           {coach.active
             ? <><span className={coach.public_visible?"flag-on":"flag-off"}>{coach.public_visible?"Visible":"Hidden"}</span><span className={coach.bookable?"flag-on":"flag-off"}>{coach.bookable?"Bookable":"Not bookable"}</span></>
@@ -42,8 +118,8 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
         </div>
         <div className="team-manager-actions">
           {coach.active ? <>
-            <button disabled={!schemaReady} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",photoUrl:coach.photo_url??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:!coach.public_visible,bookable:coach.bookable,sortOrder:coach.sort_order})}>{coach.public_visible?"Hide":"Unhide"}</button>
-            <button disabled={!schemaReady||coach.member_type!=="coach"} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",photoUrl:coach.photo_url??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:coach.public_visible,bookable:!coach.bookable,sortOrder:coach.sort_order})}>{coach.bookable?"Pause bookings":"Allow bookings"}</button>
+            <button disabled={!schemaReady||uploadingId!==null} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:!coach.public_visible,bookable:coach.bookable,sortOrder:coach.sort_order})}>{coach.public_visible?"Hide":"Unhide"}</button>
+            <button disabled={!schemaReady||uploadingId!==null||coach.member_type!=="coach"} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:coach.public_visible,bookable:!coach.bookable,sortOrder:coach.sort_order})}>{coach.bookable?"Pause bookings":"Allow bookings"}</button>
             <button className="danger-action" disabled={!schemaReady} onClick={()=>{if(confirm(`Remove ${coach.display_name} from the active team? Booking history is kept, and you can restore the profile later from this page.`))action({action:"delete",id:coach.id});}}>Delete</button>
           </> : (
             <button disabled={!schemaReady} onClick={()=>action({action:"restore",id:coach.id})}>Restore</button>

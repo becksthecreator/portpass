@@ -77,6 +77,12 @@ export type PrivateSessionRequest = {
 // No hardcoded placeholder coaches. If the coach_profiles migration hasn't
 // run yet, every read function below falls back to this empty list instead
 // of fake names — real coaches are entered by staff through the Team page.
+// Exactly the columns of CoachProfile. Never "*": since brief 13 the row
+// also carries each coach's pay rates and staff login, which only the CEO
+// and platform owners may see, and these rows go to the Team page (admin
+// too) and the public coaches page.
+const COACH_PROFILE_COLUMNS = "id,organization_id,slug,display_name,nickname,position_title,member_type,bio,licenses,played_at,favorite_player,favorite_team,photo_url,intro_video_url,testimonial_quote,testimonial_name,public_visible,bookable,active,sort_order";
+
 const fallbackProfiles: CoachProfile[] = [];
 
 function isMissingTable(error: unknown) {
@@ -214,6 +220,13 @@ async function seedProfiles() {
   return true;
 }
 
+// How far ahead the public coaches page (and so the "add your weekly slots"
+// prompt) looks for open times.
+const PUBLIC_SLOT_HORIZON_DAYS = 30;
+function slotHorizon(): string {
+  return new Date(Date.now()+PUBLIC_SLOT_HORIZON_DAYS*24*60*60*1000).toISOString().slice(0,10);
+}
+
 export async function listPublicCoachProfiles() {
   const ready = await seedProfiles().catch((error) => {
     if (isMissingTable(error)) return false;
@@ -224,7 +237,7 @@ export async function listPublicCoachProfiles() {
   const db = getSupabaseAdmin();
   const { data, error } = await db
     .from("coach_profiles")
-    .select("*")
+    .select(COACH_PROFILE_COLUMNS)
     .eq("active", true)
     .eq("public_visible", true)
     .order("sort_order", { ascending:true })
@@ -233,7 +246,7 @@ export async function listPublicCoachProfiles() {
 
   const profiles = (data ?? []) as Omit<CoachProfile,"availability">[];
   const today = new Date().toISOString().slice(0,10);
-  const horizon = new Date(Date.now()+30*24*60*60*1000).toISOString().slice(0,10);
+  const horizon = slotHorizon();
   const ids = profiles.map((profile)=>profile.id);
   let slots: CoachAvailability[] = [];
   if (ids.length) {
@@ -271,7 +284,7 @@ export async function listAllCoachProfiles() {
   // active:false) so admins can see what they removed and restore it.
   // listPublicCoachProfiles() is the one that filters to active-only.
   const db=getSupabaseAdmin();
-  const {data,error}=await db.from("coach_profiles").select("*").order("active",{ascending:false}).order("sort_order",{ascending:true});
+  const {data,error}=await db.from("coach_profiles").select(COACH_PROFILE_COLUMNS).order("active",{ascending:false}).order("sort_order",{ascending:true});
   throwIfSupabaseError(error,"Could not load coach profiles");
   const profiles=(data ?? []) as Omit<CoachProfile,"availability">[];
   const ids=profiles.map((profile)=>profile.id);
@@ -588,14 +601,17 @@ export async function actOnPrivateSessionRequest(input:{
 export async function saveCoachProfile(input:{
   id?:number; displayName:string; slug:string; positionTitle:string; memberType:"coach"|"relations"|"admin";
   bio:string; licenses:string[]; playedAt:string[]; favoritePlayer:string; favoriteTeam:string;
-  photoUrl:string; introVideoUrl:string; testimonialQuote:string; testimonialName:string;
+  // Omitted on an update = leave the photo alone. The Hide and Pause
+  // buttons re-send the whole row from the page's state, which can be older
+  // than a photo just uploaded through the photo route (brief 16, C2).
+  photoUrl?:string; introVideoUrl:string; testimonialQuote:string; testimonialName:string;
   publicVisible:boolean; bookable:boolean; sortOrder:number;
 }){
   const ready=await seedProfiles();
   if(!ready) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
   const organizationId=await futprepOrganizationId();
   if(!organizationId) throw new Error("FUTPREP_NOT_FOUND");
-  const payload={
+  const payload:Record<string,unknown>={
     organization_id:organizationId,
     slug:input.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""),
     display_name:input.displayName.trim(),
@@ -606,7 +622,6 @@ export async function saveCoachProfile(input:{
     played_at:input.playedAt,
     favorite_player:input.favoritePlayer.trim()||null,
     favorite_team:input.favoriteTeam.trim()||null,
-    photo_url:input.photoUrl.trim()||null,
     intro_video_url:input.introVideoUrl.trim()||null,
     testimonial_quote:input.testimonialQuote.trim()||null,
     testimonial_name:input.testimonialName.trim()||null,
@@ -616,6 +631,8 @@ export async function saveCoachProfile(input:{
     sort_order:input.sortOrder,
     updated_at:new Date().toISOString(),
   };
+  if(input.photoUrl!==undefined) payload.photo_url=input.photoUrl.trim()||null;
+  else if(!input.id) payload.photo_url=null;
   const db=getSupabaseAdmin();
   const query=input.id
     ? db.from("coach_profiles").update(payload).eq("id",input.id)
@@ -658,4 +675,35 @@ export async function saveCoachAvailability(input:{
   },{onConflict:"coach_id,availability_date,start_time,end_time"});
   if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
   throwIfSupabaseError(error,"Could not save coach availability");
+}
+
+// Brief 16, C1: the prompt a coach sees on their own card and dashboard
+// while their schedule is empty. The coach is the profile tied to this
+// staff login on the Coach pay page (coach_profiles.staff_member_id); null
+// when the login isn't linked to an active, bookable coach, so a parent or
+// an unlinked helper never sees the prompt.
+export async function coachSlotPrompt(staffMemberId:number):Promise<{coachId:number;needsSlots:boolean}|null>{
+  const db=getSupabaseAdmin();
+  const {data:coach,error}=await db.from("coach_profiles").select("id").eq("staff_member_id",staffMemberId).eq("active",true).eq("bookable",true).maybeSingle();
+  if(isMissingTable(error)) return null;
+  throwIfSupabaseError(error,"Could not load the coach for this login");
+  if(!coach) return null;
+  const today=new Date().toISOString().slice(0,10);
+  const {count,error:slotError}=await db.from("coach_availability").select("id",{count:"exact",head:true}).eq("coach_id",coach.id).eq("status","available").gte("availability_date",today).lte("availability_date",slotHorizon());
+  throwIfSupabaseError(slotError,"Could not count the coach's open times");
+  return {coachId:Number(coach.id),needsSlots:(count??0)===0};
+}
+
+// Brief 16, C2: the square photo uploaded from the Team page (or null to
+// remove it). Returns the URL it replaced so the route can delete the old
+// file from storage when that file was ours.
+export async function setCoachPhoto(coachId:number,photoUrl:string|null):Promise<{previousUrl:string|null}>{
+  const db=getSupabaseAdmin();
+  const {data:coach,error}=await db.from("coach_profiles").select("id,photo_url").eq("id",coachId).maybeSingle();
+  if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
+  throwIfSupabaseError(error,"Could not load the coach");
+  if(!coach) throw new Error("COACH_NOT_FOUND");
+  const {error:updateError}=await db.from("coach_profiles").update({photo_url:photoUrl,updated_at:new Date().toISOString()}).eq("id",coachId);
+  throwIfSupabaseError(updateError,"Could not save the coach photo");
+  return {previousUrl:(coach.photo_url as string|null)??null};
 }
