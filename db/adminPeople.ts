@@ -1,6 +1,6 @@
 import { logAudit } from "./audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
-import { ORG_ROLES, type OrgRole, type PlatformRole } from "./accounts";
+import { canViewMedical, ORG_ROLES, upsertMembership, type OrgRole, type PlatformRole } from "./accounts";
 
 // Every account as the Control Center lists it (28 Sept brief, 1.5): who
 // they are, when they were last seen, and what they belong to. Emails
@@ -73,12 +73,22 @@ export async function setMemberRole(organizationId: number, userId: string, role
     const owners = await ownersOf(organizationId);
     if (owners.length <= 1) throw new Error("LAST_OWNER");
   }
-  // Seeing children's medical details is never widened by a role change
-  // made from here: a viewer loses it, everyone else keeps what they had.
-  const canViewMedical = role === "org_viewer" ? false : current.canViewMedical;
-  const { error } = await getSupabaseAdmin().from("organization_members").update({ role, can_view_medical: canViewMedical }).eq("organization_id", organizationId).eq("user_id", userId);
+  // The staff flag for children's medical details is never switched on
+  // from here: a viewer loses it, everyone else keeps what they had. An
+  // owner or admin can always see those details, whatever the flag says,
+  // so the log records what the person can see before and after.
+  const flag = role === "org_viewer" ? false : current.canViewMedical;
+  // The role read above is in the write: a change made a moment ago by
+  // someone else is not overwritten or logged with a stale "before".
+  const { data, error } = await getSupabaseAdmin().from("organization_members").update({ role, can_view_medical: flag }).eq("organization_id", organizationId).eq("user_id", userId).eq("role", current.role).select("user_id");
   throwIfSupabaseError(error, "Could not change the role");
-  await logAudit({ actorUserId, organizationId, action: "member.role_changed", targetTable: "organization_members", targetId: userId, before: { role: current.role }, after: { role } });
+  if (!data?.length) throw new Error("NOT_FOUND");
+  if (current.role === "org_owner" && (await ownersOf(organizationId)).length === 0) {
+    // Two founders demoted the last two owners at the same moment: undo this one.
+    await getSupabaseAdmin().from("organization_members").update({ role: "org_owner", can_view_medical: current.canViewMedical }).eq("organization_id", organizationId).eq("user_id", userId);
+    throw new Error("LAST_OWNER");
+  }
+  await logAudit({ actorUserId, organizationId, action: "member.role_changed", targetTable: "organization_members", targetId: userId, before: { role: current.role, can_view_medical: canViewMedical(current) }, after: { role, can_view_medical: canViewMedical({ role, canViewMedical: flag }) } });
 }
 
 export async function removeMember(organizationId: number, userId: string, actorUserId: string): Promise<void> {
@@ -88,8 +98,14 @@ export async function removeMember(organizationId: number, userId: string, actor
     const owners = await ownersOf(organizationId);
     if (owners.length <= 1) throw new Error("LAST_OWNER");
   }
-  const { error } = await getSupabaseAdmin().from("organization_members").delete().eq("organization_id", organizationId).eq("user_id", userId);
+  const { data, error } = await getSupabaseAdmin().from("organization_members").delete().eq("organization_id", organizationId).eq("user_id", userId).eq("role", current.role).select("user_id");
   throwIfSupabaseError(error, "Could not remove access");
+  if (!data?.length) throw new Error("NOT_FOUND");
+  if (current.role === "org_owner" && (await ownersOf(organizationId)).length === 0) {
+    // Two founders removed the last two owners at the same moment: put this one back.
+    await upsertMembership({ organizationId, userId, role: "org_owner", canViewMedical: current.canViewMedical });
+    throw new Error("LAST_OWNER");
+  }
   await logAudit({ actorUserId, organizationId, action: "member.removed", targetTable: "organization_members", targetId: userId, before: { role: current.role } });
 }
 

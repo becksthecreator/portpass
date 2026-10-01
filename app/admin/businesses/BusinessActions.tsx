@@ -3,14 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type Props = { id: number; name: string; status: string; createdByAdmin: boolean; claimed: boolean };
+// isPublic: the page is showing on the site. canSuspend is false for the
+// two businesses with hand-built pages, which Suspend would not hide.
+type Props = { id: number; name: string; status: string; createdByAdmin: boolean; claimed: boolean; isPublic: boolean; canSuspend: boolean };
 type Ask = "send_back" | "suspend" | null;
 type ClaimLink = { url: string; whatsappUrl: string; hasNumber: boolean };
 
 // What a founder can do to one business (brief 08, 1.2). Each button says
 // what it does; the two that affect the owner most (send back, suspend)
 // ask for a note first, because the owner is shown it.
-export function BusinessActions({ id, name, status, createdByAdmin, claimed }: Props) {
+export function BusinessActions({ id, name, status, createdByAdmin, claimed, isPublic, canSuspend }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [ask, setAsk] = useState<Ask>(null);
@@ -28,7 +30,7 @@ export function BusinessActions({ id, name, status, createdByAdmin, claimed }: P
     const data = response ? ((await response.json().catch(() => ({}))) as { error?: string; status?: string }) : {};
     setBusy(null);
     if (!response || !response.ok) {
-      setError(data.error ?? "That didn't work. Nothing was changed.");
+      setError(data.error ?? "That didn't finish. Refresh the page to see where the business stands.");
       return;
     }
     setAsk(null);
@@ -38,6 +40,8 @@ export function BusinessActions({ id, name, status, createdByAdmin, claimed }: P
   }
 
   async function claimLink() {
+    // Only the newest link works, so a link already sent would stop.
+    if (!confirm(`Make a new claim link for ${name}? Any link you already sent stops working.`)) return;
     setBusy("claim");
     setError("");
     const response = await fetch(`/api/admin/businesses/${id}/claim-link`, { method: "POST" }).catch(() => null);
@@ -65,14 +69,14 @@ export function BusinessActions({ id, name, status, createdByAdmin, claimed }: P
   return (
     <div className="admin-row-actions">
       {status === "submitted" && <button type="button" className="admin-action is-primary" disabled={busy !== null} onClick={() => act("approve")}>{busy === "approve" ? "Approving…" : "Approve"}</button>}
-      {status === "submitted" && <button type="button" className="admin-action" disabled={busy !== null} onClick={() => setAsk(ask === "send_back" ? null : "send_back")}>Send back</button>}
+      {status === "submitted" && !isPublic && <button type="button" className="admin-action" disabled={busy !== null} onClick={() => setAsk(ask === "send_back" ? null : "send_back")}>Send back</button>}
       {status === "draft" && createdByAdmin && (
         <button type="button" className="admin-action is-primary" disabled={busy !== null} onClick={() => { if (confirm(`Publish ${name}? Only do this when the owner has agreed. It is logged as published on their word.`)) void act("publish"); }}>
           {busy === "publish" ? "Publishing…" : "Publish (owner agreed)"}
         </button>
       )}
       {canClaim && <button type="button" className="admin-action" disabled={busy !== null} onClick={claimLink}>{busy === "claim" ? "Making link…" : link ? "New claim link" : "Send claim link"}</button>}
-      {(status === "approved" || status === "live") && <button type="button" className="admin-action is-danger" disabled={busy !== null} onClick={() => setAsk(ask === "suspend" ? null : "suspend")}>Suspend</button>}
+      {canSuspend && (status === "submitted" || status === "approved" || status === "live" || isPublic) && <button type="button" className="admin-action is-danger" disabled={busy !== null} onClick={() => setAsk(ask === "suspend" ? null : "suspend")}>Suspend</button>}
       {status === "suspended" && <button type="button" className="admin-action is-primary" disabled={busy !== null} onClick={() => act("unsuspend")}>{busy === "unsuspend" ? "Unsuspending…" : "Unsuspend"}</button>}
 
       {ask && (

@@ -53,6 +53,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
     }
     return NextResponse.json({ business, bankDetailsChanged });
   } catch (error) {
+    if (error instanceof Error && error.message === "SUSPENDED") return NextResponse.json({ error: "This page is hidden by PortPass, so its bank details can't change right now. Message us and we'll sort it out." }, { status: 409 });
     console.error("payment methods save", error);
     return NextResponse.json({ error: "Could not save payment methods." }, { status: 500 });
   }

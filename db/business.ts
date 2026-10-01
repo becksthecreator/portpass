@@ -221,6 +221,20 @@ const COLUMN_FOR: Record<keyof BusinessDetailsPatch, string> = {
   ownerBio: "owner_bio",
 };
 
+// Back to the review queue, only from approved or live. The condition is
+// in the write itself, so a page suspended a moment ago stays suspended.
+async function backToReview(id: number): Promise<Business | null> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("organizations")
+    .update({ status: "submitted", submitted_at: new Date().toISOString() })
+    .eq("id", id)
+    .in("status", ["approved", "live"])
+    .select(BUSINESS_COLUMNS)
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not send the change for review");
+  return data ? toBusiness(data) : null;
+}
+
 // Name and category changes on an approved/live listing go back to review
 // (the listing itself stays as it is -- edits publish immediately); the
 // rest just saves.
@@ -237,17 +251,18 @@ export async function updateBusinessDetails(id: number, patch: BusinessDetailsPa
     changed.push(key);
   }
   if (!changed.length) return current;
-  const reReview = (changed.includes("name") || changed.includes("subcategory")) && (current.status === "approved" || current.status === "live");
-  if (reReview) {
-    row.status = "submitted";
-    row.submitted_at = new Date().toISOString();
-  }
+  const reviewed = changed.includes("name") || changed.includes("subcategory");
+  // A page PortPass has hidden keeps its name and category until it is
+  // back: otherwise the change would go live, unreviewed, on unsuspend.
+  if (reviewed && current.status === "suspended") throw new Error("SUSPENDED");
+  const reReview = reviewed && (current.status === "approved" || current.status === "live");
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.from("organizations").update(row).eq("id", id).select(BUSINESS_COLUMNS).single();
   throwIfSupabaseError(error, "Could not save business details");
+  const queued = reReview ? await backToReview(id) : null;
   await logAudit({ actorUserId, organizationId: id, action: reReview ? "business.updated.re_review" : "business.updated", targetTable: "organizations", targetId: id, after: { changed } });
   bumpListings();
-  return toBusiness(data!);
+  return queued ?? toBusiness(data!);
 }
 
 // ---- images ---------------------------------------------------------------
@@ -415,8 +430,9 @@ export async function upsertBusinessOffering(id: number, offeringId: number | nu
   if (priced) {
     const business = await getBusiness(id);
     if (business && business.status === "approved" && !business.isPublished) {
-      const { error } = await supabase.from("organizations").update({ is_published: true, is_directory_listed: true, status: "live" }).eq("id", id);
-      if (!error) await logAudit({ actorUserId, organizationId: id, action: "business.went_live", targetTable: "organizations", targetId: id });
+      // Only from "approved": a page suspended a moment ago stays hidden.
+      const { data: live, error } = await supabase.from("organizations").update({ is_published: true, is_directory_listed: true, status: "live" }).eq("id", id).eq("status", "approved").select("id").maybeSingle();
+      if (!error && live) await logAudit({ actorUserId, organizationId: id, action: "business.went_live", targetTable: "organizations", targetId: id });
     }
   }
   bumpListings();
@@ -446,13 +462,14 @@ export async function updatePaymentMethods(
   const bank = methods.includes("bank_transfer") ? input.bankTransferDetails : null;
   const bankDetailsChanged = JSON.stringify(current.bankTransferDetails) !== JSON.stringify(bank);
   const row: Record<string, unknown> = { payment_methods: methods, bank_transfer_details: bank };
-  if (bankDetailsChanged && (current.status === "approved" || current.status === "live")) {
-    row.status = "submitted";
-    row.submitted_at = new Date().toISOString();
-  }
+  // Bank details can't change while PortPass has the page hidden (see
+  // updateBusinessDetails).
+  if (bankDetailsChanged && current.status === "suspended") throw new Error("SUSPENDED");
+  const reReview = bankDetailsChanged && (current.status === "approved" || current.status === "live");
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.from("organizations").update(row).eq("id", id).select(BUSINESS_COLUMNS).single();
   throwIfSupabaseError(error, "Could not save payment methods");
+  const queued = reReview ? await backToReview(id) : null;
   await logAudit({
     actorUserId,
     organizationId: id,
@@ -462,7 +479,7 @@ export async function updatePaymentMethods(
     before: { payment_methods: current.paymentMethods, bank_transfer_details: current.bankTransferDetails },
     after: { payment_methods: methods, bank_transfer_details: bank },
   });
-  return { business: toBusiness(data!), bankDetailsChanged };
+  return { business: queued ?? toBusiness(data!), bankDetailsChanged };
 }
 
 export async function listOwnerEmails(id: number): Promise<string[]> {
@@ -573,6 +590,10 @@ export function submissionProblems(business: Business, offerings: BusinessOfferi
 export async function submitBusiness(id: number, actorUserId: string): Promise<Business> {
   const business = await getBusiness(id);
   if (!business) throw new Error("NOT_FOUND");
+  // Only a draft is submitted. A page that is under review, live, or
+  // hidden by PortPass can't be put back in the queue from here: without
+  // this, the owner of a suspended page could quietly un-suspend it.
+  if (business.status !== "draft") throw new Error("NOT_DRAFT");
   const problems = submissionProblems(business, await listBusinessOfferings(id));
   if (problems.length) {
     const error = new Error("INCOMPLETE") as Error & { problems: string[] };
@@ -584,12 +605,14 @@ export async function submitBusiness(id: number, actorUserId: string): Promise<B
     .from("organizations")
     .update({ status: "submitted", submitted_at: new Date().toISOString(), review_note: null })
     .eq("id", id)
+    .eq("status", "draft")
     .select(BUSINESS_COLUMNS)
-    .single();
+    .maybeSingle();
   throwIfSupabaseError(error, "Could not submit business");
+  if (!data) throw new Error("NOT_DRAFT");
   await logAudit({ actorUserId, organizationId: id, action: "business.submitted", targetTable: "organizations", targetId: id });
   bumpListings();
-  return toBusiness(data!);
+  return toBusiness(data);
 }
 
 // ---- categories -----------------------------------------------------------

@@ -10,7 +10,7 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-const ACTIONS = ["business.created", "business.submitted", "business.went_live", "business.updated", "business.updated.re_review", "organization.bank_details.updated", "image.consent_confirmed", "image.consent_withdrawn", "staff.pin_changed", "admin.mfa.verified", "category.created", "category.updated", "profile.platform_owner_granted"];
+const ACTIONS = ["business.created", "business.submitted", "business.approved", "business.went_live", "business.sent_back", "business.suspended", "business.unsuspended", "business.published_for_owner", "business.claim_link_created", "business.claimed", "application.drafted", "member.role_changed", "member.removed", "user.signed_out", "invite.resent", "business.updated", "business.updated.re_review", "organization.bank_details.updated", "image.consent_confirmed", "image.consent_withdrawn", "staff.pin_changed", "admin.mfa.verified", "category.created", "category.updated", "profile.platform_owner_granted"];
 
 function when(iso: string): string {
   return new Date(iso).toLocaleString("en-BS", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Nassau" });

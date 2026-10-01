@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { claimBusiness } from "@/db/adminBusinessActions";
 import { requireSignedInApi } from "@/lib/auth/guards";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
+import { CLAIM_COOKIE } from "@/lib/claimCookie";
 
 // Claiming a business PortPass built (brief 08, 1.2): the owner opens the
 // link they were sent, signs in, and becomes the business's owner. The
@@ -18,7 +19,10 @@ export async function POST(request: Request) {
   const token = typeof body?.token === "string" ? body.token : "";
   try {
     const claimed = await claimBusiness(token, auth.session.userId);
-    return NextResponse.json({ ok: true, next: claimed.slug ? `/business/${claimed.slug}` : "/where-to" });
+    const response = NextResponse.json({ ok: true, next: claimed.slug ? `/business/${claimed.slug}` : "/where-to" });
+    // The link is spent: forget it.
+    response.cookies.set({ name: CLAIM_COOKIE, value: "", path: "/claim", maxAge: 0 });
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "NOT_FOUND") return NextResponse.json({ error: "That link isn't valid. Ask PortPass for a new one." }, { status: 404 });

@@ -59,10 +59,15 @@ describe("roles and access", () => {
     expect(await roleOf(helper)).toEqual({ role: "org_admin", can_view_medical: true });
     await setMemberRole(orgId, helper, "org_viewer", founder);
     expect(await roleOf(helper)).toEqual({ role: "org_viewer", can_view_medical: false });
-    // Back up to staff: the flag is not widened from here.
+    // Back up to staff: the staff flag is not switched on from here.
     await setMemberRole(orgId, helper, "org_staff", founder);
     expect(await roleOf(helper)).toEqual({ role: "org_staff", can_view_medical: false });
     expect(await actions()).toContain("member.role_changed");
+    // The log says what the person could see before and after: an admin
+    // always sees medical details, a viewer never does.
+    const { data: logged } = await admin.from("audit_log").select("before,after").eq("organization_id", orgId).eq("action", "member.role_changed").order("id", { ascending: true });
+    expect(logged![0]).toEqual({ before: { role: "org_staff", can_view_medical: true }, after: { role: "org_admin", can_view_medical: true } });
+    expect(logged![1]).toEqual({ before: { role: "org_admin", can_view_medical: true }, after: { role: "org_viewer", can_view_medical: false } });
     await expect(setMemberRole(orgId, founder, "org_staff", founder)).rejects.toThrow("NOT_FOUND");
   });
 

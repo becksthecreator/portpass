@@ -5660,6 +5660,7 @@ a.admin-tile:hover{border-color:var(--sky)}
 .admin-form-note{color:var(--muted);font-size:.82rem;line-height:1.5;margin:0}
 .admin-form-actions{align-items:center;display:flex;flex-wrap:wrap;gap:10px}
 .admin-add-business h2{font-size:1.05rem;margin:0}
+.theme-night .application-actions button:not(.reject-button){background:var(--sky);color:var(--bg)}
 .application-whatsapp{align-self:center;color:var(--sky);font-size:.85rem;font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .biz-review-note{border:1px solid var(--signal-text);border-radius:14px;margin:14px 0 0;padding:14px 16px;text-align:left}
 .biz-review-note strong{color:var(--signal-text);font-size:.9rem}

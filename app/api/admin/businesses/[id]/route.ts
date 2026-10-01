@@ -19,7 +19,9 @@ const REFUSALS: Record<string, { status: number; error: string }> = {
   NOT_FOUND: { status: 404, error: "Not found." },
   NOT_SUBMITTED: { status: 409, error: "This business isn't waiting for review any more. Refresh the page." },
   NOT_PUBLISHABLE: { status: 409, error: "Only a draft or a submitted business can be published this way." },
-  NOT_SUSPENDABLE: { status: 409, error: "Only an approved or live business can be suspended." },
+  NOT_SUSPENDABLE: { status: 409, error: "Only a business that is public or waiting for review can be suspended." },
+  STILL_PUBLIC: { status: 409, error: "This page is live with a change waiting. Approve the change, or suspend the page. To ask for changes, message the owner." },
+  OWN_PAGES: { status: 409, error: "This business has its own pages and forms, which Suspend does not hide. It can't be suspended from here." },
   NOT_SUSPENDED: { status: 409, error: "This business isn't suspended." },
   NOTE_REQUIRED: { status: 400, error: "Say what needs to change, so the owner knows." },
   REASON_REQUIRED: { status: 400, error: "Give the reason. It is logged, and the owner is told." },
@@ -79,7 +81,9 @@ export async function POST(request: Request, ctx: Ctx) {
       await tellOwners(business, "suspended", note.trim().slice(0, 1000));
     } else {
       business = await unsuspendBusiness(id, actor);
-      await tellOwners(business, "unsuspended", null);
+      // Say what is true: visible again, approved and waiting for a price,
+      // or back with PortPass for review.
+      await tellOwners(business, business.status === "live" ? "unsuspended" : business.status === "approved" ? "approved" : "in_review", null);
     }
     return NextResponse.json({ status: business.status, isPublished: business.isPublished });
   } catch (error) {
@@ -91,6 +95,6 @@ export async function POST(request: Request, ctx: Ctx) {
     const refusal = REFUSALS[message];
     if (refusal) return NextResponse.json({ error: refusal.error }, { status: refusal.status });
     console.error("admin business action", action, message);
-    return NextResponse.json({ error: "That didn't work. Nothing was changed." }, { status: 500 });
+    return NextResponse.json({ error: "That didn't finish. Refresh the page to see where the business stands." }, { status: 500 });
   }
 }

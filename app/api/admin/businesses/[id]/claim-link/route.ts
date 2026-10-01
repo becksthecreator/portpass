@@ -36,6 +36,7 @@ export async function POST(_request: Request, ctx: Ctx) {
     const message = error instanceof Error ? error.message : "";
     if (message === "NOT_FOUND") return NextResponse.json({ error: "Not found." }, { status: 404 });
     if (message === "ALREADY_CLAIMED") return NextResponse.json({ error: "This business already has an owner." }, { status: 409 });
+    if (message === "NOT_CLAIMABLE") return NextResponse.json({ error: "A claim link is only for a page PortPass built that isn't hidden." }, { status: 409 });
     console.error("admin claim link", message);
     return NextResponse.json({ error: "Could not make the link." }, { status: 500 });
   }

@@ -28,10 +28,18 @@ export function MembershipControl({ userId, personName, organizationId, organiza
     const result = await send({ userId, organizationId, ...body });
     setBusy(false);
     if (!result.ok) {
-      setError(result.error ?? "That didn't work. Nothing was changed.");
+      setError(result.error ?? "That didn't finish. Refresh the page to see what was saved.");
       return;
     }
     router.refresh();
+  }
+
+  // A role change is one tap on a phone: ask first, and say so when the
+  // new role can see children's medical details.
+  function changeRole(next: string) {
+    const label = ROLES.find((r) => r.value === next)?.label ?? next;
+    const medical = next === "org_owner" || next === "org_admin" ? " Owners and admins can see children's medical and emergency details." : "";
+    if (confirm(`Make ${personName} ${label === "Owner" || label === "Admin" ? "an" : "a"} ${label.toLowerCase()} of ${organizationName}?${medical}`)) void act({ action: "set_role", role: next });
   }
 
   return (
@@ -39,7 +47,7 @@ export function MembershipControl({ userId, personName, organizationId, organiza
       <span>{organizationName}</span>
       <label>
         <span className="sr-only">Role of {personName} in {organizationName}</span>
-        <select value={role} disabled={busy} onChange={(e) => act({ action: "set_role", role: e.target.value })}>
+        <select value={role} disabled={busy} onChange={(e) => changeRole(e.target.value)}>
           {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
       </label>

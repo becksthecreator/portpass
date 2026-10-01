@@ -103,7 +103,9 @@ export function AdminApplications({ initialApplications }: { initialApplications
                     <button className="reject-button" disabled={busy === application.id} onClick={() => review(application.id,"rejected")}>Not a fit</button>
                   </>
                 ) : application.status === "approved" && application.organization_id ? (
-                  <Link className="primary-button" href={`/organizations/${application.organization_id}`}>Open organization dashboard →</Link>
+                  application.organization_slug
+                    ? <Link className="primary-button" href={`/business/${application.organization_slug}/settings`}>Open the business →</Link>
+                    : <Link className="primary-button" href={`/organizations/${application.organization_id}`}>Open organization dashboard →</Link>
                 ) : null}
               </div>
             </article>

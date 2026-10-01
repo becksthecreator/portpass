@@ -4,6 +4,7 @@ import { listCategories, listSections } from "@/db/categories";
 import { requireAdmin } from "@/lib/auth/admin";
 import { AdminShell } from "../_components/AdminShell";
 import { AddBusiness } from "./AddBusiness";
+import { hasOwnPages } from "@/lib/orgWorkspaces";
 import { BusinessActions } from "./BusinessActions";
 
 export const dynamic = "force-dynamic";
@@ -67,7 +68,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
                 <td data-label="Submitted">{when(b.submittedAt)}</td>
                 <td data-label="Approved">{when(b.approvedAt)}</td>
                 <td data-label="Open">{b.slug ? <><Link href={`/business/${b.slug}`}>Dashboard</Link> · <Link href={`/business/${b.slug}/settings`}>Edit</Link></> : "—"}</td>
-                <td data-label="Actions"><BusinessActions id={b.id} name={b.name} status={b.status} createdByAdmin={b.createdByAdmin} claimed={Boolean(b.claimedAt)} /></td>
+                <td data-label="Actions"><BusinessActions id={b.id} name={b.name} status={b.status} createdByAdmin={b.createdByAdmin} claimed={Boolean(b.claimedAt)} isPublic={b.isPublished} canSuspend={!hasOwnPages(b.slug)} /></td>
               </tr>
             ))}
           </tbody>

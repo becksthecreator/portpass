@@ -23,9 +23,15 @@ function day(iso: string): string {
 // and roles. From here a founder can change a person's role in a business,
 // remove their access, sign them out everywhere and send an invitation
 // again. Below: invitations not yet accepted, and staff PIN logins.
+// A list that could not be read says so; it never looks like "none".
+const failed = (what: string) => (error: unknown) => {
+  console.error(`admin people: could not load ${what}`, error instanceof Error ? error.message : "");
+  return null;
+};
+
 export default async function AdminPeoplePage() {
   const session = await requireAdmin("/admin/people");
-  const [people, invites, pins] = await Promise.all([listAdminPeople(), listOpenInvites().catch(() => []), listStaffPinStatus().catch(() => [])]);
+  const [people, invites, pins] = await Promise.all([listAdminPeople(), listOpenInvites().catch(failed("invitations")), listStaffPinStatus().catch(failed("staff logins"))]);
 
   return (
     <AdminShell session={session} current="/admin/people" title="People & access" lede={`${people.length} account${people.length === 1 ? "" : "s"}. Every change here is logged.`}>
@@ -56,7 +62,9 @@ export default async function AdminPeoplePage() {
 
       <section className="admin-group" aria-labelledby="invites">
         <h2 id="invites">Invitations not yet accepted</h2>
-        {invites.length === 0 ? (
+        {invites === null ? (
+          <p className="admin-empty">Could not load invitations. Refresh to try again.</p>
+        ) : invites.length === 0 ? (
           <p className="admin-empty">None waiting.</p>
         ) : (
           <table className="admin-table">
@@ -79,7 +87,9 @@ export default async function AdminPeoplePage() {
 
       <section className="admin-group" aria-labelledby="pins">
         <h2 id="pins">Staff PIN logins</h2>
-        {pins.length === 0 ? (
+        {pins === null ? (
+          <p className="admin-empty">Could not load staff logins. Refresh to try again.</p>
+        ) : pins.length === 0 ? (
           <p className="admin-empty">No staff PIN logins.</p>
         ) : (
           <table className="admin-table">

@@ -65,7 +65,8 @@ export async function POST(request: Request) {
           <p>This invitation expires in 14 days.</p>
         `),
       });
-      await logMessage({ organizationId: invite.organizationId, template: "team_invite_reminder", recipient: invite.email, status: outcome, detail: outcome === "skipped" ? "Email is not set up yet." : null });
+      // The email has gone (or not) by now: a failed log line must not turn that into an error and a second send.
+      await logMessage({ organizationId: invite.organizationId, template: "team_invite_reminder", recipient: invite.email, status: outcome, detail: outcome === "skipped" ? "Email is not set up yet." : null }).catch(() => {});
       return NextResponse.json({ ok: true, outcome });
     }
     return NextResponse.json({ error: "Choose an action." }, { status: 400 });
@@ -74,6 +75,6 @@ export async function POST(request: Request) {
     const refusal = REFUSALS[message];
     if (refusal) return NextResponse.json({ error: refusal.error }, { status: refusal.status });
     console.error("admin people action", action, message);
-    return NextResponse.json({ error: "That didn't work. Nothing was changed." }, { status: 500 });
+    return NextResponse.json({ error: "That didn't finish. Refresh the page to see what was saved." }, { status: 500 });
   }
 }

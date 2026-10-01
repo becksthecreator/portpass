@@ -278,8 +278,9 @@ async function saveVariants(productId: number, variants: VariantInput[]): Promis
 async function takeBusinessLiveOnFirstProduct(orgId: number, actorUserId: string): Promise<void> {
   const business = await getBusiness(orgId);
   if (!business || business.status !== "approved" || business.isPublished) return;
-  const { error } = await getSupabaseAdmin().from("organizations").update({ is_published: true, is_directory_listed: true, status: "live" }).eq("id", orgId);
-  if (!error) await logAudit({ actorUserId, organizationId: orgId, action: "business.went_live", targetTable: "organizations", targetId: orgId });
+  // Only from "approved": a page suspended a moment ago stays hidden.
+  const { data: live, error } = await getSupabaseAdmin().from("organizations").update({ is_published: true, is_directory_listed: true, status: "live" }).eq("id", orgId).eq("status", "approved").select("id").maybeSingle();
+  if (!error && live) await logAudit({ actorUserId, organizationId: orgId, action: "business.went_live", targetTable: "organizations", targetId: orgId });
 }
 
 export async function deleteProduct(orgId: number, productId: number, actorUserId: string): Promise<void> {
