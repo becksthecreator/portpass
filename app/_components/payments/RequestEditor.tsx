@@ -191,12 +191,12 @@ export function RequestEditor({
   if (step === "preview") {
     const lineItems = parsed as LineItem[];
     return (
-      <section className="pay-card" aria-labelledby="pay-preview-title">
-        <div className="pay-card-head">
-          <h2 id="pay-preview-title">Preview</h2>
-          <span className="pay-pill">{mode === "new" ? "Not sent yet" : "Unsaved changes"}</span>
+      <section className="preq-card" aria-labelledby="preq-preview-title">
+        <div className="preq-card-head">
+          <h2 id="preq-preview-title">Preview</h2>
+          <span className="preq-pill">{mode === "new" ? "Not sent yet" : "Unsaved changes"}</span>
         </div>
-        <dl className="pay-meta">
+        <dl className="preq-meta">
           <div><dt>To</dt><dd>{name}</dd></div>
           {phone && <div><dt>Phone</dt><dd>{phone}</dd></div>}
           {email && <div><dt>Email</dt><dd>{email}</dd></div>}
@@ -204,7 +204,7 @@ export function RequestEditor({
           <div><dt>They can pay by</dt><dd>{methods.map(methodLabel).join(", ")}</dd></div>
           <div><dt>Part payments</dt><dd>{allowPart ? "Allowed" : "Full amount only"}</dd></div>
         </dl>
-        <table className="pay-items">
+        <table className="preq-items">
           <thead><tr><th scope="col">For</th><th scope="col">Amount</th></tr></thead>
           <tbody>
             {lineItems.map((l, i) => (
@@ -213,29 +213,29 @@ export function RequestEditor({
           </tbody>
           <tfoot><tr><th scope="row">Total</th><td><strong>{money(total)}</strong></td></tr></tfoot>
         </table>
-        <p className="pay-notice">
+        <p className="preq-notice">
           The customer&rsquo;s page shows this, how to pay you{howToPay?.bankName ? ` (${howToPay.bankName})` : ""}, and: &ldquo;Pay {businessName} directly. PortPass never holds your money.&rdquo;
         </p>
-        {error && <p className="pay-error" role="alert">{error}</p>}
-        <div className="pay-btns">
-          <button type="button" className="pay-btn is-primary" onClick={save} disabled={busy}>{busy ? "Saving…" : mode === "new" ? "Create request" : "Save changes"}</button>
-          <button type="button" className="pay-btn" onClick={() => setStep("form")} disabled={busy}>Edit</button>
+        {error && <p className="preq-error" role="alert">{error}</p>}
+        <div className="preq-btns">
+          <button type="button" className="preq-btn is-primary" onClick={save} disabled={busy}>{busy ? "Saving…" : mode === "new" ? "Create request" : "Save changes"}</button>
+          <button type="button" className="preq-btn" onClick={() => setStep("form")} disabled={busy}>Edit</button>
         </div>
-        {mode === "new" && <p className="pay-last">Creating it sends nothing. You choose WhatsApp, email or a link on the next screen.</p>}
+        {mode === "new" && <p className="preq-last">Creating it sends nothing. You choose WhatsApp, email or a link on the next screen.</p>}
       </section>
     );
   }
 
   return (
-    <form className="pay-form" onSubmit={(e) => { e.preventDefault(); preview(); }} noValidate>
-      <fieldset className="pay-fieldset">
+    <form className="preq-form" onSubmit={(e) => { e.preventDefault(); preview(); }} noValidate>
+      <fieldset className="preq-fieldset">
         <legend>Customer</legend>
-        <label className="pay-field">
+        <label className="preq-field">
           <span>Find an existing customer</span>
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name, phone or email" autoComplete="off" />
         </label>
         {matches.length > 0 && (
-          <ul className="pay-matches" aria-label="Matching customers">
+          <ul className="preq-matches" aria-label="Matching customers">
             {matches.map((m, i) => (
               <li key={i}>
                 <button type="button" onClick={() => pickCustomer(m)}>
@@ -246,48 +246,48 @@ export function RequestEditor({
             ))}
           </ul>
         )}
-        <label className="pay-field">
+        <label className="preq-field">
           <span>Name</span>
           <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" maxLength={120} required />
         </label>
-        <div className="pay-two">
-          <label className="pay-field">
+        <div className="preq-two">
+          <label className="preq-field">
             <span>WhatsApp / phone</span>
             <input type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="242 555 0123" autoComplete="off" />
           </label>
-          <label className="pay-field">
+          <label className="preq-field">
             <span>Email</span>
             <input type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" />
           </label>
         </div>
-        <small className="pay-last">A phone number or an email, or both.</small>
+        <small className="preq-last">A phone number or an email, or both.</small>
       </fieldset>
 
-      <fieldset className="pay-fieldset">
+      <fieldset className="preq-fieldset">
         <legend>What it&rsquo;s for</legend>
-        <ul className="pay-lines">
+        <ul className="preq-lines">
           {lines.map((line, index) => (
-            <li key={line.key} className="pay-line">
-              <label className="pay-field">
+            <li key={line.key} className="preq-line">
+              <label className="preq-field">
                 <span>Line {index + 1}</span>
                 <input value={line.label} onChange={(e) => updateLine(line.key, { label: e.target.value })} placeholder="e.g. Term 2 fee" maxLength={160} />
               </label>
-              <label className="pay-field">
+              <label className="preq-field">
                 <span>Qty</span>
                 <input inputMode="numeric" value={line.qty} onChange={(e) => updateLine(line.key, { qty: e.target.value.replace(/\D/g, "").slice(0, 3) })} />
               </label>
-              <label className="pay-field">
+              <label className="preq-field">
                 <span>Price ($)</span>
                 <input inputMode="decimal" value={line.price} onChange={(e) => updateLine(line.key, { price: e.target.value })} placeholder="0.00" />
               </label>
-              <button type="button" className="pay-line-remove" onClick={() => setLines((current) => (current.length > 1 ? current.filter((l) => l.key !== line.key) : current))} disabled={lines.length === 1} aria-label={`Remove line ${index + 1}`}>×</button>
+              <button type="button" className="preq-line-remove" onClick={() => setLines((current) => (current.length > 1 ? current.filter((l) => l.key !== line.key) : current))} disabled={lines.length === 1} aria-label={`Remove line ${index + 1}`}>×</button>
             </li>
           ))}
         </ul>
-        <div className="pay-btns">
-          <button type="button" className="pay-btn is-small" onClick={() => addLine()} disabled={lines.length >= 20}>Add a line</button>
+        <div className="preq-btns">
+          <button type="button" className="preq-btn is-small" onClick={() => addLine()} disabled={lines.length >= 20}>Add a line</button>
           {offerings.length > 0 && (
-            <label className="pay-field">
+            <label className="preq-field">
               <span className="sr-only">Add from your offerings</span>
               <select value="" onChange={(e) => pickOffering(e.target.value)} aria-label="Add from your offerings">
                 <option value="">Add from your offerings…</option>
@@ -296,35 +296,35 @@ export function RequestEditor({
             </label>
           )}
         </div>
-        <p className="pay-line-total"><span>Total</span><span>{money(total)}</span></p>
+        <p className="preq-line-total"><span>Total</span><span>{money(total)}</span></p>
       </fieldset>
 
-      <fieldset className="pay-fieldset">
+      <fieldset className="preq-fieldset">
         <legend>When and how</legend>
-        <label className="pay-field">
+        <label className="preq-field">
           <span>Due date</span>
           <input type="date" value={dueDate} min={mode === "edit" && existingDueDate && existingDueDate < today ? existingDueDate : today} max={addDays(today, 366)} onChange={(e) => setDueDate(e.target.value)} required />
         </label>
-        <div className="pay-field" role="group" aria-labelledby="pay-methods-label">
-          <span id="pay-methods-label">They can pay by</span>
+        <div className="preq-field" role="group" aria-labelledby="preq-methods-label">
+          <span id="preq-methods-label">They can pay by</span>
           {REQUEST_METHODS.map((method) => {
             const available = methodsAvailable.includes(method);
             return (
-              <label key={method} className="pay-check">
+              <label key={method} className="preq-check">
                 <input type="checkbox" checked={methods.includes(method)} disabled={!available} onChange={(e) => toggleMethod(method, e.target.checked)} />
                 <span>{methodLabel(method)}{!available && METHOD_HINT[method] && <small>{METHOD_HINT[method]}</small>}</span>
               </label>
             );
           })}
         </div>
-        <label className="pay-check">
+        <label className="preq-check">
           <input type="checkbox" checked={allowPart} onChange={(e) => setAllowPart(e.target.checked)} />
           <span>Allow part payments<small>The customer can pay some now and the rest later.</small></span>
         </label>
       </fieldset>
 
-      {error && <p className="pay-error" role="alert">{error}</p>}
-      <button type="submit" className="pay-btn is-primary">Preview</button>
+      {error && <p className="preq-error" role="alert">{error}</p>}
+      <button type="submit" className="preq-btn is-primary">Preview</button>
     </form>
   );
 }

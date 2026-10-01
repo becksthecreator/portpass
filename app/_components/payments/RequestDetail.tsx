@@ -155,27 +155,27 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
 
   return (
     <>
-      {notice && <p className="pay-notice" role="status">{notice}</p>}
-      {error && <p className="pay-notice is-warn" role="alert">{error}</p>}
+      {notice && <p className="preq-notice" role="status">{notice}</p>}
+      {error && <p className="preq-notice is-warn" role="alert">{error}</p>}
 
-      <section className="pay-card" aria-labelledby="pay-summary">
-        <div className="pay-card-head">
-          <h2 id="pay-summary">{r.customerName}</h2>
-          <span className={`pay-pill is-${status}`}>{statusLabel(status)}</span>
+      <section className="preq-card" aria-labelledby="preq-summary">
+        <div className="preq-card-head">
+          <h2 id="preq-summary">{r.customerName}</h2>
+          <span className={`preq-pill is-${status}`}>{statusLabel(status)}</span>
         </div>
-        <dl className="pay-meta">
+        <dl className="preq-meta">
           <div><dt>Total</dt><dd>{money(r.totalCents)}</dd></div>
           {r.paidCents > 0 && <div><dt>Paid so far</dt><dd>{money(r.paidCents)}</dd></div>}
           {r.status !== "void" && <div><dt>Balance</dt><dd>{money(balance)}</dd></div>}
           <div><dt>Due</dt><dd>{formatDay(r.dueDate, today)}{isOverdue(r, today) ? ` · ${daysOverdue(r.dueDate, today)} days overdue` : ""}</dd></div>
           <div><dt>They can pay by</dt><dd>{r.methods.map(methodLabel).join(", ")}{r.allowPartPayment ? " · part payments allowed" : ""}</dd></div>
-          {r.customerPhone && <div><dt>Phone</dt><dd><a className="pay-link" href={`tel:${r.customerPhone}`}>{formatPhoneDisplay(r.customerPhone)}</a></dd></div>}
+          {r.customerPhone && <div><dt>Phone</dt><dd><a className="preq-link" href={`tel:${r.customerPhone}`}>{formatPhoneDisplay(r.customerPhone)}</a></dd></div>}
           {r.customerEmail && <div><dt>Email</dt><dd>{r.customerEmail}</dd></div>}
-          <div><dt>Sent</dt><dd>{r.sentAt ? `${nassauDate(r.sentAt)} by ${sentViaLabel(r.sentVia)}` : "Not yet"}</dd></div>
+          <div><dt>Sent</dt><dd>{r.sentAt ? `${formatDay(nassauDate(r.sentAt), today)} by ${sentViaLabel(r.sentVia)}` : "Not yet"}</dd></div>
           {r.lastRemindedAt && <div><dt>Last reminded</dt><dd>{sinceLabel(r.lastRemindedAt)} ({r.reminderCount})</dd></div>}
           {r.status === "void" && <div><dt>Voided</dt><dd>{r.voidedReason}</dd></div>}
         </dl>
-        <table className="pay-items">
+        <table className="preq-items">
           <thead><tr><th scope="col">For</th><th scope="col">Amount</th></tr></thead>
           <tbody>
             {r.lines.map((l, i) => (
@@ -184,109 +184,109 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
           </tbody>
           <tfoot><tr><th scope="row">Total</th><td><strong>{money(r.totalCents)}</strong></td></tr></tfoot>
         </table>
-        <p className="pay-last"><a className="pay-link" href={payUrl} target="_blank" rel="noopener noreferrer">Open the customer&rsquo;s page ↗</a></p>
+        <p className="preq-last"><a className="preq-link" href={payUrl} target="_blank" rel="noopener noreferrer">Open the customer&rsquo;s page ↗</a></p>
       </section>
 
       {needsChecking(r) && (
-        <section className="pay-card pay-saying" aria-labelledby="pay-says-paid">
-          <div className="pay-card-head">
-            <h2 id="pay-says-paid">Customer says they&rsquo;ve paid</h2>
-            <span className="pay-flag">Check and confirm</span>
+        <section className="preq-card preq-saying" aria-labelledby="preq-says-paid">
+          <div className="preq-card-head">
+            <h2 id="preq-says-paid">Customer says they&rsquo;ve paid</h2>
+            <span className="preq-flag">Check and confirm</span>
           </div>
-          <p className="pay-last">{sinceLabel(r.customerSaysPaidAt!)}. Check your bank account, Kanoo wallet or cash box, then mark it paid below. It stays unpaid until you do.</p>
+          <p className="preq-last">{sinceLabel(r.customerSaysPaidAt!)}. Check your bank account, Kanoo wallet or cash box, then mark it paid below. It stays unpaid until you do.</p>
           {r.customerSaysPaidNote && <blockquote>{r.customerSaysPaidNote}</blockquote>}
-          <button type="button" className="pay-btn is-small" onClick={() => act({ action: "clear_flag" }, "flag", "Flag cleared. The request is still open.")} disabled={busy !== null}>Not received yet</button>
+          <button type="button" className="preq-btn is-small" onClick={() => act({ action: "clear_flag" }, "flag", "Flag cleared. The request is still open.")} disabled={busy !== null}>Not received yet</button>
         </section>
       )}
 
       {r.status !== "void" && r.status !== "paid" && (
-        <section className="pay-card" aria-labelledby="pay-send">
-          <h2 id="pay-send">{r.sentAt ? "Send it again" : "Send it"}</h2>
-          {!r.sentAt && <p className="pay-last">Nothing goes to the customer until you press one of these.</p>}
-          <div className="pay-btns">
-            <a className="pay-btn is-wa" href={whatsappLink(r.customerPhone, requestMessage(messageInput, today))} target="_blank" rel="noopener noreferrer" onClick={() => recordWhatsApp({ action: "send", via: "whatsapp_link" }, "WhatsApp opened with the message. Press send there.")}>
+        <section className="preq-card" aria-labelledby="preq-send">
+          <h2 id="preq-send">{r.sentAt ? "Send it again" : "Send it"}</h2>
+          {!r.sentAt && <p className="preq-last">Nothing goes to the customer until you press one of these.</p>}
+          <div className="preq-btns">
+            <a className="preq-btn is-wa" href={whatsappLink(r.customerPhone, requestMessage(messageInput, today))} target="_blank" rel="noopener noreferrer" onClick={() => recordWhatsApp({ action: "send", via: "whatsapp_link" }, "WhatsApp opened with the message. Press send there.")}>
               {r.customerPhone ? "WhatsApp" : "WhatsApp (pick the contact)"}
             </a>
             {r.customerEmail && (
-              <button type="button" className="pay-btn" onClick={() => act({ action: "send", via: "email" }, "email", `Emailed to ${r.customerEmail}.`)} disabled={busy !== null}>
+              <button type="button" className="preq-btn" onClick={() => act({ action: "send", via: "email" }, "email", `Emailed to ${r.customerEmail}.`)} disabled={busy !== null}>
                 {busy === "email" ? "Sending…" : "Send by email"}
               </button>
             )}
-            <button type="button" className="pay-btn" onClick={copyLink} disabled={busy !== null}>Copy link</button>
-            {!r.sentAt && <button type="button" className="pay-btn" onClick={() => act({ action: "send", via: "in_person" }, "in_person", "Marked as handed over in person.")} disabled={busy !== null}>Handed over in person</button>}
+            <button type="button" className="preq-btn" onClick={copyLink} disabled={busy !== null}>Copy link</button>
+            {!r.sentAt && <button type="button" className="preq-btn" onClick={() => act({ action: "send", via: "in_person" }, "in_person", "Marked as handed over in person.")} disabled={busy !== null}>Handed over in person</button>}
           </div>
-          <div className="pay-copyrow">
-            <label className="sr-only" htmlFor="pay-link-field">The customer&rsquo;s link</label>
-            <input id="pay-link-field" readOnly value={payUrl} onFocus={(e) => e.currentTarget.select()} />
+          <div className="preq-copyrow">
+            <label className="sr-only" htmlFor="preq-link-field">The customer&rsquo;s link</label>
+            <input id="preq-link-field" readOnly value={payUrl} onFocus={(e) => e.currentTarget.select()} />
           </div>
         </section>
       )}
 
       {canRecordPayment(r) && (
-        <section className="pay-card" aria-labelledby="pay-mark">
-          <h2 id="pay-mark">Mark paid</h2>
-          <form className="pay-form" onSubmit={markPaid}>
-            <div className="pay-two">
-              <label className="pay-field">
+        <section className="preq-card" aria-labelledby="preq-mark">
+          <h2 id="preq-mark">Mark paid</h2>
+          <form className="preq-form" onSubmit={markPaid}>
+            <div className="preq-two">
+              <label className="preq-field">
                 <span>Amount received ($)</span>
-                <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} readOnly={!r.allowPartPayment} aria-describedby="pay-amount-hint" />
-                <small id="pay-amount-hint">{r.allowPartPayment ? `Up to ${money(balance)}.` : "This request is for the full balance."}</small>
+                <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} readOnly={!r.allowPartPayment} aria-describedby="preq-amount-hint" />
+                <small id="preq-amount-hint">{r.allowPartPayment ? `Up to ${money(balance)}.` : "This request is for the full balance."}</small>
               </label>
-              <label className="pay-field">
+              <label className="preq-field">
                 <span>How they paid</span>
                 <select value={method} onChange={(e) => setMethod(e.target.value as typeof method)}>
                   {[...r.methods, ...REQUEST_METHODS.filter((m) => !r.methods.includes(m))].map((m) => <option key={m} value={m}>{methodLabel(m)}</option>)}
                 </select>
               </label>
-              <label className="pay-field">
+              <label className="preq-field">
                 <span>Day received</span>
                 <input type="date" value={receivedOn} max={today} onChange={(e) => setReceivedOn(e.target.value)} />
               </label>
-              <label className="pay-field">
+              <label className="preq-field">
                 <span>Reference (optional)</span>
                 <input value={reference} onChange={(e) => setReference(e.target.value)} maxLength={120} placeholder="Transfer reference" />
               </label>
             </div>
-            <label className="pay-field">
+            <label className="preq-field">
               <span>Note (optional)</span>
               <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} />
             </label>
-            <button type="submit" className="pay-btn is-primary" disabled={busy !== null}>{busy === "paid" ? "Recording…" : "Record payment"}</button>
+            <button type="submit" className="preq-btn is-primary" disabled={busy !== null}>{busy === "paid" ? "Recording…" : "Record payment"}</button>
           </form>
         </section>
       )}
 
       {shareReceipt && (
-        <section className="pay-card" aria-labelledby="pay-receipt">
-          <h2 id="pay-receipt">Receipt {shareReceipt.receiptNumber}</h2>
-          <p className="pay-last">Send the customer their receipt.</p>
-          <div className="pay-btns">
-            <a className="pay-btn is-wa" href={whatsappLink(r.customerPhone, receiptFor(shareReceipt).text)} target="_blank" rel="noopener noreferrer">WhatsApp the receipt</a>
+        <section className="preq-card" aria-labelledby="preq-receipt">
+          <h2 id="preq-receipt">Receipt {shareReceipt.receiptNumber}</h2>
+          <p className="preq-last">Send the customer their receipt.</p>
+          <div className="preq-btns">
+            <a className="preq-btn is-wa" href={whatsappLink(r.customerPhone, receiptFor(shareReceipt).text)} target="_blank" rel="noopener noreferrer">WhatsApp the receipt</a>
             {r.customerEmail && (
-              <button type="button" className="pay-btn" onClick={() => act({ action: "email_receipt", paymentId: shareReceipt.paymentId }, "receipt", `Receipt emailed to ${r.customerEmail}.`)} disabled={busy !== null}>
+              <button type="button" className="preq-btn" onClick={() => act({ action: "email_receipt", paymentId: shareReceipt.paymentId }, "receipt", `Receipt emailed to ${r.customerEmail}.`)} disabled={busy !== null}>
                 {busy === "receipt" ? "Sending…" : "Email the receipt"}
               </button>
             )}
-            <a className="pay-btn" href={receiptPath(r.publicToken, shareReceipt.receiptNumber)} target="_blank" rel="noopener noreferrer">Open the receipt ↗</a>
+            <a className="preq-btn" href={receiptPath(r.publicToken, shareReceipt.receiptNumber)} target="_blank" rel="noopener noreferrer">Open the receipt ↗</a>
           </div>
         </section>
       )}
 
       {(r.status === "sent" || r.status === "part_paid") && (
-        <section className="pay-card" aria-labelledby="pay-remind">
-          <h2 id="pay-remind">Remind</h2>
-          <p className={`pay-last${remindedRecently(r.lastRemindedAt) ? " is-recent" : ""}`}>
+        <section className="preq-card" aria-labelledby="preq-remind">
+          <h2 id="preq-remind">Remind</h2>
+          <p className={`preq-last${remindedRecently(r.lastRemindedAt) ? " is-recent" : ""}`}>
             {r.lastRemindedAt ? `Last reminded ${sinceLabel(r.lastRemindedAt)} by ${r.lastRemindedVia === "email" ? "email" : "WhatsApp"}.` : "Not reminded yet."}
           </p>
           {remindedRecently(r.lastRemindedAt) && !confirmRemind ? (
-            <button type="button" className="pay-btn is-small" onClick={() => setConfirmRemind(true)}>Remind again today?</button>
+            <button type="button" className="preq-btn is-small" onClick={() => setConfirmRemind(true)}>Remind again today?</button>
           ) : (
-            <div className="pay-btns">
-              <a className="pay-btn is-wa is-small" href={whatsappLink(r.customerPhone, reminderMessage(messageInput, today))} target="_blank" rel="noopener noreferrer" onClick={() => { setConfirmRemind(false); recordWhatsApp({ action: "remind", via: "whatsapp_link" }, "Reminder opened in WhatsApp. Press send there."); }}>
+            <div className="preq-btns">
+              <a className="preq-btn is-wa is-small" href={whatsappLink(r.customerPhone, reminderMessage(messageInput, today))} target="_blank" rel="noopener noreferrer" onClick={() => { setConfirmRemind(false); recordWhatsApp({ action: "remind", via: "whatsapp_link" }, "Reminder opened in WhatsApp. Press send there."); }}>
                 Remind on WhatsApp
               </a>
               {r.customerEmail && (
-                <button type="button" className="pay-btn is-small" onClick={() => { setConfirmRemind(false); void act({ action: "remind", via: "email" }, "remind-email", `Reminder emailed to ${r.customerEmail}.`); }} disabled={busy !== null}>
+                <button type="button" className="preq-btn is-small" onClick={() => { setConfirmRemind(false); void act({ action: "remind", via: "email" }, "remind-email", `Reminder emailed to ${r.customerEmail}.`); }} disabled={busy !== null}>
                   {busy === "remind-email" ? "Sending…" : "Remind by email"}
                 </button>
               )}
@@ -296,25 +296,25 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
       )}
 
       {payments.length > 0 && (
-        <section className="pay-card" aria-labelledby="pay-history">
-          <h2 id="pay-history">Payments</h2>
-          <ul className="pay-history">
+        <section className="preq-card" aria-labelledby="preq-history">
+          <h2 id="preq-history">Payments</h2>
+          <ul className="preq-history">
             {payments.map((p) => (
               <li key={p.id} className={p.status === "refunded" ? "is-refunded" : undefined}>
                 <header><span>{p.receiptNumber ?? "Payment"}</span><b>{money(p.amountCents)}</b></header>
-                <span>{nassauDate(p.receivedAt)} · {methodLabel(p.method)}{p.reference ? ` · ref ${p.reference}` : ""}{p.recordedBy ? ` · recorded by ${p.recordedBy}` : ""}</span>
+                <span>{formatDay(nassauDate(p.receivedAt), today)} · {methodLabel(p.method)}{p.reference ? ` · ref ${p.reference}` : ""}{p.recordedBy ? ` · recorded by ${p.recordedBy}` : ""}</span>
                 {p.note && <span>{p.note}</span>}
                 {p.status === "refunded" && <span>Refunded {p.refundedAt ? nassauDate(p.refundedAt) : ""}: {p.refundNote}</span>}
-                {p.status === "received" && p.receiptNumber && <a className="pay-link" href={receiptPath(r.publicToken, p.receiptNumber)} target="_blank" rel="noopener noreferrer">Receipt ↗</a>}
+                {p.status === "received" && p.receiptNumber && <a className="preq-link" href={receiptPath(r.publicToken, p.receiptNumber)} target="_blank" rel="noopener noreferrer">Receipt ↗</a>}
                 {p.status === "received" && (
                   <details>
                     <summary>Record a refund</summary>
-                    <div className="pay-form">
-                      <label className="pay-field">
+                    <div className="preq-form">
+                      <label className="preq-field">
                         <span>What was refunded, and how</span>
                         <textarea rows={2} value={refundNote} onChange={(e) => setRefundNote(e.target.value)} maxLength={300} placeholder="e.g. $50 back by transfer on 3 Oct" />
                       </label>
-                      <button type="button" className="pay-btn is-small is-danger" onClick={() => refund(p.id)} disabled={busy !== null}>Record refund of {money(p.amountCents)}</button>
+                      <button type="button" className="preq-btn is-small is-danger" onClick={() => refund(p.id)} disabled={busy !== null}>Record refund of {money(p.amountCents)}</button>
                     </div>
                   </details>
                 )}
@@ -325,24 +325,24 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
       )}
 
       {canEditRequest(r) && (
-        <p className="pay-last"><Link className="pay-link" href={`${basePath}/${r.id}/edit`}>Change this request</Link></p>
+        <p className="preq-last"><Link className="preq-link" href={`${basePath}/${r.id}/edit`}>Change this request</Link></p>
       )}
 
       {canVoidRequest(r) && (
-        <details className="pay-card pay-danger">
+        <details className="preq-card preq-danger">
           <summary>Void this request</summary>
-          <div className="pay-form">
-            <p className="pay-last">It stays in the history, marked void, and the customer&rsquo;s page says it was cancelled.</p>
-            <label className="pay-field">
+          <div className="preq-form">
+            <p className="preq-last">It stays in the history, marked void, and the customer&rsquo;s page says it was cancelled.</p>
+            <label className="preq-field">
               <span>Why</span>
               <textarea rows={2} value={voidReason} onChange={(e) => setVoidReason(e.target.value)} maxLength={300} />
             </label>
-            <button type="button" className="pay-btn is-danger" disabled={busy !== null || !voidReason.trim()} onClick={() => act({ action: "void", reason: voidReason }, "void", "Request voided.")}>Void request</button>
+            <button type="button" className="preq-btn is-danger" disabled={busy !== null || !voidReason.trim()} onClick={() => act({ action: "void", reason: voidReason }, "void", "Request voided.")}>Void request</button>
           </div>
         </details>
       )}
       {!canVoidRequest(r) && r.status !== "void" && (
-        <p className="pay-last">Money has been recorded against this request, so it can&rsquo;t be voided. Record a refund on the payment instead.</p>
+        <p className="preq-last">Money has been recorded against this request, so it can&rsquo;t be voided. Record a refund on the payment instead.</p>
       )}
     </>
   );

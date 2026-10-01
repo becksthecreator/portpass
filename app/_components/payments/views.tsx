@@ -39,7 +39,7 @@ const apiBase = (access: PaymentsAccess) => `/api/payments/orgs/${access.orgId}`
 function needsHowToPay(access: PaymentsAccess, configured: boolean) {
   if (configured) return null;
   return (
-    <p className="pay-notice is-warn">
+    <p className="preq-notice is-warn">
       Tell customers how to pay you before sending requests: your bank details, where to bring cash, your Kanoo wallet.{" "}
       <Link href={`${access.basePath}/settings`}>Add how customers pay →</Link>
     </p>
@@ -59,13 +59,13 @@ export async function RequestsView({ access, filter }: { access: PaymentsAccess;
   return (
     <PaymentsShell access={access} tab="requests" title="Payment requests" lede="Send a request, the customer pays you directly, you mark it paid. PortPass never holds the money." chaseCount={chase.length}>
       {needsHowToPay(access, settings !== null && (settings.bankName !== "" || settings.transferInstructions !== "" || settings.cashNote !== "" || settings.kanooHandleOrPhone !== ""))}
-      <dl className="pay-totals" aria-label="Totals">
+      <dl className="preq-totals" aria-label="Totals">
         <div><dt>Collected this month</dt><dd>{money(totals.collectedThisMonthCents)}</dd></div>
         <div><dt>Outstanding</dt><dd>{money(totals.outstandingCents)}<small>{totals.outstandingCount} {totals.outstandingCount === 1 ? "request" : "requests"}</small></dd></div>
         <div className={totals.overdueCount > 0 ? "is-overdue" : undefined}><dt>Overdue</dt><dd>{money(totals.overdueCents)}<small>{totals.overdueCount} {totals.overdueCount === 1 ? "request" : "requests"}</small></dd></div>
       </dl>
       {totals.toCheckCount > 0 && (
-        <p className="pay-notice is-check">
+        <p className="preq-notice is-check">
           {totals.toCheckCount === 1 ? "1 customer says they've paid." : `${totals.toCheckCount} customers say they've paid.`} Check your account or cash, then confirm.{" "}
           <Link href={`${access.basePath}?filter=check`}>Check and confirm →</Link>
         </p>
@@ -119,13 +119,13 @@ export async function NewRequestView({ access, params }: { access: PaymentsAcces
     <PaymentsShell access={access} tab="new" title="New request" lede="Who it's for, what it's for, when it's due. Preview it, then send it.">
       {needsHowToPay(access, methodsAvailable.length > 1 || (settings?.cashNote ?? "") !== "")}
       {prefill && (
-        <p className="pay-notice">
+        <p className="preq-notice">
           From {prefill.source}.{" "}
           {prefill.lines.length === 0 && "Nothing is owing on it right now; add a line if you still want to ask for something."}
         </p>
       )}
       {prefill && prefill.openRequests.length > 0 && (
-        <p className="pay-notice is-check">
+        <p className="preq-notice is-check">
           Already open for this:{" "}
           {prefill.openRequests.map((r, i) => (
             <span key={r.id}>{i > 0 && ", "}<Link href={`${access.basePath}/${r.id}`}>{r.referenceCode}</Link> ({money(r.balanceCents)} to pay)</span>
@@ -157,7 +157,7 @@ export async function EditRequestView({ access, requestId }: { access: PaymentsA
   return (
     <PaymentsShell access={access} tab="detail" title={`Change ${r.referenceCode}`} lede="You can change a request until money is recorded against it.">
       {r.paidCents > 0 || r.status === "void" ? (
-        <p className="pay-notice is-warn">This request can&rsquo;t be changed any more. <Link href={`${access.basePath}/${r.id}`}>Back to {r.referenceCode}</Link></p>
+        <p className="preq-notice is-warn">This request can&rsquo;t be changed any more. <Link href={`${access.basePath}/${r.id}`}>Back to {r.referenceCode}</Link></p>
       ) : (
         <RequestEditor mode="edit" requestId={r.id} existingDueDate={r.dueDate} apiBase={apiBase(access)} basePath={access.basePath} businessName={access.orgName} initial={initial} methodsAvailable={available} offerings={offerings} today={nassauToday()} howToPay={settings} />
       )}

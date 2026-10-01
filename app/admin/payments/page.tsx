@@ -32,7 +32,7 @@ export default async function AdminPaymentsPage() {
 
   return (
     <AdminShell session={session} current="/admin/payments" title="Payments" lede="Payment requests across every business. Customers pay each business directly; these are the amounts businesses requested and recorded. Fees are invoiced from these numbers later, never deducted.">
-      <dl className="admin-pay-totals" aria-label={`${monthLabel(thisMonth)} so far`}>
+      <dl className="admin-preq-totals" aria-label={`${monthLabel(thisMonth)} so far`}>
         <div><dt>Requests sent, {monthLabel(thisMonth)}</dt><dd>{sum(current, "requestsSent")}</dd></div>
         <div><dt>Amount requested</dt><dd>{money(sum(current, "requestedCents"))}</dd></div>
         <div><dt>Recorded as paid</dt><dd>{money(sum(current, "recordedPaidCents"))}</dd></div>
@@ -40,7 +40,7 @@ export default async function AdminPaymentsPage() {
         <div><dt>Recorded as paid, all time</dt><dd>{money(sum(rows, "recordedPaidCents"))}</dd></div>
         <div><dt>Recorded outside requests, all time</dt><dd>{money(sum(rows, "otherRecordedCents"))}</dd></div>
       </dl>
-      <p className="admin-pay-note">
+      <p className="admin-preq-note">
         Requests and the amount requested count in the month a request was first sent; recorded payments in the month the business says the money came in; outstanding is what is still unpaid today on that month&rsquo;s requests. &ldquo;Outside requests&rdquo; is money recorded straight on a business&rsquo;s own desk (Futprep&rsquo;s registrations and private sessions).
       </p>
 
@@ -50,10 +50,10 @@ export default async function AdminPaymentsPage() {
         months.map((month) => {
           const monthRows = rows.filter((r) => r.month === month);
           return (
-            <section key={month} className="admin-pay-month" aria-labelledby={`pay-month-${month}`}>
-              <h2 id={`pay-month-${month}`}>{monthLabel(month)}</h2>
-              <div className="admin-pay-scroll">
-                <table className="admin-pay-table">
+            <section key={month} className="admin-preq-month" aria-labelledby={`preq-month-${month}`}>
+              <h2 id={`preq-month-${month}`}>{monthLabel(month)}</h2>
+              <div className="admin-preq-scroll">
+                <table className="admin-preq-table">
                   <thead>
                     <tr>
                       <th scope="col">Business</th>

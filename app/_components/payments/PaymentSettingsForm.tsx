@@ -43,48 +43,48 @@ export function PaymentSettingsForm({ apiBase, initial, suggestedPrefix, canEdit
   }
 
   return (
-    <form className="pay-form" onSubmit={save}>
-      {!canEdit && <p className="pay-notice">Only the owner can change how customers pay. You can see what customers are shown.</p>}
-      <fieldset className="pay-fieldset" disabled={!canEdit}>
+    <form className="preq-form" onSubmit={save}>
+      {!canEdit && <p className="preq-notice">Only the owner can change how customers pay. You can see what customers are shown.</p>}
+      <fieldset className="preq-fieldset" disabled={!canEdit}>
         <legend>Bank transfer</legend>
-        <div className="pay-two">
-          <label className="pay-field"><span>Bank</span><input value={form.bankName} onChange={set("bankName")} maxLength={120} placeholder="e.g. RBC Royal Bank" /></label>
-          <label className="pay-field"><span>Account name</span><input value={form.accountName} onChange={set("accountName")} maxLength={120} /></label>
+        <div className="preq-two">
+          <label className="preq-field"><span>Bank</span><input value={form.bankName} onChange={set("bankName")} maxLength={120} placeholder="e.g. RBC Royal Bank" /></label>
+          <label className="preq-field"><span>Account name</span><input value={form.accountName} onChange={set("accountName")} maxLength={120} /></label>
         </div>
-        <label className="pay-field">
+        <label className="preq-field">
           <span>Last 4 digits of the account number</span>
           <input inputMode="numeric" value={form.accountNumberLast4} onChange={set("accountNumberLast4")} maxLength={4} pattern="[0-9]{4}" placeholder="1234" />
           <small>Only the last four. Never the full number here.</small>
         </label>
-        <label className="pay-field">
+        <label className="preq-field">
           <span>Transfer instructions</span>
           <textarea rows={4} value={form.transferInstructions} onChange={set("transferInstructions")} maxLength={1000} placeholder="Branch, transit and account number, and anything else the customer needs" />
           <small>Shown only on a customer&rsquo;s own request page, with their reference to quote. If you want customers to see your full account number, it goes here.</small>
         </label>
       </fieldset>
 
-      <fieldset className="pay-fieldset" disabled={!canEdit}>
+      <fieldset className="preq-fieldset" disabled={!canEdit}>
         <legend>Cash and Kanoo wallet</legend>
-        <label className="pay-field">
+        <label className="preq-field">
           <span>Cash: where and when</span>
           <input value={form.cashNote} onChange={set("cashNote")} maxLength={300} placeholder="e.g. At the front desk, Mon–Fri 4–7 pm" />
         </label>
-        <label className="pay-field">
+        <label className="preq-field">
           <span>Kanoo wallet handle or number</span>
           <input value={form.kanooHandleOrPhone} onChange={set("kanooHandleOrPhone")} maxLength={80} placeholder="e.g. 242 555 0123" />
           <small>Shown as text: &ldquo;Send to …&rdquo;. The customer sends it from their own Kanoo app.</small>
         </label>
       </fieldset>
 
-      <fieldset className="pay-fieldset" disabled={!canEdit}>
+      <fieldset className="preq-fieldset" disabled={!canEdit}>
         <legend>Requests</legend>
-        <div className="pay-two">
-          <label className="pay-field">
+        <div className="preq-two">
+          <label className="preq-field">
             <span>Reference letters</span>
             <input value={form.referencePrefix} onChange={(e) => setForm({ ...form, referencePrefix: e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4) })} maxLength={4} />
             <small>Requests read {form.referencePrefix || "FP"}-0042.</small>
           </label>
-          <label className="pay-field">
+          <label className="preq-field">
             <span>Days to pay</span>
             <input inputMode="numeric" value={form.defaultDueDays} onChange={(e) => setForm({ ...form, defaultDueDays: e.target.value.replace(/\D/g, "").slice(0, 2) })} />
             <small>The usual due date on a new request.</small>
@@ -92,9 +92,9 @@ export function PaymentSettingsForm({ apiBase, initial, suggestedPrefix, canEdit
         </div>
       </fieldset>
 
-      {error && <p className="pay-error" role="alert">{error}</p>}
-      {saved && <p className="pay-ok" role="status">{saved}</p>}
-      {canEdit && <button type="submit" className="pay-btn is-primary" disabled={busy}>{busy ? "Saving…" : "Save"}</button>}
+      {error && <p className="preq-error" role="alert">{error}</p>}
+      {saved && <p className="preq-ok" role="status">{saved}</p>}
+      {canEdit && <button type="submit" className="preq-btn is-primary" disabled={busy}>{busy ? "Saving…" : "Save"}</button>}
     </form>
   );
 }

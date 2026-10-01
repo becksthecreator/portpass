@@ -37,24 +37,24 @@ export function RequestsBoard({ rows, basePath, apiBase, today, initialFilter }:
 
   return (
     <>
-      <div className="pay-filters">
-        <div className="pay-segments" role="group" aria-label="Show">
+      <div className="preq-filters">
+        <div className="preq-segments" role="group" aria-label="Show">
           {FILTERS.map((f) => (
             <button key={f.value} type="button" aria-pressed={filter === f.value} onClick={() => setFilter(f.value)}>{f.label}</button>
           ))}
         </div>
-        <label className="pay-search">
+        <label className="preq-search">
           <span>Search</span>
           <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Customer, phone, email or FP-0042" autoComplete="off" />
         </label>
       </div>
 
       {rows.length === 0 ? (
-        <p className="pay-empty">No requests yet. <Link className="pay-link" href={`${basePath}/new`}>Send the first one →</Link></p>
+        <p className="preq-empty">No requests yet. <Link className="preq-link" href={`${basePath}/new`}>Send the first one →</Link></p>
       ) : shown.length === 0 ? (
-        <p className="pay-empty">Nothing here{search ? ` for “${search}”` : ""}.</p>
+        <p className="preq-empty">Nothing here{search ? ` for “${search}”` : ""}.</p>
       ) : (
-        <ul className="pay-list" aria-label="Requests">
+        <ul className="preq-list" aria-label="Requests">
           {shown.map((r) => {
             const status = displayStatus(r, today);
             const owing = balanceCents(r);
@@ -66,16 +66,16 @@ export function RequestsBoard({ rows, basePath, apiBase, today, initialFilter }:
               : `Due ${formatDay(r.dueDate, today)}`;
             return (
               <li key={r.id}>
-                <Link className={`pay-row${status === "overdue" ? " is-overdue" : ""}`} href={`${basePath}/${r.id}`}>
-                  <span className="pay-row-main">
-                    <span className="pay-ref">{r.referenceCode}</span>
+                <Link className={`preq-row${status === "overdue" ? " is-overdue" : ""}`} href={`${basePath}/${r.id}`}>
+                  <span className="preq-row-main">
+                    <span className="preq-ref">{r.referenceCode}</span>
                     <strong>{r.customerName}</strong>
                     <span>{linesSummary(r.lines)}</span>
                   </span>
-                  <span className="pay-row-side">
+                  <span className="preq-row-side">
                     <b>{money(status === "paid" || status === "void" ? r.totalCents : owing)}</b>
-                    <span className={`pay-pill is-${status}`}>{statusLabel(status)}</span>
-                    {needsChecking(r) && <span className="pay-flag">Check and confirm</span>}
+                    <span className={`preq-pill is-${status}`}>{statusLabel(status)}</span>
+                    {needsChecking(r) && <span className="preq-flag">Check and confirm</span>}
                     <small>{when}</small>
                   </span>
                 </Link>
@@ -85,13 +85,13 @@ export function RequestsBoard({ rows, basePath, apiBase, today, initialFilter }:
         </ul>
       )}
 
-      <details className="pay-export">
+      <details className="preq-export">
         <summary>Export for your accountant</summary>
-        <div className="pay-export-body">
+        <div className="preq-export-body">
           <label>From<input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} /></label>
           <label>To<input type="date" value={to} min={from} max={addDays(today, 366)} onChange={(e) => setTo(e.target.value)} /></label>
-          <a className="pay-btn is-small" href={exportHref("requests")} download>Requests (CSV)</a>
-          <a className="pay-btn is-small" href={exportHref("payments")} download>Payments (CSV)</a>
+          <a className="preq-btn is-small" href={exportHref("requests")} download>Requests (CSV)</a>
+          <a className="preq-btn is-small" href={exportHref("payments")} download>Payments (CSV)</a>
         </div>
       </details>
     </>

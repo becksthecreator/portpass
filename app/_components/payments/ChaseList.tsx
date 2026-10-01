@@ -28,13 +28,13 @@ export function ChaseList({ rows, businessName, basePath, apiBase, origin, today
     router.refresh();
   }
 
-  if (rows.length === 0) return <p className="pay-empty">Nothing overdue. Nobody to chase.</p>;
+  if (rows.length === 0) return <p className="preq-empty">Nothing overdue. Nobody to chase.</p>;
 
   return (
     <>
-      {notice && <p className="pay-notice" role="status">{notice}</p>}
-      {error && <p className="pay-notice is-warn" role="alert">{error}</p>}
-      <ul className="pay-chase" aria-label="Overdue requests">
+      {notice && <p className="preq-notice" role="status">{notice}</p>}
+      {error && <p className="preq-notice is-warn" role="alert">{error}</p>}
+      <ul className="preq-chase" aria-label="Overdue requests">
         {rows.map((r) => {
           const balance = balanceCents(r);
           const late = daysOverdue(r.dueDate, today);
@@ -45,27 +45,27 @@ export function ChaseList({ rows, businessName, basePath, apiBase, origin, today
             <li key={r.id}>
               <header>
                 <div>
-                  <Link className="pay-ref" href={`${basePath}/${r.id}`}>{r.referenceCode}</Link>
+                  <Link className="preq-ref" href={`${basePath}/${r.id}`}>{r.referenceCode}</Link>
                   <strong>{r.customerName}</strong>
                   <span>{linesSummary(r.lines)}</span>
                 </div>
-                <div className="pay-chase-amount">
+                <div className="preq-chase-amount">
                   <b>{money(balance)}</b>
                   <small>{late} {late === 1 ? "day" : "days"} overdue</small>
                 </div>
               </header>
-              <p className={`pay-last${recent ? " is-recent" : ""}`}>
+              <p className={`preq-last${recent ? " is-recent" : ""}`}>
                 Due {formatDay(r.dueDate, today)} · {r.lastRemindedAt ? `last reminded ${sinceLabel(r.lastRemindedAt)} by ${r.lastRemindedVia === "email" ? "email" : "WhatsApp"}` : "not reminded yet"}
               </p>
               {asking ? (
-                <div className="pay-confirm">
+                <div className="preq-confirm">
                   <span>Already reminded {sinceLabel(r.lastRemindedAt!)}. Send another today?</span>
-                  <button type="button" className="pay-btn is-small" onClick={() => setConfirming(r.id)}>Yes, remind again</button>
+                  <button type="button" className="preq-btn is-small" onClick={() => setConfirming(r.id)}>Yes, remind again</button>
                 </div>
               ) : (
-                <div className="pay-btns">
+                <div className="preq-btns">
                   <a
-                    className="pay-btn is-wa is-small"
+                    className="preq-btn is-wa is-small"
                     href={whatsappLink(r.customerPhone, text)}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -75,7 +75,7 @@ export function ChaseList({ rows, businessName, basePath, apiBase, origin, today
                     Send reminder (WhatsApp)
                   </a>
                   {r.customerEmail && (
-                    <button type="button" className="pay-btn is-small" disabled={busy !== null} aria-label={`Send reminder to ${r.customerName} by email`} onClick={() => void remind(r.id, "email", `Reminder emailed to ${r.customerName}.`)}>
+                    <button type="button" className="preq-btn is-small" disabled={busy !== null} aria-label={`Send reminder to ${r.customerName} by email`} onClick={() => void remind(r.id, "email", `Reminder emailed to ${r.customerName}.`)}>
                       {busy === r.id ? "Sending…" : "Send reminder (email)"}
                     </button>
                   )}

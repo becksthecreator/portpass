@@ -69,7 +69,7 @@ export function IvePaid({ token, businessName, alreadySaid }: { token: string; b
       </label>
       {error && <p className="paypage-error" role="alert">{error}</p>}
       <div className="paypage-actions">
-        <button type="submit" className="paypage-btn is-solid" disabled={busy}>{busy ? "Sending…" : `Tell ${businessName} I've paid`}</button>
+        <button type="submit" className="paypage-btn is-solid" disabled={busy}>{busy ? "Sending…" : "Tell them I’ve paid"}</button>
         <button type="button" className="paypage-btn" onClick={() => setOpen(false)} disabled={busy}>Cancel</button>
       </div>
     </form>

@@ -119,7 +119,7 @@ export default async function PayPage({ params }: { params: Params }) {
           <ul className="paypage-receipts">
             {payments.map((p, i) => (
               <li key={p.receiptNumber ?? i}>
-                <span>{nassauDate(p.receivedAt)} · {methodLabel(p.method)} · {money(p.amountCents)}{p.status === "refunded" ? " (refunded)" : ""}</span>
+                <span>{formatDay(nassauDate(p.receivedAt), today)} · {methodLabel(p.method)} · {money(p.amountCents)}{p.status === "refunded" ? " (refunded)" : ""}</span>
                 {p.status === "received" && p.receiptNumber && <a href={receiptPath(r.token, p.receiptNumber)}>Receipt {p.receiptNumber}</a>}
               </li>
             ))}

@@ -15,21 +15,21 @@ export type PaymentsTab = "requests" | "chase" | "settings" | "new" | "detail";
 export function PaymentsShell({ access, tab, title, lede, chaseCount, children }: { access: PaymentsAccess; tab: PaymentsTab; title: string; lede?: string; chaseCount?: number; children: ReactNode }) {
   const base = access.basePath;
   const nav = (
-    <nav className="pay-nav" aria-label="Payments">
+    <nav className="preq-nav" aria-label="Payments">
       <Link href={base} aria-current={tab === "requests" ? "page" : undefined}>Requests</Link>
       <Link href={`${base}/chase`} aria-current={tab === "chase" ? "page" : undefined}>
-        Chase{chaseCount ? <span className="pay-count" aria-label={`${chaseCount} overdue`}>{chaseCount}</span> : null}
+        Chase{chaseCount ? <span className="preq-count" aria-label={`${chaseCount} overdue`}>{chaseCount}</span> : null}
       </Link>
       <Link href={`${base}/settings`} aria-current={tab === "settings" ? "page" : undefined}>Settings</Link>
-      <Link className="pay-nav-new" href={`${base}/new`} aria-current={tab === "new" ? "page" : undefined}>New request</Link>
     </nav>
   );
   const body = (
-    <div className="pay-wrap">
-      <header className="pay-head">
-        <span className="pay-kicker">Payments · {access.orgName}</span>
+    <div className="preq-wrap">
+      <header className="preq-head">
+        <span className="preq-kicker">Payments · {access.orgName}</span>
         <h1>{title}</h1>
         {lede && <p>{lede}</p>}
+        {tab !== "new" && <Link className="preq-btn is-primary preq-new" href={`${base}/new`}>New request</Link>}
       </header>
       {nav}
       {children}

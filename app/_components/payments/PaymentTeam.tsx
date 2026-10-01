@@ -24,25 +24,25 @@ export function PaymentTeam({ apiBase, members, canManage }: { apiBase: string; 
   }
 
   return (
-    <section className="pay-card" aria-labelledby="pay-team">
-      <h2 id="pay-team">Who handles payments</h2>
-      <p className="pay-last">Owners and admins always can. Staff only once {canManage ? "you switch it on" : "an owner switches it on"} for them.</p>
-      {error && <p className="pay-error" role="alert">{error}</p>}
-      <ul className="pay-team">
+    <section className="preq-card" aria-labelledby="preq-team">
+      <h2 id="preq-team">Who handles payments</h2>
+      <p className="preq-last">Owners and admins always can. Staff only once {canManage ? "you switch it on" : "an owner switches it on"} for them.</p>
+      {error && <p className="preq-error" role="alert">{error}</p>}
+      <ul className="preq-team">
         {members.map((m) => {
           const always = m.role === "org_owner" || m.role === "org_admin";
           return (
             <li key={m.userId}>
               <div><strong>{m.name}</strong><span>{ROLE[m.role] ?? m.role}</span></div>
               {always ? (
-                <span className="pay-pill">Always</span>
+                <span className="preq-pill">Always</span>
               ) : m.role === "org_staff" ? (
-                <label className="pay-check">
+                <label className="preq-check">
                   <input type="checkbox" checked={m.canManagePayments} disabled={!canManage || busy !== null} onChange={(e) => toggle(m.userId, e.target.checked)} />
                   <span>Payments</span>
                 </label>
               ) : (
-                <span className="pay-pill is-void">No</span>
+                <span className="preq-pill is-void">No</span>
               )}
             </li>
           );

@@ -68,21 +68,21 @@ try {
   // The business's side, signed in as the TEST owner.
   await ownerSignIn(page);
   const base = `/business/${fixture.slug}/payments`;
-  await shoot(page, "brief17-requests-list-375", base, { focus: ".pay-list" });
+  await shoot(page, "brief17-requests-list-375", base, { focus: ".preq-list" });
   await shoot(page, "brief17-new-request-375", `${base}/new`, {
     before: async (p) => {
       await p.getByLabel("Name", { exact: true }).fill("TEST Parent Pinder");
       await p.getByLabel("WhatsApp / phone").fill("242 555 0110");
-      await p.getByLabel("Line 1").fill("Lil Kickers term fee — Ava");
-      await p.getByLabel("Price ($)").fill("420");
+      await p.getByLabel("Line 1", { exact: true }).fill("Lil Kickers term fee — Ava");
+      await p.getByLabel("Price ($)", { exact: true }).fill("420");
     },
   });
   await shoot(page, "brief17-new-request-preview-375", `${base}/new`, {
     before: async (p) => {
       await p.getByLabel("Name", { exact: true }).fill("TEST Parent Pinder");
       await p.getByLabel("WhatsApp / phone").fill("242 555 0110");
-      await p.getByLabel("Line 1").fill("Lil Kickers term fee — Ava");
-      await p.getByLabel("Price ($)").fill("420");
+      await p.getByLabel("Line 1", { exact: true }).fill("Lil Kickers term fee — Ava");
+      await p.getByLabel("Price ($)", { exact: true }).fill("420");
       await p.getByRole("button", { name: "Preview" }).click();
       await p.waitForTimeout(600);
     },
