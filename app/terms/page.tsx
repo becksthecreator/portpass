@@ -27,7 +27,7 @@ export default function TermsPage() {
         <LegalVersionLine doc={TERMS_OF_SERVICE} />
         <h1>Terms of Service.</h1>
         <p>
-          These terms cover your use of portpassbahamas.com, PortPass accounts and a business’s own website where PortPass runs it, all run by PortPass Bahamas Technologies (“PortPass”, “we”, “us”). By using the site, creating an account, registering, booking or listing a business, you agree to them.
+          These terms cover your use of portpassbahamas.com, PortPass accounts and a business’s own website where PortPass runs it, all run by PortPass Bahamas Technologies (“PortPass”, “we”, “us”). They apply whenever you use the site, register, book or list a business. When you create an account, we record that you agreed to them.
         </p>
       </section>
       <article className="legal-body">
@@ -38,7 +38,7 @@ export default function TermsPage() {
           PortPass is where people in The Bahamas find and book local businesses: sports programmes, wedding services and more. Each business listed here is a separate business. It sets its own prices, runs its own sessions and events, and is responsible for the service it gives you. PortPass provides the page, the forms and the record-keeping.
         </p>
         <p>
-          PortPass’s founders also work with some of the businesses listed here. Those businesses are still separate from PortPass and answer for their own services.
+          PortPass’s founders also own or work in some of the businesses listed here, and may answer messages for them. Those businesses are still separate from PortPass and answer for their own services.
         </p>
         <p>
           We review a business before we list it. We do not verify its licences, insurance or qualifications, and a listing is not a recommendation or a guarantee.
@@ -51,7 +51,7 @@ export default function TermsPage() {
         <ul>
           <li>You must be 18 or older.</li>
           <li>Give your real name and an email address you control. Each email address has one account.</li>
-          <li>You sign in with a code sent to your email, or with Google. Keep your email account secure: anyone who can read your email can sign in as you.</li>
+          <li>You sign in with a code sent to your email, or with Google where the sign-in page offers it. Keep your email account secure: anyone who can read your email can sign in as you.</li>
           <li>Tell us straight away if you think someone else has used your account.</li>
         </ul>
         <p>
@@ -60,13 +60,13 @@ export default function TermsPage() {
 
         <h2>Registering, booking and enquiring</h2>
         <p>
-          What happens when you send a form depends on the form, and the page tells you which it is:
+          What happens when you send a form depends on the form, and the form tells you which it is before you send it:
         </p>
         <ul>
           <li><strong>A registration for a class or camp</strong> holds your place as soon as you send it, with payment still to come. The business then confirms it. If the fee is not paid as agreed, the business may cancel the place.</li>
           <li><strong>A waitlist entry</strong> does not hold a place. There is nothing to pay unless the business offers you one.</li>
-          <li><strong>A free taster</strong> needs a PortPass account, is limited to one per child, and is booked when you send the form.</li>
-          <li><strong>A request for a private session or a party</strong> is not confirmed until a coach accepts it.</li>
+          <li><strong>A free taster</strong> needs a PortPass account, is limited to one per child at each business, and is booked when you send the form.</li>
+          <li><strong>A request for a private session or a party</strong> is not confirmed until the business accepts it.</li>
           <li><strong>An enquiry</strong>, such as a wedding enquiry, starts a conversation. Nothing is booked until the business confirms it with you.</li>
         </ul>
         <p>
@@ -75,10 +75,10 @@ export default function TermsPage() {
 
         <h2>Children’s programmes</h2>
         <p>
-          Only a parent, a legal guardian, or an adult they have authorised may register a child. When you register a child you confirm that you are that person, that the information is accurate and complete, and that you will tell the business if the child’s health details or emergency contact change.
+          Only a parent, a legal guardian, or an adult they have authorised may register a child online. When you register a child you confirm that you are that person, that the information is accurate and complete, and that you will tell the business if the child’s health details, pickup list or emergency contact change. A business may add a child to its own roster before a parent completes the form.
         </p>
         <p>
-          The consent and waiver you sign on the registration form is between you and the business running the programme. The business, not PortPass, supervises the children, decides who may collect a child, and is responsible for their safety during its sessions.
+          The consent you sign on the registration form, including accepting the normal risks of the activity, is given to the business running the programme. The business, not PortPass, supervises the children, decides who may collect a child, and is responsible for their safety during its sessions.
         </p>
         <p>
           How a child’s information is used, who can see it and when it is deleted is set out in the <Link href="/privacy#children">Privacy Policy</Link>.
@@ -86,7 +86,7 @@ export default function TermsPage() {
 
         <h2>Prices and payments</h2>
         <p>
-          Each business sets its own prices, shown in Bahamian dollars. You pay the business directly, by cash or bank transfer, using the details the business gives you. PortPass does not take card payments and never holds your money. The business records your payment against your booking.
+          Each business sets its own prices. Prices are in Bahamian dollars, which are equal in value to US dollars. You pay the business directly, by cash or bank transfer, using the details the business gives you. PortPass does not take card payments and never holds your money. When you register or book a session through PortPass, the business records your payment against your booking.
         </p>
         <p>
           Because PortPass does not receive your payment, we cannot refund it. Refunds come from the business.

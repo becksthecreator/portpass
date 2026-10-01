@@ -30,7 +30,7 @@ Adjust the path to wherever the repo is checked out. Check `/var/log/portpass-ba
 - `nightly/` — newest 30 dumps.
 - `monthly/` — the first dump of each month, newest 12.
 
-Pruning happens at the end of each successful backup. Nothing is deleted if the dump step fails.
+Pruning by count (the newest 30 nightly and 12 monthly copies) happens at the end of each successful backup. Pruning by age happens at the start of every run, even when the dump then fails: nightly copies older than 45 days and monthly copies older than 13 months are removed, so no copy outlives what the Privacy Policy says.
 
 ## Restore test
 

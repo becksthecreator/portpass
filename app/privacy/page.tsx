@@ -47,7 +47,7 @@ export default function PrivacyPage() {
           <strong>When you register, book or enquire.</strong> We collect what you type into the form: your name, email address and phone number, and the details that booking needs, such as dates, guest numbers, the class or package you chose and how you plan to pay. You don’t need an account to enquire or to register a child. Only the free taster needs one.
         </p>
         <p>
-          <strong>When you create a PortPass account.</strong> Your name, your email address and your phone number. The phone number is optional unless you sign up to run a business. We also record which version of our terms you agreed to and when you last signed in. You sign in with a 6-digit code sent to your email, or with Google. There are no passwords, so we store none. If you registered a child earlier with the same email address, we link those registrations to your account.
+          <strong>When you create a PortPass account.</strong> Your name, your email address and your phone number. The phone number is optional unless you sign up to run a business. We also record which version of our terms you agreed to and when you last signed in. You sign in with a 6-digit code sent to your email, or with Google where the sign-in page offers it. There are no passwords, so we store none. If you registered a child earlier with the same email address, we link those registrations to your account.
         </p>
         <p id="google">
           <strong>When you sign in with Google.</strong> If you choose “Continue with Google”, Google shares your basic profile with us: your name, your email address and your profile photo, with the ID number Google gives your account. We use your name and email address to create or find your PortPass account. We don’t use or show the photo; it stays with your sign-in record. We ask Google for nothing else, so we can’t see your contacts, calendar, files or anything else in your Google account, and PortPass never posts anything to Google or on your behalf. You can remove PortPass’s access at any time in your Google account settings.
@@ -126,7 +126,7 @@ export default function PrivacyPage() {
           <strong>WhatsApp.</strong> WhatsApp buttons on PortPass open WhatsApp on your own device with a message you can edit. Nothing is sent unless you send it. The message then goes through WhatsApp, not through PortPass, and WhatsApp’s own terms apply. A business’s staff may also message you on WhatsApp at the number you gave them.
         </p>
         <p>
-          <strong>Review badges.</strong> One listing, Bahamas Weddings By The Sea, shows its rating and reviews using WeddingWire’s own badge. On that page your browser loads it from WeddingWire, which can see your internet address and may set its own cookies.
+          <strong>Review badges.</strong> One listing, Bahamas Weddings By The Sea, shows its rating, an award and its reviews using WeddingWire’s own badges. On that page your browser loads them from WeddingWire, which can see your internet address and may set its own cookies.
         </p>
         <p>
           <strong>Where it is kept.</strong> Our database, photos and emails are stored with the companies above on servers in the United States, and their networks may pass information through other countries on the way. We also keep encrypted backup copies of the database. When you send us your details, you agree to them being stored outside The Bahamas. Photos a business or coach uploads for its public page are stored at public web addresses.
@@ -147,13 +147,13 @@ export default function PrivacyPage() {
           <li><strong>How you found a business:</strong> on some businesses’ pages (today, Futprep’s), if you arrived from a tagged link, another website or another PortPass page, a cookie remembers the campaign tags, the name of that website and that you came through PortPass. It lasts 30 days, so it can be saved with your registration. It holds no name and no identifier.</li>
         </ul>
         <p>
-          Your browser also keeps a few things that never leave your device: whether you closed the “get the app” banner, whether you have seen the opening animation, and copies of public pages you opened so they still open offline. Pages that show or collect personal information are not saved offline. On a coach’s phone, attendance marks wait on the device until they are saved; they hold no names.
+          Your browser also keeps a few things that never leave your device: whether you closed the “get the app” banner, whether you have seen the opening animation, and copies of public pages you opened so they still open offline. Pages that show your personal information are not saved offline, and nothing you type into a form is saved offline. On a coach’s phone, attendance marks wait on the device until they are saved; they hold no names.
         </p>
         <p>
-          There are no advertising cookies and no trackers that follow you to other websites. To count visits and measure page speed we use Vercel’s Web Analytics and Speed Insights. They set no cookies and are not used to identify you. They record which pages are opened. We leave out the staff, admin and account areas, and we strip reference codes and personal details from page addresses before they are sent.
+          PortPass sets no advertising cookies and runs no trackers of its own that follow you to other websites. The WeddingWire badges described above are the one thing on PortPass that another company controls. To count visits and measure page speed we use Vercel’s Web Analytics and Speed Insights, which Vercel builds to work without cookies and without identifying you. They record which public pages are opened and a few button taps, such as starting a registration or tapping a WhatsApp button, with no names or contact details. We leave out the staff, admin and account areas, and we strip reference codes and personal details from page addresses before they are sent.
         </p>
         <p>
-          We use your internet (IP) address only for a few minutes, to slow down repeated attempts on our forms. We do not save it in our database.
+          We use your internet (IP) address only to slow down repeated attempts on our forms and sign-ins. It is held in memory for a short time and is never saved in our own records. The companies that host PortPass and handle sign-in also see it, and may keep it in their own security logs.
         </p>
 
         <h2 id="retention">How long we keep it</h2>
@@ -167,7 +167,7 @@ export default function PrivacyPage() {
           <li><strong>The log of changes</strong> to team invitations, approvals and payment details: for as long as the business is on PortPass.</li>
         </ul>
         <p>
-          At the end of these periods we delete the information, or remove the names from it so it can no longer be linked to you. When a business’s staff correct a record, the earlier value is kept in an edit history so changes can be traced. Our encrypted backups are each kept for no more than 12 months, so deleted information leaves the backups within that time.
+          At the end of these periods we delete the information, or remove the names from it so it can no longer be linked to you. The 90-day deletion of health details runs automatically every day. When a business’s registration desk corrects a child’s registration, the earlier value is kept in an edit history, with who changed it and when. Our encrypted backups are kept for about a year, so deleted information leaves the backups within about 13 months.
         </p>
 
         <h2>Your rights</h2>
@@ -188,7 +188,7 @@ export default function PrivacyPage() {
 
         <h2>How we protect it</h2>
         <p>
-          Your browser never talks to the database: every request goes through our own servers, and what each signed-in person may see is decided there, never from anything their browser claims. A business’s staff area has its own sign-in. PortPass’s own administrators need a second step, a code from an authenticator app, before they can open the admin area. Changes to roles, approvals, payment details and children’s records are logged with who made them. Connections to PortPass are encrypted.
+          Your browser never talks to the database: every request for information goes through our own servers, and what each signed-in person may see is decided there, never from anything their browser claims. Public photos load straight from our photo storage. A business’s staff area has its own sign-in, and five wrong PINs lock that sign-in for 15 minutes. PortPass’s own administrators need a second step, a code from an authenticator app, before they can open the admin area or a business’s records. Team invitations, approvals, changes to payment details and corrections to children’s registrations are logged with who made them. Connections to PortPass are encrypted.
         </p>
         <p>
           No system is perfectly secure. If something goes wrong that affects your information, we will tell you and the business concerned.

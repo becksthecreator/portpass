@@ -440,7 +440,7 @@ export function SetupWizard(props: Props) {
             <strong>{offer.id === null ? "Add an offering" : "Edit offering"}</strong>
             <label><span>Name *</span><input required maxLength={120} placeholder="Saturday class · Beach ceremony · Boat charter" value={offer.name} onChange={(e) => setOffer({ ...offer, name: e.target.value })} /></label>
             <div className="wiz-two">
-              <label><span>Price (USD)</span><input inputMode="decimal" placeholder="Leave blank to save a draft" value={offer.price} onChange={(e) => setOffer({ ...offer, price: e.target.value })} /></label>
+              <label><span>Price (BSD)</span><input inputMode="decimal" placeholder="Leave blank to save a draft" value={offer.price} onChange={(e) => setOffer({ ...offer, price: e.target.value })} /></label>
               <label><span>Priced</span><select value={offer.priceUnit} onChange={(e) => setOffer({ ...offer, priceUnit: e.target.value })}>{PRICE_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}</select></label>
             </div>
             <div className="wiz-two">

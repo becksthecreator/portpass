@@ -280,7 +280,7 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
         </div>
       </form>
 
-      <p className="auth-legal">By continuing you agree to our <Link href="/terms">Terms of Service</Link> and <Link href="/privacy">Privacy Policy</Link>.</p>
+      <p className="auth-legal">By continuing you confirm you are 18 or older and agree to our <Link href="/terms">Terms of Service</Link> and <Link href="/privacy">Privacy Policy</Link>.</p>
 
       {mode === "login" ? (
         <>
