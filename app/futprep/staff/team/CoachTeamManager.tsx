@@ -14,7 +14,11 @@ async function squarePhoto(file:File):Promise<Blob>{
     const {sx,sy,size,out}=squareCropBox(bitmap.width,bitmap.height);
     const canvas=document.createElement("canvas");
     canvas.width=out;canvas.height=out;
-    canvas.getContext("2d")!.drawImage(bitmap,sx,sy,size,size,0,0,out,out);
+    const context=canvas.getContext("2d")!;
+    // JPEG has no transparency: a cut-out PNG would otherwise turn black.
+    context.fillStyle="#ffffff";
+    context.fillRect(0,0,out,out);
+    context.drawImage(bitmap,sx,sy,size,size,0,0,out,out);
     bitmap.close?.();
     const blob=await new Promise<Blob|null>((resolve)=>canvas.toBlob(resolve,"image/jpeg",0.86));
     if(!blob) throw new Error("toBlob failed");
@@ -39,11 +43,11 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
     body.append("coachId",String(coach.id));
     body.append("file",await squarePhoto(file),file.name.replace(/\.[^.]+$/,"")+".jpg");
     const response=await fetch("/api/futprep/team/photo",{method:"POST",body}).catch(()=>null);
-    const data=response?((await response.json().catch(()=>({}))) as {error?:string;coaches?:CoachProfile[]}):{};
+    const data=response?((await response.json().catch(()=>({}))) as {error?:string;photoUrl?:string|null;coaches?:CoachProfile[]}):{};
     setUploadingId(null);
     input.value="";
     if(!response||!response.ok){setMessage(data.error??"Could not upload that photo.");return;}
-    if(data.coaches) setCoaches(data.coaches);
+    applyPhoto(coach.id,data);
     setMessage(`${coach.display_name}: photo updated. It shows on the coaches page and the Futprep home grid.`);
   }
 
@@ -51,10 +55,17 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
     if(!confirm(`Remove ${coach.display_name}'s photo? The card shows their initials until a new one is uploaded.`)) return;
     setMessage("");
     const response=await fetch("/api/futprep/team/photo",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({coachId:coach.id})}).catch(()=>null);
-    const data=response?((await response.json().catch(()=>({}))) as {error?:string;coaches?:CoachProfile[]}):{};
+    const data=response?((await response.json().catch(()=>({}))) as {error?:string;photoUrl?:string|null;coaches?:CoachProfile[]}):{};
     if(!response||!response.ok){setMessage(data.error??"Could not remove that photo.");return;}
-    if(data.coaches) setCoaches(data.coaches);
+    applyPhoto(coach.id,data);
     setMessage(`${coach.display_name}: photo removed.`);
+  }
+
+  // The route sends the refreshed list; if that re-read failed, the saved
+  // photo is still patched into this page's copy of the coach.
+  function applyPhoto(coachId:number,data:{photoUrl?:string|null;coaches?:CoachProfile[]}){
+    if(data.coaches){setCoaches(data.coaches);return;}
+    if(data.photoUrl!==undefined) setCoaches((current)=>current.map((c)=>c.id===coachId?{...c,photo_url:data.photoUrl??null}:c));
   }
 
   async function action(payload:Record<string,unknown>){
@@ -103,8 +114,8 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
         </div>
         <div className="team-manager-actions">
           {coach.active ? <>
-            <button disabled={!schemaReady} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",photoUrl:coach.photo_url??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:!coach.public_visible,bookable:coach.bookable,sortOrder:coach.sort_order})}>{coach.public_visible?"Hide":"Unhide"}</button>
-            <button disabled={!schemaReady||coach.member_type!=="coach"} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",photoUrl:coach.photo_url??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:coach.public_visible,bookable:!coach.bookable,sortOrder:coach.sort_order})}>{coach.bookable?"Pause bookings":"Allow bookings"}</button>
+            <button disabled={!schemaReady||uploadingId!==null} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:!coach.public_visible,bookable:coach.bookable,sortOrder:coach.sort_order})}>{coach.public_visible?"Hide":"Unhide"}</button>
+            <button disabled={!schemaReady||uploadingId!==null||coach.member_type!=="coach"} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:coach.public_visible,bookable:!coach.bookable,sortOrder:coach.sort_order})}>{coach.bookable?"Pause bookings":"Allow bookings"}</button>
             <button className="danger-action" disabled={!schemaReady} onClick={()=>{if(confirm(`Remove ${coach.display_name} from the active team? Booking history is kept, and you can restore the profile later from this page.`))action({action:"delete",id:coach.id});}}>Delete</button>
           </> : (
             <button disabled={!schemaReady} onClick={()=>action({action:"restore",id:coach.id})}>Restore</button>

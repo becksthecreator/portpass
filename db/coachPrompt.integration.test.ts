@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addWeeklyCoachSlots, coachSlotPrompt, setCoachPhoto } from "./coaches";
+import { addWeeklyCoachSlots, coachSlotPrompt, saveCoachProfile, setCoachPhoto } from "./coaches";
 import { ensureFutprepPilotData } from "./registrations";
 
 // Brief 16, C1 and C2, against CI's local Supabase stack: the "add your
@@ -72,5 +72,22 @@ describe("coach photos (brief 16, C2)", () => {
     expect(data!.photo_url).toBe(second);
     expect(await setCoachPhoto(bookableCoach, null)).toEqual({ previousUrl: second });
     await expect(setCoachPhoto(999999999, first)).rejects.toThrow("COACH_NOT_FOUND");
+  });
+
+  it("keeps an uploaded photo when Hide or Pause re-saves the profile without mentioning it", async () => {
+    const kept = "https://example.test/storage/v1/object/public/org-assets/coach/1/kept.jpg";
+    await setCoachPhoto(bookableCoach, kept);
+    const { data: row } = await db().from("coach_profiles").select("slug,display_name").eq("id", bookableCoach).single();
+    const profile = {
+      id: bookableCoach, displayName: row!.display_name, slug: row!.slug, positionTitle: "Coach", memberType: "coach" as const,
+      bio: "", licenses: [], playedAt: [], favoritePlayer: "", favoriteTeam: "", introVideoUrl: "", testimonialQuote: "", testimonialName: "",
+      publicVisible: false, bookable: true, sortOrder: 999,
+    };
+    await saveCoachProfile(profile);
+    const photo = async () => (await db().from("coach_profiles").select("photo_url").eq("id", bookableCoach).single()).data!.photo_url;
+    expect(await photo()).toBe(kept);
+    // An explicit empty Photo URL still clears it.
+    await saveCoachProfile({ ...profile, photoUrl: "" });
+    expect(await photo()).toBeNull();
   });
 });
