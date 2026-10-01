@@ -10,7 +10,7 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-const ACTIONS = ["business.created", "business.submitted", "business.approved", "business.went_live", "business.sent_back", "business.suspended", "business.unsuspended", "business.published_for_owner", "business.claim_link_created", "business.claimed", "application.drafted", "member.role_changed", "member.removed", "user.signed_out", "invite.resent", "business.updated", "business.updated.re_review", "organization.bank_details.updated", "image.consent_confirmed", "image.consent_withdrawn", "staff.pin_changed", "admin.mfa.verified", "category.created", "category.updated", "profile.platform_owner_granted"];
+const ACTIONS = ["business.created", "business.submitted", "business.approved", "business.went_live", "business.sent_back", "business.suspended", "business.unsuspended", "business.published_for_owner", "business.claim_link_created", "business.claimed", "application.drafted", "member.role_changed", "member.removed", "user.signed_out", "invite.resent", "registration.health_revealed", "bookings.exported", "content.announcement.updated", "content.home_spotlight.updated", "sponsor.created", "sponsor.updated", "sponsor.removed", "lead.status_changed", "business.updated", "business.updated.re_review", "organization.bank_details.updated", "image.consent_confirmed", "image.consent_withdrawn", "staff.pin_changed", "admin.mfa.verified", "category.created", "category.updated", "profile.platform_owner_granted"];
 
 function when(iso: string): string {
   return new Date(iso).toLocaleString("en-BS", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Nassau" });
@@ -20,6 +20,15 @@ function short(value: unknown): string {
   if (value === null || value === undefined) return "";
   const text = typeof value === "string" ? value : JSON.stringify(value);
   return text.length > 160 ? `${text.slice(0, 157)}…` : text;
+}
+
+// A reason someone typed (a reveal, a suspension) is shown in full, ahead
+// of the rest: it is the point of the entry and must never be cut off.
+function reasonOf(value: unknown): { reason: string | null; rest: unknown } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { reason: null, rest: value };
+  const { reason, ...rest } = value as Record<string, unknown>;
+  if (typeof reason !== "string" || !reason) return { reason: null, rest: value };
+  return { reason, rest: Object.keys(rest).length ? rest : null };
 }
 
 // Actor, action, target, before/after, time. Read-only by construction:
@@ -54,7 +63,10 @@ export default async function AdminAuditPage({ searchParams }: { searchParams: P
                 <td data-label="Action">{row.action}</td>
                 <td data-label="Target">{row.targetTable ?? ""}{row.targetId ? ` #${row.targetId}` : ""}{row.organizationId ? <> · <Link href={`/admin/audit?org=${row.organizationId}`}>org {row.organizationId}</Link></> : null}</td>
                 <td data-label="Before"><code>{short(row.before)}</code></td>
-                <td data-label="After"><code>{short(row.after)}</code></td>
+                <td data-label="After">{(() => {
+                  const { reason, rest } = reasonOf(row.after);
+                  return <>{reason && <><strong>Reason:</strong> {reason}{rest ? <br /> : null}</>}{rest !== null && rest !== undefined && <code>{short(rest)}</code>}</>;
+                })()}</td>
               </tr>
             ))}
           </tbody>

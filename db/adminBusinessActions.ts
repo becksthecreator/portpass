@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { upsertMembership } from "./accounts";
 import { logAudit } from "./audit";
 import { createDraftBusiness, getBusiness, listBusinessOfferings, submissionProblems, updateBusinessDetails, type Business } from "./business";
+import { linkLeadToDraft, markLeadsLive } from "./leadLinks";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 import { hasOwnPages } from "@/lib/orgWorkspaces";
 import { bumpListings } from "@/lib/revalidate";
@@ -35,6 +36,7 @@ async function goLiveIfPriced(id: number, actorUserId: string): Promise<boolean>
   // The status moved in between (a suspend, an owner's edit): nothing went live.
   if (!data) return false;
   await logAudit({ actorUserId, organizationId: id, action: "business.went_live", targetTable: "organizations", targetId: id });
+  await markLeadsLive(id, actorUserId);
   return true;
 }
 
@@ -220,6 +222,7 @@ export async function draftBusinessFromApplication(applicationId: number, actorU
     await db().from("applications").update({ status: "submitted", reviewed_at: null }).eq("id", applicationId).eq("status", "approved");
     throw failure;
   }
+  await linkLeadToDraft(applicationId, business.id, actorUserId);
   const whatsapp = (application.whatsapp_e164 as string | null) ?? null;
   const instagram = (application.instagram_handle as string | null) ?? null;
   if (whatsapp || instagram) {

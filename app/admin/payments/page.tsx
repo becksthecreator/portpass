@@ -31,7 +31,7 @@ export default async function AdminPaymentsPage() {
   const name = (id: number) => businesses.get(id)?.name ?? `Business ${id}`;
 
   return (
-    <AdminShell session={session} current="/admin/payments" title="Payments" lede="Payment requests across every business. Customers pay each business directly; these are the amounts businesses requested and recorded. Fees are invoiced from these numbers later, never deducted.">
+    <AdminShell session={session} current="/admin/payments" title="Payments" actions={<Link className="admin-bar-link" href="/admin/payments/recorded">Every recorded payment, what is owing, month by month</Link>} lede="Payment requests across every business. Customers pay each business directly; these are the amounts businesses requested and recorded. Fees are invoiced from these numbers later, never deducted.">
       <dl className="admin-preq-totals" aria-label={`${monthLabel(thisMonth)} so far`}>
         <div><dt>Requests sent, {monthLabel(thisMonth)}</dt><dd>{sum(current, "requestsSent")}</dd></div>
         <div><dt>Amount requested</dt><dd>{money(sum(current, "requestedCents"))}</dd></div>

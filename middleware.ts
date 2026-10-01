@@ -96,7 +96,15 @@ async function rewriteForCustomDomain(request: NextRequest): Promise<NextRespons
 // Shops (brief 15) get the same, one cookie per shop (pp_shop_<org>), read
 // by the reservation route to tell a PortPass link from the seller's
 // Instagram link or a direct visit.
+// A page the browser loads ahead of time, in case the visitor taps a link,
+// is not a visit: it must not set "came from PortPass".
+function isPrefetch(request: NextRequest): boolean {
+  const headers = request.headers;
+  return headers.has("next-router-prefetch") || headers.has("next-router-segment-prefetch") || headers.get("purpose") === "prefetch" || (headers.get("sec-purpose") ?? "").includes("prefetch");
+}
+
 function captureAttribution(request: NextRequest, response: NextResponse) {
+  if (isPrefetch(request)) return;
   const { pathname } = request.nextUrl;
   if (isFutprepPath(pathname)) {
     rememberAttribution(request, response, ATTRIBUTION_COOKIE, isFutprepPath);

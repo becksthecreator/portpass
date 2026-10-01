@@ -150,6 +150,29 @@ describe("what the owner of a suspended page can't do", () => {
   });
 });
 
+describe("the lead a business came from", () => {
+  it("is marked live when the business goes live, and a do-not-contact lead is never touched", async () => {
+    const id = await business("From A Lead", { priced: true, ownerUserId: owner });
+    const lead = (status: string, label: string) => ({ business_name: `TEST delete ${TAG} ${label}`, dedupe_key: `test delete ${TAG} ${label}`.toLowerCase(), status, source: "founder", organization_id: id });
+    const { data: leads, error } = await admin.from("leads").insert([lead("page_drafted", "Lead"), lead("do_not_contact", "Lead Never")]).select("id,status");
+    expect(error).toBeNull();
+    const open = leads!.find((l) => l.status === "page_drafted")!.id;
+    const never = leads!.find((l) => l.status === "do_not_contact")!.id;
+    try {
+      await submitBusiness(id, owner);
+      expect(await approveBusiness(id, founder)).toMatchObject({ status: "live" });
+      const { data: after } = await admin.from("leads").select("id,status").in("id", [open, never]);
+      expect(after!.find((l) => l.id === open)!.status).toBe("live");
+      expect(after!.find((l) => l.id === never)!.status).toBe("do_not_contact");
+      const { data: logged } = await admin.from("audit_log").select("before,after").eq("action", "lead.status_changed").eq("target_id", String(open));
+      expect(logged).toEqual([{ before: { status: "page_drafted" }, after: { status: "live" } }]);
+    } finally {
+      await admin.from("audit_log").delete().eq("target_table", "leads").in("target_id", [String(open), String(never)]);
+      await admin.from("leads").delete().in("id", [open, never]);
+    }
+  });
+});
+
 describe("businesses with their own pages", () => {
   it("refuses to suspend Futprep, whose pages and forms Suspend would not hide", async () => {
     await ensureFutprepPilotData();

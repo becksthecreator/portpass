@@ -19,6 +19,7 @@ import {
 import { slugify } from "@/lib/slug";
 import { logAudit } from "./audit";
 import { getBusiness, getBusinessBySlug, type Business } from "./business";
+import { markLeadsLive } from "./leadLinks";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // Drops (brief 15): shops, products, drops, reservations and the waitlist.
@@ -280,7 +281,10 @@ async function takeBusinessLiveOnFirstProduct(orgId: number, actorUserId: string
   if (!business || business.status !== "approved" || business.isPublished) return;
   // Only from "approved": a page suspended a moment ago stays hidden.
   const { data: live, error } = await getSupabaseAdmin().from("organizations").update({ is_published: true, is_directory_listed: true, status: "live" }).eq("id", orgId).eq("status", "approved").select("id").maybeSingle();
-  if (!error && live) await logAudit({ actorUserId, organizationId: orgId, action: "business.went_live", targetTable: "organizations", targetId: orgId });
+  if (!error && live) {
+    await logAudit({ actorUserId, organizationId: orgId, action: "business.went_live", targetTable: "organizations", targetId: orgId });
+    await markLeadsLive(orgId, actorUserId);
+  }
 }
 
 export async function deleteProduct(orgId: number, productId: number, actorUserId: string): Promise<void> {

@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { upsertMembership, type OrgRole } from "./accounts";
 import { logAudit } from "./audit";
 import { listCategories } from "./categories";
+import { markLeadsLive } from "./leadLinks";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 import { isReservedSlug, isValidSlug } from "@/lib/reservedSlugs";
 import { slugify } from "@/lib/slug";
@@ -432,7 +433,10 @@ export async function upsertBusinessOffering(id: number, offeringId: number | nu
     if (business && business.status === "approved" && !business.isPublished) {
       // Only from "approved": a page suspended a moment ago stays hidden.
       const { data: live, error } = await supabase.from("organizations").update({ is_published: true, is_directory_listed: true, status: "live" }).eq("id", id).eq("status", "approved").select("id").maybeSingle();
-      if (!error && live) await logAudit({ actorUserId, organizationId: id, action: "business.went_live", targetTable: "organizations", targetId: id });
+      if (!error && live) {
+        await logAudit({ actorUserId, organizationId: id, action: "business.went_live", targetTable: "organizations", targetId: id });
+        await markLeadsLive(id, actorUserId);
+      }
     }
   }
   bumpListings();

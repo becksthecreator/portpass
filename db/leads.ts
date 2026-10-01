@@ -10,10 +10,13 @@ import {
   firstWhatsappNumber,
   isBookingMethod,
   isLeadStatus,
+  leadsFunnel,
   normalizeInstagramHandle,
   scoreLead,
   type BookingMethod,
   type LeadDraft,
+  type LeadsFunnel,
+  type LeadStatusChange,
   type LeadSource,
   type LeadStatus,
   type ScoreReason,
@@ -480,6 +483,8 @@ export async function noteInboundRequest(id: number, input: { applicationId: num
   }
   const { error } = await getSupabaseAdmin().from("leads").update(row).eq("id", id).neq("status", "do_not_contact");
   throwIfSupabaseError(error, "Could not note the request on the lead");
+  // The funnel reads these lines: a reply through the form is a reply.
+  if (row.status === "replied") await logAudit({ actorUserId: null, action: "lead.status_changed", targetTable: "leads", targetId: id, before: { status: current.status }, after: { status: "replied" } });
 }
 
 // Removes a lead that only ever came from the public get listed form and
@@ -529,8 +534,8 @@ export async function importLeads(drafts: LeadDraft[], actorUserId: string): Pro
 
 export type LeadsDigest = { newBySection: Array<{ section: string | null; count: number }>; newThisWeek: number; topUncontacted: Lead[]; repliesWaiting: Lead[]; total: number };
 
-export async function leadsDigest(now: Date = new Date()): Promise<LeadsDigest> {
-  const leads = await listLeads();
+export async function leadsDigest(now: Date = new Date(), all?: Lead[]): Promise<LeadsDigest> {
+  const leads = all ?? (await listLeads());
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const fresh = leads.filter((l) => l.createdAt >= weekAgo);
   const counts = new Map<string | null, number>();
@@ -542,6 +547,27 @@ export async function leadsDigest(now: Date = new Date()): Promise<LeadsDigest> 
     repliesWaiting: leads.filter((l) => l.status === "replied"),
     total: leads.length,
   };
+}
+
+// The funnel on the leads screen: this week and all time, from where each
+// lead stands and the "status changed" lines in the audit log.
+// Pass the leads when the caller already has the whole list, to read it once.
+export async function getLeadsFunnel(now: Date = new Date(), all?: Lead[]): Promise<LeadsFunnel> {
+  const leads = all ?? (await listLeads());
+  const changes: LeadStatusChange[] = [];
+  // Newest first, so if the history ever outgrows the cap it is the oldest
+  // lines that are left out, not this week's.
+  for (let from = 0; from < 20_000; from += 1000) {
+    const { data, error } = await getSupabaseAdmin().from("audit_log").select("target_id,before,after,created_at").eq("action", "lead.status_changed").eq("target_table", "leads").order("id", { ascending: false }).range(from, from + 999);
+    throwIfSupabaseError(error, "Could not load lead history");
+    for (const row of data ?? []) {
+      const status = (row.after as { status?: unknown } | null)?.status;
+      const before = (row.before as { status?: unknown } | null)?.status;
+      if (typeof status === "string" && row.target_id) changes.push({ leadId: Number(row.target_id), status, from: typeof before === "string" ? before : null, at: String(row.created_at) });
+    }
+    if ((data ?? []).length < 1000) break;
+  }
+  return leadsFunnel(leads.map((lead) => ({ id: lead.id, status: lead.status, lastContactOn: lead.lastContactOn, createdAt: lead.createdAt })), changes, new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
 }
 
 // ---- "Draft their page" -------------------------------------------------------
@@ -603,6 +629,8 @@ export async function draftPageFromLead(id: number, actorUserId: string): Promis
     console.error("lead draft page: details not copied", fillError instanceof Error ? fillError.message : "");
   }
   await logAudit({ actorUserId, organizationId: business.id, action: "lead.page_drafted", targetTable: "leads", targetId: id, after: { organization_id: business.id, slug: business.slug } });
+  // The funnel reads these lines: where the lead stood before its page was drafted.
+  if (lead.status !== "live" && lead.status !== "page_drafted") await logAudit({ actorUserId, organizationId: business.id, action: "lead.status_changed", targetTable: "leads", targetId: id, before: { status: lead.status }, after: { status: "page_drafted" } });
   return { lead: toLead(data), organizationId: business.id, slug: business.slug };
 }
 
