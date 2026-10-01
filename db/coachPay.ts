@@ -68,7 +68,11 @@ export async function coachForStaffMember(staffMemberId: number): Promise<PayCoa
 
 // ---- Who coached a session --------------------------------------------------
 
-export type SessionStaffEntry = { coachId: number; coachName: string; role: StaffRole; paid: boolean };
+// `locked`: this coach's entry for the session is closed and can't be
+// changed from the roster. It is closed once the coach has been paid for
+// the session, but the roster is never told that: whether a coach has been
+// paid is pay data, for the CEO login and platform owners only.
+export type SessionStaffEntry = { coachId: number; coachName: string; role: StaffRole; locked: boolean };
 
 // Names and roles only: the roster never shows pay.
 export async function getSessionStaff(sessionId: number): Promise<{ entries: SessionStaffEntry[]; suggestedLead: { coachId: number; coachName: string } | null }> {
@@ -83,7 +87,7 @@ export async function getSessionStaff(sessionId: number): Promise<{ entries: Ses
     coachId: Number(row.coach_id),
     coachName: String((row.coach_profiles as unknown as { display_name: string } | null)?.display_name ?? "Coach"),
     role: row.role as StaffRole,
-    paid: row.paid_at !== null,
+    locked: row.paid_at !== null,
   }));
   if (entries.length > 0) return { entries, suggestedLead: null };
 

@@ -16,7 +16,10 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (!role) return NextResponse.json({ error: "Sign in again." }, { status: 401 });
   const sessionId = await sessionIdFrom(context);
   if (!sessionId) return NextResponse.json({ error: "Invalid session." }, { status: 400 });
-  return NextResponse.json(await getSessionStaff(sessionId));
+  const staff = await getSessionStaff(sessionId);
+  // A helper only reads the list: no need to know which entries are closed.
+  if (role === "helper") return NextResponse.json({ ...staff, entries: staff.entries.map((entry) => ({ ...entry, locked: false })) });
+  return NextResponse.json(staff);
 }
 
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -36,7 +39,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "INVALID_STAFF") return NextResponse.json({ error: "Choose coaches from the list, each as lead or assistant." }, { status: 400 });
-    if (message === "PAID_ROW_LOCKED") return NextResponse.json({ error: "A coach already paid for this session can't be removed or changed." }, { status: 409 });
+    if (message === "PAID_ROW_LOCKED") return NextResponse.json({ error: "That coach's entry for this session is closed and can't be removed or changed. Ask the CEO if it is wrong." }, { status: 409 });
     if (message === "SESSION_NOT_FOUND") return NextResponse.json({ error: "Session not found." }, { status: 404 });
     console.error("session staff error", error);
     return NextResponse.json({ error: "Could not save who coached." }, { status: 500 });

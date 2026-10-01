@@ -105,7 +105,7 @@ export function CoachRoster({
   // class's default lead (Coach Bex) is suggested until someone confirms.
   const [staff,setStaff] = useState<StaffPick[]>(() => initialStaff.length || !suggestedLead
     ? initialStaff
-    : [{ coachId: suggestedLead.coachId, coachName: suggestedLead.coachName, role: "lead", paid: false, unsaved: true }]);
+    : [{ coachId: suggestedLead.coachId, coachName: suggestedLead.coachName, role: "lead", locked: false, unsaved: true }]);
   const [adding,setAdding] = useState("");
   const [staffSaving,setStaffSaving] = useState(false);
   const [staffError,setStaffError] = useState("");
@@ -140,7 +140,7 @@ export function CoachRoster({
     if (!coach) return;
     setAdding("");
     const saved = staff.filter((entry)=>!entry.unsaved);
-    saveStaff([...saved, { coachId: coach.id, coachName: coach.name, role: saved.some((entry)=>entry.role==="lead") ? "assistant" : "lead", paid: false }]);
+    saveStaff([...saved, { coachId: coach.id, coachName: coach.name, role: saved.some((entry)=>entry.role==="lead") ? "assistant" : "lead", locked: false }]);
   }
 
   async function changeCoaches(next:number) {
@@ -321,15 +321,15 @@ export function CoachRoster({
             {staff.map((entry)=>(
               <li key={entry.coachId} className={entry.unsaved ? "is-suggested" : ""}>
                 <strong>{entry.coachName}</strong>
-                {readOnly || entry.paid ? (
-                  <span>{entry.role === "lead" ? "Lead" : "Assistant"}{entry.paid ? " · paid" : ""}</span>
+                {readOnly || entry.locked ? (
+                  <span>{entry.role === "lead" ? "Lead" : "Assistant"}</span>
                 ) : (
                   <select aria-label={`${entry.coachName}'s role`} value={entry.role} disabled={staffSaving} onChange={(e)=>changeRole(entry.coachId, e.target.value)}>
                     <option value="lead">Lead</option>
                     <option value="assistant">Assistant</option>
                   </select>
                 )}
-                {!readOnly && !entry.paid && !entry.unsaved && (
+                {!readOnly && !entry.locked && !entry.unsaved && (
                   <button type="button" aria-label={`Remove ${entry.coachName}`} disabled={staffSaving} onClick={()=>saveStaff(staff.filter((other)=>other.coachId!==entry.coachId))}>×</button>
                 )}
                 {entry.unsaved && !readOnly && (
