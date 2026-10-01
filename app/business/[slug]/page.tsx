@@ -43,6 +43,13 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
         <div className="eyebrow"><span className="eyebrow-dot" />{status.label}</div>
         <h1>{business.name}</h1>
         <p className="auth-lead">{status.detail}</p>
+        {business.status === "draft" && business.reviewNote && (
+          <div className="biz-review-note" role="note">
+            <strong>PortPass asked for a few changes</strong>
+            <p>{business.reviewNote}</p>
+            <p>Make the changes, then send it to us again.</p>
+          </div>
+        )}
 
         <div className="biz-home-grid">
           {business.status === "draft" && canEdit && (

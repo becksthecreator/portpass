@@ -5,8 +5,11 @@ import {
   createStaffAccount,
   listStaffAccounts,
   setStaffAccountActive,
+  setStaffAccountEmail,
   FUTPREP_STAFF_ROLES,
 } from "@/app/futprep/staff-auth";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 async function requireManager() {
   const role = await currentFutprepStaffRole();
@@ -64,16 +67,25 @@ export async function PATCH(request: Request) {
   const manager = await requireManager();
   if (!manager) return NextResponse.json({ error: "Sign in again." }, { status: 401 });
 
-  const body = (await request.json().catch(() => ({}))) as { id?: number; active?: boolean };
-  if (!Number.isInteger(body.id) || typeof body.active !== "boolean") {
+  const body = (await request.json().catch(() => ({}))) as { id?: number; active?: boolean; email?: unknown };
+  // Either switch a login off or on, or set where its reminders are emailed.
+  const hasEmail = body.email !== undefined;
+  if (!Number.isInteger(body.id) || (!hasEmail && typeof body.active !== "boolean")) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+  let email: string | null = null;
+  if (hasEmail) {
+    const typed = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 254) : "";
+    if (typed && !EMAIL_PATTERN.test(typed)) return NextResponse.json({ error: "That email address doesn't look right." }, { status: 400 });
+    email = typed || null;
   }
 
   try {
     const target = (await listStaffAccounts()).find((account) => account.id === Number(body.id));
     if (!target) return NextResponse.json({ error: "Account not found." }, { status: 404 });
     if (target.role === "ceo" && manager !== "ceo") return NextResponse.json({ error: CEO_ONLY }, { status: 403 });
-    await setStaffAccountActive(Number(body.id), body.active);
+    if (hasEmail) await setStaffAccountEmail(Number(body.id), email);
+    else await setStaffAccountActive(Number(body.id), Boolean(body.active));
     return NextResponse.json({ ok: true, accounts: await listStaffAccounts() });
   } catch (error) {
     console.error("Futprep update account error", error);

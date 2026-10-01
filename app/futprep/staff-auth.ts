@@ -21,6 +21,9 @@ export type FutprepStaffAccountRecord = {
   // When the person last changed their own PIN; null means they're still
   // on the one an admin set for them. Never the PIN, never the hash.
   pinChangedAt: string | null;
+  // Where the Saturday "mark attendance" reminder and the monthly growth
+  // report are sent (brief 05). Optional.
+  email: string | null;
 };
 
 // New and changed PINs are six digits or more (round 4, item 10). Existing
@@ -242,20 +245,20 @@ export async function createStaffAccount(input: {
       active: true,
       created_at: now,
     })
-    .select("id,name,role,account_key,active,pin_changed_at")
+    .select("id,name,role,account_key,active,pin_changed_at,email")
     .single();
   throwIfSupabaseError(error, "Could not create staff account");
   if (!data) throw new Error("Could not create staff account");
 
   invalidateAccountCache();
-  return { id: Number(data.id), name: data.name, accountKey: data.account_key, role: data.role as FutprepStaffRole, active: Boolean(data.active), pinChangedAt: (data.pin_changed_at as string | null) ?? null };
+  return { id: Number(data.id), name: data.name, accountKey: data.account_key, role: data.role as FutprepStaffRole, active: Boolean(data.active), pinChangedAt: (data.pin_changed_at as string | null) ?? null, email: (data.email as string | null) ?? null };
 }
 
 export async function listStaffAccounts(): Promise<FutprepStaffAccountRecord[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("staff_members")
-    .select("id,name,role,account_key,active,pin_changed_at")
+    .select("id,name,role,account_key,active,pin_changed_at,email")
     .eq("organization_id", FUTPREP_ORG_ID)
     .not("account_key", "is", null)
     .order("active", { ascending: false })
@@ -263,7 +266,18 @@ export async function listStaffAccounts(): Promise<FutprepStaffAccountRecord[]> 
   throwIfSupabaseError(error, "Could not load staff accounts");
   return (data ?? [])
     .filter((row) => row.role && isFutprepStaffRole(row.role))
-    .map((row) => ({ id: Number(row.id), name: row.name, accountKey: row.account_key as string, role: row.role as FutprepStaffRole, active: Boolean(row.active), pinChangedAt: (row.pin_changed_at as string | null) ?? null }));
+    .map((row) => ({ id: Number(row.id), name: row.name, accountKey: row.account_key as string, role: row.role as FutprepStaffRole, active: Boolean(row.active), pinChangedAt: (row.pin_changed_at as string | null) ?? null, email: (row.email as string | null) ?? null }));
+}
+
+// The email address reminders go to. null clears it.
+export async function setStaffAccountEmail(id: number, email: string | null) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("staff_members")
+    .update({ email })
+    .eq("id", id)
+    .eq("organization_id", FUTPREP_ORG_ID);
+  throwIfSupabaseError(error, "Could not update staff account");
 }
 
 export async function setStaffAccountActive(id: number, active: boolean) {

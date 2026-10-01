@@ -30,6 +30,10 @@ const SHOTS = [
   ["brief16-team-photo-upload-375", "test-ceo", "/futprep/staff/team", ".team-photo-actions"],
   // Brief 05: the growth report, with the CEO login.
   ["brief05-growth-report-375", "test-ceo", "/futprep/staff/growth", ".growth-panel"],
+  // Brief 08: Admin -> Businesses (approve, send back, publish, claim link,
+  // suspend) and People & access.
+  ["brief08-admin-businesses-375", "admin", "/admin/businesses", ".admin-row-actions"],
+  ["brief08-admin-people-375", "admin", "/admin/people", ".admin-table"],
   // Brief 14: Admin -> Leads with five TEST leads, and one lead's card.
   ["brief14-leads-table-375", "admin", "/admin/leads", ".leads-table"],
   ["brief14-lead-card-375", "admin", `/admin/leads/${fixture.leadId}`, ".lead-panel"],

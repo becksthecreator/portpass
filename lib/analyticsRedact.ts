@@ -19,6 +19,7 @@ export function redactAnalyticsUrl(url: string): string | null {
     let path = parsed.pathname;
     if (/^\/(admin|organizations|account|where-to)(\/|$)/.test(path)) return null;
     if (/^\/business\//.test(path)) return null;
+    if (/^\/claim(\/|$)/.test(path)) return null;
     if (/^\/futprep\/staff(\/|$)/.test(path)) return null;
     if (/^\/weddings\/(admin|staff)(\/|$)/.test(path)) return null;
     path = path.replace(/^\/futprep\/my\/[^/]+/, "/futprep/my/[code]");

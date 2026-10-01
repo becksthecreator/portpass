@@ -50,10 +50,12 @@ export type Business = {
   createdByAdmin: boolean;
   claimedAt: string | null;
   photoConsentRequired: boolean;
+  // What PortPass asked the owner to change when it sent the page back.
+  reviewNote: string | null;
 };
 
 const BUSINESS_COLUMNS =
-  "id,slug,name,primary_category,subcategory,island,area,one_liner,description,phone_e164,whatsapp_e164,public_email,website_url,instagram_handle,logo_url,hero_image_url,brand_color,owner_name,owner_bio,payment_methods,bank_transfer_details,status,is_published,submitted_at,approved_at,created_by_admin,claimed_at,photo_consent_required";
+  "id,slug,name,primary_category,subcategory,island,area,one_liner,description,phone_e164,whatsapp_e164,public_email,website_url,instagram_handle,logo_url,hero_image_url,brand_color,owner_name,owner_bio,payment_methods,bank_transfer_details,status,is_published,submitted_at,approved_at,created_by_admin,claimed_at,photo_consent_required,review_note";
 
 function toBusiness(row: Record<string, unknown>): Business {
   const bank = row.bank_transfer_details as Partial<BankTransferDetails> | null;
@@ -94,6 +96,7 @@ function toBusiness(row: Record<string, unknown>): Business {
     createdByAdmin: Boolean(row.created_by_admin),
     claimedAt: (row.claimed_at as string | null) ?? null,
     photoConsentRequired: Boolean(row.photo_consent_required),
+    reviewNote: (row.review_note as string | null) ?? null,
   };
 }
 
@@ -579,7 +582,7 @@ export async function submitBusiness(id: number, actorUserId: string): Promise<B
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("organizations")
-    .update({ status: "submitted", submitted_at: new Date().toISOString() })
+    .update({ status: "submitted", submitted_at: new Date().toISOString(), review_note: null })
     .eq("id", id)
     .select(BUSINESS_COLUMNS)
     .single();

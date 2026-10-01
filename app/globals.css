@@ -5643,6 +5643,27 @@ a.admin-tile:hover{border-color:var(--sky)}
 .auth-legal a{color:var(--harbour);text-decoration:underline;text-underline-offset:3px}
 .privacy-note{color:var(--muted);font-size:.8rem;line-height:1.5;margin:14px 0 10px}
 .privacy-note a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+/* Admin -> Businesses actions, and the owner's "changes asked for" note (brief 08). */
+.admin-row-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;max-width:340px}
+.admin-action{border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);cursor:pointer;display:inline-block;font:inherit;font-size:.78rem;font-weight:700;line-height:1.2;min-height:36px;padding:9px 13px;text-decoration:none}
+.admin-table a.admin-action{color:var(--text);text-decoration:none}
+.admin-action.is-primary,.admin-table a.admin-action.is-primary{background:var(--sky);border-color:var(--sky);color:var(--bg)}
+.admin-action.is-danger{border-color:#7a3a33;color:#ffb4a8}
+.admin-action:disabled{cursor:default;opacity:.55}
+.admin-action-ask{background:var(--bg);border:1px solid var(--line);border-radius:12px;display:grid;flex:1 0 100%;gap:8px;padding:12px}
+.admin-action-ask label{display:grid;gap:6px}
+.admin-action-ask span,.admin-action-ask p{color:var(--muted);font-size:.78rem;line-height:1.45;margin:0}
+.admin-action-ask textarea{background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:.85rem;padding:9px 10px;width:100%}
+.admin-action-ask code{color:var(--text);font-size:.74rem;overflow-wrap:anywhere}
+.admin-row-actions .form-error,.admin-row-done{flex:1 0 100%;font-size:.78rem;margin:0}
+.admin-row-done{color:var(--sky)}
+.admin-form-note{color:var(--muted);font-size:.82rem;line-height:1.5;margin:0}
+.admin-form-actions{align-items:center;display:flex;flex-wrap:wrap;gap:10px}
+.admin-add-business h2{font-size:1.05rem;margin:0}
+.application-whatsapp{align-self:center;color:var(--sky);font-size:.85rem;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.biz-review-note{border:1px solid var(--signal-text);border-radius:14px;margin:14px 0 0;padding:14px 16px;text-align:left}
+.biz-review-note strong{color:var(--signal-text);font-size:.9rem}
+.biz-review-note p{font-size:.9rem;line-height:1.5;margin:8px 0 0}
 /* The growth report (brief 05, part 2). Night theme, phone first. */
 .growth{display:grid;gap:16px;margin:18px 0 0;text-align:left}
 .growth-lead{color:var(--muted);font-size:.95rem;line-height:1.5;margin:0}

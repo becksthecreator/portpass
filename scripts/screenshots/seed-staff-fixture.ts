@@ -181,6 +181,16 @@ async function main() {
   const { error: eventError } = await db.from("page_events").insert(pageEvents);
   if (eventError) throw new Error(`Could not seed page events: ${eventError.message}`);
 
+  // Brief 08: one business waiting for review, one PortPass built for an
+  // owner, and one suspended, so Admin -> Businesses shows each set of buttons.
+  const stamp = new Date().toISOString();
+  const { error: businessError } = await db.from("organizations").insert([
+    { name: "TEST Padel Club (delete)", slug: "test-delete-padel-club", primary_category: "sports-fitness", status: "submitted", submitted_at: stamp, created_by_admin: false, created_at: stamp },
+    { name: "TEST Party Rentals (delete)", slug: "test-delete-party-rentals", primary_category: "entertainment", status: "draft", created_by_admin: true, created_at: stamp },
+    { name: "TEST Boat Tours (delete)", slug: "test-delete-boat-tours", primary_category: "tours", status: "suspended", created_by_admin: false, suspended_at: stamp, suspended_reason: "TEST reason", suspended_from: { status: "approved", is_published: false, is_directory_listed: false }, created_at: stamp },
+  ]);
+  if (businessError) throw new Error(`Could not seed businesses: ${businessError.message}`);
+
   // Brief 14: a TEST platform owner (the workflow puts this address in
   // PLATFORM_OWNER_EMAILS for the run) and five TEST leads for Admin -> Leads.
   const adminEmail = "test-delete-admin@test.portpass.local";

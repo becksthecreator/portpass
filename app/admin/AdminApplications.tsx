@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ApplicationRecord } from "@/db/applications";
 import { formatPhoneDisplay } from "@/lib/phone";
@@ -8,7 +9,24 @@ import { sectionName } from "@/lib/sections";
 
 export function AdminApplications({ initialApplications }: { initialApplications: ApplicationRecord[] }) {
   const [applications, setApplications] = useState(initialApplications);
+  const router = useRouter();
   const [busy, setBusy] = useState<number | null>(null);
+  const [error, setError] = useState("");
+
+  // "Create draft business from this": the request becomes a draft, prefilled,
+  // and the setup wizard opens on it.
+  async function draft(id: number) {
+    setBusy(id);
+    setError("");
+    const response = await fetch(`/api/applications/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: "draft" }) }).catch(() => null);
+    const data = response ? ((await response.json().catch(() => ({}))) as { slug?: string | null; error?: string }) : {};
+    if (!response || !response.ok || !data.slug) {
+      setBusy(null);
+      setError(data.error ?? "Could not create the draft.");
+      return;
+    }
+    router.push(`/business/${data.slug}/settings`);
+  }
 
   async function review(id: number, decision: "approved" | "rejected") {
     setBusy(id);
@@ -43,6 +61,7 @@ export function AdminApplications({ initialApplications }: { initialApplications
         <div><strong>{approved}</strong><span>Approved</span></div>
         <div><strong>{rejected}</strong><span>Rejected</span></div>
       </div>
+      {error && <p className="form-error" role="alert">{error}</p>}
       <section className="application-list">
         {applications.length === 0 && <div className="dashboard-empty"><h3>No applications yet.</h3></div>}
         {applications.map((application) => {
@@ -79,8 +98,9 @@ export function AdminApplications({ initialApplications }: { initialApplications
               <div className="application-actions">
                 {application.status === "submitted" ? (
                   <>
-                    <button disabled={busy === application.id} onClick={() => review(application.id,"approved")}>Approve</button>
-                    <button className="reject-button" disabled={busy === application.id} onClick={() => review(application.id,"rejected")}>Reject</button>
+                    {whatsapp && <a className="application-whatsapp" href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">Message on WhatsApp</a>}
+                    <button disabled={busy === application.id} onClick={() => draft(application.id)}>{busy === application.id ? "Working…" : "Create draft business"}</button>
+                    <button className="reject-button" disabled={busy === application.id} onClick={() => review(application.id,"rejected")}>Not a fit</button>
                   </>
                 ) : application.status === "approved" && application.organization_id ? (
                   <Link className="primary-button" href={`/organizations/${application.organization_id}`}>Open organization dashboard →</Link>
