@@ -1,4 +1,5 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
+import { CoachPhoto } from "@/app/_components/CoachPhoto";
 import Link from "next/link";
 import { currentFutprepStaffId, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
 import { coachSlotPrompt, listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
@@ -53,7 +54,7 @@ export default async function FutprepCoachesPage(){
         {coaches.map((coach)=>(
           <article className="futprep-team-card" id={coach.slug} key={coach.slug}>
             <div className={isUploadedCoachPhoto(coach.photo_url) ? "futprep-team-photo is-square" : "futprep-team-photo"}>
-              {coach.photo_url ? <img src={coach.photo_url} alt={coach.display_name} /> : <div className="futprep-team-initial"><span className="coach-initials" aria-hidden="true">{initialsOf(coach.display_name)}</span></div>}
+              {coach.photo_url ? <CoachPhoto src={coach.photo_url} alt={coach.display_name} fallback={<div className="futprep-team-initial"><span className="coach-initials" aria-hidden="true">{initialsOf(coach.display_name)}</span></div>} /> : <div className="futprep-team-initial"><span className="coach-initials" aria-hidden="true">{initialsOf(coach.display_name)}</span></div>}
               <span>{coach.member_type==="coach" ? "Coach" : "Team"}</span>
             </div>
             <div className="futprep-team-copy">
