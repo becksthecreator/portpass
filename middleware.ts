@@ -29,6 +29,9 @@ const NEVER_REWRITE_PREFIXES = [
   "/account",
   "/where-to",
   "/business",
+  // A customer's payment request page is PortPass's, whichever host the
+  // link was opened on (brief 17).
+  "/pay",
 ];
 
 let domainCache: { map: Map<string, string>; fetchedAt: number } | null = null;

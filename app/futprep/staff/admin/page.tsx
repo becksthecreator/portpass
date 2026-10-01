@@ -28,6 +28,7 @@ export default async function FutprepStaffAdminPage() {
         </div>
         <nav>
           {role==="ceo" && <Link href="/futprep/staff/ceo">CEO overview</Link>}
+          <Link href="/futprep/staff/payments">Payments</Link>
           <Link href="/futprep/staff/private-sessions">Private sessions</Link>
           <Link href="/futprep/staff/programs">Programs</Link>
           <Link href="/futprep/staff/contracts">Contracts</Link>

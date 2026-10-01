@@ -1229,11 +1229,17 @@ export async function voidFutprepPayment(input: {
 
   const { data: payment, error } = await db
     .from("payments")
-    .select("id,registration_id,amount_cents,method,received_at")
+    .select("id,registration_id,amount_cents,method,received_at,payment_request_id")
     .eq("id", input.paymentId)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load payment");
   if (!payment) throw new Error("PAYMENT_NOT_FOUND");
+  // A payment recorded through a payment request has a receipt the parent
+  // may already hold (brief 17): it is refunded on the request, never
+  // deleted here.
+  if (payment.payment_request_id !== null) {
+    throw new Error("This payment came through a payment request and has a receipt. Record a refund on that request in Payments instead.");
+  }
 
   const { error: deleteError } = await db.from("payments").delete().eq("id", input.paymentId);
   throwIfSupabaseError(deleteError, "Could not remove payment");

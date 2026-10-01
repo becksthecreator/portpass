@@ -29,6 +29,7 @@ export const RESERVED_TOP_LEVEL_SLUGS = new Set<string>([
   "opengraph-image",
   "organizations",
   "own",
+  "pay",
   "pricing",
   "privacy",
   "robots.txt",

@@ -11,7 +11,7 @@ const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 // emails the parent), record payments against the PS- code.
 // `defaultCoachId` preselects the coach the "add your weekly slots" prompt
 // came from (brief 16, C1).
-export function PrivateSessionManager({ initialRequests, coaches, services, schemaReady, defaultCoachId }: { initialRequests: PrivateSessionRequest[]; coaches: CoachProfile[]; services: ServiceName[]; schemaReady: boolean; defaultCoachId?: number | null }) {
+export function PrivateSessionManager({ initialRequests, coaches, services, schemaReady, defaultCoachId, canRequestPayment = false }: { initialRequests: PrivateSessionRequest[]; coaches: CoachProfile[]; services: ServiceName[]; schemaReady: boolean; defaultCoachId?: number | null; canRequestPayment?: boolean }) {
   const [requests, setRequests] = useState(initialRequests);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -107,6 +107,7 @@ export function PrivateSessionManager({ initialRequests, coaches, services, sche
           <label><span>How</span><select name="method" defaultValue="cash"><option value="cash">Cash</option><option value="bank_transfer">Bank transfer</option><option value="online_banking">Online banking</option></select></label>
           <label><span>Reference</span><input name="reference" placeholder={request.reference_code} /></label>
           <button type="submit">Record payment</button>
+          {canRequestPayment && <a className="secondary-button" href={`/futprep/staff/payments/new?privateSession=${request.id}`}>Request payment</a>}
         </form>
       )}
     </article>)}

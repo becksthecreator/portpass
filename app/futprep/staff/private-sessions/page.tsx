@@ -32,7 +32,7 @@ export default async function PrivateSessionsPage({ searchParams }: { searchPara
       </div>
       {unpublished.length>0&&<div className="staff-migration-warning"><strong>Prices not live yet.</strong><span>{unpublished.map((s)=>s.name).join(", ")} {unpublished.length===1?"is":"are"} waiting for confirmed prices, so parents can&apos;t book {unpublished.length===1?"it":"them"} online yet.</span></div>}
       {!schemaReady&&<div className="staff-migration-warning"><strong>Database migration required.</strong><span>Run the new Futprep coaches/private-session migration, then this inbox becomes active.</span></div>}
-      <PrivateSessionManager initialRequests={requests} coaches={coaches.filter((c)=>c.member_type==="coach"&&c.active)} services={services.map((s)=>({slug:s.slug,name:s.name}))} schemaReady={schemaReady} defaultCoachId={defaultCoachId} />
+      <PrivateSessionManager initialRequests={requests} coaches={coaches.filter((c)=>c.member_type==="coach"&&c.active)} services={services.map((s)=>({slug:s.slug,name:s.name}))} schemaReady={schemaReady} defaultCoachId={defaultCoachId} canRequestPayment={role==="admin"||role==="ceo"} />
     </section>
   </main>;
 }
