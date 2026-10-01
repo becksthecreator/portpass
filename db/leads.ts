@@ -10,10 +10,13 @@ import {
   firstWhatsappNumber,
   isBookingMethod,
   isLeadStatus,
+  leadsFunnel,
   normalizeInstagramHandle,
   scoreLead,
   type BookingMethod,
   type LeadDraft,
+  type LeadsFunnel,
+  type LeadStatusChange,
   type LeadSource,
   type LeadStatus,
   type ScoreReason,
@@ -542,6 +545,23 @@ export async function leadsDigest(now: Date = new Date()): Promise<LeadsDigest> 
     repliesWaiting: leads.filter((l) => l.status === "replied"),
     total: leads.length,
   };
+}
+
+// The funnel on the leads screen: this week and all time, from where each
+// lead stands and the "status changed" lines in the audit log.
+export async function getLeadsFunnel(now: Date = new Date()): Promise<LeadsFunnel> {
+  const leads = await listLeads();
+  const changes: LeadStatusChange[] = [];
+  for (let from = 0; from < 20_000; from += 1000) {
+    const { data, error } = await getSupabaseAdmin().from("audit_log").select("target_id,after,created_at").eq("action", "lead.status_changed").eq("target_table", "leads").order("id", { ascending: true }).range(from, from + 999);
+    throwIfSupabaseError(error, "Could not load lead history");
+    for (const row of data ?? []) {
+      const status = (row.after as { status?: unknown } | null)?.status;
+      if (typeof status === "string" && row.target_id) changes.push({ leadId: Number(row.target_id), status, at: String(row.created_at) });
+    }
+    if ((data ?? []).length < 1000) break;
+  }
+  return leadsFunnel(leads.map((lead) => ({ id: lead.id, status: lead.status, lastContactOn: lead.lastContactOn, createdAt: lead.createdAt })), changes, new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
 }
 
 // ---- "Draft their page" -------------------------------------------------------

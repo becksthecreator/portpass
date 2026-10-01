@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { listSections } from "@/db/categories";
-import { leadsDigest, listLeads, lookupUsage, PLACES_DAILY_CAP } from "@/db/leads";
+import { getLeadsFunnel, leadsDigest, listLeads, lookupUsage, PLACES_DAILY_CAP } from "@/db/leads";
 import { requireAdmin } from "@/lib/auth/admin";
 import { enrichmentConfigured } from "@/lib/scout/enrich";
 import { instagramConfigured } from "@/lib/scout/instagram";
-import { isLeadSource, isLeadStatus, LEAD_SOURCE_LABEL, LEAD_SOURCES, LEAD_STATUS_LABEL, LEAD_STATUSES, SCORE_ACTION_LABEL, scoreAction, type LeadSource, type LeadStatus } from "@/lib/scout/leads";
+import { isLeadSource, isLeadStatus, LEAD_BOARD, LEAD_SOURCE_LABEL, LEAD_SOURCES, LEAD_STATUS_LABEL, LEAD_STATUSES, SCORE_ACTION_LABEL, scoreAction, type LeadSource, type LeadStatus } from "@/lib/scout/leads";
 import { placesConfigured } from "@/lib/scout/places";
 import { AdminShell } from "../_components/AdminShell";
 import { AddLead } from "./AddLead";
@@ -21,6 +21,8 @@ function when(iso: string | null): string {
   return iso ? new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString("en-BS", { day: "numeric", month: "short", timeZone: "UTC" }) : "—";
 }
 
+const percent = (rate: number | null): string => (rate === null ? "—" : `${Math.round(rate * 100)}%`);
+
 function dollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
@@ -28,18 +30,28 @@ function dollars(cents: number): string {
 // PortPass Scout (brief 14): the lead catalogue. Business-published details
 // only, from official sources and what the founders type. Messages are
 // always sent by a founder, by hand, one at a time.
-export default async function AdminLeadsPage({ searchParams }: { searchParams: Promise<{ section?: string; status?: string; source?: string; score?: string; area?: string; q?: string }> }) {
+export default async function AdminLeadsPage({ searchParams }: { searchParams: Promise<{ section?: string; status?: string; source?: string; score?: string; area?: string; q?: string; view?: string }> }) {
   const session = await requireAdmin("/admin/leads");
   const params = await searchParams;
   const status: LeadStatus | "all" | null = params.status === "all" ? "all" : isLeadStatus(params.status) && params.status !== "do_not_contact" ? params.status : null;
   const source: LeadSource | null = isLeadSource(params.source) ? params.source : null;
   const minScore = params.score && /^\d{1,3}$/.test(params.score) ? Number(params.score) : null;
-  const [sections, leads, digest, usage] = await Promise.all([
+  const board = params.view === "board";
+  const [sections, leads, digest, usage, funnel] = await Promise.all([
     listSections({ includeHidden: true }),
     listLeads({ section: params.section || null, status, source, minScore, area: params.area ?? null, q: params.q ?? null }),
     leadsDigest(),
     lookupUsage(),
+    getLeadsFunnel(),
   ]);
+  // The same filters, in the other view.
+  const viewHref = (view: "table" | "board") => {
+    const query = new URLSearchParams();
+    for (const key of ["section", "status", "source", "score", "area", "q"] as const) if (params[key]) query.set(key, String(params[key]));
+    if (view === "board") query.set("view", "board");
+    const text = query.toString();
+    return text ? `/admin/leads?${text}` : "/admin/leads";
+  };
   const sectionName = (slug: string | null) => sections.find((s) => s.slug === slug)?.name ?? slug ?? "No section yet";
   const sectionOptions = sections.map((s) => ({ slug: s.slug, name: s.name, subcategories: s.subcategories.map((c) => ({ slug: c.slug, name: c.name })) }));
   const filtered = Boolean(params.section || status || source || minScore !== null || params.area || params.q);
@@ -50,7 +62,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
       current="/admin/leads"
       title="Leads"
       lede="Businesses that could be on PortPass Bahamas. Only what a business publishes about itself. You send every message yourself, one to one."
-      actions={<Link className="admin-bar-link" href="/admin/leads/import">Import the Prospect Tracker</Link>}
+      actions={<><Link className="admin-bar-link" href="/admin/leads/sponsors">Sponsors</Link><Link className="admin-bar-link" href="/admin/leads/import">Import the Prospect Tracker</Link></>}
     >
       <section className="leads-digest" aria-labelledby="leads-digest-h">
         <h2 id="leads-digest-h">This week</h2>
@@ -60,6 +72,30 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
           <div className="admin-tile"><span>In the catalogue</span><strong>{digest.total}</strong><small>&ldquo;Do not contact&rdquo; businesses are never listed</small></div>
           <div className="admin-tile"><span>Google searches today</span><strong>{usage.placesToday} / {PLACES_DAILY_CAP}</strong><small>About {dollars(usage.monthCostCents.google_places)} this month · {usage.monthCount.claude} AI calls · {usage.monthCount.instagram} Instagram lookups</small></div>
         </div>
+        <h3 className="leads-funnel-h">The funnel</h3>
+        <table className="admin-table leads-funnel">
+          <thead><tr><th>When</th><th>Added</th><th>Contacted</th><th>Replied</th><th>Live</th><th>Reply rate</th><th>Close rate</th></tr></thead>
+          <tbody>
+            <tr>
+              <td data-label="When">Last 7 days</td>
+              <td data-label="Added">{funnel.week.added}</td>
+              <td data-label="Contacted">{funnel.week.contacted}</td>
+              <td data-label="Replied">{funnel.week.replied}</td>
+              <td data-label="Live">{funnel.week.live}</td>
+              <td data-label="Reply rate">—</td>
+              <td data-label="Close rate">—</td>
+            </tr>
+            <tr>
+              <td data-label="When">All time</td>
+              <td data-label="Added">{funnel.allTime.added}</td>
+              <td data-label="Contacted">{funnel.allTime.contacted}</td>
+              <td data-label="Replied">{funnel.allTime.replied}</td>
+              <td data-label="Live">{funnel.allTime.live}</td>
+              <td data-label="Reply rate">{percent(funnel.replyRate)}</td>
+              <td data-label="Close rate">{percent(funnel.closeRate)}</td>
+            </tr>
+          </tbody>
+        </table>
         {digest.topUncontacted.length > 0 && (
           <div className="leads-top">
             <h3>Top {digest.topUncontacted.length} by score, not yet contacted</h3>
@@ -111,14 +147,44 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
           </select>
         </label>
         <label><span>Search</span><input name="q" defaultValue={params.q ?? ""} placeholder="Business name" maxLength={60} /></label>
+        {board && <input type="hidden" name="view" value="board" />}
         <div className="leads-filter-actions">
           <button className="primary-button" type="submit">Filter</button>
           {filtered && <Link href="/admin/leads">Clear</Link>}
         </div>
       </form>
 
+      <div className="admin-filters" aria-label="View">
+        <Link href={viewHref("table")} aria-current={!board ? "true" : undefined}>Table</Link>
+        <Link href={viewHref("board")} aria-current={board ? "true" : undefined}>Board</Link>
+      </div>
+
       {leads.length === 0 ? (
         <p className="admin-empty">{filtered ? "No leads match those filters." : "No leads yet. Add one, search Google Places, or import the Prospect Tracker."}</p>
+      ) : board ? (
+        <div className="leads-board">
+          {LEAD_BOARD.map((column) => {
+            const cards = leads.filter((lead) => lead.status === column);
+            return (
+              <section key={column} className="leads-board-column" aria-labelledby={`board-${column}`}>
+                <h3 id={`board-${column}`}>{LEAD_STATUS_LABEL[column]} <span>{cards.length}</span></h3>
+                {cards.length === 0 ? (
+                  <p className="leads-board-empty">None</p>
+                ) : (
+                  <ul>
+                    {cards.map((lead) => (
+                      <li key={lead.id}>
+                        <Link href={`/admin/leads/${lead.id}`}>{lead.businessName}</Link>
+                        <small>{[sectionName(lead.section), lead.nextStep].filter(Boolean).join(" · ")}</small>
+                        {lead.score !== null && <span className={`lead-score lead-score-${scoreAction(lead.score)}`}>{lead.score}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            );
+          })}
+        </div>
       ) : (
         <table className="admin-table leads-table">
           <thead><tr><th>Business</th><th>Section</th><th>Area</th><th>Score</th><th>Status</th><th>Source</th><th>Last contact</th></tr></thead>

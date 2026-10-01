@@ -22,6 +22,51 @@ export const LEAD_STATUS_LABEL: Record<LeadStatus, string> = {
 // New -> Contacted -> Replied -> Page drafted -> Live, with two exits.
 export const LEAD_PIPELINE: LeadStatus[] = ["new", "contacted", "replied", "page_drafted", "live"];
 
+// The board's columns: the pipeline, then the one exit that can come back.
+export const LEAD_BOARD: LeadStatus[] = [...LEAD_PIPELINE, "not_now"];
+
+// ---- The funnel (brief 08, 1.8) ---------------------------------------------------
+
+export type FunnelLead = { id: number; status: LeadStatus; lastContactOn: string | null; createdAt: string };
+// One "status changed" line from the audit log.
+export type LeadStatusChange = { leadId: number; status: string; at: string };
+export type FunnelCounts = { added: number; contacted: number; replied: number; live: number };
+export type LeadsFunnel = { week: FunnelCounts; allTime: FunnelCounts; replyRate: number | null; closeRate: number | null };
+
+// Added, contacted, replied, live: this week and all time, with the reply
+// rate (replied out of contacted) and the close rate (live out of
+// contacted). A lead counts as having reached a stage if it stands there
+// now or the audit log shows it was moved there; a page can be drafted
+// before the first message, so "page drafted" proves neither a contact
+// nor a reply. "This week" is the last seven days.
+export function leadsFunnel(leads: FunnelLead[], changes: LeadStatusChange[], weekAgoIso: string): LeadsFunnel {
+  const known = new Set(leads.map((lead) => lead.id));
+  const reached = { contacted: new Set<number>(), replied: new Set<number>(), live: new Set<number>() };
+  const thisWeek = { contacted: new Set<number>(), replied: new Set<number>(), live: new Set<number>() };
+  for (const lead of leads) {
+    if (lead.status === "contacted" || lead.status === "replied" || lead.status === "live" || lead.lastContactOn) reached.contacted.add(lead.id);
+    if (lead.status === "replied" || lead.status === "live") reached.replied.add(lead.id);
+    if (lead.status === "live") reached.live.add(lead.id);
+    if (lead.lastContactOn && lead.lastContactOn >= weekAgoIso.slice(0, 10)) thisWeek.contacted.add(lead.id);
+  }
+  for (const change of changes) {
+    // A lead since removed or marked "do not contact" is not counted.
+    if (!known.has(change.leadId)) continue;
+    if (change.status !== "contacted" && change.status !== "replied" && change.status !== "live") continue;
+    if (change.status !== "live") reached[change.status].add(change.leadId);
+    if (change.status === "replied") reached.contacted.add(change.leadId);
+    if (change.at >= weekAgoIso) thisWeek[change.status].add(change.leadId);
+  }
+  const allTime = { added: leads.length, contacted: reached.contacted.size, replied: reached.replied.size, live: reached.live.size };
+  const rate = (part: number, whole: number) => (whole > 0 ? Math.min(1, part / whole) : null);
+  return {
+    week: { added: leads.filter((lead) => lead.createdAt >= weekAgoIso).length, contacted: thisWeek.contacted.size, replied: thisWeek.replied.size, live: thisWeek.live.size },
+    allTime,
+    replyRate: rate(allTime.replied, allTime.contacted),
+    closeRate: rate(allTime.live, allTime.contacted),
+  };
+}
+
 export const LEAD_SOURCES = ["google_places", "instagram", "inbound_form", "referral", "founder", "tracker_import"] as const;
 export type LeadSource = (typeof LEAD_SOURCES)[number];
 

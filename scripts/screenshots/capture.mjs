@@ -34,6 +34,14 @@ const SHOTS = [
   // suspend) and People & access.
   ["brief08-admin-businesses-375", "admin", "/admin/businesses", ".admin-row-actions"],
   ["brief08-admin-people-375", "admin", "/admin/people", ".admin-table"],
+  // Brief 08, build B: bookings across every business, one registration
+  // with its health details hidden behind Reveal, payments month by month,
+  // the leads board, and Content.
+  ["brief08-admin-bookings-375", "admin", "/admin/bookings", ".admin-table"],
+  ["brief08-admin-registration-reveal-375", "admin", `/admin/bookings/registrations/${fixture.registrationId}`, ".admin-reveal"],
+  ["brief08-admin-payments-months-375", "admin", "/admin/payments?view=months", ".admin-table"],
+  ["brief08-admin-leads-board-375", "admin", "/admin/leads?view=board", ".leads-board"],
+  ["brief08-admin-content-375", "admin", "/admin/content", ".admin-content-form"],
   // Brief 14: Admin -> Leads with five TEST leads, and one lead's card.
   ["brief14-leads-table-375", "admin", "/admin/leads", ".leads-table"],
   ["brief14-lead-card-375", "admin", `/admin/leads/${fixture.leadId}`, ".lead-panel"],

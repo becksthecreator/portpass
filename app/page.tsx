@@ -9,9 +9,11 @@ import { DEFAULT_BRAND } from "./_components/blocks/brand";
 import { categoryLabel } from "./_components/blocks/categoryLabel";
 import { directoryHref } from "./_components/blocks/directoryHref";
 import { getFutprepAvailability, type FutprepAvailability } from "@/db/registrations";
+import { getSiteContent } from "@/db/siteContent";
 import { getWeddingSiteSettings, DEFAULT_SETTINGS, type WeddingSiteSettings } from "@/db/weddingSite";
 import { listPublishedOrganizations, liveCountsByCategory, type OrganizationDirectoryEntry } from "@/db/organizations";
 import { withOneRetry } from "@/db/supabase";
+import { orderBySpotlight } from "@/lib/siteContent";
 import { programTimeRange } from "./futprep/config";
 import { SiteHeader } from "./_components/SiteHeader";
 import { SiteFooter } from "./_components/SiteFooter";
@@ -77,11 +79,14 @@ export const revalidate = 300;
 const CAROUSEL_FROM = 4;
 
 export default async function Home() {
-  const [availability, weddingSettings, directory] = await Promise.all([
+  const [availability, weddingSettings, listed, content] = await Promise.all([
     safeAvailability(),
     safeWeddingSettings(),
     safeDirectory(),
+    getSiteContent(),
   ]);
+  // The order the founders chose in Admin -> Content; the rest follow.
+  const directory = orderBySpotlight(listed, content.spotlight);
   // The Saturday-class line: camps have their own page and card.
   const termClasses = availability.filter((offer) => offer.programType === "term");
   const futprepProgram = termClasses[0];

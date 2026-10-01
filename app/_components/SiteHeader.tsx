@@ -1,6 +1,8 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
+import { getSiteContent } from "@/db/siteContent";
 import { getNavTree } from "@/lib/navSections";
+import { announcementVisible, nassauDay } from "@/lib/siteContent";
 import { HeaderAccount } from "./HeaderAccount";
 import { SiteNav } from "./SiteNav";
 
@@ -26,7 +28,10 @@ const HEADER_MARK_QUERY = "(max-width: 519px)";
 // "← back" row is desktop-only (round 4, item 4). The BreadcrumbList
 // JSON-LD is unchanged, so search results still get the trail.
 export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
-  const sections = await getNavTree();
+  // The announcement bar (Admin -> Content): one line above the header on
+  // every PortPass page, until its last day or until it is switched off.
+  const [sections, { announcement }] = await Promise.all([getNavTree(), getSiteContent()]);
+  const announce = announcementVisible(announcement, nassauDay()) ? announcement : null;
   // The full trail ("PortPass / Weddings / Bahamas Weddings By The Sea")
   // reads like a file path, so only a single link back to the immediate
   // parent is shown -- the offering page's parent is its organization, an
@@ -42,6 +47,13 @@ export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
   const schemaTrail = breadcrumb && breadcrumb.length > 0 ? [{ label: "PortPass", href: "/" }, ...breadcrumb] : [];
 
   return (
+    <>
+    {announce && (
+      <p className="site-announcement" role="note">
+        <span>{announce.text}</span>
+        {announce.href && (announce.href.startsWith("/") ? <Link href={announce.href}>{announce.linkLabel}</Link> : <a href={announce.href} rel="noopener">{announce.linkLabel}</a>)}
+      </p>
+    )}
     <header className="site-shell-header">
       <div className="site-shell-header-top">
         <Link className="site-shell-brand" href="/"><BrandLogo markQuery={HEADER_MARK_QUERY} /></Link>
@@ -75,5 +87,6 @@ export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
         />
       )}
     </header>
+    </>
   );
 }

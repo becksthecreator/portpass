@@ -5742,3 +5742,47 @@ a.admin-tile:hover{border-color:var(--sky)}
 .leads-import-preview{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px;font-size:.9rem}
 .leads-import-preview p{margin:0}
 @media(max-width:560px){.lead-facts div{grid-template-columns:1fr;gap:2px}}
+/* Admin -> Bookings and Payments (brief 08, 1.6 and 1.7). */
+.admin-facts{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin:0 0 28px}
+.admin-facts div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.admin-facts dt{color:var(--muted);font-size:.68rem;font-weight:800;letter-spacing:.08em;margin:0 0 4px;text-transform:uppercase}
+.admin-facts dd{font-size:.92rem;line-height:1.45;margin:0;overflow-wrap:anywhere}
+.admin-reveal{background:var(--surface);border:1px solid var(--line);border-radius:14px;display:grid;gap:10px;max-width:640px;padding:16px}
+.admin-reveal.is-open{border-color:var(--signal-text);max-width:none}
+.admin-reveal label{font-size:.85rem;font-weight:700}
+.admin-reveal textarea{background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:.9rem;padding:10px 12px;width:100%}
+.admin-reveal .admin-action{justify-self:start}
+.admin-reveal .admin-facts{margin:0}
+.admin-owing{color:var(--signal-text);font-weight:700}
+.admin-content>.admin-form-note{margin:0 0 14px}
+/* Announcement bar and Admin -> Content (brief 08, 1.9). */
+.site-announcement{align-items:center;background:#0D1B3D;color:#fff;display:flex;flex-wrap:wrap;font-size:.85rem;font-weight:600;gap:4px 12px;justify-content:center;line-height:1.4;margin:0;padding:9px 16px;text-align:center}
+.site-announcement a,.admin-content-preview-link{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.admin-content-form{display:grid;gap:14px;max-width:640px}
+.admin-content-form label{display:grid;gap:6px}
+.admin-content-form label>span{color:var(--muted);font-size:.8rem}
+.admin-content-form input:not([type=checkbox]){background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:.92rem;min-height:44px;padding:9px 12px;width:100%}
+.admin-content-form .admin-content-check{align-items:center;display:flex;gap:10px}
+.admin-content-form .admin-content-check input{height:20px;width:20px}
+.admin-content-form .admin-content-check span{color:var(--text);font-size:.9rem}
+.admin-content-preview{border:1px solid var(--line);border-radius:10px}
+.admin-content-order{display:grid;gap:8px;list-style:none;margin:0 0 14px;max-width:640px;padding:0}
+.admin-content-order li{align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;padding:10px 14px}
+.admin-content-order-buttons{display:flex;gap:8px}
+.admin-inline-link{color:var(--sky);text-decoration:underline;text-underline-offset:3px}
+.admin-content-form select{background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:.92rem;min-height:44px;padding:9px 12px;width:100%}
+.admin-sponsor-add{margin-top:28px}
+.admin-pill.sponsor-agreed{background:var(--sky);color:var(--bg)}
+.admin-pill.sponsor-delivered{background:#1f6f43;color:#fff}
+/* Admin -> Leads: the funnel and the board (brief 08, 1.8). */
+.leads-funnel-h{color:var(--muted);font-size:.78rem;letter-spacing:.08em;margin:18px 0 10px;text-transform:uppercase}
+.leads-board{display:grid;gap:12px;grid-template-columns:repeat(6,minmax(190px,1fr));overflow-x:auto;padding-bottom:8px}
+.leads-board-column{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-width:0;padding:12px}
+.leads-board-column h3{align-items:center;display:flex;font-size:.78rem;justify-content:space-between;letter-spacing:.08em;margin:0 0 10px;text-transform:uppercase}
+.leads-board-column h3 span{background:rgba(255,255,255,.1);border-radius:999px;font-size:.72rem;padding:2px 8px}
+.leads-board-column ul{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+.leads-board-column li{background:var(--bg);border:1px solid var(--line);border-radius:10px;display:grid;gap:4px;padding:10px}
+.leads-board-column li a{color:var(--sky);font-size:.88rem;font-weight:700;overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:3px}
+.leads-board-column li small,.leads-board-empty{color:var(--muted);font-size:.76rem;margin:0}
+.leads-board-column li .lead-score{justify-self:start}
+@media (max-width:760px){.leads-board{grid-template-columns:1fr;overflow-x:visible}}

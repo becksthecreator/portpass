@@ -121,8 +121,10 @@ async function main() {
     commission_eligible: false,
     commission_reason: "TEST fixture",
   }));
-  const { error: regError } = await db.from("registrations").insert(rows);
-  if (regError) throw new Error(`Could not seed registrations: ${regError.message}`);
+  const { data: seededRegistrations, error: regError } = await db.from("registrations").insert(rows).select("id");
+  if (regError || !seededRegistrations?.length) throw new Error(`Could not seed registrations: ${regError?.message}`);
+  // Brief 08: Admin -> Bookings opens one registration, health details hidden.
+  const registrationId = seededRegistrations[0].id;
 
   // Brief 13: coach pay. Two TEST coaches (the lead is tied to the
   // test-coach login, so that login sees only their own pay), who coached
@@ -233,7 +235,7 @@ async function main() {
   if (leadError || !seededLeads) throw new Error(`Could not seed leads: ${leadError?.message}`);
   const leadId = seededLeads.find((l) => l.business_name.startsWith("TEST Party Rentals"))!.id;
 
-  writeFileSync(out, JSON.stringify({ programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date, adminEmail, leadId }, null, 2));
+  writeFileSync(out, JSON.stringify({ programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date, adminEmail, leadId, registrationId }, null, 2));
   console.log(`Seeded TEST staff fixture: program ${program.id}, term ${term.id}, session ${session.id} on ${session.session_date}.`);
 }
 
