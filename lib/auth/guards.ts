@@ -26,6 +26,9 @@ export type OrgAccess = {
   org: OrganizationSummary;
   membership: Membership | null;
   canViewMedical: boolean;
+  // How this person got in: their own membership of the business, or the
+  // PortPass platform role. The platform door needs the second sign-in step.
+  via: "membership" | "platform";
 };
 
 async function orgAccess(session: Session, orgRef: number | { slug: string }, min: OrgRole): Promise<OrgAccess | null> {
@@ -37,7 +40,19 @@ async function orgAccess(session: Session, orgRef: number | { slug: string }, mi
   // through that door -- only a real membership grants that.
   const allowedByPlatform = hasPlatformRole(session, "platform_admin");
   if (!allowedByMembership && !allowedByPlatform) return null;
-  return { session, org, membership, canViewMedical: membership ? canViewMedical(membership) : false };
+  return { session, org, membership, canViewMedical: membership ? canViewMedical(membership) : false, via: allowedByMembership ? "membership" : "platform" };
+}
+
+// PortPass staff reach a business through their platform role, and from
+// there can change its details, team and bank-transfer details. That door
+// gets the same two-step check as the admin area (an authenticator code
+// within the last 12 hours); a business's own members are unaffected.
+// Imported lazily: lib/auth/admin.ts itself imports this module.
+async function platformStepUpMissing(access: OrgAccess): Promise<string | null> {
+  if (access.via !== "platform") return null;
+  const { adminStepUp, ADMIN_MFA_PATH } = await import("./admin");
+  const step = await adminStepUp();
+  return step.aal2 && step.windowOpen ? null : ADMIN_MFA_PATH;
 }
 
 // ---- pages ---------------------------------------------------------------
@@ -58,6 +73,8 @@ export async function requireOrgRole(orgRef: number | { slug: string }, min: Org
   const session = await requireSignedIn(returnTo);
   const access = await orgAccess(session, orgRef, min);
   if (!access) notFound();
+  const verifyPath = await platformStepUpMissing(access);
+  if (verifyPath) redirect(`${verifyPath}?next=${encodeURIComponent(returnTo)}`);
   return access;
 }
 
@@ -83,5 +100,9 @@ export async function requireOrgRoleApi(orgRef: number | { slug: string }, min: 
   if (!signedIn.ok) return signedIn;
   const access = await orgAccess(signedIn.session, orgRef, min);
   if (!access) return { ok: false, response: NextResponse.json({ error: "Not allowed." }, { status: 403 }) };
+  const verifyPath = await platformStepUpMissing(access);
+  if (verifyPath) {
+    return { ok: false, response: NextResponse.json({ error: "Two-step verification required.", code: "mfa_required", verify: verifyPath }, { status: 403 }) };
+  }
   return { ok: true, ...access };
 }
