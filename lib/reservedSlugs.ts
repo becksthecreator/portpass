@@ -33,6 +33,7 @@ export const RESERVED_TOP_LEVEL_SLUGS = new Set<string>([
   "privacy",
   "robots.txt",
   "services",
+  "shop",
   "signup",
   "sitemap.xml",
   "sites",

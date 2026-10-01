@@ -17,6 +17,8 @@ export const INTEREST_CATEGORIES = [
   "services",
   "photography",
   "phone-tech-repair",
+  "shop",
+  "apparel-merch",
 ] as const;
 
 export type InterestCategory = (typeof INTEREST_CATEGORIES)[number];

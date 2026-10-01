@@ -4989,14 +4989,22 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .nav-panel-list a{display:flex;justify-content:space-between;align-items:center;gap:16px;border-radius:8px;color:var(--ink);font-size:.9rem;font-weight:600;padding:9px 12px;text-decoration:none}
 .nav-panel-list a:hover,.nav-panel-list a:focus-visible{background:var(--deck)}
 .nav-panel small,.sheet-subs a small,.sheet-list>li>button small{font-size:.7rem;font-weight:800;color:var(--muted);letter-spacing:.04em}
-/* Below 1200px the triggers give way to the Browse sheet (the seven
-   section triggers, the logo and Sign in / Pricing / For business need
-   about 1160px in one row; at 1024, an iPad in landscape, they
-   overlapped). This block must stay after the .site-shell-nav rule above:
-   same specificity, so order decides. */
-@media(max-width:1199px){
+/* Below 1320px the triggers give way to the Browse sheet. Eight section
+   triggers (Shop Bahamian joined on 1 Oct) measure 857px at the default
+   spacing, which with the logo and Sign in / Pricing / For business needs
+   about 1430px in one row; tightened to 5px a side with no gap they
+   measure 749px, which fits from about 1310px. So: full spacing from
+   1440px, tight from 1320px, the sheet below (at 1024, an iPad in
+   landscape, even seven overlapped). These blocks must stay after the
+   .site-shell-nav and .nav-trigger rules above: same specificity, so
+   order decides. */
+@media(max-width:1319px){
   .site-shell-nav{display:none}
   .site-shell-browse-button{display:inline-flex}
+}
+@media(min-width:1320px) and (max-width:1439px){
+  .site-shell-nav{gap:0}
+  .nav-trigger{padding-left:5px;padding-right:5px}
 }
 .site-shell-for-business{font-size:.8rem;font-weight:700;color:var(--harbour);flex:0 0 auto;white-space:nowrap}
 .site-shell-breadcrumb{padding:10px 5vw;font-size:.75rem;color:var(--muted);border-top:1px solid var(--line)}
