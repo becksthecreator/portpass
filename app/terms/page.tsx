@@ -118,8 +118,8 @@ export default function TermsPage() {
           <li><strong>Your customers and their payments.</strong> Your customers pay you directly. You are responsible for your own prices, receipts, refunds and cancellation rules, and for recording payments accurately.</li>
           <li><strong>Your customers’ information.</strong> You may use the information customers give you through PortPass only to provide your service to them. Keep it confidential, give access only to staff who need it, and follow the data protection law of The Bahamas and our <Link href="/privacy">Privacy Policy</Link>. This matters most for children’s health and emergency details.</li>
           <li><strong>Photos and content.</strong> Upload only photos and text you have the right to use. Before you publish a photo that shows a child, you must hold a parent’s or guardian’s consent for every child in it. You give PortPass permission to show your content on the site and in material that promotes your listing.</li>
-          <li><strong>Your team.</strong> You decide who on your team can sign in and what they can do, and you are responsible for what they do there. When someone leaves, remove their access or ask us to.</li>
-          <li><strong>Leaving.</strong> You can ask us to take your listing down at any time. We send you your customer, booking and payment records within 14 days, then remove the listing.</li>
+          <li><strong>Your team.</strong> You decide who you invite to your team and which role each person has, and you are responsible for what they do there. When someone leaves, switch off their staff login if your staff area has that option; otherwise tell us and we will remove their access.</li>
+          <li><strong>Leaving.</strong> You can ask us to take your listing down at any time. We send you your customer, booking and payment records within 14 days, then take the listing off the site. We keep the payment records for 7 years, as the Privacy Policy says.</li>
         </ul>
 
         <h2>Our responsibility to you</h2>
@@ -145,7 +145,7 @@ export default function TermsPage() {
 
         <h2>Changes to these terms</h2>
         <p>
-          When we change these terms we update the version and the date at the top and list what changed at the bottom. If you have an account or a listing, we will email you about a change that affects your rights before it takes effect.
+          When we change these terms we update the version and the date at the top and list what changed at the bottom. If you have an account or a listing and we have your email address, we will email you about a change that affects your rights before it takes effect.
         </p>
 
         <h2>Contact us</h2>

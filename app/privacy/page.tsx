@@ -167,7 +167,7 @@ export default function PrivacyPage() {
           <li><strong>The log of changes</strong> to team invitations, approvals and payment details: for as long as the business is on PortPass.</li>
         </ul>
         <p>
-          At the end of these periods we delete the information, or remove the names from it so it can no longer be linked to you. The 90-day deletion of health details runs automatically every day. When a business’s registration desk corrects a child’s registration, the earlier value is kept in an edit history, with who changed it and when. Our encrypted backups are kept for about a year, so deleted information leaves the backups within about 13 months.
+          At the end of these periods we delete the information, or remove the names from it so it can no longer be linked to you. The 90-day deletion of health details runs automatically every day. When a business’s registration desk corrects a child’s registration, the earlier value is kept in an edit history, with who changed it and when. Our encrypted backups are kept for about a year, so deleted information leaves the backups within about 13 months. When a business leaves PortPass, we give it a copy of its records and take its page down; the periods above still apply to what we hold.
         </p>
 
         <h2>Your rights</h2>
