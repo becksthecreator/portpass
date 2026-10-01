@@ -59,7 +59,7 @@ export default async function AdminBookingsPage({ searchParams }: { searchParams
       session={session}
       current="/admin/bookings"
       title="Bookings"
-      lede="Registrations, private sessions, wedding leads, shop orders and tickets across every business. Children's health and emergency details are never shown here."
+      lede="Registrations, private sessions, wedding leads and shop orders across every business. Children's health and emergency details are never shown here."
       actions={organizationId ? <a className="admin-bar-link" href={`/api/admin/bookings/export?org=${organizationId}`}>Export this business (CSV)</a> : undefined}
     >
       <div className="admin-filters" aria-label="Filter by business">

@@ -2,7 +2,7 @@
 // the sums, with no database in them so they can be tested on their own.
 // The queries are in db/adminBookings.ts and db/adminPayments.ts.
 
-export const BOOKING_KINDS = ["registration", "private_session", "wedding_lead", "shop_order", "event_ticket"] as const;
+export const BOOKING_KINDS = ["registration", "private_session", "wedding_lead", "shop_order"] as const;
 export type BookingKind = (typeof BOOKING_KINDS)[number];
 
 export const BOOKING_KIND_LABEL: Record<BookingKind, string> = {
@@ -10,7 +10,6 @@ export const BOOKING_KIND_LABEL: Record<BookingKind, string> = {
   private_session: "Private session",
   wedding_lead: "Wedding lead",
   shop_order: "Shop order",
-  event_ticket: "Event ticket",
 };
 
 export function isBookingKind(value: unknown): value is BookingKind {

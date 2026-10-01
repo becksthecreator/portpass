@@ -38,7 +38,7 @@ async function readAll(build: (from: number, to: number) => Ranged, max: number,
 
 // Money received against a set of bookings, by the payments column that
 // points at them. Voided and refunded payments don't count.
-async function receivedBy(column: "registration_id" | "private_session_request_id" | "event_ticket_id", ids: number[]): Promise<Map<number, number>> {
+async function receivedBy(column: "registration_id" | "private_session_request_id", ids: number[]): Promise<Map<number, number>> {
   const paid = new Map<number, number>();
   const db = getSupabaseAdmin();
   for (let i = 0; i < ids.length; i += IN_CHUNK) {
@@ -49,7 +49,7 @@ async function receivedBy(column: "registration_id" | "private_session_request_i
   return paid;
 }
 
-async function namesOf(table: "organizations" | "programs" | "drops" | "events", column: "name" | "title"): Promise<Map<number, string>> {
+async function namesOf(table: "organizations" | "programs" | "drops", column: "name" | "title"): Promise<Map<number, string>> {
   const db = getSupabaseAdmin();
   const rows = await readAll((from, to) => db.from(table).select(`id,${column}`).order("id", { ascending: true }).range(from, to), MAX_ROWS, `Could not load ${table}`);
   return new Map(rows.map((row) => [Number(row.id), String(row[column] ?? "")]));
@@ -150,28 +150,6 @@ export async function listAdminBookings(filter: BookingFilter = {}): Promise<Adm
         // A cancelled or released order owes nothing.
         dueCents: row.status === "active" ? total : 0, paidCents: row.payment_status === "paid" ? total : 0, email: textOrNull(row.buyer_email), phone: textOrNull(row.buyer_phone),
       });
-    }
-  }
-
-  if (wants("event_ticket")) {
-    const { data: eventRows, error } = await db.from("events").select("id,organization_id,title");
-    throwIfSupabaseError(error, "Could not load events");
-    const events = new Map((eventRows ?? []).map((row) => [Number(row.id), { organizationId: row.organization_id === null ? null : Number(row.organization_id), title: String(row.title ?? "") }]));
-    const eventIds = Array.from(events).filter(([, event]) => !orgId || event.organizationId === orgId).map(([id]) => id);
-    if (eventIds.length) {
-      const rows = await readAll((from, to) => db.from("event_tickets").select("id,ticket_code,event_id,full_name,email,phone,quantity,amount_due_cents,payment_status,created_at").in("event_id", eventIds).order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to), limit, "Could not load event tickets");
-      const paid = await receivedBy("event_ticket_id", rows.map((row) => Number(row.id)));
-      for (const row of rows) {
-        const event = events.get(Number(row.event_id));
-        const due = Number(row.amount_due_cents ?? 0);
-        const owed = !["comp", "void", "refunded", "failed"].includes(text(row.payment_status));
-        bookings.push({
-          kind: "event_ticket", id: Number(row.id), reference: textOrNull(row.ticket_code), organizationId: event?.organizationId ?? null, organizationName: orgName(event?.organizationId ?? null),
-          customer: text(row.full_name), detail: [event?.title ?? "", Number(row.quantity ?? 1) > 1 ? `${row.quantity} tickets` : ""].filter(Boolean).join(" · "),
-          createdAt: String(row.created_at), status: text(row.payment_status), paymentStatus: textOrNull(row.payment_status),
-          dueCents: owed ? due : 0, paidCents: paid.get(Number(row.id)) ?? (row.payment_status === "paid" ? due : 0), email: textOrNull(row.email), phone: textOrNull(row.phone),
-        });
-      }
     }
   }
 
