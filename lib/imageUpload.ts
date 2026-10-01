@@ -45,9 +45,15 @@ export function storagePathFromPublicUrl(url: string | null | undefined, bucket:
 }
 
 // The centred square to cut from a photo of width × height, and the size
-// to resample it to (never upscaled): a coach photo is shown in a circle or
-// a square tile, so the crop happens once, on upload, not in CSS.
-export function squareCropBox(width: number, height: number, maxSize = 640): { sx: number; sy: number; size: number; out: number } {
+// to resample it to (never upscaled). 1000px keeps a coach photo sharp in
+// the largest frame it is shown in (about 333px wide on a 3x phone).
+// True for a photo our own upload cropped square (coach/{id}/...), so a
+// page can give it a square frame; a pasted URL keeps the old tall frame.
+export function isUploadedCoachPhoto(url: string | null | undefined): boolean {
+  return storagePathFromPublicUrl(url)?.startsWith("coach/") ?? false;
+}
+
+export function squareCropBox(width: number, height: number, maxSize = 1000): { sx: number; sy: number; size: number; out: number } {
   const size = Math.max(1, Math.min(width, height));
   const sx = Math.floor((width - size) / 2);
   const sy = Math.floor((height - size) / 2);

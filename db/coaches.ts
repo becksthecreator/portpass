@@ -77,6 +77,12 @@ export type PrivateSessionRequest = {
 // No hardcoded placeholder coaches. If the coach_profiles migration hasn't
 // run yet, every read function below falls back to this empty list instead
 // of fake names — real coaches are entered by staff through the Team page.
+// Exactly the columns of CoachProfile. Never "*": since brief 13 the row
+// also carries each coach's pay rates and staff login, which only the CEO
+// and platform owners may see, and these rows go to the Team page (admin
+// too) and the public coaches page.
+const COACH_PROFILE_COLUMNS = "id,organization_id,slug,display_name,nickname,position_title,member_type,bio,licenses,played_at,favorite_player,favorite_team,photo_url,intro_video_url,testimonial_quote,testimonial_name,public_visible,bookable,active,sort_order";
+
 const fallbackProfiles: CoachProfile[] = [];
 
 function isMissingTable(error: unknown) {
@@ -231,7 +237,7 @@ export async function listPublicCoachProfiles() {
   const db = getSupabaseAdmin();
   const { data, error } = await db
     .from("coach_profiles")
-    .select("*")
+    .select(COACH_PROFILE_COLUMNS)
     .eq("active", true)
     .eq("public_visible", true)
     .order("sort_order", { ascending:true })
@@ -278,7 +284,7 @@ export async function listAllCoachProfiles() {
   // active:false) so admins can see what they removed and restore it.
   // listPublicCoachProfiles() is the one that filters to active-only.
   const db=getSupabaseAdmin();
-  const {data,error}=await db.from("coach_profiles").select("*").order("active",{ascending:false}).order("sort_order",{ascending:true});
+  const {data,error}=await db.from("coach_profiles").select(COACH_PROFILE_COLUMNS).order("active",{ascending:false}).order("sort_order",{ascending:true});
   throwIfSupabaseError(error,"Could not load coach profiles");
   const profiles=(data ?? []) as Omit<CoachProfile,"availability">[];
   const ids=profiles.map((profile)=>profile.id);

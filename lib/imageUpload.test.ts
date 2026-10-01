@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sniffImage, squareCropBox, storagePathFromPublicUrl } from "./imageUpload";
+import { isUploadedCoachPhoto, sniffImage, squareCropBox, storagePathFromPublicUrl } from "./imageUpload";
 
 function bytes(...head: number[]): Uint8Array {
   const out = new Uint8Array(64);
@@ -34,9 +34,19 @@ describe("storagePathFromPublicUrl", () => {
   });
 });
 
+describe("isUploadedCoachPhoto", () => {
+  it("is true only for a photo in our bucket's coach folder", () => {
+    expect(isUploadedCoachPhoto("https://x.supabase.co/storage/v1/object/public/org-assets/coach/3/abc.jpg")).toBe(true);
+    expect(isUploadedCoachPhoto("https://x.supabase.co/storage/v1/object/public/org-assets/org/1/photo/a.jpg")).toBe(false);
+    expect(isUploadedCoachPhoto("/futprep/coaches/ronaldo-greene.jpg")).toBe(false);
+    expect(isUploadedCoachPhoto(null)).toBe(false);
+  });
+});
+
 describe("squareCropBox", () => {
   it("cuts the centred square from a landscape or portrait photo and never upscales", () => {
-    expect(squareCropBox(1200, 800)).toEqual({ sx: 200, sy: 0, size: 800, out: 640 });
+    expect(squareCropBox(1200, 800)).toEqual({ sx: 200, sy: 0, size: 800, out: 800 });
+    expect(squareCropBox(4000, 3000)).toEqual({ sx: 500, sy: 0, size: 3000, out: 1000 });
     expect(squareCropBox(600, 900)).toEqual({ sx: 0, sy: 150, size: 600, out: 600 });
     expect(squareCropBox(300, 300)).toEqual({ sx: 0, sy: 0, size: 300, out: 300 });
     expect(squareCropBox(0, 0).size).toBe(1);

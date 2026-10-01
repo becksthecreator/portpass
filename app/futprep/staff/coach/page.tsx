@@ -86,7 +86,7 @@ export default async function FutprepCoachPage({
         {slotPrompt?.needsSlots && (
           <Link className="staff-prompt" href={`/futprep/staff/private-sessions?coach=${slotPrompt.coachId}#weekly-slots`}>
             <div><strong>Add your weekly slots so parents can book.</strong><br /><span>Your card on the coaches page says &ldquo;Schedule not posted yet&rdquo; until you do.</span></div>
-            <em>Open the slot editor →</em>
+            <span className="prompt-arrow">Open the slot editor <span aria-hidden="true">→</span></span>
           </Link>
         )}
 

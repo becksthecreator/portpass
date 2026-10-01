@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addWeeklyCoachSlots, coachSlotPrompt, saveCoachProfile, setCoachPhoto } from "./coaches";
+import { addWeeklyCoachSlots, coachSlotPrompt, listAllCoachProfiles, listPublicCoachProfiles, saveCoachProfile, setCoachPhoto } from "./coaches";
 import { ensureFutprepPilotData } from "./registrations";
 
 // Brief 16, C1 and C2, against CI's local Supabase stack: the "add your
@@ -89,5 +89,23 @@ describe("coach photos (brief 16, C2)", () => {
     // An explicit empty Photo URL still clears it.
     await saveCoachProfile({ ...profile, photoUrl: "" });
     expect(await photo()).toBeNull();
+  });
+});
+
+describe("team lists never carry pay (brief 13 rule, brief 16 review)", () => {
+  it("returns no pay rate or staff-login column to the Team page or the public page", async () => {
+    await db().from("coach_profiles").update({ default_lead_pay_cents: 5000, default_assistant_pay_cents: 2500, public_visible: true }).eq("id", bookableCoach);
+    const { coaches: all } = await listAllCoachProfiles();
+    const { coaches: shown } = await listPublicCoachProfiles();
+    const mine = [all.find((c) => c.id === bookableCoach), shown.find((c) => c.id === bookableCoach)];
+    for (const row of mine) {
+      expect(row).toBeDefined();
+      const keys = Object.keys(row!);
+      expect(keys).not.toContain("default_lead_pay_cents");
+      expect(keys).not.toContain("default_assistant_pay_cents");
+      expect(keys).not.toContain("staff_member_id");
+      expect(JSON.stringify(row)).not.toContain("5000");
+    }
+    await db().from("coach_profiles").update({ public_visible: false }).eq("id", bookableCoach);
   });
 });

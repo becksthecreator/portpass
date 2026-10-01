@@ -2,6 +2,7 @@ import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { currentFutprepStaffId, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
 import { coachSlotPrompt, listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
+import { isUploadedCoachPhoto } from "@/lib/imageUpload";
 import { initialsOf } from "@/lib/team";
 import { PrivateSessionBooking } from "./PrivateSessionBooking";
 
@@ -50,8 +51,8 @@ export default async function FutprepCoachesPage(){
 
       <section className="futprep-team-grid">
         {coaches.map((coach)=>(
-          <article className="futprep-team-card" key={coach.slug}>
-            <div className="futprep-team-photo">
+          <article className="futprep-team-card" id={coach.slug} key={coach.slug}>
+            <div className={isUploadedCoachPhoto(coach.photo_url) ? "futprep-team-photo is-square" : "futprep-team-photo"}>
               {coach.photo_url ? <img src={coach.photo_url} alt={coach.display_name} /> : <div className="futprep-team-initial"><span className="coach-initials" aria-hidden="true">{initialsOf(coach.display_name)}</span></div>}
               <span>{coach.member_type==="coach" ? "Coach" : "Team"}</span>
             </div>
@@ -70,7 +71,7 @@ export default async function FutprepCoachesPage(){
               )}
               {own?.coachId===coach.id && own.needsSlots && (
                 <Link className="coach-own-prompt" href={`/futprep/staff/private-sessions?coach=${coach.id}#weekly-slots`}>
-                  <strong>This is your card.</strong> <span>Add your weekly slots so parents can book</span> <em aria-hidden="true">→</em>
+                  <strong>This is your card.</strong> <span>Add your weekly slots so parents can book</span> <span className="prompt-arrow" aria-hidden="true">→</span>
                 </Link>
               )}
               {coach.bookable && (

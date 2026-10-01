@@ -4,7 +4,8 @@ import { initialsOf } from "@/lib/team";
 
 // The team grid on the Futprep home page (brief 16, C3): every public team
 // member with their photo (or initials on navy), name and nickname, linking
-// to the coaches page where the bios, availability and booking live. Reads
+// to that person's card on the coaches page, where the bios, availability
+// and booking live. Reads
 // the same rows as /futprep/coaches, so a photo uploaded on the Team page
 // shows in both places. Never breaks the page it sits on.
 export async function FutprepTeamGrid() {
@@ -27,14 +28,14 @@ export async function FutprepTeamGrid() {
       <ul className="team-promo-grid">
         {coaches.map((coach) => (
           <li key={coach.slug}>
-            <Link href="/futprep/coaches">
+            <Link href={"/futprep/coaches#" + coach.slug}>
               {coach.photo_url ? (
                 <img src={coach.photo_url} alt="" loading="lazy" width={160} height={160} />
               ) : (
                 <span className="team-promo-initials" aria-hidden="true">{initialsOf(coach.display_name)}</span>
               )}
               <strong>{coach.display_name}</strong>
-              {coach.nickname && <em className="team-promo-nick">&ldquo;{coach.nickname}&rdquo;</em>}
+              {coach.nickname && <span className="team-promo-nick">&ldquo;{coach.nickname}&rdquo;</span>}
               <small>{coach.position_title}</small>
             </Link>
           </li>

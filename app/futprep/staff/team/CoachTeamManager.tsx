@@ -5,8 +5,8 @@ import { squareCropBox } from "@/lib/imageUpload";
 import { initialsOf } from "@/lib/team";
 
 // Brief 16, C2: a coach photo is cropped to a centred square in the
-// browser (the card and the home-grid tile are square) and resampled to at
-// most 640px before upload, so nothing near the 4 MB cap is ever sent.
+// browser and resampled to at most 1000px before upload, so nothing near
+// the 4 MB cap is ever sent.
 // Falls back to the original file where the browser can't draw it.
 async function squarePhoto(file:File):Promise<Blob>{
   try{
@@ -32,12 +32,15 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
   const [coaches,setCoaches]=useState(initialCoaches);
   const [message,setMessage]=useState("");
   const [uploadingId,setUploadingId]=useState<number|null>(null);
+  // Shown on the coach's own card: the page-level message can be far above
+  // it on a phone.
+  const [photoNote,setPhotoNote]=useState<{id:number;text:string}|null>(null);
 
   async function uploadPhoto(coach:CoachProfile,event:ChangeEvent<HTMLInputElement>){
     const input=event.currentTarget;
     const file=input.files?.[0];
     if(!file) return;
-    setMessage("");
+    setPhotoNote(null);
     setUploadingId(coach.id);
     const body=new FormData();
     body.append("coachId",String(coach.id));
@@ -46,19 +49,19 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
     const data=response?((await response.json().catch(()=>({}))) as {error?:string;photoUrl?:string|null;coaches?:CoachProfile[]}):{};
     setUploadingId(null);
     input.value="";
-    if(!response||!response.ok){setMessage(data.error??"Could not upload that photo.");return;}
+    if(!response||!response.ok){setPhotoNote({id:coach.id,text:data.error??"Could not upload that photo."});return;}
     applyPhoto(coach.id,data);
-    setMessage(`${coach.display_name}: photo updated. It shows on the coaches page and the Futprep home grid.`);
+    setPhotoNote({id:coach.id,text:"Photo updated. It shows on the coaches page and the Futprep home grid."});
   }
 
   async function removePhoto(coach:CoachProfile){
     if(!confirm(`Remove ${coach.display_name}'s photo? The card shows their initials until a new one is uploaded.`)) return;
-    setMessage("");
+    setPhotoNote(null);
     const response=await fetch("/api/futprep/team/photo",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({coachId:coach.id})}).catch(()=>null);
     const data=response?((await response.json().catch(()=>({}))) as {error?:string;photoUrl?:string|null;coaches?:CoachProfile[]}):{};
-    if(!response||!response.ok){setMessage(data.error??"Could not remove that photo.");return;}
+    if(!response||!response.ok){setPhotoNote({id:coach.id,text:data.error??"Could not remove that photo."});return;}
     applyPhoto(coach.id,data);
-    setMessage(`${coach.display_name}: photo removed.`);
+    setPhotoNote({id:coach.id,text:"Photo removed."});
   }
 
   // The route sends the refreshed list; if that re-read failed, the saved
@@ -93,7 +96,7 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
   }
 
   return <div className="team-manager">
-    {message&&<p className="coach-manager-message">{message}</p>}
+    {message&&<p className="coach-manager-message" role="status">{message}</p>}
     <div className="team-manager-grid">
       {coaches.map((coach)=><article className="team-manager-card" key={coach.id}>
         <div className="team-manager-head">
@@ -101,11 +104,12 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
           <div><span>{coach.position_title}</span><h2>{coach.display_name}</h2>{coach.nickname&&<p className="coach-nickname">&ldquo;{coach.nickname}&rdquo;</p>}<p>{coach.bio||"Bio not added yet."}</p></div>
         </div>
         {coach.active&&<div className="team-photo-actions">
-          <label className={`team-photo-upload${uploadingId===coach.id?" is-busy":""}`}>
+          <label className={"team-photo-upload"+(uploadingId===coach.id?" is-busy":"")+(!schemaReady||(uploadingId!==null&&uploadingId!==coach.id)?" is-disabled":"")}>
             <span>{uploadingId===coach.id?"Uploading…":coach.photo_url?"Replace photo":"Upload photo"}</span>
-            <input type="file" accept="image/png,image/jpeg,image/webp" disabled={!schemaReady||uploadingId!==null} onChange={(event)=>uploadPhoto(coach,event)} />
+            <input type="file" accept="image/png,image/jpeg,image/webp" aria-label={(coach.photo_url?"Replace the photo of ":"Upload a photo of ")+coach.display_name} disabled={!schemaReady||uploadingId!==null} onChange={(event)=>uploadPhoto(coach,event)} />
           </label>
           {coach.photo_url&&<button type="button" className="team-photo-remove" disabled={!schemaReady||uploadingId!==null} onClick={()=>removePhoto(coach)}>Remove photo</button>}
+          {photoNote?.id===coach.id&&<span className="team-photo-note" role="status">{photoNote.text}</span>}
         </div>}
         <div className="team-manager-flags">
           {coach.active
