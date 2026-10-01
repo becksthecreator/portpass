@@ -14,6 +14,11 @@ async function requireManager() {
   return role;
 }
 
+// The CEO login opens everything, coach pay included (brief 13: pay is for
+// Alex and platform owners only). So only a CEO may create a CEO login or
+// switch one off or on; the registration desk manages every other login.
+const CEO_ONLY = "Only the CEO login can create or change a CEO login.";
+
 export async function GET() {
   if (!(await requireManager())) return NextResponse.json({ error: "Sign in again." }, { status: 401 });
 
@@ -26,12 +31,14 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!(await requireManager())) return NextResponse.json({ error: "Sign in again." }, { status: 401 });
+  const manager = await requireManager();
+  if (!manager) return NextResponse.json({ error: "Sign in again." }, { status: 401 });
 
   const body = (await request.json().catch(() => ({}))) as { name?: string; accountKey?: string; role?: string; pin?: string };
   if (!body.role || !(FUTPREP_STAFF_ROLES as string[]).includes(body.role)) {
     return NextResponse.json({ error: "Choose a valid role." }, { status: 400 });
   }
+  if (body.role === "ceo" && manager !== "ceo") return NextResponse.json({ error: CEO_ONLY }, { status: 403 });
 
   try {
     const account = await createStaffAccount({
@@ -54,7 +61,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if (!(await requireManager())) return NextResponse.json({ error: "Sign in again." }, { status: 401 });
+  const manager = await requireManager();
+  if (!manager) return NextResponse.json({ error: "Sign in again." }, { status: 401 });
 
   const body = (await request.json().catch(() => ({}))) as { id?: number; active?: boolean };
   if (!Number.isInteger(body.id) || typeof body.active !== "boolean") {
@@ -62,6 +70,9 @@ export async function PATCH(request: Request) {
   }
 
   try {
+    const target = (await listStaffAccounts()).find((account) => account.id === Number(body.id));
+    if (!target) return NextResponse.json({ error: "Account not found." }, { status: 404 });
+    if (target.role === "ceo" && manager !== "ceo") return NextResponse.json({ error: CEO_ONLY }, { status: 403 });
     await setStaffAccountActive(Number(body.id), body.active);
     return NextResponse.json({ ok: true, accounts: await listStaffAccounts() });
   } catch (error) {

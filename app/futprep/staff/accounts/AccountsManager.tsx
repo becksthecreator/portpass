@@ -10,7 +10,9 @@ const ROLE_LABEL: Record<StaffAccount["role"], string> = {
   helper: "Helper",
 };
 
-export function AccountsManager({ initialAccounts, currentAccountKey }: { initialAccounts: StaffAccount[]; currentAccountKey: string }) {
+// canManageCeo: only the CEO login may create a CEO login or switch one
+// off or on (the server enforces it; this just hides what would be refused).
+export function AccountsManager({ initialAccounts, currentAccountKey, canManageCeo }: { initialAccounts: StaffAccount[]; currentAccountKey: string; canManageCeo: boolean }) {
   const [accounts, setAccounts] = useState(initialAccounts);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -80,8 +82,8 @@ export function AccountsManager({ initialAccounts, currentAccountKey }: { initia
             <div className="team-manager-actions">
               <button
                 className={account.active ? "danger-action" : ""}
-                disabled={account.accountKey === currentAccountKey}
-                title={account.accountKey === currentAccountKey ? "You can't deactivate your own account" : undefined}
+                disabled={account.accountKey === currentAccountKey || (account.role === "ceo" && !canManageCeo)}
+                title={account.accountKey === currentAccountKey ? "You can't deactivate your own account" : account.role === "ceo" && !canManageCeo ? "Only the CEO login can change a CEO login" : undefined}
                 onClick={() => toggleActive(account)}
               >
                 {account.active ? "Deactivate" : "Reactivate"}
@@ -104,7 +106,7 @@ export function AccountsManager({ initialAccounts, currentAccountKey }: { initia
               <select name="role" required defaultValue="coach">
                 <option value="admin">Admin — registration desk, programs, team, accounts</option>
                 <option value="coach">Coach — coaching workspace, programs</option>
-                <option value="ceo">CEO — everything</option>
+                {canManageCeo && <option value="ceo">CEO — everything</option>}
                 <option value="helper">Helper — view roster & session plan only</option>
               </select>
             </label>
