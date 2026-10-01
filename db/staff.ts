@@ -89,6 +89,9 @@ export type AttendanceRow = {
   medical_conditions: string | null;
   medications: string | null;
   special_needs: string | null;
+  // The health details were deleted 90 days after the programme ended
+  // (privacy policy): a blank then means "removed", not "none given".
+  health_removed?: boolean;
   attendance_status: string | null;
   // A free-trial child (brief 06 v2, Part C): shown flagged "Trial".
   is_trial?: boolean;
@@ -457,6 +460,7 @@ type RosterRegistrationRow = {
   medical_conditions?: string | null;
   medications?: string | null;
   special_needs?: string | null;
+  health_purged_at?: string | null;
 };
 
 // `includeSafety: false` is for the read-only helper login: the emergency
@@ -493,7 +497,7 @@ export async function rosterForSession(
   const registrationsQuery = includeSafety
     ? db
         .from("registrations")
-        .select("id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs")
+        .select("id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs,health_purged_at")
         .eq("program_id", session.program_id)
         .eq("term_id", session.term_id)
         .or(who)
@@ -538,6 +542,7 @@ export async function rosterForSession(
       medical_conditions: row.medical_conditions ?? null,
       medications: row.medications ?? null,
       special_needs: row.special_needs ?? null,
+      health_removed: Boolean(row.health_purged_at),
       is_trial: row.registration_status === "trial",
       attendance_status: attendanceByRegistration.get(row.id)?.status ?? null,
       is_backfill: attendanceByRegistration.get(row.id)?.is_backfill ?? false,

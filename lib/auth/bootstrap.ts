@@ -53,7 +53,13 @@ export async function bootstrapUser(user: AuthUser): Promise<void> {
   });
 
   // A new account: note the Terms and Privacy versions they signed up under.
-  if (!existing) await recordLegalAcceptance(user.id, { terms: TERMS_OF_SERVICE.version, privacy: PRIVACY_POLICY.version });
+  // Never a reason to fail the sign-in itself: the one-time code is already
+  // spent by now, so a hiccup here would lock a new person out.
+  if (!existing) {
+    await recordLegalAcceptance(user.id, { terms: TERMS_OF_SERVICE.version, privacy: PRIVACY_POLICY.version }).catch((error) => {
+      console.error("bootstrap: legal acceptance not recorded", (error as { code?: string } | null)?.code ?? "");
+    });
+  }
 
   if (!existing && isFounder) {
     await logAudit({ actorUserId: user.id, action: "profile.platform_owner_granted", targetTable: "profiles", targetId: user.id, after: { email } });

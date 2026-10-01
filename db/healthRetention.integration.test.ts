@@ -170,4 +170,32 @@ describe("children's health details are deleted 90 days after the programme ends
     const { data: edits } = await db().from("registration_edits").select("changes").eq("registration_id", dueId);
     expect(JSON.stringify(edits)).not.toContain("bee stings");
   });
+
+  it("scrubs the edit history even when the detail was typed and blanked again between two runs", async () => {
+    // Nothing on the record itself to clear: the value only lives in the history.
+    await db().from("registration_edits").insert([
+      { registration_id: dueId, changed_by: MARK, changes: { Allergies: { from: "", to: "TEST shellfish" } } },
+      { registration_id: dueId, changed_by: MARK, changes: { Allergies: { from: "TEST shellfish", to: null }, "Parent name": { from: "a", to: "b" } } },
+    ]);
+    const { error } = await db().rpc("purge_expired_health_details", { p_today: today });
+    expect(error).toBeNull();
+    const { data: edits } = await db().from("registration_edits").select("changes").eq("registration_id", dueId);
+    expect(JSON.stringify(edits)).not.toContain("shellfish");
+    // The rest of that edit stays.
+    expect(JSON.stringify(edits)).toContain("Parent name");
+  });
+
+  it("never uses a date later than today: a wrong date can't clear a programme that is still within 90 days", async () => {
+    const { error } = await db().rpc("purge_expired_health_details", { p_today: "2099-01-01" });
+    expect(error).toBeNull();
+    const { data: recent } = await db().from("registrations").select(HEALTH).eq("id", recentId).single();
+    expect(recent).toMatchObject({ allergies: "TEST peanut", medical_conditions: "TEST asthma", additional_notes: "TEST gets wheezy when running", health_purged_at: null });
+  });
+
+  it("clears 'who entered the medical info' along with the details", async () => {
+    await db().from("registrations").update({ allergies: "TEST dust", medical_info_source: "staff" }).eq("id", dueId);
+    await db().rpc("purge_expired_health_details", { p_today: today });
+    const { data: due } = await db().from("registrations").select("allergies,medical_info_source").eq("id", dueId).single();
+    expect(due).toEqual({ allergies: "", medical_info_source: null });
+  });
 });
