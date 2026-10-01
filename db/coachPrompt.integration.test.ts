@@ -55,10 +55,28 @@ describe("the weekly-slots prompt (brief 16, C1)", () => {
     expect(await coachSlotPrompt(linkedStaff)).toEqual({ coachId: bookableCoach, needsSlots: false });
   });
 
-  it("never shows for a login with no coach, or whose coach isn't bookable", async () => {
+  it("never shows for a login with no coach, or whose coach isn't bookable or isn't active", async () => {
     expect(await coachSlotPrompt(unlinkedStaff)).toBeNull();
-    await db().from("coach_profiles").update({ staff_member_id: unlinkedStaff }).eq("id", pausedCoach);
+    // Link the paused coach to that login, and prove the link took: once
+    // bookable, the prompt appears; paused or retired, it doesn't.
+    const link = await db().from("coach_profiles").update({ staff_member_id: unlinkedStaff, bookable: true }).eq("id", pausedCoach);
+    expect(link.error).toBeNull();
+    expect(await coachSlotPrompt(unlinkedStaff)).toEqual({ coachId: pausedCoach, needsSlots: true });
+    await db().from("coach_profiles").update({ bookable: false }).eq("id", pausedCoach);
     expect(await coachSlotPrompt(unlinkedStaff)).toBeNull();
+    await db().from("coach_profiles").update({ bookable: true, active: false }).eq("id", pausedCoach);
+    expect(await coachSlotPrompt(unlinkedStaff)).toBeNull();
+    await db().from("coach_profiles").update({ active: true }).eq("id", pausedCoach);
+  });
+
+  it("counts only open times in the next 30 days: not blocked, not past, not further out", async () => {
+    const day = (offset: number) => new Date(Date.now() + offset * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const slot = (date: string, status: string) => ({ coach_id: pausedCoach, availability_date: date, start_time: "4:00 PM", end_time: "4:45 PM", status, location: "TEST field", note: "", created_by: MARK });
+    const { error } = await db().from("coach_availability").insert([slot(day(3), "blocked"), slot(day(4), "booked"), slot(day(-2), "available"), slot(day(45), "available")]);
+    expect(error).toBeNull();
+    expect(await coachSlotPrompt(unlinkedStaff)).toEqual({ coachId: pausedCoach, needsSlots: true });
+    await db().from("coach_availability").insert(slot(day(10), "available"));
+    expect(await coachSlotPrompt(unlinkedStaff)).toEqual({ coachId: pausedCoach, needsSlots: false });
   });
 });
 
