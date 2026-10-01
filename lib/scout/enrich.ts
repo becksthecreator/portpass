@@ -7,9 +7,13 @@ import { isBookingMethod, scoreLead, type BookingMethod, type ScoreReason, type 
 // Handbook lead score, and a first message for a founder to send by hand.
 //
 // Rules this file enforces rather than merely asks for:
-// - Only public business information goes in. Emails, phone numbers and
-//   mentions of other accounts are stripped from captions first, so a
-//   customer named or tagged in a post is not sent anywhere.
+// - Only public business information goes in. A founder's own notes are
+//   never sent. Of a business's posts, only the ones about prices, booking
+//   or availability are sent; a post that celebrates a person (a birthday,
+//   a player of the week) is left out whole, because it usually names a
+//   customer or a child. Emails, phone numbers and tagged accounts are
+//   stripped from what remains. This narrows what leaves the server; it
+//   cannot promise a name never appears in a post about prices.
 // - The score's arithmetic is done in code (lib/scout/leads.ts); the model
 //   only says which signals it saw, and why.
 // - A draft message that mentions card payments, or runs long, is thrown
@@ -41,7 +45,6 @@ export type EnrichmentSubject = {
   instagramHandle: string | null;
   knownBooking: BookingMethod;
   knownPrices: string | null;
-  notes: string | null;
 };
 
 // The signals the model is asked about. The other three are facts we know
@@ -57,7 +60,8 @@ export function redactPublicText(text: string, ownHandle: string | null): string
   const own = ownHandle?.toLowerCase() ?? null;
   return text
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email]")
-    .replace(/(?:\+?\d[\d\s().-]{6,}\d)/g, (match) => (match.replace(/\D/g, "").length >= 7 ? "[number]" : match))
+    // Seven digits or more, however they are spaced: 4238161, 242/423/8161.
+    .replace(/(?:\+?\d[\d\s()./-]{5,}\d)/g, (match) => (match.replace(/\D/g, "").length >= 7 ? "[number]" : match))
     .replace(/@([A-Za-z0-9._]{1,30})/g, (match, handle: string) => {
       // A handle can't end in a full stop: that one belongs to the sentence.
       const name = handle.replace(/[.]+$/, "");
@@ -65,6 +69,15 @@ export function redactPublicText(text: string, ownHandle: string | null): string
     })
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// Which posts are worth sending: the ones about prices, booking or
+// availability. A post about a person is dropped whole.
+const BUSINESS_CAPTION = /\$\s?\d|\b(prices?|pricing|rates?|fees?|cost|deposit|book|booking|bookings|booked|reserve|reservations?|order|orders|dm|whatsapp|call|sold out|waitlist|waiting list|spots?|spaces?|slots?|available|availability|limited|register|registration|sign up|enrol|enroll)\b/i;
+const ABOUT_A_PERSON = /\b(birthday|bday|congrat\w*|happy \d+|turn(s|ed|ing) \d+|years? old|mvp|(player|student|camper|athlete|client|employee|coach) of the|shout ?out|rest in peace|in loving memory)\b/i;
+
+export function captionsForAi(instagram: InstagramProfile): InstagramProfile["captions"] {
+  return instagram.captions.filter((post) => BUSINESS_CAPTION.test(post.caption) && !ABOUT_A_PERSON.test(post.caption)).slice(0, 12);
 }
 
 // What the model sees, as one block of text.
@@ -76,12 +89,11 @@ export function publicTextForAi(subject: EnrichmentSubject, instagram: Instagram
   if (subject.whatTheyDo) lines.push(`What they do (our note): ${redactPublicText(subject.whatTheyDo, subject.instagramHandle).slice(0, 600)}`);
   if (subject.knownBooking !== "unknown") lines.push(`How they take bookings (our note): ${subject.knownBooking}`);
   if (subject.knownPrices) lines.push(`Prices (our note): ${redactPublicText(subject.knownPrices, subject.instagramHandle).slice(0, 400)}`);
-  if (subject.notes) lines.push(`Our notes: ${redactPublicText(subject.notes, subject.instagramHandle).slice(0, 600)}`);
   if (instagram) {
     lines.push(`Instagram: @${instagram.handle}${instagram.followers !== null ? ` (${instagram.followers} followers)` : ""}`);
     if (instagram.biography) lines.push(`Instagram bio: ${redactPublicText(instagram.biography, instagram.handle)}`);
     if (instagram.websiteUrl) lines.push(`Link in bio: ${instagram.websiteUrl}`);
-    instagram.captions.slice(0, 12).forEach((post, i) => {
+    captionsForAi(instagram).forEach((post, i) => {
       lines.push(`Post ${i + 1}${post.postedAt ? ` (${post.postedAt.slice(0, 10)})` : ""}: ${redactPublicText(post.caption, instagram.handle).slice(0, 500)}`);
     });
   }
@@ -96,6 +108,11 @@ export function postedInLast30Days(instagram: InstagramProfile | null, now: Date
     return Number.isFinite(at) && at >= cutoff && at <= now.getTime() + 24 * 60 * 60 * 1000;
   });
 }
+
+// A first message is short (brief 14). The model is asked for this many
+// words; a draft a few words over is still shown, anything longer is not.
+export const MESSAGE_WORD_LIMIT = 55;
+const MESSAGE_WORD_SLACK = 10;
 
 export const ENRICHMENT_SYSTEM_PROMPT = `You help the two founders of PortPass Bahamas research Bahamian businesses that might want a page on PortPass. PortPass Bahamas gives a business a professional page with its prices, a "Message on WhatsApp" button, and one place to keep bookings and payment records. Customers pay the business directly by cash or bank transfer.
 
@@ -113,13 +130,14 @@ For each signal, give a reason of one short sentence quoting or pointing to what
 
 Then write first_message: a first WhatsApp message from Antonio at PortPass Bahamas to the business owner, to be sent by hand, one to one.
 Rules for the message:
-- 55 words or fewer, in short sentences. Warm, plain, Bahamian and confident. No hype.
+- ${MESSAGE_WORD_LIMIT} words or fewer, in short sentences. Warm, plain, Bahamian and confident. No hype.
 - Open with a greeting and one specific thing you noticed about their business.
 - Lead with the problem they already know they have (for example, answering the same price question all day, or not knowing if a date is free), as a question.
 - Offer to build their page for them, free to try for 30 days. Ask if they would like to see it.
 - Say "PortPass Bahamas", never just "PortPass".
 - Never mention card payments, online payments or paying by card in any way.
 - Never promise features, numbers of customers, or results. Never say "one-stop shop".
+- Never include a link, a web address or an @account.
 - Do not mention scores, research, AI, or that this message was drafted for Antonio.`;
 
 export function enrichmentTool(sections: SectionOption[]) {
@@ -170,9 +188,12 @@ export type Enrichment = {
 export function messageProblem(message: string): string | null {
   const words = message.trim().split(/\s+/).filter(Boolean).length;
   if (words === 0) return "The draft was empty.";
-  if (/\b(card|credit|debit|visa|mastercard|pay(ing)? online|online payments?)\b/i.test(message)) return "The draft mentioned card or online payments, which PortPass does not offer.";
+  if (/\b(cards?|credit|debit|visa|mastercard|stripe|apple pay|google pay|pa(y|id|ying|yments?) online|online pa(y|ying|yments?))\b/i.test(message)) return "The draft mentioned card or online payments, which PortPass does not offer.";
   if (/one[- ]stop shop/i.test(message)) return "The draft said \"one-stop shop\".";
-  if (words > 80) return "The draft was too long for a first message.";
+  // A first message never carries a link or an account name: text copied
+  // from a post could otherwise put someone else's address in it.
+  if (/(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|io|co|me|bs|ly|link|app)\b|@[A-Za-z0-9._]+)/i.test(message)) return "The draft contained a link or an account name.";
+  if (words > MESSAGE_WORD_LIMIT + MESSAGE_WORD_SLACK) return "The draft was too long for a first message.";
   return null;
 }
 

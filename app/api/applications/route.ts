@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApplication } from "@/db/applications";
-import { createLead } from "@/db/leads";
+import { createLead, noteInboundRequest } from "@/db/leads";
 import { emptyLeadDraft } from "@/lib/scout/leads";
 import { sendApplicationReceivedEmail } from "@/lib/email";
 import { normalizePhoneE164 } from "@/lib/phone";
@@ -106,7 +106,10 @@ export async function POST(request: NextRequest) {
       draft.notes = note;
       draft.status = "replied";
       draft.nextStep = "They asked to be listed: message them on WhatsApp.";
-      await createLead(draft, { actorUserId: null, applicationId: id });
+      const made = await createLead(draft, { actorUserId: null, applicationId: id });
+      // Already a lead (kept from a search, or from the tracker): it moves
+      // to "Replied" and points at this request, instead of being dropped.
+      if (!made.ok && made.reason === "duplicate" && made.existingId) await noteInboundRequest(made.existingId, { applicationId: id, referralCode });
     } catch (leadError) {
       console.error("Listing application: lead not created", leadError instanceof Error ? leadError.message : "");
     }

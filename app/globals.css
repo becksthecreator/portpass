@@ -5638,6 +5638,7 @@ a.admin-tile:hover{border-color:var(--sky)}
 .leads-places{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .leads-places li{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .leads-places li>div{display:grid;gap:2px;min-width:0;flex:1 1 220px}
+.leads-place-keep{display:grid;gap:4px;justify-items:end;max-width:100%}
 .leads-places small{color:var(--muted);font-size:.78rem;overflow-wrap:anywhere}
 .leads-filter{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 0 16px}
 .leads-filter label{display:flex;flex-direction:column;gap:6px;font-size:.74rem;font-weight:800}

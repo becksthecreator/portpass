@@ -116,5 +116,7 @@ describe("what the Leads screens may send", () => {
     expect(parseLeadPatch({}, SECTIONS)).toEqual({ ok: false, error: "Nothing to save." });
     const patch = parseLeadPatch({ status: "contacted", nextStep: " Send the preview ", phone: "242 555 0123" }, SECTIONS);
     expect(patch).toEqual({ ok: true, patch: { status: "contacted", nextStep: "Send the preview", phone: "242 555 0123", whatsappE164: "+12425550123" } });
+    // Two numbers in the cell: the first one is the WhatsApp number, as on import.
+    expect(parseLeadPatch({ phone: "242-555-0101 / 242-555-0102" }, SECTIONS)).toEqual({ ok: true, patch: { phone: "242-555-0101 / 242-555-0102", whatsappE164: "+12425550101" } });
   });
 });

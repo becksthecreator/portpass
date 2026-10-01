@@ -1,8 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, describe, expect, it } from "vitest";
 import { emptyLeadDraft, parseTrackerCsv } from "@/lib/scout/leads";
+import { createApplication } from "./applications";
 import { listSections } from "./categories";
-import { createLead, draftPageFromLead, getLead, importLeads, leadsDigest, listLeads, lookupUsage, PLACES_DAILY_CAP, recordLookup, saveLeadEnrichment, updateLead } from "./leads";
+import { createLead, draftPageFromLead, existingForPlaces, getLead, importLeads, leadsDigest, listLeads, lookupUsage, nassauToday, noteInboundRequest, PLACES_DAILY_CAP, recordLookup, removeInboundLead, saveLeadEnrichment, updateLead } from "./leads";
 
 // PortPass Scout (brief 14) against CI's local Supabase stack. Every lead
 // is "TEST — delete" and removed afterwards, with the draft business one
@@ -23,6 +24,7 @@ async function actorId(): Promise<string> {
 
 afterAll(async () => {
   await db().from("leads").delete().like("business_name", `${MARK}%`);
+  await db().from("applications").delete().like("organization_name", `${MARK}%`);
   await db().from("scout_lookups").delete().like("query", `${MARK}%`);
   // The audit rows name the test user and the draft business, so they go first.
   if (actor) await db().from("audit_log").delete().eq("actor_user_id", actor);
@@ -62,6 +64,11 @@ describe("do not contact is permanent", () => {
 
     expect(await createLead(draft("Photo Booths"), { actorUserId: actor })).toMatchObject({ ok: false, reason: "do_not_contact" });
     expect(await createLead(draft("Renamed Booths", { instagramHandle: `test_booths_${TAG}` }), { actorUserId: actor })).toMatchObject({ ok: false, reason: "do_not_contact" });
+    // Under a new name with no handle, the same phone number still gives it away.
+    expect(await createLead(draft("A Brand New Name", { phone: "(242) 555-0123" }), { actorUserId: actor })).toMatchObject({ ok: false, reason: "do_not_contact" });
+    // A Google search shows it as "do not contact" too, whatever Google calls it.
+    const seen = await existingForPlaces([{ placeId: `ChIJtest${TAG}0001`, name: `${MARK} Fotobooth Co`, phone: "(242) 555-0123", internationalPhone: "+1 242-555-0123", websiteUrl: null }]);
+    expect(seen.get(`ChIJtest${TAG}0001`)).toMatchObject({ status: "do_not_contact" });
 
     const audit = await db().from("audit_log").select("action").eq("actor_user_id", actor).eq("target_id", String(made.lead.id));
     expect((audit.data ?? []).map((row) => row.action)).toContain("lead.do_not_contact");
@@ -94,6 +101,14 @@ describe("the Prospect Tracker import", () => {
     expect(second.added).toBe(0);
     expect(second.duplicates).toHaveLength(2);
     expect(second.doNotContact).toEqual([`${MARK} DJ Three`]);
+
+    // A later sheet marks an open lead "do not contact": the request wins.
+    const open = await createLead(draft("Open Then Closed", { phone: "242-555-0177", whatsappE164: "+12425550177" }), { actorUserId: actor });
+    expect(open.ok).toBe(true);
+    const later = parseTrackerCsv(["Business,Status,Do not contact", `${MARK} Open Then Closed,Not contacted,Yes`].join("\n"), sections);
+    const third = await importLeads(later.drafts, actor);
+    expect(third).toMatchObject({ added: 0, duplicates: [], doNotContact: [`${MARK} Open Then Closed`] });
+    expect((await db().from("leads").select("status,phone,whatsapp_e164").eq("business_name", `${MARK} Open Then Closed`).single()).data).toEqual({ status: "do_not_contact", phone: null, whatsapp_e164: null });
   });
 });
 
@@ -130,7 +145,58 @@ describe("the AI step's result and the status flow", () => {
     expect(saved.sourceUrls).toEqual(["https://testcharters.example/", "https://www.instagram.com/test_charters/"]);
 
     const contacted = await updateLead(made.lead.id, { status: "contacted" }, actor);
-    expect(contacted.lastContactOn).toBe(new Date().toISOString().slice(0, 10));
+    expect(contacted.lastContactOn).toBe(nassauToday());
+
+    // A second research pass whose draft was thrown away keeps the message on file.
+    const again = await saveLeadEnrichment(made.lead.id, { score: 60, scoreReasons: [{ key: "books_by_dm", label: "Books by WhatsApp, DM or phone only", points: 25 }], draftMessage: null, enrichment: {}, model: "test-model", sourceUrls: [] });
+    expect(again.draftMessage).toBe("Hi from PortPass Bahamas.");
+  });
+
+  it("re-scores when a founder marks a warm connection or corrects how the business books", async () => {
+    const made = await createLead(draft("Warm Tours", { section: "tours" }), { actorUserId: await actorId() });
+    if (!made.ok) throw new Error("lead not created");
+    await saveLeadEnrichment(made.lead.id, {
+      score: 40, scoreReasons: [{ key: "books_by_dm", label: "Books by WhatsApp, DM or phone only", points: 25 }, { key: "publishes_prices", label: "Publishes prices", points: 15 }],
+      draftMessage: null, enrichment: {}, model: "test-model", sourceUrls: [],
+    });
+    const warm = await updateLead(made.lead.id, { warmConnection: true }, actor);
+    expect(warm.score).toBe(50);
+    expect(warm.scoreReasons.map((r) => r.key)).toContain("warm_connection");
+    const online = await updateLead(made.lead.id, { bookingMethod: "website_booking" }, actor);
+    // 15 (prices) + 10 (warm) - 30 (books online already), never below 0.
+    expect(online.score).toBe(0);
+    expect(online.scoreReasons.map((r) => r.key)).not.toContain("books_by_dm");
+    // A tracker score with no reasons behind it is left as it is.
+    const tracker = await createLead(draft("Tracker Number", { score: 82 }), { actorUserId: actor });
+    if (!tracker.ok) throw new Error("lead not created");
+    expect((await updateLead(tracker.lead.id, { warmConnection: true }, actor)).score).toBe(82);
+  });
+});
+
+describe("the get listed form and leads", () => {
+  it("moves an existing lead to Replied instead of dropping the request, and never touches a tombstone", async () => {
+    const made = await createLead(draft("Asked Twice", { whatsappE164: "+12425550155", phone: "+12425550155" }), { actorUserId: await actorId() });
+    if (!made.ok) throw new Error("lead not created");
+    const application = await createApplication({ organizationName: `${MARK} Asked Twice`, contactPerson: `${MARK} Owner`, section: "entertainment", whatsappE164: "+12425550199", instagramHandle: null, note: null, utmSource: null, utmMedium: null, utmCampaign: null, planCode: null, referralCode: "FUTPREP" });
+    await noteInboundRequest(made.lead.id, { applicationId: application.id, referralCode: "FUTPREP" });
+    const noted = await getLead(made.lead.id);
+    // The number a founder recorded stays; the form's number is on the application.
+    expect(noted).toMatchObject({ status: "replied", applicationId: application.id, referralCode: "FUTPREP", whatsappE164: "+12425550155", lastContactOn: nassauToday() });
+
+    await updateLead(made.lead.id, { status: "do_not_contact" }, actor);
+    await noteInboundRequest(made.lead.id, { applicationId: application.id, referralCode: null });
+    expect((await db().from("leads").select("status").eq("id", made.lead.id).single()).data).toEqual({ status: "do_not_contact" });
+  });
+
+  it("lets a founder remove a junk request from the public form, and nothing else", async () => {
+    const junk = await createLead({ ...emptyLeadDraft(`${MARK} Junk Request`, "inbound_form"), status: "replied" }, { actorUserId: null });
+    const kept = await createLead(draft("Kept By A Founder"), { actorUserId: await actorId() });
+    if (!junk.ok || !kept.ok) throw new Error("lead not created");
+    await expect(removeInboundLead(kept.lead.id, actor)).rejects.toThrow("NOT_REMOVABLE");
+    await removeInboundLead(junk.lead.id, actor);
+    expect(await getLead(junk.lead.id)).toBeNull();
+    // Removed outright, with no tombstone: the same name can be added again.
+    expect((await createLead(draft("Junk Request"), { actorUserId: actor })).ok).toBe(true);
   });
 });
 

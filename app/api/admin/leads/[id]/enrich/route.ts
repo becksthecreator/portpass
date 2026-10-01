@@ -10,7 +10,9 @@ type Ctx = { params: Promise<{ id: string }> };
 // Admin -> Leads: the AI step for one lead (brief 14 §2). If the lead has
 // an Instagram handle a founder typed and Business Discovery is set up,
 // its public bio and last 12 captions are fetched first (one handle, one
-// call). Then one Claude call. The result is stored with when it was
+// call). Then one Claude call, which is sent only what the business
+// publishes: never a founder's notes, and only the posts about prices,
+// booking or availability (lib/scout/enrich.ts). The result is stored with when it was
 // generated and from which pages, so a founder can check it. Nothing is
 // sent to the business.
 export async function POST(_request: Request, ctx: Ctx) {
@@ -42,7 +44,6 @@ export async function POST(_request: Request, ctx: Ctx) {
       instagramHandle: lead.instagramHandle,
       knownBooking: lead.bookingMethod,
       knownPrices: lead.pricesText,
-      notes: lead.whyFit,
     },
     instagram,
     sections,
@@ -50,7 +51,8 @@ export async function POST(_request: Request, ctx: Ctx) {
   await recordLookup({ provider: "claude", query: lead.businessName, resultCount: result.ok ? result.inputTokens + result.outputTokens : 0, costMillicents: 0, ok: result.ok, actorUserId: auth.session.userId });
   if (!result.ok) return NextResponse.json({ error: "The AI step didn't answer. Try again in a minute." }, { status: 502 });
 
-  const section = result.enrichment.section ?? lead.section;
+  // The section the lead will keep: a founder's choice wins over the AI's.
+  const section = lead.section ?? result.enrichment.section;
   const filling = await sectionsWeAreFilling(sections.map((s) => s.slug));
   const { score, reasons } = scoreFromEnrichment(result.enrichment, {
     postedRecently: postedInLast30Days(instagram),
@@ -58,19 +60,28 @@ export async function POST(_request: Request, ctx: Ctx) {
     warmConnection: lead.warmConnection,
   });
 
-  const saved = await saveLeadEnrichment(id, {
-    section: result.enrichment.section,
-    subsection: result.enrichment.subsection,
-    island: result.enrichment.island,
-    area: result.enrichment.area,
-    bookingMethod: result.enrichment.bookingMethod,
-    pricesText: result.enrichment.pricesText,
-    score,
-    scoreReasons: reasons,
-    draftMessage: result.enrichment.message,
-    enrichment: { ...result.enrichment, instagram: instagram ? { handle: instagram.handle, followers: instagram.followers, posts: instagram.captions.length } : null },
-    model: result.model,
-    sourceUrls: [lead.websiteUrl, instagram?.profileUrl ?? null, lead.googleMapsUrl].filter((u): u is string => Boolean(u)),
-  });
-  return NextResponse.json({ lead: saved, messageProblem: result.enrichment.messageProblem });
+  try {
+    const saved = await saveLeadEnrichment(id, {
+      section: result.enrichment.section,
+      subsection: result.enrichment.subsection,
+      island: result.enrichment.island,
+      area: result.enrichment.area,
+      bookingMethod: result.enrichment.bookingMethod,
+      pricesText: result.enrichment.pricesText,
+      score,
+      scoreReasons: reasons,
+      draftMessage: result.enrichment.message,
+      enrichment: { ...result.enrichment, instagram: instagram ? { handle: instagram.handle, followers: instagram.followers, posts: instagram.captions.length } : null },
+      model: result.model,
+      sourceUrls: [lead.websiteUrl, instagram?.profileUrl ?? null, lead.googleMapsUrl].filter((u): u is string => Boolean(u)),
+    });
+    return NextResponse.json({ lead: saved, messageProblem: result.enrichment.messageProblem });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    // Marked "do not contact" while the research was running: nothing is kept.
+    if (message === "DO_NOT_CONTACT") return NextResponse.json({ error: "This business asked not to be contacted." }, { status: 409 });
+    if (message === "NOT_FOUND") return NextResponse.json({ error: "Not found." }, { status: 404 });
+    console.error("lead enrich save", message);
+    return NextResponse.json({ error: "Could not save the research." }, { status: 500 });
+  }
 }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { enrichWithClaude, enrichmentTool, messageProblem, parseEnrichment, postedInLast30Days, publicTextForAi, redactPublicText, scoreFromEnrichment, scoutModel, type EnrichmentSubject } from "./enrich";
+import { captionsForAi, enrichWithClaude, enrichmentTool, messageProblem, parseEnrichment, postedInLast30Days, publicTextForAi, redactPublicText, scoreFromEnrichment, scoutModel, type EnrichmentSubject } from "./enrich";
 import type { InstagramProfile } from "./instagram";
 
 const SECTIONS = [
@@ -9,7 +9,7 @@ const SECTIONS = [
 
 const SUBJECT: EnrichmentSubject = {
   businessName: "TEST Party Rentals", whatTheyDo: "Tents, tables and chairs", googleCategory: "Party equipment rental service", address: "Nassau, The Bahamas",
-  websiteUrl: null, instagramHandle: "test_party_rentals", knownBooking: "unknown", knownPrices: null, notes: null,
+  websiteUrl: null, instagramHandle: "test_party_rentals", knownBooking: "unknown", knownPrices: null,
 };
 
 function profile(captions: Array<{ caption: string; postedAt: string | null }>): InstagramProfile {
@@ -34,6 +34,27 @@ describe("what the AI is allowed to see", () => {
     expect(block).not.toContain("some_person");
     expect(block).not.toContain("242-555");
     expect(block).not.toContain("owner@example.com");
+  });
+
+  it("strips a local number however it is written", () => {
+    expect(redactPublicText("WhatsApp 4238161 to book", null)).toBe("WhatsApp [number] to book");
+    expect(redactPublicText("Call 242/423/8161", null)).toBe("Call [number]");
+    expect(redactPublicText("Tents from $350, tables $12", null)).toBe("Tents from $350, tables $12");
+  });
+
+  it("sends only posts about prices, booking or availability, and never a post about a person", () => {
+    const posts = profile([
+      { caption: "Fully booked this Saturday! DM to book the next one.", postedAt: "2026-09-28T15:00:00+0000" },
+      { caption: "Happy 7th birthday TEST Child! DM to book your party.", postedAt: "2026-09-27T15:00:00+0000" },
+      { caption: "U9 player of the week: TEST Child. Spots available.", postedAt: "2026-09-26T15:00:00+0000" },
+      { caption: "Beautiful sunset at the field tonight.", postedAt: "2026-09-25T15:00:00+0000" },
+      { caption: "Tents from $350.", postedAt: "2026-09-24T15:00:00+0000" },
+    ]);
+    expect(captionsForAi(posts).map((p) => p.caption)).toEqual(["Fully booked this Saturday! DM to book the next one.", "Tents from $350."]);
+    const block = publicTextForAi(SUBJECT, posts);
+    expect(block).not.toContain("TEST Child");
+    expect(block).not.toContain("sunset");
+    expect(block).not.toContain("Our notes");
   });
 
   it("works out 'posted in the last 30 days' from the post dates, not from the model", () => {
@@ -78,6 +99,9 @@ describe("what comes back is checked, not trusted", () => {
     expect(messageProblem("We take online payments for you.")).toMatch(/card or online/);
     expect(messageProblem("PortPass Bahamas is your one-stop shop.")).toMatch(/one-stop/);
     expect(messageProblem(Array.from({ length: 90 }, () => "word").join(" "))).toMatch(/too long/);
+    expect(messageProblem("Hi from PortPass Bahamas. Confirm your listing at https://evil.example now.")).toMatch(/link/);
+    expect(messageProblem("Hi from PortPass Bahamas. See evil-site.com for your page.")).toMatch(/link/);
+    expect(messageProblem("Hi from PortPass Bahamas. Message @someone_else to book.")).toMatch(/account name/);
     expect(messageProblem(good.first_message)).toBeNull();
     const parsed = parseEnrichment({ ...good, first_message: "Pay by Visa or Mastercard on PortPass Bahamas!" }, SECTIONS)!;
     expect(parsed.message).toBeNull();

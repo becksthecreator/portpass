@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bookingMethodFrom, cleanUrl, dedupeKey, leadWhatsappLink, normalizeInstagramHandle, parseTrackerCsv, scoreAction, scoreLead, trackerStatus } from "./leads";
+import { bookingMethodFrom, cleanUrl, dedupeKey, firstWhatsappNumber, leadWhatsappLink, normalizeInstagramHandle, parseTrackerCsv, scoreAction, scoreLead, trackerStatus } from "./leads";
 
 const SECTIONS = [
   { slug: "sports-fitness", name: "Sports & Fitness", subcategories: [{ slug: "football-soccer", name: "Football / Soccer" }, { slug: "sailing", name: "Sailing" }, { slug: "strength-conditioning", name: "Strength & Conditioning" }] },
@@ -13,6 +13,8 @@ describe("one row per business", () => {
     expect(dedupeKey("BAHAMAS NATIONAL SAILING SCHOOL")).toBe(key);
     expect(dedupeKey("Café & Co")).toBe("cafe and co");
     expect(dedupeKey("!!!")).toBe("");
+    // A name in another script has no Latin letters to fold: it is kept as written.
+    expect(dedupeKey("  Ресторан  Море ")).toBe("ресторан море");
   });
 
   it("reads an Instagram handle however it was pasted, and nothing else", () => {
@@ -74,6 +76,7 @@ describe("the Prospect Tracker import", () => {
     expect(trackerStatus("Live", "")).toBe("live");
     expect(trackerStatus("Not now", "")).toBe("not_now");
     expect(trackerStatus("Live", "Yes")).toBe("do_not_contact");
+    expect(trackerStatus("Warm — in conversation", "")).toBe("replied");
   });
 
   it("reads how a business takes bookings from the tracker's free text", () => {
@@ -83,13 +86,27 @@ describe("the Prospect Tracker import", () => {
     expect(bookingMethodFrom("Online booking through FareHarbor")).toBe("website_booking");
     expect(bookingMethodFrom("Download PDF application form, contact by email")).toBe("unknown");
     expect(bookingMethodFrom("—")).toBe("unknown");
+    // Real cells from the sheet: "no booking platform" is not online booking.
+    expect(bookingMethodFrom("Phone, email, Instagram (no booking platform found)")).toBe("instagram_dm");
+    expect(bookingMethodFrom("Phone or email; no platform")).toBe("phone");
+    expect(bookingMethodFrom("Inquiry form, no checkout; sells elsewhere")).toBe("unknown");
+    expect(bookingMethodFrom("Online sign-up on website plus Wodify class booking")).toBe("website_booking");
+  });
+
+  it("finds the WhatsApp number in a cell that holds more than one", () => {
+    expect(firstWhatsappNumber("242-555-0101 · WhatsApp 242-555-0102")).toBe("+12425550102");
+    expect(firstWhatsappNumber("(242) 555-0103 (phone/WhatsApp)")).toBe("+12425550103");
+    expect(firstWhatsappNumber("(242) 555-0104 / 242-555-0105")).toBe("+12425550104");
+    expect(firstWhatsappNumber("+1 (242) 555-0106 (WhatsApp)")).toBe("+12425550106");
+    expect(firstWhatsappNumber("ask at the desk")).toBeNull();
+    expect(firstWhatsappNumber(null)).toBeNull();
   });
 
   it("turns the Prospects sheet into leads with statuses and scores intact", () => {
     const csv = [
       "#,Section,Subcategory,Business,What they do,How they book today,Online payment today,Instagram,Phone / WhatsApp,Email,Website,Why a good fit,Priority,Status,Owner,Next step,Last contact,Notes,Source,Lead score (0-100),Source,Date added,Do not contact",
-      '1,Sports & Fitness,Football/Soccer,TEST Football Club,"Youth football, two age groups",WhatsApp,No,@test_fc,242-555-0123,hello@testfc.example,testfc.example,Books by WhatsApp,1,Contacted,Antonio,Send preview,2026-09-20,Warm,Hand research,78,IG,2026-09-27,',
-      "2,Entertainment,Party rentals,TEST Party Rentals,Tents and chairs,Phone,No,,,,,,2,Not contacted,,,,,,45,,,",
+      '1,Sports & Fitness,Football/Soccer,TEST Football Club,"Youth football, two age groups",WhatsApp,No,@test_fc,242-555-0123,hello@testfc.example,testfc.example,Books by WhatsApp,1,Contacted,Antonio,Send preview,2026-09-20,Warm,Hand research,78,Existing relationship,2026-09-27,',
+      "2,Entertainment,Party rentals,TEST Party Rentals,Tents and chairs,Phone,No,,,,,,2,Not contacted,,,,,https://testrentals.example/prices,45,Research (web),,",
       "3,Entertainment,Photo booths,TEST Booths,Photo booths,Instagram DM,No,@test_booths,,,,,3,Not now,,,,,,,,,Yes",
       "4,Tours,Boats,,No name here,,,,,,,,,,,,,,,,,,",
       "5,Entertainment,Party rentals,Test  Party  Rentals.,Duplicate of row 2,,,,,,,,,,,,,,,,,,",
@@ -105,7 +122,24 @@ describe("the Prospect Tracker import", () => {
       lastContactOn: "2026-09-20", source: "tracker_import",
     });
     expect(club.sourceUrls).toEqual(["https://testfc.example/", "https://www.instagram.com/test_fc/"]);
+    // The second "Source" column: "Existing relationship" is a warm connection.
+    expect(club.warmConnection).toBe(true);
+    expect(rentals.warmConnection).toBeUndefined();
     expect(rentals).toMatchObject({ section: "entertainment", subsection: "party-rentals", bookingMethod: "phone", score: 45, status: "new" });
+    // The first "Source" column is kept when it is a web address ("Hand research" on row 1 is not).
+    expect(rentals.sourceUrls).toEqual(["https://testrentals.example/prices"]);
     expect(booths).toMatchObject({ status: "do_not_contact", score: null, subsection: "photo-booths" });
+  });
+
+  it("lets 'Do not contact' win when the same business is in the file twice", () => {
+    const csv = [
+      "Business,Status,Do not contact",
+      "TEST Party Rentals,Not contacted,",
+      "Test Party Rentals.,Not contacted,Yes",
+    ].join("\n");
+    const { drafts, skipped } = parseTrackerCsv(csv, SECTIONS);
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0].status).toBe("do_not_contact");
+    expect(skipped.map((s) => s.row)).toEqual([3]);
   });
 });

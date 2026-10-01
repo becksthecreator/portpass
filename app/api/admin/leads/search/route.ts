@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { existingForPlaces, lookupUsage, PLACES_DAILY_CAP, recordLookup } from "@/db/leads";
 import { requireAdminApi } from "@/lib/auth/admin";
-import { dedupeKey } from "@/lib/scout/leads";
 import { PLACES_SEARCH_COST_MILLICENTS, placesConfigured, searchPlaces } from "@/lib/scout/places";
 
 // Admin -> Leads: a Google Places text search ("party rentals Nassau").
-// Official API only. Capped at 200 searches a day; every search is counted
-// so the spend can be shown. Results are shown, not saved: a founder keeps
+// Official API only. Capped at 200 searches a day (a Nassau day); every
+// search is counted so the spend can be shown. Results are shown, not saved: a founder keeps
 // the ones worth keeping.
 export async function POST(request: Request) {
   const auth = await requireAdminApi();
@@ -19,16 +18,16 @@ export async function POST(request: Request) {
 
   const usage = await lookupUsage();
   if (usage.placesLeftToday <= 0) {
-    return NextResponse.json({ error: `That's ${PLACES_DAILY_CAP} searches today, the daily limit. It resets at midnight UTC.` }, { status: 429 });
+    return NextResponse.json({ error: `That's ${PLACES_DAILY_CAP} searches today, the daily limit. It resets at midnight, Nassau time.` }, { status: 429 });
   }
 
   const result = await searchPlaces(query);
   await recordLookup({ provider: "google_places", query, resultCount: result.ok ? result.places.length : 0, costMillicents: PLACES_SEARCH_COST_MILLICENTS, ok: result.ok, actorUserId: auth.session.userId });
   if (!result.ok) return NextResponse.json({ error: "Google Places didn't answer. Try again in a minute." }, { status: 502 });
 
-  const existing = await existingForPlaces(result.places.map((p) => p.placeId), result.places.map((p) => p.name));
+  const existing = await existingForPlaces(result.places);
   const places = result.places.map((place) => {
-    const match = existing.get(`place:${place.placeId}`) ?? existing.get(`name:${dedupeKey(place.name)}`) ?? null;
+    const match = existing.get(place.placeId) ?? null;
     return { ...place, existing: match ? { id: match.status === "do_not_contact" ? null : match.id, status: match.status } : null };
   });
   return NextResponse.json({ places, searchesLeftToday: usage.placesLeftToday - 1 });

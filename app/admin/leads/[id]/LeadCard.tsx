@@ -35,8 +35,19 @@ export function LeadCard({ lead: initial, sections, aiReady }: { lead: Lead; sec
       setError(typeof data.error === "string" ? data.error : "That didn't save.");
       return null;
     }
-    if (data.lead) setLead(data.lead as Lead);
+    if (data.lead) {
+      // The edit form follows what was just saved (its key is the lead's
+      // last change), so a later Save can't put back older values.
+      setLead(data.lead as Lead);
+      setSection((data.lead as Lead).section ?? "");
+    }
     return data;
+  }
+
+  async function remove() {
+    if (!confirm(`Remove ${lead.businessName}? Use this for a junk or mistaken request from the get listed form. It is deleted, and the same business can still be added later.`)) return;
+    const data = await call("remove", `/api/admin/leads/${lead.id}`, "DELETE");
+    if (data) router.push("/admin/leads");
   }
 
   async function setStatus(status: LeadStatus) {
@@ -106,6 +117,9 @@ export function LeadCard({ lead: initial, sections, aiReady }: { lead: Lead; sec
   const action = scoreAction(lead.score);
   const subsections = sections.find((s) => s.slug === section)?.subcategories ?? [];
   const sectionName = sections.find((s) => s.slug === lead.section)?.name ?? "No section yet";
+  // A request that came in through the public get listed form and has no
+  // draft page yet can be removed outright (the server checks again).
+  const removable = lead.applicationId !== null && lead.organizationId === null && (lead.source === "inbound_form" || lead.source === "referral");
 
   return (
     <div className="lead-card">
@@ -124,6 +138,7 @@ export function LeadCard({ lead: initial, sections, aiReady }: { lead: Lead; sec
           <button type="button" className="lead-dnc" disabled={busy !== null} onClick={() => setStatus("do_not_contact")}>Do not contact</button>
         </div>
         {lead.lastContactOn && <p className="lead-meta">Last contact: {day(`${lead.lastContactOn}T12:00:00Z`)}</p>}
+        {removable && <p className="lead-meta">Came in through the get listed form. Not a real request? <button type="button" className="admin-bar-link" disabled={busy !== null} onClick={remove}>{busy === "remove" ? "Removing…" : "Remove it"}</button></p>}
       </section>
 
       <section className="lead-panel" aria-labelledby="lead-score-h">
@@ -144,14 +159,14 @@ export function LeadCard({ lead: initial, sections, aiReady }: { lead: Lead; sec
         )}
         <button type="button" className="primary-button" disabled={busy !== null || !aiReady} onClick={research}>{busy === "research" ? "Researching…" : lead.enrichedAt ? "Research again" : "Research and score"}</button>
         {!aiReady && <p className="lead-meta">The AI step is off until ANTHROPIC_API_KEY is set.</p>}
-        {lead.enrichedAt && <p className="lead-meta">Generated {day(lead.enrichedAt)} by {lead.enrichmentModel}. It only saw public business information. Check it against the sources.</p>}
+        {lead.enrichedAt && <p className="lead-meta">Generated {day(lead.enrichedAt)} by {lead.enrichmentModel}. It was sent only what the business publishes about itself: its posts about prices, booking and availability, with phone numbers, emails and tagged accounts removed, and never your notes. Check it against the sources.</p>}
       </section>
 
       <section className="lead-panel" aria-labelledby="lead-message-h">
         <h2 id="lead-message-h">First message</h2>
         <p className="lead-meta">You send this yourself, one to one. PortPass never sends it for you.</p>
         <label className="lead-message"><span className="sr-only">Draft message</span>
-          <textarea rows={6} maxLength={2000} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="No draft yet. Research the lead, or write the message here." />
+          <textarea rows={9} maxLength={2000} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="No draft yet. Research the lead, or write the message here." />
         </label>
         <div className="lead-message-actions">
           <button type="button" className="primary-button" disabled={!message.trim()} onClick={copy}>{copied ? "Copied" : "Copy"}</button>
@@ -198,7 +213,7 @@ export function LeadCard({ lead: initial, sections, aiReady }: { lead: Lead; sec
 
       <section className="lead-panel" aria-labelledby="lead-edit-h">
         <h2 id="lead-edit-h">Edit</h2>
-        <form className="admin-form" onSubmit={saveDetails}>
+        <form className="admin-form" key={lead.updatedAt} onSubmit={saveDetails}>
           <div className="admin-form-row">
             <label><span>Section</span>
               <select name="section" value={section} onChange={(e) => setSection(e.target.value)}>

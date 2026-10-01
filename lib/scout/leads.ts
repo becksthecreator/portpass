@@ -68,7 +68,19 @@ export function dedupeKey(businessName: string): string {
     .replace(/&/g, " and ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
-    .replace(/\s+/g, " ");
+    .replace(/\s+/g, " ") || nameAsWritten(businessName);
+}
+
+// A name with no Latin letters or digits at all (another script) folds to
+// nothing above; it is then matched exactly as written.
+function nameAsWritten(businessName: string): string {
+  const text = businessName.trim().toLowerCase().replace(/\s+/g, " ");
+  // Only when it holds a character from another script: "!!!" is not a name.
+  const otherScript = Array.from(text).some((ch) => {
+    const code = ch.codePointAt(0) ?? 0;
+    return code >= 0x370 && !(code >= 0x2000 && code <= 0x2bff);
+  });
+  return otherScript ? text : "";
 }
 
 // "@Futprep_Athletics", "instagram.com/futprep_athletics/" and a full
@@ -85,6 +97,21 @@ export function normalizeInstagramHandle(value: string | null | undefined): stri
 }
 
 // Only http(s) links are ever stored or shown as links.
+// The WhatsApp number in a "phone" cell that may hold two ("242-555-0101 /
+// 242-555-0102", "242-555-0101 · WhatsApp 242-555-0102", "... or ..."):
+// the one labelled WhatsApp when there is one, otherwise the first that
+// parses, or none.
+export function firstWhatsappNumber(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const pieces = phone.split(/[,;/|·]| or /i).map((piece) => piece.trim()).filter(Boolean);
+  const labelled = pieces.filter((piece) => /whats\s?app/i.test(piece));
+  for (const piece of [...labelled, ...pieces]) {
+    const number = normalizePhoneE164(piece.replace(/[^\d+()\s.-]/g, " "));
+    if (number) return number;
+  }
+  return null;
+}
+
 export function cleanUrl(value: string | null | undefined): string | null {
   if (!value) return null;
   const text = value.trim();
@@ -188,6 +215,8 @@ export type LeadDraft = {
   nextStep: string | null;
   lastContactOn: string | null;
   notes: string | null;
+  // Someone the founders already know (the tracker's "Existing relationship").
+  warmConnection?: boolean;
 };
 
 export function emptyLeadDraft(businessName: string, source: LeadSource): LeadDraft {
@@ -233,7 +262,7 @@ export function trackerStatus(value: string, doNotContact: string): LeadStatus {
   if (text.startsWith("do not contact")) return "do_not_contact";
   if (text.startsWith("live")) return "live";
   if (text.startsWith("page") || text.startsWith("claim") || text.startsWith("onboarding")) return "page_drafted";
-  if (text.startsWith("meeting") || text.startsWith("replied") || text.startsWith("in conversation")) return "replied";
+  if (text.startsWith("meeting") || text.startsWith("replied") || text.startsWith("warm") || text.includes("in conversation")) return "replied";
   if (text.startsWith("contacted")) return "contacted";
   if (text.startsWith("not now") || text.startsWith("parked") || text.startsWith("no")) return "not_now";
   return "new";
@@ -243,7 +272,9 @@ export function trackerStatus(value: string, doNotContact: string): LeadStatus {
 export function bookingMethodFrom(text: string): BookingMethod {
   const t = text.toLowerCase();
   if (!t.trim() || t.trim() === "—" || t.trim() === "-") return "unknown";
-  if (/(book(s|ing)? online|online booking|booking (site|system|platform|engine|widget)|fareharbor|calendly|mindbody|eventbrite|book now button|checkout)/.test(t)) return "website_booking";
+  // "no booking platform found" says the opposite of what its words match.
+  const noPlatform = /\b(no|not|without)\b[^,;.()]{0,24}\b(booking|platform|checkout)/.test(t);
+  if (!noPlatform && /(book(s|ing)? online|online (booking|sign-?up|registration)|booking (site|system|platform|engine|widget)|fareharbor|calendly|mindbody|wodify|opentable|eventbrite|book now button|checkout)/.test(t)) return "website_booking";
   if (/whatsapp/.test(t)) return "whatsapp_dm";
   if (/(instagram|\bdm\b|direct message)/.test(t)) return "instagram_dm";
   if (/(phone|call|tel\b)/.test(t)) return "phone";
@@ -279,13 +310,19 @@ export function parseTrackerCsv(text: string, sections: Array<{ slug: string; na
     if (at >= 0) index[field] = at;
   }
   const used = new Set(Object.values(index));
+  // The sheet has two "Source" columns: one holds the page a fact came from,
+  // the other says how the business was found ("Research (web)", "Existing
+  // relationship"). Web addresses are kept as source links; "Existing
+  // relationship" marks a warm connection.
+  const sourceColumns = headers.map((h, at) => (h === "source" ? at : -1)).filter((at) => at >= 0);
+  for (const at of sourceColumns) used.add(at);
   const unmappedColumns = rows[0].filter((_, i) => !used.has(i) && rows[0][i].trim() !== "" && rows[0][i].trim() !== "#");
   const cell = (row: string[], field: string): string => (index[field] === undefined ? "" : (row[index[field]] ?? "").trim());
   const orNull = (value: string): string | null => (value && value !== "—" && value !== "-" ? value : null);
 
   const drafts: LeadDraft[] = [];
   const skipped: TrackerParse["skipped"] = [];
-  const seen = new Set<string>();
+  const seen = new Map<string, LeadDraft>();
   rows.slice(1).forEach((row, i) => {
     const businessName = cell(row, "businessName");
     const key = dedupeKey(businessName);
@@ -293,14 +330,16 @@ export function parseTrackerCsv(text: string, sections: Array<{ slug: string; na
       skipped.push({ row: i + 2, reason: "No business name" });
       return;
     }
-    if (seen.has(key)) {
+    const earlier = seen.get(key);
+    if (earlier) {
+      // The same business twice: a "do not contact" on either row wins.
+      if (trackerStatus(cell(row, "status"), cell(row, "doNotContact")) === "do_not_contact") earlier.status = "do_not_contact";
       skipped.push({ row: i + 2, reason: `"${businessName}" appears twice in the file` });
       return;
     }
-    seen.add(key);
     const { section, lookup } = sectionSlug(cell(row, "section"), sections);
     const phoneText = cell(row, "phone");
-    const whatsapp = phoneText ? normalizePhoneE164(phoneText.split(/[,;/]| or /i)[0]) : null;
+    const whatsapp = firstWhatsappNumber(phoneText);
     const scoreText = cell(row, "score");
     const score = /^\d{1,3}$/.test(scoreText) ? Math.max(0, Math.min(100, Number(scoreText))) : null;
     const priorityText = cell(row, "priority");
@@ -326,7 +365,11 @@ export function parseTrackerCsv(text: string, sections: Array<{ slug: string; na
     draft.lastContactOn = /^\d{4}-\d{2}-\d{2}$/.test(lastContact) ? lastContact : null;
     const bookingNote = orNull(cell(row, "booking"));
     draft.notes = [orNull(cell(row, "notes")), bookingNote ? `How they book today: ${bookingNote}` : null].filter(Boolean).join("\n") || null;
-    draft.sourceUrls = [website, draft.instagramHandle ? `https://www.instagram.com/${draft.instagramHandle}/` : null].filter((u): u is string => Boolean(u));
+    const sourceCells = sourceColumns.map((at) => (row[at] ?? "").trim());
+    const sourceLinks = sourceCells.filter((text) => text.toLowerCase().startsWith("http")).map((text) => cleanUrl(text));
+    if (sourceCells.some((text) => text.toLowerCase().startsWith("existing relationship"))) draft.warmConnection = true;
+    draft.sourceUrls = [...new Set([website, ...sourceLinks, draft.instagramHandle ? `https://www.instagram.com/${draft.instagramHandle}/` : null].filter((u): u is string => Boolean(u)))];
+    seen.set(key, draft);
     drafts.push(draft);
   });
   return { drafts, skipped, unmappedColumns };

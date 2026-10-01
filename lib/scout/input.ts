@@ -1,6 +1,5 @@
-import { normalizePhoneE164 } from "@/lib/phone";
 import type { SectionOption } from "./enrich";
-import { cleanUrl, emptyLeadDraft, isBookingMethod, isLeadStatus, normalizeInstagramHandle, type BookingMethod, type LeadDraft, type LeadSource, type LeadStatus } from "./leads";
+import { cleanUrl, emptyLeadDraft, firstWhatsappNumber, isBookingMethod, isLeadStatus, normalizeInstagramHandle, type BookingMethod, type LeadDraft, type LeadSource, type LeadStatus } from "./leads";
 
 // What the Leads screens may send to the server, checked field by field.
 // Nothing typed in a form is trusted for its shape: a section must be one
@@ -35,7 +34,7 @@ export function parseNewLead(body: unknown, sections: SectionOption[]): { ok: tr
   draft.pricesText = text(input.pricesText, 600);
   draft.instagramHandle = normalizeInstagramHandle(text(input.instagramHandle, 200));
   draft.phone = text(input.phone, 60);
-  draft.whatsappE164 = draft.phone ? normalizePhoneE164(draft.phone) : null;
+  draft.whatsappE164 = firstWhatsappNumber(draft.phone);
   const email = text(input.email, 200);
   draft.email = email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? email.toLowerCase() : null;
   draft.websiteUrl = cleanUrl(text(input.websiteUrl, 300));
@@ -105,7 +104,7 @@ export function parseLeadPatch(body: unknown, sections: SectionOption[]): { ok: 
   }
   if (has("phone")) {
     patch.phone = text(input.phone, 60);
-    patch.whatsappE164 = patch.phone ? normalizePhoneE164(patch.phone) : null;
+    patch.whatsappE164 = firstWhatsappNumber(patch.phone);
   }
   if (has("websiteUrl")) {
     const raw = text(input.websiteUrl, 300);

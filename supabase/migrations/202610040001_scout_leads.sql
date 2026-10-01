@@ -66,6 +66,10 @@ create table if not exists public.leads (
   -- Lower-cased, punctuation-free name: one row per business, so a second
   -- import or a "do not contact" business can't come back.
   dedupe_key text not null,
+  -- Hashes of the business's phone numbers and its own website's host. They
+  -- stay on a "do not contact" tombstone (which keeps no contact details)
+  -- so the business can't come back under a slightly different name.
+  match_keys text[] not null default '{}',
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -74,6 +78,7 @@ create table if not exists public.leads (
 create unique index if not exists leads_dedupe_key_idx on public.leads (dedupe_key);
 create unique index if not exists leads_google_place_id_idx on public.leads (google_place_id) where google_place_id is not null;
 create unique index if not exists leads_instagram_handle_idx on public.leads (lower(instagram_handle)) where instagram_handle is not null;
+create index if not exists leads_match_keys_idx on public.leads using gin (match_keys);
 create index if not exists leads_status_score_idx on public.leads (status, score desc nulls last);
 create index if not exists leads_section_idx on public.leads (section);
 create index if not exists leads_created_at_idx on public.leads (created_at desc);

@@ -29,6 +29,8 @@ export function PlacesSearch({ configured, searchesLeft }: { configured: boolean
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [left, setLeft] = useState(searchesLeft);
   const [kept, setKept] = useState<Record<string, number | "busy" | "failed">>({});
+  // Why a place couldn't be kept, and the lead it already is (if it is one).
+  const [refused, setRefused] = useState<Record<string, { reason: string; leadId: number | null }>>({});
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,7 +45,10 @@ export function PlacesSearch({ configured, searchesLeft }: { configured: boolean
       return;
     }
     setPlaces(data.places ?? []);
+    setRefused({});
     if (typeof data.searchesLeftToday === "number") setLeft(data.searchesLeftToday);
+    // The "Google searches today" tile above counts this search too.
+    router.refresh();
   }
 
   async function keep(place: Place) {
@@ -62,9 +67,16 @@ export function PlacesSearch({ configured, searchesLeft }: { configured: boolean
         place: { placeId: place.placeId, mapsUrl: place.mapsUrl, rating: place.rating, ratingCount: place.ratingCount },
       }),
     }).catch(() => null);
-    const data = response ? ((await response.json().catch(() => ({}))) as { lead?: { id: number } }) : {};
-    setKept((current) => ({ ...current, [place.placeId]: response?.ok && data.lead ? data.lead.id : "failed" }));
-    if (response?.ok) router.refresh();
+    const data = response ? ((await response.json().catch(() => ({}))) as { lead?: { id: number }; error?: string; leadId?: number }) : {};
+    const ok = Boolean(response?.ok && data.lead);
+    setKept((current) => ({ ...current, [place.placeId]: ok && data.lead ? data.lead.id : "failed" }));
+    if (!ok) {
+      // Say why (already a lead, asked not to be contacted, signed out),
+      // rather than a bare "Try again".
+      const reason = data.error ?? "That didn't save. Try again.";
+      setRefused((current) => ({ ...current, [place.placeId]: { reason, leadId: typeof data.leadId === "number" ? data.leadId : null } }));
+    }
+    if (ok) router.refresh();
   }
 
   if (!open) {
@@ -101,8 +113,13 @@ export function PlacesSearch({ configured, searchesLeft }: { configured: boolean
                         : <Link href={`/admin/leads/${place.existing.id}`}>Already a lead</Link>
                     ) : typeof state === "number" ? (
                       <Link href={`/admin/leads/${state}`}>Added: open</Link>
+                    ) : refused[place.placeId]?.leadId ? (
+                      <Link href={`/admin/leads/${refused[place.placeId].leadId}`}>Already a lead</Link>
                     ) : (
-                      <button type="button" className="admin-bar-link" disabled={state === "busy"} onClick={() => keep(place)}>{state === "busy" ? "Adding…" : state === "failed" ? "Try again" : "Keep as a lead"}</button>
+                      <span className="leads-place-keep">
+                        {state === "failed" && refused[place.placeId] && <small role="alert">{refused[place.placeId].reason}</small>}
+                        <button type="button" className="admin-bar-link" disabled={state === "busy"} onClick={() => keep(place)}>{state === "busy" ? "Adding…" : state === "failed" ? "Try again" : "Keep as a lead"}</button>
+                      </span>
                     )}
                   </li>
                 );
