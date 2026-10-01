@@ -8,7 +8,7 @@ import { PhoneInput } from "@/app/_components/PhoneInput";
 import { track } from "@/lib/analytics";
 import { portpassWhatsAppUrl } from "@/lib/contact";
 
-type FormState = { name: string; businessName: string; section: string; whatsapp: string; instagram: string; note: string };
+type FormState = { name: string; businessName: string; section: string; whatsapp: string; instagram: string; note: string; referralCode: string };
 type SectionOption = { slug: string; name: string };
 type PlanOption = { code: string; name: string };
 
@@ -22,7 +22,7 @@ export function ApplicationForm({ sections, plans }: { sections: SectionOption[]
   // /pricing's "Start free" arrives with ?plan=growing: shown back, sent
   // along, never binding ("You can change it later").
   const picked = plans.find((p) => p.code === searchParams.get("plan")) ?? null;
-  const [form, setForm] = useState<FormState>({ name: "", businessName: "", section: sections.some((s) => s.slug === presetSection) ? presetSection : "", whatsapp: "", instagram: "", note: "" });
+  const [form, setForm] = useState<FormState>({ name: "", businessName: "", section: sections.some((s) => s.slug === presetSection) ? presetSection : "", whatsapp: "", instagram: "", note: "", referralCode: (searchParams.get("ref") ?? "").slice(0, 40) });
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -94,6 +94,7 @@ export function ApplicationForm({ sections, plans }: { sections: SectionOption[]
         </label>
         <label><span>WhatsApp number *</span><PhoneInput name="whatsapp" required value={form.whatsapp} onChange={(v) => set("whatsapp", v)} /></label>
         <label><span>Instagram (optional)</span><input name="instagram" placeholder="@yourbusiness" maxLength={60} value={form.instagram} onChange={(e) => set("instagram", e.target.value)} /></label>
+        <label><span>Referral code (optional)</span><input name="referralCode" maxLength={40} placeholder="From a business already on PortPass" autoCapitalize="characters" value={form.referralCode} onChange={(e) => set("referralCode", e.target.value)} /></label>
         <label className="full-field"><span>Anything we should know? (optional)</span><input name="note" maxLength={300} placeholder="What you offer, where, and rough prices" value={form.note} onChange={(e) => set("note", e.target.value)} /></label>
       </div>
       {error && <p className="form-error">{error}</p>}

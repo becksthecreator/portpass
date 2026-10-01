@@ -29,7 +29,7 @@ export default async function FutprepStaffAccountsPage() {
           <div><span className="section-kicker">Access control</span><h1>Staff accounts.</h1></div>
           <p>Create a login for each new coach or teammate and assign a role. Deactivating an account blocks sign-in immediately without deleting their history.</p>
         </div>
-        <AccountsManager initialAccounts={accounts} currentAccountKey={currentAccountKey ?? ""} />
+        <AccountsManager initialAccounts={accounts} currentAccountKey={currentAccountKey ?? ""} canManageCeo={role === "ceo"} />
       </section>
     </main>
   );
