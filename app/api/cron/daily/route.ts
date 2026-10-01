@@ -1,0 +1,77 @@
+import { NextResponse } from "next/server";
+import { listOwnerEmails } from "@/db/business";
+import { claimJobRun, futprepOrganization, getGrowthReport, logMessage, prunePageEvents, releaseJobRun, reportRecipients, syncCommissionEvents } from "@/db/growth";
+import { cronAuthorized } from "@/lib/cron";
+import { portpassFrom, sendEmail } from "@/lib/email";
+import { monthlyReportPeriod, nassauClock } from "@/lib/growth";
+import { growthReportEmail } from "@/lib/growthEmail";
+
+export const dynamic = "force-dynamic";
+
+// @public-route: called by Vercel Cron once a day; lib/cron.ts refuses
+// anything that does not carry the project's cron secret.
+//
+// 1. For a business on a commission plan, writes the fee for each payment
+//    received from a commissionable family as a billing event. A business
+//    that is not on a plan gets nothing written.
+// 2. Removes page-event counts too old for the report to read.
+// 3. On the 1st of the month (Nassau), emails the business's owners last
+//    month's growth report, once, and records it in the Messages log. If
+//    nothing could be delivered the month is released, and the runs on the
+//    next few days try again. Nothing is ever sent to a parent.
+//
+// The answer says only that the job ran: what it did is in the audit trail
+// (billing_events, message_log), not in a response anyone could read.
+export async function GET(request: Request) {
+  if (!cronAuthorized(request)) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  const now = new Date();
+  const clock = nassauClock(now);
+  const organization = await futprepOrganization();
+  if (!organization) return NextResponse.json({ ok: true });
+
+  try {
+    await syncCommissionEvents(organization.id, now);
+  } catch (error) {
+    console.error("daily job: commission events", error instanceof Error ? error.message : "");
+  }
+  try {
+    await prunePageEvents(now);
+  } catch (error) {
+    console.error("daily job: page events retention", error instanceof Error ? error.message : "");
+  }
+
+  const month = monthlyReportPeriod(clock);
+  if (month) {
+    const job = "growth-report-email";
+    const period = `${organization.id}:${month}`;
+    let claimed = false;
+    let delivered = false;
+    try {
+      claimed = await claimJobRun(job, period);
+      if (claimed) {
+        const recipients = await reportRecipients(organization.id, await listOwnerEmails(organization.id));
+        if (recipients.length === 0) {
+          // Nobody to send to yet. Said once, on the 1st; the month stays
+          // open so the report goes as soon as an owner or an email address
+          // is added during the retry days.
+          if (clock.date.endsWith("-01")) {
+            await logMessage({ organizationId: organization.id, template: "growth_report_monthly", recipient: "(no owner on file)", status: "skipped", detail: "No owner with a PortPass account, and no email on the CEO staff login." });
+          }
+        } else {
+          const email = growthReportEmail(await getGrowthReport(organization, now), month);
+          for (const to of recipients) {
+            const outcome = await sendEmail({ to, subject: email.subject, html: email.html, from: portpassFrom() });
+            await logMessage({ organizationId: organization.id, template: "growth_report_monthly", recipient: to, status: outcome, detail: outcome === "skipped" ? "Email is not set up yet." : null });
+            // "skipped" means email is not connected: retrying today would not help.
+            if (outcome !== "failed") delivered = true;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("daily job: growth report email", error instanceof Error ? error.message : "");
+      await logMessage({ organizationId: organization.id, template: "growth_report_monthly", recipient: "(not sent)", status: "failed", detail: "The report could not be built or sent; it will be tried again." }).catch(() => {});
+    }
+    if (claimed && !delivered) await releaseJobRun(job, period).catch(() => {});
+  }
+  return NextResponse.json({ ok: true });
+}

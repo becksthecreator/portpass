@@ -16,6 +16,9 @@ on:
     paths:
       - "app/futprep/staff/**"
       - "app/admin/leads/**"
+      - "app/_components/growth/**"
+      - "db/growth.ts"
+      - "lib/growth.ts"
       - "db/leads.ts"
       - "lib/scout/**"
       - "db/staff.ts"
@@ -42,7 +45,15 @@ jobs:
         with:
           version: latest
       - name: Start local Supabase
-        run: supabase start
+        # The Supabase CLI pulls its images from public.ecr.aws, which at times
+        # rate-limits GitHub's runners ("toomanyrequests"). When that happens
+        # the same images are pulled from GitHub's own registry instead.
+        run: |
+          supabase start || {
+            echo "The default image registry refused the pull; trying ghcr.io."
+            supabase stop --no-backup || true
+            SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io supabase start
+          }
       - name: Export local Supabase credentials
         run: |
           supabase status -o env > supabase-status.env

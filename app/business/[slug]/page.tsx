@@ -50,6 +50,7 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
           )}
           {canEdit && <Link className="chooser-card" href={`/business/${slug}/settings`}><strong>Settings</strong><span>Details, photos, prices, payments</span><b>Open →</b></Link>}
           {canEdit && <Link className="chooser-card" href={`/business/${slug}/settings?step=6`}><strong>Team</strong><span>Invite staff, set who sees what</span><b>Open →</b></Link>}
+          {canEdit && <Link className="chooser-card" href={`/business/${slug}/growth`}><strong>Growth report</strong><span>Found you, asked, booked, paid, showed up</span><b>Open →</b></Link>}
           {(canEdit || access.membership?.role === "org_staff") && (
             <Link className="chooser-card" href={`/business/${slug}/shop`}><strong>Shop</strong><span>Products, drops and reservations</span><b>Open →</b></Link>
           )}

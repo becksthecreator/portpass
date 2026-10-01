@@ -17,14 +17,17 @@ type SendEmailInput = {
   from?: string;
 };
 
+// What became of an email: the Messages log records it (never the text).
+export type EmailOutcome = "sent" | "failed" | "skipped";
+
 // No-ops with a console warning when RESEND_API_KEY isn't set, so local
 // dev and preview builds never crash for missing email config. Uses
 // Resend's plain HTTP API directly rather than its SDK, since it's a
 // single endpoint and this avoids adding a dependency.
-export async function sendEmail({ to, subject, html, from: fromOverride }: SendEmailInput): Promise<void> {
+export async function sendEmail({ to, subject, html, from: fromOverride }: SendEmailInput): Promise<EmailOutcome> {
   if (to.trim().toLowerCase().endsWith(TEST_EMAIL_DOMAIN)) {
     console.warn("[email] Refusing to send to the reserved test domain.");
-    return;
+    return "skipped";
   }
 
   const apiKey = process.env.RESEND_API_KEY;
@@ -34,7 +37,7 @@ export async function sendEmail({ to, subject, html, from: fromOverride }: SendE
     // Never the address or the subject: a subject can carry a child's name,
     // and these lines are kept in the host's logs.
     console.warn("[email] RESEND_API_KEY or the from address is not set: an email was skipped.");
-    return;
+    return "skipped";
   }
 
   try {
@@ -48,9 +51,12 @@ export async function sendEmail({ to, subject, html, from: fromOverride }: SendE
     });
     if (!response.ok) {
       console.error(`[email] Resend send failed (${response.status}).`);
+      return "failed";
     }
+    return "sent";
   } catch (error) {
     console.error("[email] Resend send threw.", error instanceof Error ? error.message : "");
+    return "failed";
   }
 }
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAdminOverview } from "@/db/adminStats";
 import { requireAdmin } from "@/lib/auth/admin";
 import { formatPriceCents } from "@/app/_components/blocks/format";
+import { shortDate } from "@/lib/growth";
 import { AdminShell } from "./_components/AdminShell";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,12 @@ export default async function AdminOverviewPage() {
           <Link className={`admin-tile${o.needsAction.businessesAwaiting ? " is-alert" : ""}`} href="/admin/businesses?status=submitted"><strong>{show(o.needsAction.businessesAwaiting)}</strong><span>Businesses awaiting approval</span></Link>
           <Link className={`admin-tile${o.needsAction.newApplications ? " is-alert" : ""}`} href="/admin/applications"><strong>{show(o.needsAction.newApplications)}</strong><span>New /apply submissions</span></Link>
           <Link className={`admin-tile${o.needsAction.unansweredLeads ? " is-alert" : ""}`} href="/weddings/admin"><strong>{show(o.needsAction.unansweredLeads)}</strong><span>Unanswered wedding leads</span></Link>
+          {/* A session with no attendance by noon on the day (brief 05, part 3). */}
+          <Link className={`admin-tile${o.attendance && o.attendance.length > 0 ? " is-alert" : ""}`} href="/futprep/staff/coach">
+            <strong>{o.attendance === null ? "—" : String(o.attendance.length)}</strong>
+            <span>Sessions with attendance not marked</span>
+            {o.attendance && o.attendance.length > 0 && <small>{o.attendance.slice(0, 3).map((s) => `${s.organizationName} · ${s.programName} · ${shortDate(s.date)}`).join("; ")}</small>}
+          </Link>
           <div className="admin-tile is-muted"><strong>—</strong><span>Failed emails</span><small>Messages log arrives in build C</small></div>
           <div className="admin-tile is-muted"><strong>—</strong><span>Site errors (24h)</span><small>Health tiles arrive in build C</small></div>
         </div>

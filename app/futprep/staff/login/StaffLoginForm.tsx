@@ -26,7 +26,10 @@ export function StaffLoginForm({ returnTo }: { returnTo: string }) {
       });
       const data = (await response.json()) as { error?: string; role?: string };
       if (!response.ok) throw new Error(data.error ?? "Access denied.");
-      window.location.href = ROLE_DESTINATION[data.role ?? ""] ?? returnTo;
+      // A link to one session's roster (the Saturday nudge) is followed;
+      // otherwise each role goes to its own home.
+      const roster = returnTo.startsWith("/futprep/staff/coach?session=") && ["coach", "ceo", "helper"].includes(data.role ?? "");
+      window.location.href = roster ? returnTo : ROLE_DESTINATION[data.role ?? ""] ?? returnTo;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Access denied.");
     } finally { setBusy(false); }

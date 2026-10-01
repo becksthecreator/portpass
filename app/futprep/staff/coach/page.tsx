@@ -21,12 +21,14 @@ export default async function FutprepCoachPage({
 }: {
   searchParams: Promise<{ session?: string; program?: string }>;
 }) {
-  const role = await requireFutprepStaff(["coach","ceo","helper"], "/futprep/staff/coach");
+  // The Saturday nudge email links to one session's roster. A coach is
+  // usually signed out by then, so the session is kept through the sign-in.
+  const { session, program } = await searchParams;
+  const role = await requireFutprepStaff(["coach","ceo","helper"], session && /^[0-9]+$/.test(session) ? `/futprep/staff/coach?session=${session}` : "/futprep/staff/coach");
   const readOnly = role === "helper";
-  const [staffName, sessions, { session, program }, staffId] = await Promise.all([
+  const [staffName, sessions, staffId] = await Promise.all([
     currentFutprepStaffName(),
     listFutprepStaffSessions(),
-    searchParams,
     currentFutprepStaffId(),
   ]);
   // Brief 16, C1: a coach whose login is linked to a bookable profile with

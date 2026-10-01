@@ -1,0 +1,381 @@
+import { describe, expect, it } from "vitest";
+import {
+  buildPeriodReport,
+  channelFromAttribution,
+  cleanEventPath,
+  commissionForMonth,
+  commissionForTerm,
+  firstNameOf,
+  GROW_WITH_US_OFFER,
+  isNudgeWindow,
+  isPageEvent,
+  missedTwoInARow,
+  monthlyReportPeriod,
+  monthsInTerm,
+  nassauClock,
+  receivedDate,
+  termPeriods,
+  unmarkedSessions,
+  type GrowthAttendance,
+  type GrowthPayment,
+  type GrowthRegistration,
+  type GrowthSession,
+  type GrowthTerm,
+} from "./growth";
+
+const NONE = { utmSource: null, utmMedium: null, utmCampaign: null, referrerHost: null, viaPortpass: false };
+
+describe("page events", () => {
+  it("accepts only the four events the report counts", () => {
+    expect(isPageEvent("view")).toBe(true);
+    expect(isPageEvent("register_start")).toBe(true);
+    expect(isPageEvent("purchase")).toBe(false);
+    expect(isPageEvent(null)).toBe(false);
+  });
+
+  it("records only a business's public pages, with nothing personal in the address", () => {
+    expect(cleanEventPath("/sports-fitness/futprep-athletics")).toBe("/sports-fitness/futprep-athletics");
+    expect(cleanEventPath("/futprep/coaches/?utm_source=portpass#bex")).toBe("/futprep/coaches");
+    expect(cleanEventPath("/futprep/register/return/abcDEF123456tokenvalue")).toBe("/futprep/register/return");
+    // A status page's address holds a reference code; staff pages are not public.
+    expect(cleanEventPath("/futprep/my/FP-ABCD-1234")).toBeNull();
+    expect(cleanEventPath("/futprep/my")).toBeNull();
+    expect(cleanEventPath("/futprep/staff/coach")).toBeNull();
+    // Not this business's pages, or not an address at all.
+    expect(cleanEventPath("/weddings")).toBeNull();
+    expect(cleanEventPath("/futprep/<script>")).toBeNull();
+    expect(cleanEventPath("https://evil.example/futprep")).toBeNull();
+    expect(cleanEventPath(42)).toBeNull();
+  });
+
+  it("names the source from the attribution cookie, by the same evidence rules as a registration", () => {
+    expect(channelFromAttribution(null)).toBe("unknown");
+    expect(channelFromAttribution({ ...NONE, utmSource: "portpass", utmMedium: "qr" })).toBe("qr");
+    expect(channelFromAttribution({ ...NONE, utmSource: "portpass", utmMedium: "ig_bio" })).toBe("portpass_link");
+    expect(channelFromAttribution({ ...NONE, utmSource: "portpass", utmMedium: "member_perk" })).toBe("member_perk");
+    expect(channelFromAttribution({ ...NONE, viaPortpass: true })).toBe("portpass_listing");
+    expect(channelFromAttribution({ ...NONE, referrerHost: "instagram.com" })).toBe("instagram");
+    expect(channelFromAttribution({ ...NONE, referrerHost: "l.instagram.com" })).toBe("instagram");
+    expect(channelFromAttribution({ ...NONE, referrerHost: "google.com" })).toBe("google");
+    expect(channelFromAttribution({ ...NONE, referrerHost: "wa.me" })).toBe("whatsapp");
+    expect(channelFromAttribution({ ...NONE, referrerHost: "somewhere.example" })).toBe("other");
+  });
+});
+
+describe("Nassau time", () => {
+  it("reads the date, weekday and hour in Nassau, not UTC", () => {
+    // Saturday 3 October 2026, 12:45 UTC is 8:45 in the morning in Nassau.
+    expect(nassauClock(new Date("2026-10-03T12:45:00Z"))).toEqual({ date: "2026-10-03", weekday: 6, hour: 8, minute: 45 });
+    // 02:30 UTC on Sunday is still Saturday evening in Nassau.
+    expect(nassauClock(new Date("2026-10-04T02:30:00Z"))).toMatchObject({ date: "2026-10-03", weekday: 6, hour: 22 });
+    // After the clocks go back (1 November), 13:45 UTC is 8:45.
+    expect(nassauClock(new Date("2026-11-07T13:45:00Z"))).toMatchObject({ date: "2026-11-07", weekday: 6, hour: 8, minute: 45 });
+  });
+
+  it("nudges only in the morning, and reports only on the 1st", () => {
+    expect(isNudgeWindow({ date: "2026-10-03", weekday: 6, hour: 8, minute: 45 })).toBe(true);
+    // In winter the first of the two scheduled runs lands at 7:45: too early.
+    expect(isNudgeWindow({ date: "2026-11-07", weekday: 6, hour: 7, minute: 45 })).toBe(false);
+    expect(isNudgeWindow({ date: "2026-10-03", weekday: 6, hour: 13, minute: 0 })).toBe(false);
+    // Saturdays only.
+    expect(isNudgeWindow({ date: "2026-10-06", weekday: 2, hour: 8, minute: 45 })).toBe(false);
+    expect(monthlyReportPeriod({ date: "2026-11-01", weekday: 0, hour: 6, minute: 0 })).toBe("2026-10");
+    expect(monthlyReportPeriod({ date: "2027-01-01", weekday: 5, hour: 6, minute: 0 })).toBe("2026-12");
+    // If the 1st did not go through, the next few days try again; after that, no.
+    expect(monthlyReportPeriod({ date: "2026-11-02", weekday: 1, hour: 6, minute: 0 })).toBe("2026-10");
+    expect(monthlyReportPeriod({ date: "2026-11-05", weekday: 4, hour: 6, minute: 0 })).toBe("2026-10");
+    expect(monthlyReportPeriod({ date: "2026-11-06", weekday: 5, hour: 6, minute: 0 })).toBeNull();
+  });
+});
+
+const TERMS: GrowthTerm[] = [
+  { id: 1, programId: 10, name: "Term 1", startDate: "2026-09-12", endDate: "2026-12-05", isClass: true },
+  { id: 2, programId: 11, name: "Term 1", startDate: "2026-09-12", endDate: "2026-12-05", isClass: true },
+  { id: 3, programId: 12, name: "October camp", startDate: "2026-10-13", endDate: "2026-10-16", isClass: false },
+  { id: 4, programId: 10, name: "Term 2", startDate: "2027-01-09", endDate: "2027-03-27", isClass: true },
+];
+
+describe("this term against last term", () => {
+  it("takes the classes running today as the term, and a camp held during it", () => {
+    const { current, previous } = termPeriods(TERMS, "2026-10-01");
+    // With no earlier term, everything before the term counts towards it.
+    expect(current).toEqual({ label: "Term 1", start: "2026-09-12", end: "2026-12-05", termIds: [1, 2, 3], eventsFrom: null });
+    expect(previous).toBeNull();
+    // Term 2 already exists, so its sign-ups show while Term 1 is running.
+    expect(termPeriods(TERMS, "2026-11-25").upcoming).toMatchObject({ label: "Term 2", termIds: [4], eventsFrom: "2026-12-06" });
+    expect(termPeriods(TERMS, "2027-02-01").upcoming).toBeNull();
+  });
+
+  it("compares Term 2 with Term 1 once Term 2 is running", () => {
+    const { current, previous } = termPeriods(TERMS, "2027-02-01");
+    // Term 2's views and sign-ups count from the day after Term 1 ended.
+    expect(current).toMatchObject({ label: "Term 2", termIds: [4], eventsFrom: "2026-12-06" });
+    expect(previous).toMatchObject({ label: "Term 1", termIds: [1, 2, 3], eventsFrom: null });
+  });
+
+  it("counts a camp held between two terms with the term that follows it", () => {
+    const withCamp: GrowthTerm[] = [...TERMS, { id: 5, programId: 13, name: "Christmas camp", startDate: "2026-12-17", endDate: "2026-12-18", isClass: false }];
+    expect(termPeriods(withCamp, "2026-10-01").current?.termIds).toEqual([1, 2, 3]);
+    const later = termPeriods(withCamp, "2027-02-01");
+    expect(later.current?.termIds).toEqual([4, 5]);
+    expect(later.previous?.termIds).toEqual([1, 2, 3]);
+    // Between terms the report looks ahead, and the camp is already in it.
+    expect(termPeriods(withCamp, "2026-12-17").current?.termIds).toEqual([4, 5]);
+  });
+
+  it("names a term whose classes call it different things 'This term' and 'Last term'", () => {
+    const mixed: GrowthTerm[] = [
+      { id: 1, programId: 10, name: "Autumn", startDate: "2026-09-12", endDate: "2026-12-05", isClass: true },
+      { id: 2, programId: 11, name: "Term 1", startDate: "2026-09-12", endDate: "2026-12-05", isClass: true },
+      { id: 3, programId: 10, name: "Spring", startDate: "2027-01-09", endDate: "2027-03-20", isClass: true },
+      { id: 4, programId: 11, name: "Term 2", startDate: "2027-01-09", endDate: "2027-03-20", isClass: true },
+    ];
+    const { current, previous } = termPeriods(mixed, "2027-02-01");
+    expect(current?.label).toBe("This term");
+    expect(previous?.label).toBe("Last term");
+  });
+
+  it("between terms, looks ahead to the next one", () => {
+    expect(termPeriods(TERMS, "2026-12-20").current).toMatchObject({ label: "Term 2" });
+    expect(termPeriods([], "2026-10-01")).toEqual({ current: null, previous: null, upcoming: null });
+  });
+
+  it("counts an eleven-week and a twelve-week term as three months, so both cap at $360", () => {
+    expect(monthsInTerm("2026-09-12", "2026-12-05")).toBe(3);
+    expect(monthsInTerm("2027-01-09", "2027-03-20")).toBe(3);
+    expect(monthsInTerm("2026-10-13", "2026-10-16")).toBe(1);
+  });
+
+  it("reads a payment's date as staff typed it, and a real moment in Nassau time", () => {
+    // Picked from a date box: stored as midnight UTC of that date.
+    expect(receivedDate("2026-11-01T00:00:00+00:00")).toBe("2026-11-01");
+    expect(receivedDate("2026-11-01T00:00:00.000Z")).toBe("2026-11-01");
+    // Recorded on the spot at 9:30 pm in Nassau on 31 October (01:30 UTC on the 1st).
+    expect(receivedDate("2026-11-01T01:30:00+00:00")).toBe("2026-10-31");
+  });
+});
+
+function reg(id: number, over: Partial<GrowthRegistration> = {}): GrowthRegistration {
+  return { id, programId: 10, termId: 1, status: "confirmed", isNewFamily: false, commissionEligible: false, submittedOn: "2026-09-01", amountDueCents: 42_000, paysWeekly: false, feeWaived: false, childFirstName: `Child${id}`, ...over };
+}
+const PROGRAMS = [{ id: 10, name: "Lil Kickers", capacity: 20 }, { id: 11, name: "Kickers", capacity: 16 }];
+const PERIOD = { label: "Term 1", start: "2026-09-12", end: "2026-12-05", termIds: [1, 2], eventsFrom: null };
+
+describe("the term's numbers", () => {
+  const registrations = [
+    reg(1),
+    reg(2, { isNewFamily: true, commissionEligible: true, submittedOn: "2026-09-20" }),
+    reg(3, { programId: 11, termId: 2, status: "pending", amountDueCents: 30_000 }),
+    reg(4, { status: "waitlist" }),
+    reg(5, { status: "trial" }),
+    reg(6, { status: "cancelled" }),
+    reg(7, { termId: 99 }),
+  ];
+  const payments: GrowthPayment[] = [
+    { id: 1, registrationId: 1, amountCents: 42_000, receivedOn: "2026-09-12" },
+    { id: 2, registrationId: 2, amountCents: 20_000, receivedOn: "2026-09-26" },
+    { id: 3, registrationId: 6, amountCents: 5_000, receivedOn: "2026-09-12" },
+  ];
+  const sessions: GrowthSession[] = [
+    { id: 1, programId: 10, termId: 1, date: "2026-09-12", status: "scheduled" },
+    { id: 2, programId: 10, termId: 1, date: "2026-09-19", status: "scheduled" },
+    { id: 3, programId: 10, termId: 1, date: "2026-09-26", status: "scheduled" },
+    { id: 4, programId: 10, termId: 1, date: "2026-10-03", status: "scheduled" },
+  ];
+  const attendance: GrowthAttendance[] = [
+    { sessionId: 1, registrationId: 1, status: "present" },
+    { sessionId: 3, registrationId: 1, status: "present" },
+    { sessionId: 3, registrationId: 2, status: "absent" },
+  ];
+  const report = buildPeriodReport({
+    period: PERIOD, today: "2026-09-30", programs: PROGRAMS, registrations, payments, sessions, attendance, privateRequests: 2,
+    events: [
+      { event: "view", sourceChannel: "qr", count: 30 },
+      { event: "view", sourceChannel: "unknown", count: 70 },
+      { event: "whatsapp_click", sourceChannel: "qr", count: 4 },
+      { event: "register_click", sourceChannel: "unknown", count: 9 },
+      { event: "register_start", sourceChannel: "unknown", count: 6 },
+    ],
+  });
+
+  it("counts views by source, taps and requests", () => {
+    expect(report.found).toEqual({ views: 100, bySource: [{ channel: "unknown", label: "Came straight to the page", views: 70 }, { channel: "qr", label: "PortPass QR code", views: 30 }] });
+    expect(report.asked).toEqual({ whatsappTaps: 4, registerClicks: 9, privateRequests: 2 });
+  });
+
+  it("counts places taken, new and returning families, and how full each class is", () => {
+    expect(report.booked).toMatchObject({ started: 6, completed: 3, newFamilyChildren: 1, returningFamilyChildren: 2, waitlist: 1, tasters: 1 });
+    expect(report.booked.classes).toEqual([{ programName: "Kickers", registered: 1, capacity: 16, fillPercent: 6 }, { programName: "Lil Kickers", registered: 2, capacity: 20, fillPercent: 10 }]);
+  });
+
+  it("splits fees into due, collected and outstanding, counting only money received for a place", () => {
+    expect(report.paid).toMatchObject({ dueCents: 114_000, collectedCents: 62_000, outstandingCents: 52_000 });
+    expect(report.paid.classes).toEqual([
+      { programName: "Kickers", dueCents: 30_000, collectedCents: 0, outstandingCents: 30_000 },
+      { programName: "Lil Kickers", dueCents: 84_000, collectedCents: 62_000, outstandingCents: 22_000 },
+    ]);
+  });
+
+  it("gives attendance for each Saturday already held, and says when it was not taken", () => {
+    // 3 October has not happened yet; a child who joined on the 20th is not expected on the 12th or 19th.
+    expect(report.showedUp.sessions).toEqual([
+      { date: "2026-09-26", programName: "Lil Kickers", enrolled: 2, present: 1, taken: true, percent: 50 },
+      { date: "2026-09-19", programName: "Lil Kickers", enrolled: 1, present: 0, taken: false, percent: null },
+      { date: "2026-09-12", programName: "Lil Kickers", enrolled: 1, present: 1, taken: true, percent: 100 },
+    ]);
+    expect(report.showedUp.averagePercent).toBe(75);
+  });
+
+  it("works out what a weekly payer owes from the sessions held, and nothing for a waived fee", () => {
+    const weekly = buildPeriodReport({
+      period: PERIOD, today: "2026-09-30", programs: PROGRAMS, sessions, attendance: [], events: [], privateRequests: 0,
+      registrations: [
+        // Pays $35 a week, joined before the term: three Saturdays held so far, two paid.
+        reg(1, { paysWeekly: true, amountDueCents: 3_500 }),
+        // Joined on the 20th: one Saturday since.
+        reg(2, { paysWeekly: true, amountDueCents: 3_500, submittedOn: "2026-09-20" }),
+        // The term fee was waived: nothing is owed.
+        reg(3, { feeWaived: true }),
+      ],
+      payments: [{ id: 1, registrationId: 1, amountCents: 7_000, receivedOn: "2026-09-19" }],
+    });
+    expect(weekly.paid).toMatchObject({ dueCents: 14_000, collectedCents: 7_000, outstandingCents: 7_000 });
+  });
+
+  it("counts a child marked late as there, and reads a session where the coach marked only who was away", () => {
+    const registrations = [reg(1), reg(2), reg(3)];
+    const late = buildPeriodReport({
+      period: PERIOD, today: "2026-09-30", programs: PROGRAMS, registrations, payments: [], events: [], privateRequests: 0,
+      sessions: [{ id: 1, programId: 10, termId: 1, date: "2026-09-12", status: "scheduled" }, { id: 2, programId: 10, termId: 1, date: "2026-09-19", status: "scheduled" }],
+      attendance: [
+        // 12 Sept: the coach tapped arrivals. One on time, one late, one not marked.
+        { sessionId: 1, registrationId: 1, status: "present" },
+        { sessionId: 1, registrationId: 2, status: "late" },
+        // 19 Sept: the coach tapped only the child who was away.
+        { sessionId: 2, registrationId: 3, status: "absent" },
+      ],
+    });
+    expect(late.showedUp.sessions).toEqual([
+      { date: "2026-09-19", programName: "Lil Kickers", enrolled: 3, present: 2, taken: true, percent: 67 },
+      { date: "2026-09-12", programName: "Lil Kickers", enrolled: 3, present: 2, taken: true, percent: 67 },
+    ]);
+  });
+
+  it("lists a class nobody has joined yet, at 0 of its places", () => {
+    const empty = buildPeriodReport({ period: PERIOD, today: "2026-09-30", programs: PROGRAMS, terms: TERMS, registrations: [reg(1)], payments: [], sessions: [], attendance: [], events: [], privateRequests: 0 });
+    expect(empty.booked.classes).toEqual([{ programName: "Kickers", registered: 0, capacity: 16, fillPercent: 0 }, { programName: "Lil Kickers", registered: 1, capacity: 20, fillPercent: 5 }]);
+  });
+
+  it("carries a first name and nothing else about a child", () => {
+    expect(firstNameOf("  Jayden   Rolle ")).toBe("Jayden");
+    expect(firstNameOf("Rolle, Jayden")).toBe("Jayden");
+    expect(firstNameOf("Jayden.")).toBe("Jayden");
+    expect(firstNameOf("")).toBe("");
+    expect(JSON.stringify(report)).not.toMatch(/allerg|medic|emergency|pickup|phone|email/i);
+  });
+});
+
+describe("children who missed two in a row", () => {
+  const sessions: GrowthSession[] = ["2026-09-12", "2026-09-19", "2026-09-26", "2026-10-03"].map((date, i) => ({ id: i + 1, programId: 10, termId: 1, date, status: "scheduled" }));
+  const registrations = [reg(1), reg(2), reg(3, { submittedOn: "2026-09-25" }), reg(4, { status: "cancelled" })];
+
+  it("lists a child not marked present at the last two sessions where attendance was taken", () => {
+    const attendance: GrowthAttendance[] = [
+      // Session 2 (19 Sept): only child 1 came. Session 3 (26 Sept): nobody marked. Session 4 (3 Oct): only child 1 came.
+      { sessionId: 2, registrationId: 1, status: "present" },
+      { sessionId: 4, registrationId: 1, status: "present" },
+      { sessionId: 4, registrationId: 2, status: "excused" },
+    ];
+    const missed = missedTwoInARow({ today: "2026-10-04", programs: PROGRAMS, registrations, sessions, attendance });
+    // Child 2 missed 19 Sept and 3 Oct (26 Sept was not taken, so it is not counted either way).
+    // Child 3 joined on 25 Sept and has had only one counted session. Child 4 cancelled.
+    expect(missed).toEqual([{ childFirstName: "Child2", programName: "Lil Kickers" }]);
+  });
+
+  it("never lists a child who was late both times, or one the coach simply didn't tap when marking absences", () => {
+    const attendance: GrowthAttendance[] = [
+      { sessionId: 2, registrationId: 1, status: "late" },
+      { sessionId: 2, registrationId: 2, status: "present" },
+      { sessionId: 4, registrationId: 1, status: "late" },
+      { sessionId: 4, registrationId: 2, status: "present" },
+    ];
+    expect(missedTwoInARow({ today: "2026-10-04", programs: PROGRAMS, registrations: [reg(1), reg(2)], sessions, attendance })).toEqual([]);
+    // Both Saturdays the coach marked only child 2 as away: child 1 was there.
+    const onlyAbsences: GrowthAttendance[] = [{ sessionId: 2, registrationId: 2, status: "absent" }, { sessionId: 4, registrationId: 2, status: "excused" }];
+    expect(missedTwoInARow({ today: "2026-10-04", programs: PROGRAMS, registrations: [reg(1), reg(2)], sessions, attendance: onlyAbsences })).toEqual([{ childFirstName: "Child2", programName: "Lil Kickers" }]);
+  });
+
+  it("lists nobody when attendance has been taken fewer than twice", () => {
+    expect(missedTwoInARow({ today: "2026-10-04", programs: PROGRAMS, registrations, sessions, attendance: [{ sessionId: 4, registrationId: 1, status: "present" }] })).toEqual([]);
+  });
+});
+
+describe("attendance not marked", () => {
+  const sessions: GrowthSession[] = [
+    { id: 1, programId: 10, termId: 1, date: "2026-09-26", status: "scheduled" },
+    { id: 2, programId: 10, termId: 1, date: "2026-10-03", status: "scheduled" },
+    { id: 3, programId: 11, termId: 2, date: "2026-10-03", status: "scheduled" },
+    { id: 4, programId: 10, termId: 1, date: "2026-10-10", status: "scheduled" },
+    { id: 5, programId: 10, termId: 1, date: "2026-09-05", status: "scheduled" },
+  ];
+  const registrations = [reg(1)];
+  const attendance: GrowthAttendance[] = [{ sessionId: 1, registrationId: 1, status: "present" }];
+
+  it("flags today's session from noon, never before, and never a class with nobody in it", () => {
+    const morning = unmarkedSessions({ clock: { date: "2026-10-03", weekday: 6, hour: 11, minute: 59 }, sessions, attendance, registrations });
+    expect(morning.map((s) => s.id)).toEqual([]);
+    const noon = unmarkedSessions({ clock: { date: "2026-10-03", weekday: 6, hour: 12, minute: 0 }, sessions, attendance, registrations });
+    // Session 3 has no children in it; session 5 is more than two weeks old; session 4 is next week.
+    expect(noon.map((s) => s.id)).toEqual([2]);
+  });
+});
+
+describe("Grow With Us commission", () => {
+  const registrations = [
+    reg(1, { isNewFamily: true, commissionEligible: true }),
+    reg(2, { isNewFamily: true, commissionEligible: true }),
+    reg(3, { isNewFamily: false, commissionEligible: false }),
+    reg(4, { isNewFamily: true, commissionEligible: true, status: "cancelled" }),
+  ];
+
+  it("takes 8% of fees collected from commissionable families only, never of fees due", () => {
+    const payments: GrowthPayment[] = [
+      { id: 1, registrationId: 1, amountCents: 42_000, receivedOn: "2026-09-12" },
+      { id: 2, registrationId: 3, amountCents: 42_000, receivedOn: "2026-09-12" },
+      { id: 3, registrationId: 4, amountCents: 42_000, receivedOn: "2026-09-12" },
+    ];
+    const commission = commissionForTerm({ period: PERIOD, registrations, payments, terms: GROW_WITH_US_OFFER });
+    // Family 2 owes $420 and has paid nothing: nothing is charged on it.
+    expect(commission).toMatchObject({ families: 1, collectedCents: 42_000, uncappedFeeCents: 3_360, feeCents: 3_360, capCents: 36_000, capApplied: false });
+  });
+
+  it("stops at the term's cap of $360, in the order the money came in", () => {
+    const payments: GrowthPayment[] = Array.from({ length: 12 }, (_, i) => ({ id: i + 1, registrationId: i % 2 === 0 ? 1 : 2, amountCents: 42_000, receivedOn: `2026-${i < 6 ? "10" : "11"}-${String(i + 1).padStart(2, "0")}` }));
+    const commission = commissionForTerm({ period: PERIOD, registrations, payments, terms: GROW_WITH_US_OFFER });
+    // 12 payments of $420 at 8% would be $403.20; the cap is $360.
+    expect(commission).toMatchObject({ families: 2, collectedCents: 504_000, uncappedFeeCents: 40_320, feeCents: 36_000, capCents: 36_000, capApplied: true });
+    expect(commission.lines.slice(-2).map((l) => l.feeCents)).toEqual([2_400, 0]);
+    // By month: October's six payments, then November's up to the cap.
+    expect(commissionForMonth(commission, "2026-10")).toEqual({ families: 2, collectedCents: 252_000, feeCents: 20_160 });
+    expect(commissionForMonth(commission, "2026-11")).toEqual({ families: 2, collectedCents: 252_000, feeCents: 15_840 });
+    expect(commissionForMonth(commission, "2026-12")).toEqual({ families: 0, collectedCents: 0, feeCents: 0 });
+  });
+
+  it("never goes over the cap once fees are invoiced, even when an earlier payment turns up later", () => {
+    // Eleven payments were invoiced for $360 in all (the last one clipped to $24).
+    const payments: GrowthPayment[] = Array.from({ length: 11 }, (_, i) => ({ id: i + 1, registrationId: 1, amountCents: 42_000, receivedOn: `2026-10-${String(i + 2).padStart(2, "0")}` }));
+    const locked = new Map<number, number>(payments.map((p, i): [number, number] => [p.id, i < 10 ? 3_360 : 2_400]));
+    // Then staff record a payment dated before all of them.
+    const backdated: GrowthPayment = { id: 99, registrationId: 2, amountCents: 42_000, receivedOn: "2026-10-01" };
+    const commission = commissionForTerm({ period: PERIOD, registrations, payments: [...payments, backdated], terms: GROW_WITH_US_OFFER, locked });
+    expect(commission.feeCents).toBe(36_000);
+    expect(commission.lines.find((l) => l.paymentId === 99)?.feeCents).toBe(0);
+    expect(commission.lines.find((l) => l.paymentId === 11)?.feeCents).toBe(2_400);
+  });
+
+  it("adds up a month across two terms, for the month a term changes", () => {
+    const term1 = commissionForTerm({ period: PERIOD, registrations, payments: [{ id: 1, registrationId: 1, amountCents: 10_000, receivedOn: "2026-12-02" }], terms: GROW_WITH_US_OFFER });
+    const term2 = commissionForTerm({ period: { label: "Term 2", start: "2027-01-09", end: "2027-03-20", termIds: [7], eventsFrom: "2026-12-06" }, registrations: [reg(8, { termId: 7, isNewFamily: true, commissionEligible: true })], payments: [{ id: 2, registrationId: 8, amountCents: 42_000, receivedOn: "2026-12-10" }], terms: GROW_WITH_US_OFFER });
+    expect(commissionForMonth([term1, term2], "2026-12")).toEqual({ families: 2, collectedCents: 52_000, feeCents: 4_160 });
+  });
+});

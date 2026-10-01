@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./staff.css";
+import { GrowthBeacon } from "./_components/GrowthBeacon";
 import { PwaRegister } from "./_components/PwaRegister";
 import { analyticsRedactionScript } from "@/lib/analyticsRedact";
 import { ppDisplay, ppSans } from "./fonts";
@@ -48,6 +49,7 @@ export default function RootLayout({
       <body className={`${ppDisplay.variable} ${ppSans.variable}`}>
         {children}
         <PwaRegister />
+        <GrowthBeacon />
         {/*
           Vercel Web Analytics (cookieless, matches the privacy policy).
           Vercel serves /_vercel/insights/script.js itself once Web Analytics

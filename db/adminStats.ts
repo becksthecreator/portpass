@@ -1,4 +1,5 @@
 import { listSections } from "./categories";
+import { listUnmarkedAttendance, type UnmarkedSession } from "./growth";
 import { liveCountsByCategory } from "./organizations";
 import { getSupabaseAdmin } from "./supabase";
 
@@ -16,6 +17,8 @@ export type AdminOverview = {
   needsAction: { businessesAwaiting: number | null; newApplications: number | null; unansweredLeads: number | null };
   thisWeek: { signUps: number | null; businesses: number | null; registrations: number | null; paymentsCount: number | null; paymentsCents: number | null; leads: number | null };
   platform: { sections: { slug: string; name: string; live: number }[]; totalListings: number | null; liveListings: number | null; accounts: number | null };
+  // Sessions whose attendance was never marked (from noon on the day).
+  attendance: UnmarkedSession[] | null;
   since: string;
 };
 
@@ -62,7 +65,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const supabase = getSupabaseAdmin();
 
-  const [businessesAwaiting, newApplications, unansweredLeads, signUps, businesses, registrations, leads, totalListings, liveListings, accounts, sections, live, payments] = await Promise.all([
+  const [businessesAwaiting, newApplications, unansweredLeads, signUps, businesses, registrations, leads, totalListings, liveListings, accounts, sections, live, payments, attendance] = await Promise.all([
     tile("businesses awaiting approval", () => countRows("organizations", { eq: ["status", "submitted"] })),
     tile("new applications", () => countRows("applications", { eq: ["status", "submitted"] })),
     tile("unanswered wedding leads", () => countRows("wedding_leads", { eq: ["status", "new"] })),
@@ -80,6 +83,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       if (error) throw Object.assign(new Error(error.message || "payments failed"), { code: error.code });
       return (data ?? []) as { amount_cents: number }[];
     }),
+    tile("attendance not marked", () => listUnmarkedAttendance()),
   ]);
 
   return {
@@ -98,6 +102,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       liveListings,
       accounts,
     },
+    attendance,
     since,
   };
 }
