@@ -331,7 +331,7 @@ export function SetupWizard(props: Props) {
           </div>
           <label>
             <span>One line that says what you do * <em className="wiz-count">{s1.oneLiner.length}/120</em></span>
-            <input required maxLength={120} placeholder="Saturday football classes for kids 3–7 at Lyford Cay." value={s1.oneLiner} onChange={(e) => setS1({ ...s1, oneLiner: e.target.value })} />
+            <input required maxLength={120} placeholder="Saturday football classes for ages 3–6 at Lyford Cay." value={s1.oneLiner} onChange={(e) => setS1({ ...s1, oneLiner: e.target.value })} />
           </label>
           <label><span>Description (optional)</span><textarea rows={5} maxLength={2000} value={s1.description} onChange={(e) => setS1({ ...s1, description: e.target.value })} /></label>
           <div className="auth-actions">
