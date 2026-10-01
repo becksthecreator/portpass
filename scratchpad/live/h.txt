@@ -1,0 +1,17 @@
+HTTP/1.1 200 OK
+Age: 29
+Cache-Control: public, max-age=0, must-revalidate
+Content-Length: 54930
+Content-Type: text/html; charset=utf-8
+Date: Thu, 01 Oct 2026 18:19:51 GMT
+Etag: "q0onr4umc9169l"
+Server: Vercel
+Strict-Transport-Security: max-age=63072000
+Vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+X-Matched-Path: /sports-fitness/futprep-athletics
+X-Nextjs-Prerender: 1
+X-Nextjs-Stale-Time: 300
+X-Powered-By: Next.js
+X-Vercel-Cache: HIT
+X-Vercel-Id: iad1::pdx1::fqjmc-1790878820898-0c351d929fb5
+
