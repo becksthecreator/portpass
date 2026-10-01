@@ -5,6 +5,8 @@ import { LookupForm } from "./LookupForm";
 export const metadata = {
   title: "Check registration status | Futprep",
   description: "Look up a Futprep registration by code and date of birth.",
+  // The address can carry a family's reference code: keep it out of search.
+  robots: { index: false, follow: false },
 };
 
 export default function FutprepMyRegistrationPage() {

@@ -79,6 +79,18 @@ describe("POST /api/futprep/registrations/lookup", () => {
     expect(response.status).toBe(404);
   });
 
+  it("matches the code exactly: a pattern never stands in for a code someone doesn't know", async () => {
+    const { referenceCode, childDob } = await registerChild();
+    // Lower case and stray spaces are still the same code.
+    expect((await lookup(`  ${referenceCode.toLowerCase()} `, childDob, "203.0.113.13")).status).toBe(200);
+    // SQL and PostgREST wildcards, alone or inside an otherwise real code.
+    const year = referenceCode.slice(3, 7);
+    for (const [i, pattern] of ["%", "*", "FP-%", `FP-${year}-%`, `FP-${year}-________`, `${referenceCode.slice(0, -1)}_`, `${referenceCode.slice(0, -2)}*`].entries()) {
+      const response = await lookup(pattern, childDob, `203.0.113.${20 + i}`);
+      expect(response.status).toBe(404);
+    }
+  });
+
   it("rate-limits repeated attempts from the same IP", async () => {
     const { referenceCode, childDob } = await registerChild();
     const ip = "203.0.113.99";

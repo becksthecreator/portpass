@@ -7,6 +7,7 @@ import {
 import { EMPTY_ATTRIBUTION, resolveAttribution, type Attribution, type HeardAnswer, type Resolved } from "@/lib/attribution";
 import { amountDueCents as amountDueFor, isTermEarlyAccessOpen, isTermOpen, nassauToday, prorateCents, type ProgramType, type TermWindow } from "@/lib/futprepTerms";
 import { ageLabel, effectiveCap, fitsAgeRule } from "@/lib/futprepClasses";
+import { escapeLikePattern, normalizeReferenceCode } from "@/lib/referenceCode";
 import { generateWeeklySessionDates } from "@/lib/scheduling";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
@@ -481,11 +482,14 @@ export async function getFutprepRegistrationStatus(
   childDob: string,
 ): Promise<FutprepRegistrationStatus | null> {
   const db = getSupabaseAdmin();
+  // An exact match on a well-formed code: never a pattern (lib/referenceCode.ts).
+  const code = normalizeReferenceCode(referenceCode);
+  if (!code) return null;
 
   const { data: registration, error } = await db
     .from("registrations")
     .select("id,reference_code,child_name,child_dob,program_id,term_id,payment_frequency,payment_method,amount_due_cents,payment_status,registration_status,parent_name,parent_email,parent_phone,relationship")
-    .ilike("reference_code", referenceCode.trim())
+    .eq("reference_code", code)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not look up registration");
   if (!registration || registration.child_dob !== childDob) return null;
@@ -613,7 +617,7 @@ export async function createFutprepRegistration(
     }
     const [{ count: trialCount, error: trialCountError }, { data: usedTrial, error: usedError }] = await Promise.all([
       db.from("registrations").select("id", { count: "exact", head: true }).eq("trial_session_id", session.id).eq("registration_status", "trial"),
-      db.from("registrations").select("reference_code").eq("organization_id", program.organization_id).eq("registration_status", "trial").eq("child_dob", input.childDob).ilike("child_name", input.childName.trim()).eq("parent_phone", input.parentPhone.trim()).limit(1).maybeSingle(),
+      db.from("registrations").select("reference_code").eq("organization_id", program.organization_id).eq("registration_status", "trial").eq("child_dob", input.childDob).ilike("child_name", escapeLikePattern(input.childName.trim())).eq("parent_phone", input.parentPhone.trim()).limit(1).maybeSingle(),
     ]);
     throwIfSupabaseError(trialCountError, "Could not count trial spots");
     throwIfSupabaseError(usedError, "Could not check earlier trials");
@@ -658,7 +662,7 @@ export async function createFutprepRegistration(
     .eq("term_id", term.id)
     .eq("parent_email", normalizedEmail)
     .eq("child_dob", input.childDob)
-    .ilike("child_name", input.childName.trim())
+    .ilike("child_name", escapeLikePattern(input.childName.trim()))
     .in("registration_status", mode === "waitlist" ? [...ACTIVE_REGISTRATION_STATUSES, "waitlist"] : ACTIVE_REGISTRATION_STATUSES)
     .limit(1)
     .maybeSingle();
@@ -840,7 +844,7 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
     .from("registrations")
     .select("reference_code")
     .eq("term_id", term.id)
-    .ilike("child_name", childName)
+    .ilike("child_name", escapeLikePattern(childName))
     .in("registration_status", ACTIVE_REGISTRATION_STATUSES)
     .limit(1)
     .maybeSingle();
@@ -913,10 +917,12 @@ export type FutprepPendingRegistration = {
 // row; a completed registration has nothing left to complete.
 export async function getFutprepPendingRegistration(referenceCode: string): Promise<FutprepPendingRegistration | null> {
   const db = getSupabaseAdmin();
+  const code = normalizeReferenceCode(referenceCode);
+  if (!code) return null;
   const { data: registration, error } = await db
     .from("registrations")
     .select("reference_code,child_name,program_id,registration_status")
-    .ilike("reference_code", referenceCode.trim())
+    .eq("reference_code", code)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not look up registration");
   if (!registration || registration.registration_status !== "pending_details") return null;
@@ -965,11 +971,13 @@ export type FutprepCompletionInput = {
 // rather than a silent bypass.
 export async function completeFutprepRegistration(input: FutprepCompletionInput) {
   const db = getSupabaseAdmin();
+  const code = normalizeReferenceCode(input.referenceCode);
+  if (!code) throw new Error("NOT_FOUND");
 
   const { data: registration, error } = await db
     .from("registrations")
     .select("id,program_id,term_id,registration_status")
-    .ilike("reference_code", input.referenceCode.trim())
+    .eq("reference_code", code)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not look up registration");
   if (!registration) throw new Error("NOT_FOUND");
@@ -1127,10 +1135,12 @@ export async function listTrialSessions(programId: number, termId: number, now: 
 // after the trial Saturday.
 export async function trialJoinQuote(referenceCode: string): Promise<{ registrationId: number; programId: number; termId: number; remainingSessions: number; amountCents: number; childName: string } | null> {
   const db = getSupabaseAdmin();
+  const code = normalizeReferenceCode(referenceCode);
+  if (!code) return null;
   const { data: trial, error } = await db
     .from("registrations")
     .select("id,program_id,term_id,trial_session_id,registration_status,child_name")
-    .ilike("reference_code", referenceCode.trim())
+    .eq("reference_code", code)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load the trial");
   if (!trial || trial.registration_status !== "trial" || !trial.trial_session_id) return null;
