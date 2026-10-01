@@ -17,7 +17,7 @@ export default async function AdminPricesPage() {
   const session = await requireAdmin("/admin/settings/prices");
   const [plans, addons] = await Promise.all([listPlans({ fresh: true, includeInactive: true }), listAddons({ fresh: true })]);
   return (
-    <AdminShell session={session} current="/admin/settings/prices" title="Prices" lede="Every price on the site reads from here. Changes are live on the next request and logged in the audit log.">
+    <AdminShell session={session} current="/admin/settings" title="Prices" lede="Every price on the site reads from here. Changes are live on the next request and logged in the audit log.">
       <PricesManager plans={plans} addons={addons} />
     </AdminShell>
   );

@@ -15,7 +15,23 @@ type SendEmailInput = {
   // Defaults to the Futprep sender; PortPass's own emails pass
   // portpassFrom() so the two senders can differ once both are configured.
   from?: string;
+  // Writes the outcome to the Messages log (Admin -> Messages): who it
+  // was for, which kind of email, and whether it went. Never the text or
+  // the subject, which can carry a child's name.
+  log?: { template: string; organizationId?: number | null };
 };
+
+// The log is loaded only when an email asks for it, and a failed log line
+// never fails the email.
+async function record(input: SendEmailInput, status: EmailOutcome, detail: string | null, providerId: string | null = null): Promise<void> {
+  if (!input.log) return;
+  try {
+    const { logMessage } = await import("@/db/growth");
+    await logMessage({ organizationId: input.log.organizationId ?? null, template: input.log.template, recipient: input.to, status, detail, providerId });
+  } catch (error) {
+    console.error("[email] The Messages log could not be written.", error instanceof Error ? error.message : "");
+  }
+}
 
 // What became of an email: the Messages log records it (never the text).
 export type EmailOutcome = "sent" | "failed" | "skipped";
@@ -24,9 +40,11 @@ export type EmailOutcome = "sent" | "failed" | "skipped";
 // dev and preview builds never crash for missing email config. Uses
 // Resend's plain HTTP API directly rather than its SDK, since it's a
 // single endpoint and this avoids adding a dependency.
-export async function sendEmail({ to, subject, html, from: fromOverride }: SendEmailInput): Promise<EmailOutcome> {
+export async function sendEmail(input: SendEmailInput): Promise<EmailOutcome> {
+  const { to, subject, html, from: fromOverride } = input;
   if (to.trim().toLowerCase().endsWith(TEST_EMAIL_DOMAIN)) {
     console.warn("[email] Refusing to send to the reserved test domain.");
+    await record(input, "skipped", "A test address: never emailed.");
     return "skipped";
   }
 
@@ -37,6 +55,7 @@ export async function sendEmail({ to, subject, html, from: fromOverride }: SendE
     // Never the address or the subject: a subject can carry a child's name,
     // and these lines are kept in the host's logs.
     console.warn("[email] RESEND_API_KEY or the from address is not set: an email was skipped.");
+    await record(input, "skipped", "Email is not set up yet.");
     return "skipped";
   }
 
@@ -51,11 +70,17 @@ export async function sendEmail({ to, subject, html, from: fromOverride }: SendE
     });
     if (!response.ok) {
       console.error(`[email] Resend send failed (${response.status}).`);
+      await record(input, "failed", `The email service refused it (${response.status}).`);
       return "failed";
     }
+    // The service's id for this email: its webhook reports delivery and
+    // bounces against it.
+    const accepted = (await response.json().catch(() => null)) as { id?: unknown } | null;
+    await record(input, "sent", null, typeof accepted?.id === "string" ? accepted.id : null);
     return "sent";
   } catch (error) {
     console.error("[email] Resend send threw.", error instanceof Error ? error.message : "");
+    await record(input, "failed", "The email service could not be reached.");
     return "failed";
   }
 }
@@ -108,6 +133,7 @@ export async function sendApplicationReceivedEmail(input: {
   await sendEmail({
     to: PORTPASS_SUPPORT_EMAIL,
     from: portpassFrom(),
+    log: { template: "listing_request_received" },
     subject: `New listing request — ${input.organizationName}`,
     html: portpassEmailShell("New listing request", `
       <p><strong>${escapeHtml(input.organizationName)}</strong> wants to be listed on PortPass.</p>
@@ -128,11 +154,12 @@ export async function sendApplicationReceivedEmail(input: {
 
 // Someone swapping a business's bank details is the fraud to design out,
 // so every change tells every owner, whoever made it.
-export async function sendBankDetailsChangedEmail(input: { to: string[]; businessName: string; changedBy: string; settingsUrl: string }) {
+export async function sendBankDetailsChangedEmail(input: { to: string[]; businessName: string; changedBy: string; settingsUrl: string; organizationId?: number }) {
   for (const to of input.to) {
     await sendEmail({
       to,
       from: portpassFrom(),
+      log: { template: "bank_details_changed", organizationId: input.organizationId ?? null },
       subject: `Your payment details were changed — ${input.businessName}`,
       html: portpassEmailShell("Your payment details were changed", `
         <p>The bank-transfer details customers see for <strong>${escapeHtml(input.businessName)}</strong> were just changed by <strong>${escapeHtml(input.changedBy)}</strong>.</p>
@@ -148,6 +175,7 @@ export async function sendBusinessSubmittedEmail(input: { to: string[]; business
     await sendEmail({
       to,
       from: portpassFrom(),
+      log: { template: "business_submitted_for_review" },
       subject: `Review request — ${input.businessName}`,
       html: portpassEmailShell("A business is ready for review", `
         <p><strong>${escapeHtml(input.businessName)}</strong>${input.section ? ` (${escapeHtml(input.section)})` : ""} was submitted by ${escapeHtml(input.submittedBy)}.</p>
@@ -174,6 +202,7 @@ export async function sendFutprepRegistrationReceivedEmail(input: {
   const money = new Intl.NumberFormat("en-BS", { style: "currency", currency: "BSD", minimumFractionDigits: 0 }).format(input.amountDueCents / 100);
   await sendEmail({
     to: input.parentEmail,
+    log: { template: "futprep_registration_received" },
     subject: `Futprep registration received — ${input.childName}`,
     html: emailShell("Registration received", `
       <p>Hi ${escapeHtml(input.parentName)},</p>
@@ -202,6 +231,7 @@ export async function sendFutprepPaymentRecordedEmail(input: {
   const money = (cents: number) => new Intl.NumberFormat("en-BS", { style: "currency", currency: "BSD", minimumFractionDigits: 0 }).format(cents / 100);
   await sendEmail({
     to: input.parentEmail,
+    log: { template: "futprep_payment_recorded" },
     subject: `Payment recorded — ${input.childName}`,
     html: emailShell("Payment recorded", `
       <p>Hi ${escapeHtml(input.parentName)},</p>
@@ -221,6 +251,7 @@ export async function sendFutprepRegistrationConfirmedEmail(input: {
 }) {
   await sendEmail({
     to: input.parentEmail,
+    log: { template: "futprep_registration_confirmed" },
     subject: `Registration confirmed — ${input.childName}`,
     html: emailShell("Registration confirmed", `
       <p>Hi ${escapeHtml(input.parentName)},</p>
@@ -273,5 +304,5 @@ export function privateSessionAcceptedEmail(input: PrivateSessionAcceptedInput):
 
 export async function sendPrivateSessionAcceptedEmail(input: PrivateSessionAcceptedInput & { parentEmail: string }) {
   const { subject, html } = privateSessionAcceptedEmail(input);
-  await sendEmail({ to: input.parentEmail, subject, html });
+  await sendEmail({ to: input.parentEmail, subject, html, log: { template: "futprep_private_session_accepted" } });
 }

@@ -51,3 +51,17 @@ Restoring the `auth` schema (user accounts, once they exist) into another Supaba
 - Don't put `PORTPASS_DB_URL`, the age keys, or a real `.env` anywhere under the repo. `.gitignore` blocks `scripts/backup/*.env`; the example file is the only one that belongs in git.
 - Don't run `restore-test.sh` against Supabase (`SCRATCH_ADMIN_URL` is checked for that).
 - Don't skip the monthly restore test. A backup that has never been restored is a hope, not a backup.
+
+## Telling PortPass the backup ran (optional)
+
+Admin, Overview shows "Last database backup". It is filled in by the backup
+script itself: after each run it calls PortPass and says only "a backup
+finished" or "a backup failed". Nothing about the backup travels with it.
+
+1. Make up a long secret of letters and digits (32 or more).
+2. In Vercel, add it as `BACKUP_HEARTBEAT_SECRET` and redeploy.
+3. In `/etc/portpass-backup.env` on the backup machine, add the same value
+   as `HEARTBEAT_SECRET`, and `HEARTBEAT_URL` as in the example file.
+
+The tile turns red if no backup has reported in for 36 hours, or if the
+last one failed. Without these two lines the backup runs exactly as before.

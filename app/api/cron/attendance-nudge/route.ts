@@ -41,8 +41,7 @@ export async function GET(request: Request) {
             continue;
           }
           const email = attendanceNudgeEmail({ coachName: coach.name, programName: session.programName, startTime: session.startTime, sessionId: session.sessionId });
-          const outcome = await sendEmail({ to: coach.email, subject: email.subject, html: email.html, from: portpassFrom() });
-          await logMessage({ organizationId: organization.id, template: "attendance_nudge", recipient: coach.email, status: outcome, detail: outcome === "skipped" ? "Email is not set up yet." : null });
+          const outcome = await sendEmail({ to: coach.email, subject: email.subject, html: email.html, from: portpassFrom(), log: { template: "attendance_nudge", organizationId: organization.id } });
           if (outcome === "failed") failed = true;
         }
       } catch (error) {

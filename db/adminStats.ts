@@ -1,3 +1,4 @@
+import { countMessageProblems, countSiteErrors, databaseChecks, getBackupHeartbeat, type BackupHeartbeat, type DatabaseCheck } from "./adminHealth";
 import { listSections } from "./categories";
 import { listUnmarkedAttendance, type UnmarkedSession } from "./growth";
 import { liveCountsByCategory } from "./organizations";
@@ -6,8 +7,7 @@ import { getSupabaseAdmin } from "./supabase";
 // The Admin Control Center's first screen (28 Sept brief, 1.1): what needs
 // attention, what happened this week, and the shape of the platform --
 // every number straight from the database, none derived from a cache.
-// Health tiles (deployment, runtime errors, backup heartbeat, advisor
-// warnings) belong to build C and are not here yet.
+// The health tiles read db/adminHealth.ts.
 //
 // Resilience (quick fixes, 29 Sept): a tile that cannot be counted shows
 // "—" (null) and logs which one failed; it never takes the page down. The
@@ -19,6 +19,10 @@ export type AdminOverview = {
   platform: { sections: { slug: string; name: string; live: number }[]; totalListings: number | null; liveListings: number | null; accounts: number | null };
   // Sessions whose attendance was never marked (from noon on the day).
   attendance: UnmarkedSession[] | null;
+  // Emails that failed, bounced or were marked as spam in the last 7 days;
+  // server errors in the last 24 hours; the last backup to report in
+  // (null: none yet; undefined: could not be read); the database's checks.
+  health: { emailProblems: number | null; siteErrors: number | null; backup: BackupHeartbeat | null | undefined; databaseChecks: DatabaseCheck[] | null };
   since: string;
 };
 
@@ -38,6 +42,8 @@ export const ADMIN_COUNT_COLUMNS: { table: string; column: string }[] = [
   { table: "payments", column: "status" },
   { table: "payments", column: "created_at" },
   { table: "payments", column: "amount_cents" },
+  { table: "message_log", column: "status" },
+  { table: "site_errors", column: "created_at" },
 ];
 
 async function countRows(table: string, filter: CountFilter): Promise<number> {
@@ -65,7 +71,8 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const supabase = getSupabaseAdmin();
 
-  const [businessesAwaiting, newApplications, unansweredLeads, signUps, businesses, registrations, leads, totalListings, liveListings, accounts, sections, live, payments, attendance] = await Promise.all([
+  const day = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const [businessesAwaiting, newApplications, unansweredLeads, signUps, businesses, registrations, leads, totalListings, liveListings, accounts, sections, live, payments, attendance, emailProblems, siteErrors, backup, checks] = await Promise.all([
     tile("businesses awaiting approval", () => countRows("organizations", { eq: ["status", "submitted"] })),
     tile("new applications", () => countRows("applications", { eq: ["status", "submitted"] })),
     tile("unanswered wedding leads", () => countRows("wedding_leads", { eq: ["status", "new"] })),
@@ -84,6 +91,13 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       return (data ?? []) as { amount_cents: number }[];
     }),
     tile("attendance not marked", () => listUnmarkedAttendance()),
+    tile("email problems", () => countMessageProblems(since)),
+    tile("site errors", () => countSiteErrors(day)),
+    getBackupHeartbeat().catch((error) => {
+      console.error("admin overview tile failed: backup heartbeat", error instanceof Error ? error.message : error);
+      return undefined;
+    }),
+    tile("database checks", () => databaseChecks()),
   ]);
 
   return {
@@ -103,6 +117,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       accounts,
     },
     attendance,
+    health: { emailProblems, siteErrors, backup, databaseChecks: checks },
     since,
   };
 }

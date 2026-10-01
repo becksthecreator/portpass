@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAdminOverview } from "@/db/adminStats";
 import { requireAdmin } from "@/lib/auth/admin";
 import { formatPriceCents } from "@/app/_components/blocks/format";
+import { backupState, deploymentInfo } from "@/lib/adminHealth";
 import { shortDate } from "@/lib/growth";
 import { AdminShell } from "./_components/AdminShell";
 
@@ -21,6 +22,10 @@ const show = (value: number | null) => (value === null ? "—" : String(value));
 export default async function AdminOverviewPage() {
   const session = await requireAdmin("/admin");
   const o = await getAdminOverview();
+  const deployment = deploymentInfo();
+  const backup = backupState(o.health.backup, new Date());
+  const checkProblems = o.health.databaseChecks === null ? null : o.health.databaseChecks.reduce((sum, check) => sum + check.problems, 0);
+  const backupDay = backup.at ? new Date(backup.at).toLocaleString("en-BS", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Nassau" }) : null;
 
   return (
     <AdminShell session={session} current="/admin" title="Overview" lede="What needs attention today, and how the week is going.">
@@ -36,8 +41,8 @@ export default async function AdminOverviewPage() {
             <span>Sessions with attendance not marked</span>
             {o.attendance && o.attendance.length > 0 && <small>{o.attendance.slice(0, 3).map((s) => `${s.organizationName} · ${s.programName} · ${shortDate(s.date)}`).join("; ")}</small>}
           </Link>
-          <div className="admin-tile is-muted"><strong>—</strong><span>Failed emails</span><small>Messages log arrives in build C</small></div>
-          <div className="admin-tile is-muted"><strong>—</strong><span>Site errors (24h)</span><small>Health tiles arrive in build C</small></div>
+          <Link className={`admin-tile${o.health.emailProblems ? " is-alert" : ""}`} href="/admin/messages?status=problems"><strong>{show(o.health.emailProblems)}</strong><span>Emails that did not arrive</span><small>Failed, bounced or marked as spam, last 7 days</small></Link>
+          <Link className={`admin-tile${o.health.siteErrors ? " is-alert" : ""}`} href="/admin/health"><strong>{show(o.health.siteErrors)}</strong><span>Site errors (24h)</span></Link>
         </div>
       </section>
 
@@ -70,10 +75,14 @@ export default async function AdminOverviewPage() {
       <section className="admin-group" aria-labelledby="health">
         <h2 id="health">Health</h2>
         <div className="admin-tiles">
-          <div className="admin-tile is-muted"><strong>—</strong><span>Production status</span><small>Build C</small></div>
-          <div className="admin-tile is-muted"><strong>—</strong><span>Runtime errors (24h)</span><small>Build C</small></div>
-          <div className="admin-tile is-muted"><strong>—</strong><span>Last database backup</span><small>After the OptiPlex heartbeat is set up</small></div>
-          <div className="admin-tile is-muted"><strong>—</strong><span>Supabase advisor warnings</span><small>Build C</small></div>
+          <Link className="admin-tile" href="/admin/health"><strong>{deployment.commit ?? "—"}</strong><span>Version running</span><small>{deployment.environment ?? "This copy doesn't say which environment it is"}</small></Link>
+          <Link className={`admin-tile${o.health.siteErrors ? " is-alert" : ""}`} href="/admin/health"><strong>{show(o.health.siteErrors)}</strong><span>Server errors (24h)</span></Link>
+          <Link className={`admin-tile${backup.state === "late" || backup.state === "failed" ? " is-alert" : backup.state === "ok" ? "" : " is-muted"}`} href="/admin/health">
+            <strong>{backup.state === "ok" ? "✓" : backup.state === "late" ? "Late" : backup.state === "failed" ? "Failed" : "—"}</strong>
+            <span>Last database backup</span>
+            <small>{backupDay ?? (backup.state === "never" ? "No backup has reported in yet" : "Could not be read")}</small>
+          </Link>
+          <Link className={`admin-tile${checkProblems ? " is-alert" : ""}`} href="/admin/health"><strong>{show(checkProblems)}</strong><span>Database safety warnings</span><small>Row level security, search paths, privileged functions</small></Link>
         </div>
       </section>
     </AdminShell>

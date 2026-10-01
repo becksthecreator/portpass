@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Session } from "@/lib/auth/session";
 import { AdminSignOut } from "./AdminSignOut";
+import { AdminTabsScroll } from "./AdminTabsScroll";
 
 export const ADMIN_NAV = [
   { href: "/admin", label: "Overview" },
@@ -14,8 +15,9 @@ export const ADMIN_NAV = [
   { href: "/admin/sections", label: "Sections" },
   { href: "/admin/people", label: "People" },
   { href: "/admin/content", label: "Content" },
+  { href: "/admin/messages", label: "Messages" },
   { href: "/admin/audit", label: "Audit log" },
-  { href: "/admin/settings/prices", label: "Prices" },
+  { href: "/admin/settings", label: "Settings" },
   { href: "/admin/shop", label: "Shop" },
   { href: "/admin/tools", label: "Our tools" },
 ] as const;
@@ -30,6 +32,7 @@ export function AdminShell({ session, current, title, lede, children, actions }:
     <main className="admin-shell theme-night">
       <header className="admin-bar">
         <Link className="brand admin-brand" href="/admin"><BrandLogo /><span className="admin-brand-label">ADMIN</span></Link>
+        <AdminTabsScroll />
         <nav className="admin-tabs" aria-label="Admin">
           {ADMIN_NAV.map((item) => (
             <Link key={item.href} href={item.href} aria-current={item.href === current ? "page" : undefined}>{item.label}</Link>

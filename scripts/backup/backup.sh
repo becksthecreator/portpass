@@ -22,6 +22,20 @@ set +a
 : "${AGE_RECIPIENT:?must be set in $ENV_FILE}"
 : "${BACKUP_DIR:?must be set in $ENV_FILE}"
 
+# Tells PortPass a backup finished (or failed), so Admin -> Overview can show
+# when the last one ran. Optional: only when HEARTBEAT_URL and
+# HEARTBEAT_SECRET are both in the env file. The secret is handed to curl
+# on standard input, never on the command line, and a heartbeat that can't
+# be delivered never fails the backup itself.
+heartbeat() {
+  [[ -n "${HEARTBEAT_URL:-}" && -n "${HEARTBEAT_SECRET:-}" ]] || return 0
+  command -v curl >/dev/null || return 0
+  printf 'header = "Authorization: Bearer %s"\nheader = "Content-Type: application/json"\ndata = "{\"ok\": %s}"\n' "$HEARTBEAT_SECRET" "$1" \
+    | curl -fsS -m 20 -o /dev/null -X POST -K - "$HEARTBEAT_URL" \
+    || echo "backup: heartbeat not delivered" >&2
+}
+trap 'heartbeat false' ERR
+
 command -v pg_dump >/dev/null || fail "pg_dump not installed (postgresql-client-17)"
 command -v age >/dev/null || fail "age not installed"
 
@@ -60,4 +74,5 @@ fi
 ls -1t "$NIGHTLY"/portpass-*.dump.age 2>/dev/null | tail -n +31 | xargs -r rm -f
 ls -1t "$MONTHLY"/portpass-*.dump.age 2>/dev/null | tail -n +13 | xargs -r rm -f
 
+heartbeat true
 echo "backup ok: $out ($(du -h "$out" | cut -f1))"

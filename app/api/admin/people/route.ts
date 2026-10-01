@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { ORG_ROLES, type OrgRole } from "@/db/accounts";
 import { forceSignOut, removeMember, renewInvite, setMemberRole } from "@/db/adminPeople";
-import { logMessage } from "@/db/growth";
 import { requireAdminApi } from "@/lib/auth/admin";
 import { createRateLimiter } from "@/lib/auth/rateLimit";
 import { escapeHtml, portpassEmailShell, portpassFrom, sendEmail } from "@/lib/email";
@@ -57,6 +56,7 @@ export async function POST(request: Request) {
       const outcome = await sendEmail({
         to: invite.email,
         from: portpassFrom(),
+        log: { template: "team_invite_reminder", organizationId: invite.organizationId },
         subject: `Reminder: you've been added to ${invite.organizationName} on PortPass`,
         html: portpassEmailShell(`Join ${invite.organizationName} on PortPass`, `
           <p>You were added to <strong>${escapeHtml(invite.organizationName)}</strong> on PortPass as <strong>${escapeHtml(invite.role.replace("org_", ""))}</strong>.</p>
@@ -65,8 +65,6 @@ export async function POST(request: Request) {
           <p>This invitation expires in 14 days.</p>
         `),
       });
-      // The email has gone (or not) by now: a failed log line must not turn that into an error and a second send.
-      await logMessage({ organizationId: invite.organizationId, template: "team_invite_reminder", recipient: invite.email, status: outcome, detail: outcome === "skipped" ? "Email is not set up yet." : null }).catch(() => {});
       return NextResponse.json({ ok: true, outcome });
     }
     return NextResponse.json({ error: "Choose an action." }, { status: 400 });

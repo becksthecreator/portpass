@@ -46,6 +46,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
       const owners = await listOwnerEmails(id).catch(() => []);
       await sendBankDetailsChangedEmail({
         to: owners,
+        organizationId: id,
         businessName: business.name,
         changedBy: auth.session.profile?.fullName ?? auth.session.email ?? "a team member",
         settingsUrl: `https://portpassbahamas.com/business/${business.slug}/settings?step=5`,

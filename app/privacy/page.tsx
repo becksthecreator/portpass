@@ -170,6 +170,7 @@ export default function PrivacyPage() {
           <li><strong>Enquiries that don’t become a booking</strong> (wedding enquiries, private-session and party requests, “tell me when this opens”, and requests to be listed): 2 years.</li>
           <li><strong>Registrations and bookings</strong> (names, contact details, class, attendance): kept as the business’s record while you are its customer, and for up to 7 years where a payment was recorded.</li>
           <li><strong>PortPass accounts:</strong> until you ask us to delete the account.</li>
+          <li><strong>A record of emails we send you</strong> (your email address, what kind of email it was and whether it was delivered; never the email’s text): 12 months.</li>
           <li><strong>Sign-in codes:</strong> each one works once and stops working soon after it is sent.</li>
           <li><strong>The log of changes</strong> to team invitations, approvals and payment details: for as long as the business is on PortPass.</li>
         </ul>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { pruneHealthRecords } from "@/db/adminHealth";
 import { listOwnerEmails } from "@/db/business";
 import { getSiteContent } from "@/db/siteContent";
 import { bumpListings } from "@/lib/revalidate";
@@ -16,7 +17,8 @@ export const dynamic = "force-dynamic";
 // 1. For a business on a commission plan, writes the fee for each payment
 //    received from a commissionable family as a billing event. A business
 //    that is not on a plan gets nothing written.
-// 2. Removes page-event counts too old for the report to read.
+// 2. Removes page-event counts too old for the report to read, Messages
+//    log lines older than a year and site-error lines older than a month.
 // 3. On the 1st of the month (Nassau), emails the business's owners last
 //    month's growth report, once, and records it in the Messages log. If
 //    nothing could be delivered the month is released, and the runs on the
@@ -49,6 +51,12 @@ export async function GET(request: Request) {
     console.error("daily job: announcement expiry", error instanceof Error ? error.message : "");
   }
 
+  try {
+    await pruneHealthRecords(now);
+  } catch (error) {
+    console.error("daily job: messages log and site errors retention", error instanceof Error ? error.message : "");
+  }
+
   const month = monthlyReportPeriod(clock);
   if (month) {
     const job = "growth-report-email";
@@ -69,8 +77,7 @@ export async function GET(request: Request) {
         } else {
           const email = growthReportEmail(await getGrowthReport(organization, now), month);
           for (const to of recipients) {
-            const outcome = await sendEmail({ to, subject: email.subject, html: email.html, from: portpassFrom() });
-            await logMessage({ organizationId: organization.id, template: "growth_report_monthly", recipient: to, status: outcome, detail: outcome === "skipped" ? "Email is not set up yet." : null });
+            const outcome = await sendEmail({ to, subject: email.subject, html: email.html, from: portpassFrom(), log: { template: "growth_report_monthly", organizationId: organization.id } });
             // "skipped" means email is not connected: retrying today would not help.
             if (outcome !== "failed") delivered = true;
           }
