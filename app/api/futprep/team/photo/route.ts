@@ -26,10 +26,19 @@ function coachIdFrom(value: unknown): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-async function removeOurs(url: string | null) {
-  const path = storagePathFromPublicUrl(url, ORG_ASSETS_BUCKET);
-  if (!path) return;
-  await getSupabaseAdmin().storage.from(ORG_ASSETS_BUCKET).remove([path]).catch(() => undefined);
+// Deletes the file a photo URL points at only when this route put it there:
+// the bucket is shared with every business's logo and gallery, and
+// photo_url can also be a URL someone pasted on the Team page, so anything
+// outside this coach's own folder is left alone.
+async function removeOurs(url: string | null, coachId: number) {
+  try {
+    const path = storagePathFromPublicUrl(url, ORG_ASSETS_BUCKET);
+    if (!path || !path.startsWith(`coach/${coachId}/`) || path.includes("..")) return;
+    await getSupabaseAdmin().storage.from(ORG_ASSETS_BUCKET).remove([path]);
+  } catch (error) {
+    // A leftover file is harmless; the photo change itself already saved.
+    console.error("coach photo cleanup", error);
+  }
 }
 
 export async function POST(request: Request) {
@@ -58,7 +67,7 @@ export async function POST(request: Request) {
 
   try {
     const { previousUrl } = await setCoachPhoto(coachId, url);
-    await removeOurs(previousUrl);
+    await removeOurs(previousUrl, coachId);
   } catch (error) {
     await storage.remove([path]).catch(() => undefined);
     const message = error instanceof Error ? error.message : "";
@@ -80,7 +89,7 @@ export async function DELETE(request: Request) {
   if (!coachId) return NextResponse.json({ error: "Pick a team member." }, { status: 400 });
   try {
     const { previousUrl } = await setCoachPhoto(coachId, null);
-    await removeOurs(previousUrl);
+    await removeOurs(previousUrl, coachId);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "COACH_NOT_FOUND") return NextResponse.json({ error: "That team member no longer exists." }, { status: 404 });

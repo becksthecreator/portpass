@@ -6,6 +6,6 @@ describe("initialsOf", () => {
     expect(initialsOf("Coach Andre Roberts")).toBe("AR");
     expect(initialsOf("Keione Rayside (Kiki)")).toBe("KR");
     expect(initialsOf("Coach Antonio Beckford Jr")).toBe("AB");
-    expect(initialsOf("Coach")).toBe("F");
+    expect(initialsOf("")).toBe("F");
   });
 });

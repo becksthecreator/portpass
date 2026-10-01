@@ -436,8 +436,9 @@
    slots" prompt a coach sees on their own dashboard while it is empty. */
 .team-manager-head{display:flex;gap:14px;align-items:flex-start}
 .team-manager-head>div{min-width:0}
-.team-manager-photo{width:64px;height:64px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#0D1B3D}
-.team-manager-card>div:first-child>.team-manager-initials{display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:Arial,sans-serif;font-size:1.15rem;font-weight:800;letter-spacing:.02em;text-transform:none}
+.team-manager-head>div>span{color:var(--muted);font-size:.62rem;font-weight:900;text-transform:uppercase}
+.team-manager-photo{width:64px;height:64px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--sky)}
+.team-manager-card>div:first-child>.team-manager-initials{display:inline-flex;align-items:center;justify-content:center;color:var(--bg);font-family:Arial,sans-serif;font-size:1.15rem;font-weight:800;letter-spacing:.02em;text-transform:none}
 .team-photo-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px}
 .team-photo-upload{position:relative;display:inline-flex;align-items:center;min-height:38px;padding:0 12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-size:.7rem;font-weight:800;cursor:pointer}
 .team-photo-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}

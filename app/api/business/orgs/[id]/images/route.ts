@@ -98,7 +98,8 @@ export async function DELETE(request: Request, ctx: Ctx) {
   }
   if (!Number.isInteger(body.imageId)) return NextResponse.json({ error: "Invalid photo." }, { status: 400 });
   const url = await removeBusinessImage(id, Number(body.imageId));
+  // Only ever a file this business uploaded here (org/{id}/...).
   const path = storagePathFromPublicUrl(url, BUCKET);
-  if (path) await storage.remove([path]).catch(() => undefined);
+  if (path && path.startsWith(`org/${id}/`)) await storage.remove([path]).catch(() => undefined);
   return NextResponse.json({ images: await listBusinessImages(id) });
 }

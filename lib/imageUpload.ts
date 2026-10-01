@@ -27,15 +27,21 @@ function ascii(bytes: Uint8Array, from: number, to: number): string {
 }
 
 // The object path inside our bucket for a public URL Supabase gave us, or
-// null for any other URL (a coach photo pasted from elsewhere, say), so we
-// only ever delete files we uploaded ourselves.
+// null for any other URL (a coach photo pasted from elsewhere, say). The
+// bucket is shared by every business, so a caller must still check the path
+// sits in the folder it owns (org/{id}/, coach/{id}/) before deleting it.
 export function storagePathFromPublicUrl(url: string | null | undefined, bucket: string = ORG_ASSETS_BUCKET): string | null {
   if (!url) return null;
   const marker = `/object/public/${bucket}/`;
   const at = url.indexOf(marker);
   if (at === -1) return null;
   const path = url.slice(at + marker.length).split("?")[0];
-  return path.length > 0 ? decodeURIComponent(path) : null;
+  if (path.length === 0) return null;
+  try {
+    return decodeURIComponent(path);
+  } catch {
+    return null; // a malformed % sequence: not a URL we produced
+  }
 }
 
 // The centred square to cut from a photo of width × height, and the size

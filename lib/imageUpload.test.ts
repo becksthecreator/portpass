@@ -29,6 +29,8 @@ describe("storagePathFromPublicUrl", () => {
     expect(storagePathFromPublicUrl("https://x.supabase.co/storage/v1/object/public/other-bucket/coach/3/abc.jpg")).toBeNull();
     expect(storagePathFromPublicUrl("/futprep/coaches/ronaldo-greene.jpg")).toBeNull();
     expect(storagePathFromPublicUrl(null)).toBeNull();
+    // A malformed % sequence is not a URL we produced: null, never a throw.
+    expect(storagePathFromPublicUrl("https://x.supabase.co/storage/v1/object/public/org-assets/coach/3/%E0%A4%A.jpg")).toBeNull();
   });
 });
 

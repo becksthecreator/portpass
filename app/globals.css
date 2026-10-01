@@ -5606,7 +5606,7 @@ a.admin-tile:hover{border-color:var(--sky)}
 .team-promo-nick{font-style:normal;font-weight:700;color:#5B6B75;font-size:.85rem}
 .team-promo-grid small{color:var(--muted);font-size:.74rem;line-height:1.35}
 @media(max-width:760px){.team-promo{margin:0 16px 40px;padding:20px 16px 16px}.team-promo-grid{gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}}
-.coach-own-prompt{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:18px 0 0;padding:12px 14px;border:1px solid #2463AE;border-left-width:5px;border-radius:10px;background:#DCE6F3;color:#0D1B3D;text-decoration:none;font-size:.86rem;line-height:1.4}
-.coach-own-prompt strong{font-weight:800}
+.coach-own-prompt{display:block;margin:18px 0 0;padding:12px 14px;border:1px solid #2463AE;border-left-width:5px;border-radius:10px;background:#DCE6F3;color:#0D1B3D;text-decoration:none;font-size:.86rem;line-height:1.4}
+.coach-own-prompt strong{display:block;font-weight:800;margin-bottom:2px}
 .coach-own-prompt em{font-style:normal;font-weight:800;color:#2463AE}
 .coach-own-prompt:hover span,.coach-own-prompt:focus-visible span{text-decoration:underline;text-underline-offset:3px}

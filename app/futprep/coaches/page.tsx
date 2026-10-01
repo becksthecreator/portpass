@@ -1,6 +1,6 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
-import { currentFutprepStaffId } from "@/app/futprep/staff-auth";
+import { currentFutprepStaffId, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
 import { coachSlotPrompt, listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
 import { initialsOf } from "@/lib/team";
 import { PrivateSessionBooking } from "./PrivateSessionBooking";
@@ -21,8 +21,9 @@ export default async function FutprepCoachesPage(){
     listFutprepPrivateServices({publishedOnly:true}).catch(()=>[]),
     // Brief 16, C1: a coach signed in to the staff area sees a prompt on
     // their own card while their schedule is empty. Parents never do: the
-    // prompt needs the staff cookie and a login linked to this coach.
-    currentFutprepStaffId().catch(()=>null),
+    // prompt needs the staff cookie and a login linked to this coach. A
+    // helper can't open the slot editor, so a helper never sees it either.
+    Promise.all([currentFutprepStaffId(),currentFutprepStaffRole()]).then(([id,role])=>role&&role!=="helper"?id:null).catch(()=>null),
   ]);
   const own=staffId?await coachSlotPrompt(staffId).catch(()=>null):null;
   const bookable=coaches.filter((coach)=>coach.bookable && coach.member_type==="coach");
