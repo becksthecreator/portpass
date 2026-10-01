@@ -441,6 +441,24 @@ export async function updateFutprepRegistration(input: {
   return null;
 }
 
+// A roster row as read from the database: the safety columns are absent
+// when the query did not select them.
+type RosterRegistrationRow = {
+  id: number;
+  reference_code: string;
+  registration_status: string;
+  child_name: string;
+  parent_name: string | null;
+  parent_phone: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_phone?: string | null;
+  authorized_pickup?: string | null;
+  allergies?: string | null;
+  medical_conditions?: string | null;
+  medications?: string | null;
+  special_needs?: string | null;
+};
+
 // `includeSafety: false` is for the read-only helper login: the emergency
 // contact, pickup and health columns are then never selected, so they
 // cannot reach that person's browser (privacy policy v2, brief 16 D).
@@ -468,26 +486,31 @@ export async function rosterForSession(
     : `registration_status.in.(pending_details,pending,confirmed),and(registration_status.eq.trial,trial_session_id.eq.${Number(sessionId)})`;
 
   // The session's own term only: once Term 2 runs on the same program, a
-  // Term 1 child must not appear on a Term 2 Saturday (brief 06 v2).
-  const [{ data: registrations, error }, { data: attendance, error: attendanceError }] =
-    await Promise.all([
-      db
+  // Term 1 child must not appear on a Term 2 Saturday (brief 06 v2). Term
+  // children, plus taster children booked for this Saturday. Two literal
+  // selects (not one built from a variable) so a helper's query can never
+  // name the safety columns.
+  const registrationsQuery = includeSafety
+    ? db
         .from("registrations")
-        .select(
-          includeSafety
-            ? "id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs"
-            : "id,reference_code,registration_status,child_name,parent_name,parent_phone",
-        )
+        .select("id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs")
         .eq("program_id", session.program_id)
         .eq("term_id", session.term_id)
-        // Term children, plus taster children booked for this Saturday.
         .or(who)
-        .order("child_name", { ascending: true }),
-      db
-        .from("attendance")
-        .select("registration_id,status,is_backfill")
-        .eq("session_id", sessionId),
-    ]);
+        .order("child_name", { ascending: true })
+    : db
+        .from("registrations")
+        .select("id,reference_code,registration_status,child_name,parent_name,parent_phone")
+        .eq("program_id", session.program_id)
+        .eq("term_id", session.term_id)
+        .or(who)
+        .order("child_name", { ascending: true });
+  const [registrationsResult, { data: attendance, error: attendanceError }] = await Promise.all([
+    registrationsQuery,
+    db.from("attendance").select("registration_id,status,is_backfill").eq("session_id", sessionId),
+  ]);
+  const error = registrationsResult.error;
+  const registrations = (registrationsResult.data ?? []) as unknown as RosterRegistrationRow[];
   throwIfSupabaseError(error, "Could not load roster registrations");
   throwIfSupabaseError(attendanceError, "Could not load attendance");
 
@@ -500,22 +523,8 @@ export async function rosterForSession(
     ),
   );
 
-  return (registrations ?? []).map(
-    (row: {
-      id: number;
-      reference_code: string;
-      registration_status: string;
-      child_name: string;
-      parent_name: string | null;
-      parent_phone: string | null;
-      emergency_contact_name?: string | null;
-      emergency_contact_phone?: string | null;
-      authorized_pickup?: string | null;
-      allergies?: string | null;
-      medical_conditions?: string | null;
-      medications?: string | null;
-      special_needs?: string | null;
-    }) => ({
+  return registrations.map(
+    (row) => ({
       registration_id: row.id,
       reference_code: row.reference_code,
       registration_status: row.registration_status,
