@@ -39,7 +39,7 @@ const SHOTS = [
   // the leads board, and Content.
   ["brief08-admin-bookings-375", "admin", "/admin/bookings", ".admin-table"],
   ["brief08-admin-registration-reveal-375", "admin", `/admin/bookings/registrations/${fixture.registrationId}`, ".admin-reveal"],
-  ["brief08-admin-payments-months-375", "admin", "/admin/payments?view=months", ".admin-table"],
+  ["brief08-admin-payments-months-375", "admin", "/admin/payments/recorded?view=months", ".admin-table"],
   ["brief08-admin-leads-board-375", "admin", "/admin/leads?view=board", ".leads-board"],
   ["brief08-admin-content-375", "admin", "/admin/content", ".admin-content-form"],
   // Brief 14: Admin -> Leads with five TEST leads, and one lead's card.

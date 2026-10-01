@@ -4,12 +4,12 @@ import { listAdminPayments, outstandingByBusiness } from "@/db/adminPayments";
 import { methodLabel, PAYMENT_KIND_LABEL, paymentDay, reconcile } from "@/lib/adminBookings";
 import { requireAdmin } from "@/lib/auth/admin";
 import { formatPriceCents } from "@/app/_components/blocks/format";
-import { AdminShell } from "../_components/AdminShell";
+import { AdminShell } from "../../_components/AdminShell";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Payments | PortPass admin",
+  title: "Recorded payments | PortPass admin",
   robots: { index: false, follow: false },
 };
 
@@ -38,7 +38,7 @@ function monthName(month: string): string {
 // method to check against a bank statement. Customers pay the business
 // directly; none of this money passes through PortPass.
 export default async function AdminPaymentsPage({ searchParams }: { searchParams: Promise<{ view?: string; org?: string }> }) {
-  const session = await requireAdmin("/admin/payments");
+  const session = await requireAdmin("/admin/payments/recorded");
   const params = await searchParams;
   const view: View = VIEWS.find((v) => v.key === params.view)?.key ?? "payments";
   const organizationId = params.org && /^\d{1,12}$/.test(params.org) ? Number(params.org) : null;
@@ -51,7 +51,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
     if (v !== "payments") query.set("view", v);
     if (org) query.set("org", String(org));
     const text = query.toString();
-    return text ? `/admin/payments?${text}` : "/admin/payments";
+    return text ? `/admin/payments/recorded?${text}` : "/admin/payments/recorded";
   };
   // Voided payments were never money; a refunded one did arrive.
   const received = payments.filter((payment) => payment.status !== "voided");
@@ -60,7 +60,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
   const owing = organizationId ? outstanding.filter((entry) => entry.organizationId === organizationId) : outstanding;
 
   return (
-    <AdminShell session={session} current="/admin/payments" title="Payments" lede="What businesses recorded from their customers: cash, bank transfer and online banking. Customers pay the business directly. PortPass never holds this money.">
+    <AdminShell session={session} current="/admin/payments" title="Recorded payments" actions={<Link className="admin-bar-link" href="/admin/payments">Payment requests by month</Link>} lede="Every payment a business recorded from its customers, what customers still owe, and the same money month by month. Customers pay the business directly. PortPass never holds this money.">
       <div className="admin-filters" aria-label="View">
         {VIEWS.map((v) => (
           <Link key={v.key} href={href({ view: v.key })} aria-current={view === v.key ? "true" : undefined}>{v.label}</Link>

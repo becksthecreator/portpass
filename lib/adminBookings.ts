@@ -112,10 +112,10 @@ export function bookingsCsv(bookings: AdminBooking[]): string {
 
 // ---- Payments ------------------------------------------------------------------
 
-// "other": a payment not tied to a registration or a private session (for
-// example one recorded against a payment request).
-export type PaymentKind = BookingKind | "other";
-export const PAYMENT_KIND_LABEL: Record<PaymentKind, string> = { ...BOOKING_KIND_LABEL, other: "Other payment" };
+// "payment_request": paid against a request the business sent that is not
+// tied to a registration, a private session or a shop order.
+export type PaymentKind = BookingKind | "payment_request" | "other";
+export const PAYMENT_KIND_LABEL: Record<PaymentKind, string> = { ...BOOKING_KIND_LABEL, payment_request: "Payment request", other: "Other payment" };
 
 export type AdminPayment = {
   // "payments" rows are recorded by staff; a shop order is marked paid on
