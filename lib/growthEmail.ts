@@ -36,7 +36,7 @@ export function growthReportEmail(report: GrowthReport, month: string): { subjec
     parts.push(table([row("WhatsApp taps", String(term.asked.whatsappTaps)), row("Register clicks", String(term.asked.registerClicks)), row("Private session requests", String(term.asked.privateRequests))]));
     parts.push(heading("Booked"));
     parts.push(table([
-      row("Forms opened", String(term.booked.started)),
+      row("Registrations started", String(term.booked.started)),
       row("Places taken", String(term.booked.completed)),
       row("Children from new families", String(term.booked.newFamilyChildren)),
       row("Children from returning families", String(term.booked.returningFamilyChildren)),
@@ -49,6 +49,10 @@ export function growthReportEmail(report: GrowthReport, month: string): { subjec
       row("Average attendance", term.showedUp.averagePercent === null ? "Not marked yet" : `${term.showedUp.averagePercent}%`),
       ...term.showedUp.sessions.slice(0, 5).map((s) => row(`${shortDate(s.date)} · ${s.programName}`, s.taken ? `${s.present} of ${s.enrolled}` : "Not marked")),
     ]));
+    if (report.upcoming) {
+      parts.push(heading(`Next term: ${report.upcoming.label}`));
+      parts.push(table([row("Places taken so far", String(report.upcoming.booked.completed)), row("Collected so far", formatCents(report.upcoming.paid.collectedCents))]));
+    }
     if (report.missedTwo.length > 0) {
       parts.push(`<p style="font-size:14px;line-height:1.5;margin:0 0 18px"><strong>Missed two in a row:</strong> ${report.missedTwo.map((m) => `${escapeHtml(m.childFirstName)} (${escapeHtml(m.programName)})`).join(", ")}.</p>`);
     }
@@ -61,7 +65,8 @@ export function growthReportEmail(report: GrowthReport, month: string): { subjec
     row(`New families PortPass brought who paid in ${monthLabel(month)}`, String(monthFee.families)),
     row("Fees collected from them", formatCents(monthFee.collectedCents)),
     row(value.onPlan ? `PortPass fee (${value.terms.rateBps / 100}%)` : `What ${value.terms.rateBps / 100}% would be`, formatCents(monthFee.feeCents)),
-    ...(value.term ? [row(`Cap for ${value.term.label}`, `${formatCents(value.term.feeCents)} of ${formatCents(value.term.capCents)}${value.term.capApplied ? " (cap reached)" : ""}`)] : []),
+    ...(value.term ? [row(`PortPass fee, ${value.term.label} so far`, `${formatCents(value.term.feeCents)} of ${formatCents(value.term.capCents)}${value.term.capApplied ? " (cap reached)" : ""}`)] : []),
+    ...(value.onPlan ? [row("Invoiced so far", formatCents(value.invoicedCents))] : []),
   ]));
   if (!value.onPlan) parts.push(`<p style="color:#647069;font-size:12px;line-height:1.5;margin:0 0 18px">You are not on the Grow With Us plan, so nothing is invoiced for this. It shows what the plan would come to.</p>`);
   parts.push(`<p style="font-size:14px;margin:0"><a href="${SITE}/business/futprep/growth" style="color:#B9532A;font-weight:700">Open the full report</a></p>`);

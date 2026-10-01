@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { listOwnerEmails } from "@/db/business";
-import { claimJobRun, futprepOrganization, getGrowthReport, logMessage, prunePageEvents, releaseJobRun, syncCommissionEvents } from "@/db/growth";
+import { claimJobRun, futprepOrganization, getGrowthReport, logMessage, prunePageEvents, releaseJobRun, reportRecipients, syncCommissionEvents } from "@/db/growth";
 import { cronAuthorized } from "@/lib/cron";
 import { portpassFrom, sendEmail } from "@/lib/email";
 import { monthlyReportPeriod, nassauClock } from "@/lib/growth";
@@ -17,8 +17,8 @@ export const dynamic = "force-dynamic";
 // 2. Removes page-event counts too old for the report to read.
 // 3. On the 1st of the month (Nassau), emails the business's owners last
 //    month's growth report, once, and records it in the Messages log. If
-//    nothing could be delivered the month is released, so the next run
-//    tries again. Nothing is ever sent to a parent.
+//    nothing could be delivered the month is released, and the runs on the
+//    next few days try again. Nothing is ever sent to a parent.
 //
 // The answer says only that the job ran: what it did is in the audit trail
 // (billing_events, message_log), not in a response anyone could read.
@@ -49,11 +49,14 @@ export async function GET(request: Request) {
     try {
       claimed = await claimJobRun(job, period);
       if (claimed) {
-        const recipients = await listOwnerEmails(organization.id);
+        const recipients = await reportRecipients(organization.id, await listOwnerEmails(organization.id));
         if (recipients.length === 0) {
-          // Nobody to send to is not a failure to retry: say so once.
-          delivered = true;
-          await logMessage({ organizationId: organization.id, template: "growth_report_monthly", recipient: "(no owner on file)", status: "skipped", detail: "The business has no owner with a PortPass account." });
+          // Nobody to send to yet. Said once, on the 1st; the month stays
+          // open so the report goes as soon as an owner or an email address
+          // is added during the retry days.
+          if (clock.date.endsWith("-01")) {
+            await logMessage({ organizationId: organization.id, template: "growth_report_monthly", recipient: "(no owner on file)", status: "skipped", detail: "No owner with a PortPass account, and no email on the CEO staff login." });
+          }
         } else {
           const email = growthReportEmail(await getGrowthReport(organization, now), month);
           for (const to of recipients) {

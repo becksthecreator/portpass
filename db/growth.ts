@@ -282,6 +282,9 @@ export type GrowthReport = {
   today: string;
   current: PeriodReport | null;
   previous: PeriodReport | null;
+  // The next term, once it exists: families sign up and pay for it while
+  // this term is still running.
+  upcoming: PeriodReport | null;
   missedTwo: Array<{ childFirstName: string; programName: string }>;
   unmarked: Array<{ date: string; programName: string }>;
   value: GrowthValue;
@@ -291,16 +294,16 @@ export async function getGrowthReport(organization: { id: number; name: string }
   const clock = nassauClock(now);
   const today = clock.date;
   const data = await loadGrowthData(organization.id);
-  const { current, previous } = termPeriods(data.terms, today);
+  const { current, previous, upcoming } = termPeriods(data.terms, today);
   const plan = await commissionPlan(organization.id, today);
   const terms: CommissionTerms = plan ?? GROW_WITH_US_OFFER;
 
   const periodReport = async (period: GrowthPeriod | null): Promise<PeriodReport | null> => {
     if (!period) return null;
     const [events, privateRequests] = await Promise.all([eventCounts(organization.id, period), privateRequestCount(organization.id, period)]);
-    return buildPeriodReport({ period, today, programs: data.programs, registrations: data.registrations, payments: data.payments, sessions: data.sessions, attendance: data.attendance, events, privateRequests });
+    return buildPeriodReport({ period, today, programs: data.programs, terms: data.terms, registrations: data.registrations, payments: data.payments, sessions: data.sessions, attendance: data.attendance, events, privateRequests });
   };
-  const [currentReport, previousReport] = await Promise.all([periodReport(current), periodReport(previous)]);
+  const [currentReport, previousReport, upcomingReport] = await Promise.all([periodReport(current), periodReport(previous), periodReport(upcoming)]);
 
   const inCurrent = current ? new Set(current.termIds) : new Set<number>();
   // "Not marked" looks back two weeks, which can reach into the term
@@ -314,7 +317,9 @@ export async function getGrowthReport(organization: { id: number; name: string }
   const payments = withinPlan(data.payments, plan);
   const commissionOf = (period: GrowthPeriod | null): Commission | null => (period ? commissionForTerm({ period, registrations: data.registrations, payments, terms, locked }) : null);
   const currentCommission = commissionOf(current);
-  const both = [commissionOf(previous), currentCommission].filter((c): c is Commission => c !== null);
+  // A month can hold payments for the term before, this term and the next
+  // one (families pay for next term while this one runs).
+  const both = [commissionOf(previous), currentCommission, commissionOf(upcoming)].filter((c): c is Commission => c !== null);
   const month = today.slice(0, 7);
   const currentPaymentIds = new Set((currentCommission?.lines ?? []).map((l) => l.paymentId));
 
@@ -324,6 +329,7 @@ export async function getGrowthReport(organization: { id: number; name: string }
     today,
     current: currentReport,
     previous: previousReport,
+    upcoming: upcomingReport,
     missedTwo: missedTwoInARow({ today, programs: data.programs, registrations: data.registrations.filter((r) => inCurrent.has(r.termId)), sessions: data.sessions.filter((s) => inCurrent.has(s.termId)), attendance: data.attendance }),
     unmarked: unmarkedSessions({ clock, sessions: data.sessions.filter((s) => inEither.has(s.termId)), attendance: data.attendance, registrations: data.registrations.filter((r) => inEither.has(r.termId)) }).map((s) => ({ date: s.date, programName: programName(s.programId) })),
     value: {
@@ -354,8 +360,8 @@ export async function syncCommissionEvents(organizationId: number, now: Date = n
   if (!plan) return null;
   const db = getSupabaseAdmin();
   const data = await loadGrowthData(organizationId);
-  const { current, previous } = termPeriods(data.terms, today);
-  const periods = [previous, current].filter((p): p is GrowthPeriod => p !== null);
+  const { current, previous, upcoming } = termPeriods(data.terms, today);
+  const periods = [previous, current, upcoming].filter((p): p is GrowthPeriod => p !== null);
   if (periods.length === 0) return { written: 0, removed: 0 };
 
   const existing = await existingCommissionEvents(organizationId);
@@ -478,7 +484,17 @@ export async function sessionsToNudge(organizationId: number, now: Date = new Da
   });
 }
 
-export type UnmarkedSession = { sessionId: number; date: string; programName: string; organizationName: string };
+// Who the monthly report goes to: the business's owners on PortPass. Until
+// the owner has a PortPass account of their own, the CEO staff login's
+// email address (if one is on file) is the owner's.
+export async function reportRecipients(organizationId: number, ownerEmails: string[]): Promise<string[]> {
+  if (ownerEmails.length > 0) return ownerEmails;
+  const { data, error } = await getSupabaseAdmin().from("staff_members").select("email").eq("organization_id", organizationId).eq("role", "ceo").eq("active", true);
+  throwIfSupabaseError(error, "Could not load the business's CEO login");
+  return (data ?? []).map((row) => (typeof row.email === "string" ? row.email.trim() : "")).filter((email) => email.includes("@"));
+}
+
+export type UnmarkedSession ={ sessionId: number; date: string; programName: string; organizationName: string };
 
 // For the Admin Overview: sessions in the last two weeks whose attendance
 // was never marked (from noon on the day), in this term or the one before.

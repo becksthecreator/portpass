@@ -10,7 +10,7 @@ import { EMPTY_ATTRIBUTION, HEARD_OPTIONS, type Attribution } from "@/lib/attrib
 import type { FutprepAvailability, TrialSession } from "@/db/registrations";
 import { formatDateRange, offerHeadline } from "@/lib/futprepTerms";
 import { ageInMonths, ageRangeMonths } from "@/lib/futprepClasses";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   FUTPREP_BANK_DETAILS,
@@ -104,6 +104,7 @@ export function RegistrationForm({
   const searchParams = useSearchParams();
   const availability = offers;
   const isTrial = mode === "trial";
+  const growthStarted = useRef(false);
   const steps = isTrial ? TRIAL_STEPS : STANDARD_STEPS;
   const [trialSessionId, setTrialSessionId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(() => {
@@ -214,7 +215,11 @@ export function RegistrationForm({
     // the event carries the business, never the parent's details.
     if (step === 0) {
       track("register_start", { org: "futprep" });
-      recordGrowthEvent("register_start");
+      // Once per visit, and not for a free taster (a taster is not a place).
+      if (!growthStarted.current && !isTrial) {
+        growthStarted.current = true;
+        recordGrowthEvent("register_start");
+      }
     }
     setStep((current) => Math.min(current + 1, steps.length - 1));
     window.scrollTo({ top: 0, behavior: "smooth" });

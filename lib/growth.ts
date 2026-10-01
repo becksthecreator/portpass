@@ -128,20 +128,27 @@ function periodOf(anchor: GrowthTerm[], all: GrowthTerm[], eventsFrom: string | 
 }
 
 // The term running today (or, between terms, the next one to start, or
-// failing that the last one to finish), and the term before it. A "term" is
-// every class term that overlaps, so Lil Kickers and Kickers count together.
-export function termPeriods(terms: GrowthTerm[], today: string): { current: GrowthPeriod | null; previous: GrowthPeriod | null } {
+// failing that the last one to finish), the term before it, and the term
+// after it once that exists: families sign up and pay for the next term
+// while this one is still running. A "term" is every class term that
+// overlaps, so Lil Kickers and Kickers count together.
+export function termPeriods(terms: GrowthTerm[], today: string): { current: GrowthPeriod | null; previous: GrowthPeriod | null; upcoming: GrowthPeriod | null } {
   const classes = terms.filter((t) => t.isClass);
-  if (classes.length === 0) return { current: null, previous: null };
+  if (classes.length === 0) return { current: null, previous: null, upcoming: null };
   let anchor = classes.filter((t) => t.startDate <= today && t.endDate >= today);
   if (anchor.length === 0) {
-    const upcoming = classes.filter((t) => t.startDate > today).sort((a, b) => a.startDate.localeCompare(b.startDate));
+    const next = classes.filter((t) => t.startDate > today).sort((a, b) => a.startDate.localeCompare(b.startDate));
     const ended = classes.filter((t) => t.endDate < today).sort((a, b) => b.endDate.localeCompare(a.endDate));
-    anchor = overlapping(classes, upcoming[0] ?? ended[0]);
+    anchor = overlapping(classes, next[0] ?? ended[0]);
   }
   const currentStart = anchor.map((t) => t.startDate).sort()[0];
+  const currentEnd = anchor.map((t) => t.endDate).sort().slice(-1)[0];
+
+  const after = classes.filter((t) => t.startDate > currentEnd).sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const upcoming = after.length > 0 ? periodOf(overlapping(after, after[0]), terms, addDays(currentEnd, 1), "Next term") : null;
+
   const before = classes.filter((t) => t.endDate < currentStart).sort((a, b) => b.endDate.localeCompare(a.endDate));
-  if (before.length === 0) return { current: periodOf(anchor, terms, null, "This term"), previous: null };
+  if (before.length === 0) return { current: periodOf(anchor, terms, null, "This term"), previous: null, upcoming };
 
   const previousAnchor = overlapping(before, before[0]);
   const previousStart = previousAnchor.map((t) => t.startDate).sort()[0];
@@ -149,7 +156,7 @@ export function termPeriods(terms: GrowthTerm[], today: string): { current: Grow
   const earlier = classes.filter((t) => t.endDate < previousStart).sort((a, b) => b.endDate.localeCompare(a.endDate));
   const previous = periodOf(previousAnchor, terms, earlier.length > 0 ? addDays(earlier[0].endDate, 1) : null, "Last term");
   const current = periodOf(anchor, terms, addDays(previousEnd, 1), "This term");
-  return { current, previous };
+  return { current, previous, upcoming };
 }
 
 // ---- The report's rows ----------------------------------------------------------
@@ -259,6 +266,9 @@ export function buildPeriodReport(input: {
   attendance: GrowthAttendance[];
   events: EventCount[];
   privateRequests: number;
+  // The period's terms, so a class nobody has joined yet is still listed
+  // (0 of 20 is the row an owner most needs to see).
+  terms?: GrowthTerm[];
 }): PeriodReport {
   const { period, today, programs } = input;
   const termIds = new Set(period.termIds);
@@ -274,8 +284,9 @@ export function buildPeriodReport(input: {
     .map(([channel, views]) => ({ channel, label: CHANNEL_LABEL[channel], views }))
     .sort((a, b) => b.views - a.views);
 
-  // Booked.
-  const programIds = Array.from(new Set(enrolled.map((r) => r.programId)));
+  // Booked: every class with a term in the period, joined or not.
+  const offered = (input.terms ?? []).filter((t) => termIds.has(t.id)).map((t) => t.programId);
+  const programIds = Array.from(new Set([...offered, ...enrolled.map((r) => r.programId)]));
   const classes = programIds
     .map((id) => {
       const registered = enrolled.filter((r) => r.programId === id).length;
@@ -457,7 +468,12 @@ export function isNudgeWindow(clock: NassauClock): boolean {
   return minutes >= 8 * 60 && minutes <= 11 * 60;
 }
 
-// The monthly report goes out on the 1st, for the month just ended.
+// The monthly report goes out on the 1st, for the month just ended. If it
+// could not be sent that day (the email provider was down, the job did not
+// run) the next few days try again; the job's claim on the month is what
+// keeps it to one send.
+export const MONTHLY_REPORT_LAST_DAY = 5;
 export function monthlyReportPeriod(clock: NassauClock): string | null {
-  return clock.date.endsWith("-01") ? previousMonth(clock.date.slice(0, 7)) : null;
+  const day = Number(clock.date.slice(8));
+  return day >= 1 && day <= MONTHLY_REPORT_LAST_DAY ? previousMonth(clock.date.slice(0, 7)) : null;
 }

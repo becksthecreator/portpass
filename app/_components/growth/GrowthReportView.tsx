@@ -83,7 +83,7 @@ export function GrowthReportView({ report }: { report: GrowthReport }) {
       <section className="growth-panel" aria-labelledby="growth-booked">
         <h2 id="growth-booked">Booked</h2>
         <dl className="growth-stats">
-          <Stat label="Forms opened" value={String(term.booked.started)} before={n(last?.booked.started)} />
+          <Stat label="Registrations started" value={String(term.booked.started)} before={n(last?.booked.started)} />
           <Stat label="Places taken" value={String(term.booked.completed)} before={n(last?.booked.completed)} />
           <Stat label="Children from new families" value={String(term.booked.newFamilyChildren)} before={n(last?.booked.newFamilyChildren)} />
           <Stat label="Children from returning families" value={String(term.booked.returningFamilyChildren)} before={n(last?.booked.returningFamilyChildren)} />
@@ -103,6 +103,26 @@ export function GrowthReportView({ report }: { report: GrowthReport }) {
         )}
       </section>
 
+      {report.upcoming && (
+        <section className="growth-panel" aria-labelledby="growth-next">
+          <h2 id="growth-next">Next term: sign-ups so far</h2>
+          <p className="growth-note">{report.upcoming.label} · {shortDate(report.upcoming.start)} to {shortDate(report.upcoming.end)}. Families can sign up and pay for it while this term is still running.</p>
+          <dl className="growth-stats">
+            <Stat label="Places taken" value={String(report.upcoming.booked.completed)} />
+            <Stat label="Children from new families" value={String(report.upcoming.booked.newFamilyChildren)} />
+            <Stat label="On the waitlist" value={String(report.upcoming.booked.waitlist)} />
+            <Stat label="Collected" value={formatCents(report.upcoming.paid.collectedCents)} />
+          </dl>
+          {report.upcoming.booked.classes.length > 0 && (
+            <ul className="growth-rows">
+              {report.upcoming.booked.classes.map((c) => (
+                <li key={c.programName}><span>{c.programName}</span><b>{c.registered} of {c.capacity} · {c.fillPercent}%</b></li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       <section className="growth-panel" aria-labelledby="growth-paid">
         <h2 id="growth-paid">Paid</h2>
         <dl className="growth-stats">
@@ -113,7 +133,7 @@ export function GrowthReportView({ report }: { report: GrowthReport }) {
         {term.paid.classes.length > 0 && (
           <ul className="growth-rows">
             {term.paid.classes.map((c) => (
-              <li key={c.programName}><span>{c.programName}</span><b>{formatCents(c.collectedCents)} of {formatCents(c.dueCents)}</b></li>
+              <li key={c.programName}><span>{c.programName}</span><b>{formatCents(c.collectedCents)} of {formatCents(c.dueCents)} · {formatCents(c.outstandingCents)} outstanding</b></li>
             ))}
           </ul>
         )}
@@ -159,7 +179,7 @@ export function GrowthReportView({ report }: { report: GrowthReport }) {
           <Stat label={value.onPlan ? `PortPass fee (${percent}%)` : `What ${percent}% would be`} value={formatCents(value.thisMonth.feeCents)} />
           {value.term && (
             <Stat
-              label={`${value.term.label} so far`}
+              label={`PortPass fee, ${value.term.label} so far`}
               value={`${formatCents(value.term.feeCents)} of ${formatCents(value.term.capCents)}`}
               hint={value.term.capApplied ? `Cap reached: ${percent}% would have been ${formatCents(value.term.uncappedFeeCents)}.` : `The cap for the term is ${formatCents(value.term.capCents)}.`}
             />

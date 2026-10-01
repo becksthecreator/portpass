@@ -81,7 +81,10 @@ describe("Nassau time", () => {
     expect(isNudgeWindow({ date: "2026-10-06", weekday: 2, hour: 8, minute: 45 })).toBe(false);
     expect(monthlyReportPeriod({ date: "2026-11-01", weekday: 0, hour: 6, minute: 0 })).toBe("2026-10");
     expect(monthlyReportPeriod({ date: "2027-01-01", weekday: 5, hour: 6, minute: 0 })).toBe("2026-12");
-    expect(monthlyReportPeriod({ date: "2026-11-02", weekday: 1, hour: 6, minute: 0 })).toBeNull();
+    // If the 1st did not go through, the next few days try again; after that, no.
+    expect(monthlyReportPeriod({ date: "2026-11-02", weekday: 1, hour: 6, minute: 0 })).toBe("2026-10");
+    expect(monthlyReportPeriod({ date: "2026-11-05", weekday: 4, hour: 6, minute: 0 })).toBe("2026-10");
+    expect(monthlyReportPeriod({ date: "2026-11-06", weekday: 5, hour: 6, minute: 0 })).toBeNull();
   });
 });
 
@@ -98,6 +101,9 @@ describe("this term against last term", () => {
     // With no earlier term, everything before the term counts towards it.
     expect(current).toEqual({ label: "Term 1", start: "2026-09-12", end: "2026-12-05", termIds: [1, 2, 3], eventsFrom: null });
     expect(previous).toBeNull();
+    // Term 2 already exists, so its sign-ups show while Term 1 is running.
+    expect(termPeriods(TERMS, "2026-11-25").upcoming).toMatchObject({ label: "Term 2", termIds: [4], eventsFrom: "2026-12-06" });
+    expect(termPeriods(TERMS, "2027-02-01").upcoming).toBeNull();
   });
 
   it("compares Term 2 with Term 1 once Term 2 is running", () => {
@@ -131,7 +137,7 @@ describe("this term against last term", () => {
 
   it("between terms, looks ahead to the next one", () => {
     expect(termPeriods(TERMS, "2026-12-20").current).toMatchObject({ label: "Term 2" });
-    expect(termPeriods([], "2026-10-01")).toEqual({ current: null, previous: null });
+    expect(termPeriods([], "2026-10-01")).toEqual({ current: null, previous: null, upcoming: null });
   });
 
   it("counts an eleven-week and a twelve-week term as three months, so both cap at $360", () => {
@@ -253,6 +259,11 @@ describe("the term's numbers", () => {
       { date: "2026-09-19", programName: "Lil Kickers", enrolled: 3, present: 2, taken: true, percent: 67 },
       { date: "2026-09-12", programName: "Lil Kickers", enrolled: 3, present: 2, taken: true, percent: 67 },
     ]);
+  });
+
+  it("lists a class nobody has joined yet, at 0 of its places", () => {
+    const empty = buildPeriodReport({ period: PERIOD, today: "2026-09-30", programs: PROGRAMS, terms: TERMS, registrations: [reg(1)], payments: [], sessions: [], attendance: [], events: [], privateRequests: 0 });
+    expect(empty.booked.classes).toEqual([{ programName: "Kickers", registered: 0, capacity: 16, fillPercent: 0 }, { programName: "Lil Kickers", registered: 1, capacity: 20, fillPercent: 5 }]);
   });
 
   it("carries a first name and nothing else about a child", () => {
