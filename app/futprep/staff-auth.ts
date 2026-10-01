@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { logAudit } from "@/db/audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "@/db/supabase";
+import { issueStaffToken, readStaffToken, staffTokenValid } from "@/lib/staffSession";
 
 // Accounts are created dynamically by an admin (see createStaffAccount below)
 // rather than being a fixed, hardcoded list. Roles stay a fixed set of four —
@@ -93,25 +94,21 @@ export async function makeStaffToken(accountKey: string, pin: string) {
   if (!account) return null;
   const submittedHash = await digest(pin);
   if (submittedHash !== account.pinHash) return null;
-  const signature = await digest(`portpass:futprep:${accountKey}:${account.role}:${account.pinHash}`);
-  return `${accountKey}.${account.role}.${signature}`;
+  // Signed with a server secret and dated (lib/staffSession.ts).
+  return issueStaffToken("futprep", { accountKey, role: account.role, pinHash: account.pinHash });
 }
 
 export async function currentFutprepStaffAccount(): Promise<string | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE)?.value;
-  if (!token) return null;
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
+  const parts = readStaffToken(token);
+  if (!parts || !isFutprepStaffRole(parts.role)) return null;
 
-  const [accountKey, roleValue, signature] = parts;
-  if (!isFutprepStaffRole(roleValue)) return null;
+  const account = await accountByKey(parts.accountKey);
+  if (!account) return null;
 
-  const account = await accountByKey(accountKey);
-  if (!account || account.role !== roleValue) return null;
-
-  const expected = await digest(`portpass:futprep:${accountKey}:${account.role}:${account.pinHash}`);
-  return signature === expected ? accountKey : null;
+  // Our signature, this account as it is now, and no older than 12 hours.
+  return staffTokenValid("futprep", parts, { role: account.role, pinHash: account.pinHash }) ? parts.accountKey : null;
 }
 
 export async function currentFutprepStaffRole(): Promise<FutprepStaffRole | null> {
