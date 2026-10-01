@@ -104,8 +104,10 @@ function periodOf(anchor: GrowthTerm[], all: GrowthTerm[]): GrowthPeriod {
   // Anything that starts inside the window belongs to it: the classes that
   // define it, and a camp held during it.
   const inside = all.filter((t) => t.startDate >= start && t.startDate <= end);
+  // The term's own name when every class calls it the same thing; otherwise
+  // termPeriods names it "This term" / "Last term".
   const names = Array.from(new Set(anchor.map((t) => t.name)));
-  return { label: names.length === 1 ? names[0] : `${start} to ${end}`, start, end, termIds: inside.map((t) => t.id) };
+  return { label: names.length === 1 ? names[0] : "", start, end, termIds: inside.map((t) => t.id) };
 }
 
 // The term running today (or, between terms, the next one to start, or
@@ -122,10 +124,12 @@ export function termPeriods(terms: GrowthTerm[], today: string): { current: Grow
     anchor = classes.filter((t) => t.startDate <= pick.endDate && t.endDate >= pick.startDate);
   }
   const current = periodOf(anchor, terms);
+  if (!current.label) current.label = "This term";
   const before = classes.filter((t) => t.endDate < current.start).sort((a, b) => b.endDate.localeCompare(a.endDate));
   if (before.length === 0) return { current, previous: null };
   const last = before[0];
   const previous = periodOf(before.filter((t) => t.startDate <= last.endDate && t.endDate >= last.startDate), terms.filter((t) => t.endDate < current.start));
+  if (!previous.label) previous.label = "Last term";
   return { current, previous };
 }
 
@@ -156,8 +160,14 @@ export function isEnrolled(status: string): boolean {
   return ENROLLED.includes(status);
 }
 
+// The form has one "child's full name" box. "Jayden Rolle" gives Jayden;
+// "Rolle, Jayden" (surname first, with a comma) also gives Jayden. Without
+// a comma there is no telling which word is the surname, so the first word
+// is used.
 export function firstNameOf(childName: string): string {
-  return childName.trim().split(/\s+/)[0] ?? "";
+  const [beforeComma, afterComma] = childName.split(",");
+  const part = afterComma && afterComma.trim() ? afterComma : beforeComma;
+  return (part.trim().split(/\s+/)[0] ?? "").replace(/[.,;:]+$/, "");
 }
 
 export type PeriodReport = {
@@ -235,14 +245,17 @@ export function buildPeriodReport(input: {
   const marks = new Map<number, GrowthAttendance[]>();
   for (const a of input.attendance) marks.set(a.sessionId, [...(marks.get(a.sessionId) ?? []), a]);
   const held = input.sessions.filter((s) => termIds.has(s.termId) && s.date <= today && s.status !== "cancelled").sort((a, b) => b.date.localeCompare(a.date) || a.programId - b.programId);
-  const sessions = held.map((s) => {
-    const sessionMarks = marks.get(s.id) ?? [];
-    const expected = enrolled.filter((r) => r.programId === s.programId && r.termId === s.termId && r.submittedOn <= s.date);
-    const expectedIds = new Set(expected.map((r) => r.id));
-    const present = sessionMarks.filter((m) => m.status === "present" && expectedIds.has(m.registrationId)).length;
-    const taken = sessionMarks.length > 0;
-    return { date: s.date, programName: programName(s.programId), enrolled: expected.length, present, taken, percent: taken && expected.length > 0 ? Math.round((present / expected.length) * 100) : null };
-  });
+  const sessions = held
+    .map((s) => {
+      const sessionMarks = marks.get(s.id) ?? [];
+      const expected = enrolled.filter((r) => r.programId === s.programId && r.termId === s.termId && r.submittedOn <= s.date);
+      const expectedIds = new Set(expected.map((r) => r.id));
+      const present = sessionMarks.filter((m) => m.status === "present" && expectedIds.has(m.registrationId)).length;
+      const taken = sessionMarks.length > 0;
+      return { date: s.date, programName: programName(s.programId), enrolled: expected.length, present, taken, percent: taken && expected.length > 0 ? Math.round((present / expected.length) * 100) : null };
+    })
+    // A session of a class nobody had joined yet is not a session to report on.
+    .filter((s) => s.enrolled > 0);
   const scored = sessions.filter((s) => s.percent !== null);
   const averagePercent = scored.length > 0 ? Math.round(scored.reduce((sum, s) => sum + (s.percent ?? 0), 0) / scored.length) : null;
 
@@ -372,6 +385,7 @@ export function shortDate(iso: string): string {
 // the session already nudged; in winter the first run is 7:45, too early
 // for this window, and the second is 8:45.
 export function isNudgeWindow(clock: NassauClock): boolean {
+  if (clock.weekday !== 6) return false;
   const minutes = clock.hour * 60 + clock.minute;
   return minutes >= 8 * 60 && minutes <= 11 * 60;
 }

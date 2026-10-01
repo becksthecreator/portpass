@@ -76,6 +76,8 @@ describe("Nassau time", () => {
     // In winter the first of the two scheduled runs lands at 7:45: too early.
     expect(isNudgeWindow({ date: "2026-11-07", weekday: 6, hour: 7, minute: 45 })).toBe(false);
     expect(isNudgeWindow({ date: "2026-10-03", weekday: 6, hour: 13, minute: 0 })).toBe(false);
+    // Saturdays only.
+    expect(isNudgeWindow({ date: "2026-10-06", weekday: 2, hour: 8, minute: 45 })).toBe(false);
     expect(monthlyReportPeriod({ date: "2026-11-01", weekday: 0, hour: 6, minute: 0 })).toBe("2026-10");
     expect(monthlyReportPeriod({ date: "2027-01-01", weekday: 5, hour: 6, minute: 0 })).toBe("2026-12");
     expect(monthlyReportPeriod({ date: "2026-11-02", weekday: 1, hour: 6, minute: 0 })).toBeNull();
@@ -186,6 +188,9 @@ describe("the term's numbers", () => {
 
   it("carries a first name and nothing else about a child", () => {
     expect(firstNameOf("  Jayden   Rolle ")).toBe("Jayden");
+    expect(firstNameOf("Rolle, Jayden")).toBe("Jayden");
+    expect(firstNameOf("Jayden.")).toBe("Jayden");
+    expect(firstNameOf("")).toBe("");
     expect(JSON.stringify(report)).not.toMatch(/allerg|medic|emergency|pickup|phone|email/i);
   });
 });

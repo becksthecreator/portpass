@@ -157,10 +157,10 @@ export default function PrivacyPage() {
           PortPass sets no advertising cookies and does nothing of its own to follow you to other websites. The WeddingWire badges described above are the one thing on PortPass that another company controls. To count visits and measure page speed we use Vercel’s Web Analytics and Speed Insights, which Vercel builds to work without cookies and without identifying you. They record which public pages are opened and a few button taps, such as starting a registration or tapping a WhatsApp button, with no names or contact details. We leave out the staff, admin and account areas, and we remove reference codes and personal details from page addresses before they are sent.
         </p>
         <p>
-          For a business’s own growth report, we also count on our own servers how many times its public pages are opened and how often its WhatsApp and Register buttons are tapped, and how the visitor arrived (for example from a PortPass QR code). These counts hold no name, no account and no internet address.
+          For a business’s own growth report, we also count on our own servers how many times its public pages are opened, how often its WhatsApp and Register buttons are tapped and its registration form is started, and how the visitor arrived (for example from a PortPass QR code). These counts hold no name, no account and no internet address.
         </p>
         <p>
-          We use your internet (IP) address only to slow down repeated attempts on our forms and sign-ins. It is held in memory for a short time and is never saved in our own records. The companies that host PortPass and handle sign-in also see it, and may keep it in their own security logs.
+          We use your internet (IP) address only to slow down repeated attempts on our forms and sign-ins, and repeated counting of page visits. It is held in memory for a short time and is never saved in our own records. The companies that host PortPass and handle sign-in also see it, and may keep it in their own security logs.
         </p>
 
         <h2 id="retention">How long we keep it</h2>

@@ -75,6 +75,31 @@ export async function recordPageEvent(input: { organizationId: number; path: str
   throwIfSupabaseError(error, "Could not record the page event");
 }
 
+// A ceiling on what one day can add, so a flood cannot fill the table or
+// drown the report: far above a busy day's real traffic. The count is
+// checked at most once a minute per server instance.
+export const PAGE_EVENTS_DAILY_CAP = 20_000;
+let eventsToday: { organizationId: number; count: number; at: number } | null = null;
+
+export async function pageEventsOverCap(organizationId: number, now: Date = new Date()): Promise<boolean> {
+  if (eventsToday && eventsToday.organizationId === organizationId && now.getTime() - eventsToday.at < 60_000) return eventsToday.count >= PAGE_EVENTS_DAILY_CAP;
+  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const { count, error } = await getSupabaseAdmin().from("page_events").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).gte("created_at", since);
+  throwIfSupabaseError(error, "Could not count page events");
+  eventsToday = { organizationId, count: count ?? 0, at: now.getTime() };
+  return eventsToday.count >= PAGE_EVENTS_DAILY_CAP;
+}
+
+// The report reads this term and the one before, so counts older than
+// about thirteen months are no use to it and are removed by the daily job.
+export const PAGE_EVENTS_KEEP_DAYS = 400;
+
+export async function prunePageEvents(now: Date = new Date()): Promise<void> {
+  const before = new Date(now.getTime() - PAGE_EVENTS_KEEP_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await getSupabaseAdmin().from("page_events").delete().lt("created_at", before);
+  throwIfSupabaseError(error, "Could not remove old page events");
+}
+
 async function eventCounts(organizationId: number, period: GrowthPeriod): Promise<EventCount[]> {
   // A Nassau day starts at 04:00 or 05:00 UTC; an hour either way does not
   // matter at the edge of a term.
@@ -316,12 +341,27 @@ export async function syncCommissionEvents(organizationId: number, now: Date = n
     throwIfSupabaseError(result.error, "Could not write a billing event");
     written += 1;
   }
+  // An uninvoiced event that is no longer earned is removed, but only when
+  // its payment is gone (a void deletes the row) or belongs to one of the
+  // terms just recomputed. A fee from an older term is left alone: it was
+  // not looked at here, so its absence from `wanted` means nothing.
+  const candidates = Array.from(bySource.entries()).filter(([paymentId, have]) => !wanted.has(paymentId) && !have.invoiced);
   let removed = 0;
-  for (const [paymentId, have] of bySource) {
-    if (wanted.has(paymentId) || have.invoiced) continue;
-    const { error: removeError } = await db.from("billing_events").delete().eq("id", have.id).is("invoice_line_id", null);
-    throwIfSupabaseError(removeError, "Could not remove a billing event");
-    removed += 1;
+  if (candidates.length > 0) {
+    const recomputed = new Set(periods.flatMap((p) => p.termIds));
+    const termOf = new Map(data.registrations.map((r): [number, number] => [r.id, r.termId]));
+    const { data: stillThere, error: paymentError } = await db.from("payments").select("id,registration_id").in("id", candidates.map(([paymentId]) => paymentId));
+    throwIfSupabaseError(paymentError, "Could not check payments");
+    const registrationOf = new Map((stillThere ?? []).map((p): [number, number | null] => [Number(p.id), p.registration_id === null ? null : Number(p.registration_id)]));
+    for (const [paymentId, have] of candidates) {
+      const registrationId = registrationOf.get(paymentId);
+      const gone = !registrationOf.has(paymentId);
+      const termId = registrationId === null || registrationId === undefined ? undefined : termOf.get(registrationId);
+      if (!gone && (termId === undefined || !recomputed.has(termId))) continue;
+      const { error: removeError } = await db.from("billing_events").delete().eq("id", have.id).is("invoice_line_id", null);
+      throwIfSupabaseError(removeError, "Could not remove a billing event");
+      removed += 1;
+    }
   }
   return { written, removed };
 }
@@ -335,6 +375,14 @@ export async function claimJobRun(job: string, periodKey: string): Promise<boole
   if (error && (error as { code?: string }).code === "23505") return false;
   throwIfSupabaseError(error, "Could not claim the job run");
   return true;
+}
+
+// Gives a period back when the job could deliver nothing (the email
+// provider was down, the report could not be built), so the next run tries
+// again instead of finding the period already spent.
+export async function releaseJobRun(job: string, periodKey: string): Promise<void> {
+  const { error } = await getSupabaseAdmin().from("job_runs").delete().eq("job", job).eq("period_key", periodKey);
+  throwIfSupabaseError(error, "Could not release the job run");
 }
 
 // ---- Messages log --------------------------------------------------------------------

@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { FUTPREP_STAFF_COOKIE } from "@/app/futprep/staff-auth";
-import { futprepOrganization, recordPageEvent } from "@/db/growth";
+import { futprepOrganization, pageEventsOverCap, recordPageEvent } from "@/db/growth";
 import { ATTRIBUTION_COOKIE, parseAttributionCookie } from "@/lib/attribution";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { channelFromAttribution, cleanEventPath, isPageEvent } from "@/lib/growth";
 
 // @public-route: counts what happens on a business's public pages for its
 // growth report (brief 05, part 2): a view, a WhatsApp tap, a Register
-// click, a registration form opened. First-party only. What is saved is
-// the page, the event and how the visitor arrived. No name, no account, no
-// IP address (it is used here only to slow a flood, and never stored), and
-// nothing from a form. A page whose address could identify someone (a
+// click, a registration form started. First-party only, and only from our
+// own pages. What is saved is the page, the event and how the visitor
+// arrived. No name, no account, no IP address (it is used here only to
+// slow a flood, and never stored), and nothing from a form. A page whose address could identify someone (a
 // status page, a staff page, a return link's token) is refused or cleaned
 // by cleanEventPath before anything is written.
 const limited = createRateLimiter(120, 60_000);
@@ -26,11 +26,26 @@ function cookie(request: Request, name: string): string | null {
   return null;
 }
 
+// Only our own pages may count: a browser says where a request came from,
+// so another website cannot make its visitors' browsers add to the numbers.
+function fromOurOwnPage(request: Request): boolean {
+  const site = request.headers.get("sec-fetch-site");
+  if (site) return site === "same-origin";
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+  try {
+    return new URL(origin).host === (request.headers.get("host") ?? new URL(request.url).host);
+  } catch {
+    return false;
+  }
+}
+
 // Always answers 204: the page never waits on this, and a refusal tells a
 // stranger nothing.
 const done = () => new NextResponse(null, { status: 204 });
 
 export async function POST(request: Request) {
+  if (!fromOurOwnPage(request)) return done();
   if (BOT.test(request.headers.get("user-agent") ?? "")) return done();
   if (limited(clientIp(request))) return done();
   // Staff looking at their own public pages are not visitors.
@@ -43,6 +58,8 @@ export async function POST(request: Request) {
   try {
     const organization = await futprepOrganization();
     if (!organization) return done();
+    // A ceiling on one day's counts (db/growth.ts), so a flood stops here.
+    if (await pageEventsOverCap(organization.id)) return done();
     const sourceChannel = channelFromAttribution(parseAttributionCookie(cookie(request, ATTRIBUTION_COOKIE)));
     await recordPageEvent({ organizationId: organization.id, path, event: body.event, sourceChannel });
   } catch (error) {
