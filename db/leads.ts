@@ -393,7 +393,7 @@ export async function leadsDigest(now: Date = new Date()): Promise<LeadsDigest> 
 // Creates an UNPUBLISHED draft business from what the lead publishes about
 // itself. It goes live only after the owner agrees (Handbook §7) and the
 // usual review; nothing here publishes anything.
-export async function draftPageFromLead(id: number, actorUserId: string): Promise<{ lead: Lead; organizationId: number; slug: string }> {
+export async function draftPageFromLead(id: number, actorUserId: string): Promise<{ lead: Lead; organizationId: number; slug: string | null }> {
   const lead = await getLead(id);
   if (!lead) throw new Error("NOT_FOUND");
   if (lead.status === "do_not_contact") throw new Error("DO_NOT_CONTACT");
