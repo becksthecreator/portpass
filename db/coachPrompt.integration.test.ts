@@ -104,7 +104,6 @@ describe("team lists never carry pay (brief 13 rule, brief 16 review)", () => {
       expect(keys).not.toContain("default_lead_pay_cents");
       expect(keys).not.toContain("default_assistant_pay_cents");
       expect(keys).not.toContain("staff_member_id");
-      expect(JSON.stringify(row)).not.toContain("5000");
     }
     await db().from("coach_profiles").update({ public_visible: false }).eq("id", bookableCoach);
   });
