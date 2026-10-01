@@ -84,6 +84,13 @@ export const SECTIONS = [
       { slug: "phone-tech-repair", name: "Phone & Tech Repair" },
     ],
   },
+  {
+    slug: "shop",
+    name: "Shop Bahamian",
+    line: "Drops and pre-orders from Bahamian brands. Reserve your size, pay the brand.",
+    href: "/shop",
+    subsections: [{ slug: "apparel-merch", name: "Apparel & Merch" }],
+  },
 ] as const;
 
 export type SectionSlug = (typeof SECTIONS)[number]["slug"];

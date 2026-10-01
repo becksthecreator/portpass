@@ -7,6 +7,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   tours: "Tours",
   events: "Events",
   entertainment: "Entertainment",
+  shop: "Shop Bahamian",
 };
 
 export function categoryLabel(primaryCategory: string | null): string | null {

@@ -4989,12 +4989,12 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .nav-panel-list a{display:flex;justify-content:space-between;align-items:center;gap:16px;border-radius:8px;color:var(--ink);font-size:.9rem;font-weight:600;padding:9px 12px;text-decoration:none}
 .nav-panel-list a:hover,.nav-panel-list a:focus-visible{background:var(--deck)}
 .nav-panel small,.sheet-subs a small,.sheet-list>li>button small{font-size:.7rem;font-weight:800;color:var(--muted);letter-spacing:.04em}
-/* Below 1200px the triggers give way to the Browse sheet (the seven
-   section triggers, the logo and Sign in / Pricing / For business need
-   about 1160px in one row; at 1024, an iPad in landscape, they
-   overlapped). This block must stay after the .site-shell-nav rule above:
-   same specificity, so order decides. */
-@media(max-width:1199px){
+/* Below 1320px the triggers give way to the Browse sheet (eight section
+   triggers since Shop Bahamian, 1 Oct, plus the logo and Sign in /
+   Pricing / For business need about 1290px in one row; at 1024, an iPad
+   in landscape, seven of them overlapped). This block must stay after the
+   .site-shell-nav rule above: same specificity, so order decides. */
+@media(max-width:1319px){
   .site-shell-nav{display:none}
   .site-shell-browse-button{display:inline-flex}
 }

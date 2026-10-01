@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ATTRIBUTION_COOKIE, ATTRIBUTION_MAX_AGE_SECONDS, attributionFromRequest, isFutprepPath, mergeAttribution, parseAttributionCookie, serializeAttributionCookie } from "@/lib/attribution";
+import { ATTRIBUTION_COOKIE, ATTRIBUTION_MAX_AGE_SECONDS, attributionFromRequest, isFutprepPath, isShopOwnPath, mergeAttribution, parseAttributionCookie, serializeAttributionCookie, shopAttributionCookie, shopSlugFromPath } from "@/lib/attribution";
 import { needsSession, updateSession } from "@/lib/auth/middleware";
 
 // Broadened from the old admin-only matcher so the domain-routing check
@@ -90,13 +90,24 @@ async function rewriteForCustomDomain(request: NextRequest): Promise<NextRespons
 // days. Attribution only: no identifiers, no IP, no third-party pixels.
 // The registration page reads it and the server decides what it proves.
 // No network: safe on the fast path below.
+// Shops (brief 15) get the same, one cookie per shop (pp_shop_<org>), read
+// by the reservation route to tell a PortPass link from the seller's
+// Instagram link or a direct visit.
 function captureAttribution(request: NextRequest, response: NextResponse) {
   const { pathname } = request.nextUrl;
-  if (!isFutprepPath(pathname)) return;
-  const existing = parseAttributionCookie(request.cookies.get(ATTRIBUTION_COOKIE)?.value);
-  const merged = mergeAttribution(existing, attributionFromRequest({ searchParams: request.nextUrl.searchParams, referer: request.headers.get("referer"), ownHost: request.headers.get("host") }));
+  if (isFutprepPath(pathname)) {
+    rememberAttribution(request, response, ATTRIBUTION_COOKIE, isFutprepPath);
+    return;
+  }
+  const shop = shopSlugFromPath(pathname);
+  if (shop) rememberAttribution(request, response, shopAttributionCookie(shop), isShopOwnPath(shop));
+}
+
+function rememberAttribution(request: NextRequest, response: NextResponse, cookieName: string, isOwnPath: (pathname: string) => boolean) {
+  const existing = parseAttributionCookie(request.cookies.get(cookieName)?.value);
+  const merged = mergeAttribution(existing, attributionFromRequest({ searchParams: request.nextUrl.searchParams, referer: request.headers.get("referer"), ownHost: request.headers.get("host"), isOwnPath }));
   if (merged && (!existing || serializeAttributionCookie(merged) !== serializeAttributionCookie(existing))) {
-    response.cookies.set(ATTRIBUTION_COOKIE, serializeAttributionCookie(merged), {
+    response.cookies.set(cookieName, serializeAttributionCookie(merged), {
       maxAge: ATTRIBUTION_MAX_AGE_SECONDS,
       path: "/",
       sameSite: "lax",
