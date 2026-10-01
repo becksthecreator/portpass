@@ -13,6 +13,7 @@ import {
   monthlyReportPeriod,
   monthsInTerm,
   nassauClock,
+  receivedDate,
   termPeriods,
   unmarkedSessions,
   type GrowthAttendance,
@@ -94,14 +95,38 @@ const TERMS: GrowthTerm[] = [
 describe("this term against last term", () => {
   it("takes the classes running today as the term, and a camp held during it", () => {
     const { current, previous } = termPeriods(TERMS, "2026-10-01");
-    expect(current).toEqual({ label: "Term 1", start: "2026-09-12", end: "2026-12-05", termIds: [1, 2, 3] });
+    // With no earlier term, everything before the term counts towards it.
+    expect(current).toEqual({ label: "Term 1", start: "2026-09-12", end: "2026-12-05", termIds: [1, 2, 3], eventsFrom: null });
     expect(previous).toBeNull();
   });
 
   it("compares Term 2 with Term 1 once Term 2 is running", () => {
     const { current, previous } = termPeriods(TERMS, "2027-02-01");
-    expect(current).toMatchObject({ label: "Term 2", termIds: [4] });
-    expect(previous).toMatchObject({ label: "Term 1", termIds: [1, 2, 3] });
+    // Term 2's views and sign-ups count from the day after Term 1 ended.
+    expect(current).toMatchObject({ label: "Term 2", termIds: [4], eventsFrom: "2026-12-06" });
+    expect(previous).toMatchObject({ label: "Term 1", termIds: [1, 2, 3], eventsFrom: null });
+  });
+
+  it("counts a camp held between two terms with the term that follows it", () => {
+    const withCamp: GrowthTerm[] = [...TERMS, { id: 5, programId: 13, name: "Christmas camp", startDate: "2026-12-17", endDate: "2026-12-18", isClass: false }];
+    expect(termPeriods(withCamp, "2026-10-01").current?.termIds).toEqual([1, 2, 3]);
+    const later = termPeriods(withCamp, "2027-02-01");
+    expect(later.current?.termIds).toEqual([4, 5]);
+    expect(later.previous?.termIds).toEqual([1, 2, 3]);
+    // Between terms the report looks ahead, and the camp is already in it.
+    expect(termPeriods(withCamp, "2026-12-17").current?.termIds).toEqual([4, 5]);
+  });
+
+  it("names a term whose classes call it different things 'This term' and 'Last term'", () => {
+    const mixed: GrowthTerm[] = [
+      { id: 1, programId: 10, name: "Autumn", startDate: "2026-09-12", endDate: "2026-12-05", isClass: true },
+      { id: 2, programId: 11, name: "Term 1", startDate: "2026-09-12", endDate: "2026-12-05", isClass: true },
+      { id: 3, programId: 10, name: "Spring", startDate: "2027-01-09", endDate: "2027-03-20", isClass: true },
+      { id: 4, programId: 11, name: "Term 2", startDate: "2027-01-09", endDate: "2027-03-20", isClass: true },
+    ];
+    const { current, previous } = termPeriods(mixed, "2027-02-01");
+    expect(current?.label).toBe("This term");
+    expect(previous?.label).toBe("Last term");
   });
 
   it("between terms, looks ahead to the next one", () => {
@@ -109,17 +134,26 @@ describe("this term against last term", () => {
     expect(termPeriods([], "2026-10-01")).toEqual({ current: null, previous: null });
   });
 
-  it("counts a twelve-week term as three months", () => {
+  it("counts an eleven-week and a twelve-week term as three months, so both cap at $360", () => {
     expect(monthsInTerm("2026-09-12", "2026-12-05")).toBe(3);
+    expect(monthsInTerm("2027-01-09", "2027-03-20")).toBe(3);
     expect(monthsInTerm("2026-10-13", "2026-10-16")).toBe(1);
+  });
+
+  it("reads a payment's date as staff typed it, and a real moment in Nassau time", () => {
+    // Picked from a date box: stored as midnight UTC of that date.
+    expect(receivedDate("2026-11-01T00:00:00+00:00")).toBe("2026-11-01");
+    expect(receivedDate("2026-11-01T00:00:00.000Z")).toBe("2026-11-01");
+    // Recorded on the spot at 9:30 pm in Nassau on 31 October (01:30 UTC on the 1st).
+    expect(receivedDate("2026-11-01T01:30:00+00:00")).toBe("2026-10-31");
   });
 });
 
 function reg(id: number, over: Partial<GrowthRegistration> = {}): GrowthRegistration {
-  return { id, programId: 10, termId: 1, status: "confirmed", isNewFamily: false, commissionEligible: false, submittedOn: "2026-09-01", amountDueCents: 42_000, childFirstName: `Child${id}`, ...over };
+  return { id, programId: 10, termId: 1, status: "confirmed", isNewFamily: false, commissionEligible: false, submittedOn: "2026-09-01", amountDueCents: 42_000, paysWeekly: false, feeWaived: false, childFirstName: `Child${id}`, ...over };
 }
 const PROGRAMS = [{ id: 10, name: "Lil Kickers", capacity: 20 }, { id: 11, name: "Kickers", capacity: 16 }];
-const PERIOD = { label: "Term 1", start: "2026-09-12", end: "2026-12-05", termIds: [1, 2] };
+const PERIOD = { label: "Term 1", start: "2026-09-12", end: "2026-12-05", termIds: [1, 2], eventsFrom: null };
 
 describe("the term's numbers", () => {
   const registrations = [
@@ -164,7 +198,7 @@ describe("the term's numbers", () => {
   });
 
   it("counts places taken, new and returning families, and how full each class is", () => {
-    expect(report.booked).toMatchObject({ started: 6, completed: 3, newFamilies: 1, returningFamilies: 2, waitlist: 1, tasters: 1 });
+    expect(report.booked).toMatchObject({ started: 6, completed: 3, newFamilyChildren: 1, returningFamilyChildren: 2, waitlist: 1, tasters: 1 });
     expect(report.booked.classes).toEqual([{ programName: "Kickers", registered: 1, capacity: 16, fillPercent: 6 }, { programName: "Lil Kickers", registered: 2, capacity: 20, fillPercent: 10 }]);
   });
 
@@ -184,6 +218,41 @@ describe("the term's numbers", () => {
       { date: "2026-09-12", programName: "Lil Kickers", enrolled: 1, present: 1, taken: true, percent: 100 },
     ]);
     expect(report.showedUp.averagePercent).toBe(75);
+  });
+
+  it("works out what a weekly payer owes from the sessions held, and nothing for a waived fee", () => {
+    const weekly = buildPeriodReport({
+      period: PERIOD, today: "2026-09-30", programs: PROGRAMS, sessions, attendance: [], events: [], privateRequests: 0,
+      registrations: [
+        // Pays $35 a week, joined before the term: three Saturdays held so far, two paid.
+        reg(1, { paysWeekly: true, amountDueCents: 3_500 }),
+        // Joined on the 20th: one Saturday since.
+        reg(2, { paysWeekly: true, amountDueCents: 3_500, submittedOn: "2026-09-20" }),
+        // The term fee was waived: nothing is owed.
+        reg(3, { feeWaived: true }),
+      ],
+      payments: [{ id: 1, registrationId: 1, amountCents: 7_000, receivedOn: "2026-09-19" }],
+    });
+    expect(weekly.paid).toMatchObject({ dueCents: 14_000, collectedCents: 7_000, outstandingCents: 7_000 });
+  });
+
+  it("counts a child marked late as there, and reads a session where the coach marked only who was away", () => {
+    const registrations = [reg(1), reg(2), reg(3)];
+    const late = buildPeriodReport({
+      period: PERIOD, today: "2026-09-30", programs: PROGRAMS, registrations, payments: [], events: [], privateRequests: 0,
+      sessions: [{ id: 1, programId: 10, termId: 1, date: "2026-09-12", status: "scheduled" }, { id: 2, programId: 10, termId: 1, date: "2026-09-19", status: "scheduled" }],
+      attendance: [
+        // 12 Sept: the coach tapped arrivals. One on time, one late, one not marked.
+        { sessionId: 1, registrationId: 1, status: "present" },
+        { sessionId: 1, registrationId: 2, status: "late" },
+        // 19 Sept: the coach tapped only the child who was away.
+        { sessionId: 2, registrationId: 3, status: "absent" },
+      ],
+    });
+    expect(late.showedUp.sessions).toEqual([
+      { date: "2026-09-19", programName: "Lil Kickers", enrolled: 3, present: 2, taken: true, percent: 67 },
+      { date: "2026-09-12", programName: "Lil Kickers", enrolled: 3, present: 2, taken: true, percent: 67 },
+    ]);
   });
 
   it("carries a first name and nothing else about a child", () => {
@@ -210,6 +279,19 @@ describe("children who missed two in a row", () => {
     // Child 2 missed 19 Sept and 3 Oct (26 Sept was not taken, so it is not counted either way).
     // Child 3 joined on 25 Sept and has had only one counted session. Child 4 cancelled.
     expect(missed).toEqual([{ childFirstName: "Child2", programName: "Lil Kickers" }]);
+  });
+
+  it("never lists a child who was late both times, or one the coach simply didn't tap when marking absences", () => {
+    const attendance: GrowthAttendance[] = [
+      { sessionId: 2, registrationId: 1, status: "late" },
+      { sessionId: 2, registrationId: 2, status: "present" },
+      { sessionId: 4, registrationId: 1, status: "late" },
+      { sessionId: 4, registrationId: 2, status: "present" },
+    ];
+    expect(missedTwoInARow({ today: "2026-10-04", programs: PROGRAMS, registrations: [reg(1), reg(2)], sessions, attendance })).toEqual([]);
+    // Both Saturdays the coach marked only child 2 as away: child 1 was there.
+    const onlyAbsences: GrowthAttendance[] = [{ sessionId: 2, registrationId: 2, status: "absent" }, { sessionId: 4, registrationId: 2, status: "excused" }];
+    expect(missedTwoInARow({ today: "2026-10-04", programs: PROGRAMS, registrations: [reg(1), reg(2)], sessions, attendance: onlyAbsences })).toEqual([{ childFirstName: "Child2", programName: "Lil Kickers" }]);
   });
 
   it("lists nobody when attendance has been taken fewer than twice", () => {
@@ -266,5 +348,23 @@ describe("Grow With Us commission", () => {
     expect(commissionForMonth(commission, "2026-10")).toEqual({ families: 2, collectedCents: 252_000, feeCents: 20_160 });
     expect(commissionForMonth(commission, "2026-11")).toEqual({ families: 2, collectedCents: 252_000, feeCents: 15_840 });
     expect(commissionForMonth(commission, "2026-12")).toEqual({ families: 0, collectedCents: 0, feeCents: 0 });
+  });
+
+  it("never goes over the cap once fees are invoiced, even when an earlier payment turns up later", () => {
+    // Eleven payments were invoiced for $360 in all (the last one clipped to $24).
+    const payments: GrowthPayment[] = Array.from({ length: 11 }, (_, i) => ({ id: i + 1, registrationId: 1, amountCents: 42_000, receivedOn: `2026-10-${String(i + 2).padStart(2, "0")}` }));
+    const locked = new Map<number, number>(payments.map((p, i): [number, number] => [p.id, i < 10 ? 3_360 : 2_400]));
+    // Then staff record a payment dated before all of them.
+    const backdated: GrowthPayment = { id: 99, registrationId: 2, amountCents: 42_000, receivedOn: "2026-10-01" };
+    const commission = commissionForTerm({ period: PERIOD, registrations, payments: [...payments, backdated], terms: GROW_WITH_US_OFFER, locked });
+    expect(commission.feeCents).toBe(36_000);
+    expect(commission.lines.find((l) => l.paymentId === 99)?.feeCents).toBe(0);
+    expect(commission.lines.find((l) => l.paymentId === 11)?.feeCents).toBe(2_400);
+  });
+
+  it("adds up a month across two terms, for the month a term changes", () => {
+    const term1 = commissionForTerm({ period: PERIOD, registrations, payments: [{ id: 1, registrationId: 1, amountCents: 10_000, receivedOn: "2026-12-02" }], terms: GROW_WITH_US_OFFER });
+    const term2 = commissionForTerm({ period: { label: "Term 2", start: "2027-01-09", end: "2027-03-20", termIds: [7], eventsFrom: "2026-12-06" }, registrations: [reg(8, { termId: 7, isNewFamily: true, commissionEligible: true })], payments: [{ id: 2, registrationId: 8, amountCents: 42_000, receivedOn: "2026-12-10" }], terms: GROW_WITH_US_OFFER });
+    expect(commissionForMonth([term1, term2], "2026-12")).toEqual({ families: 2, collectedCents: 52_000, feeCents: 4_160 });
   });
 });

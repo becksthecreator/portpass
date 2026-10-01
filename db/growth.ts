@@ -11,8 +11,10 @@ import {
   missedTwoInARow,
   nassauClock,
   previousMonth,
+  receivedDate,
   termPeriods,
   unmarkedSessions,
+  type Commission,
   type CommissionTerms,
   type EventCount,
   type GrowthAttendance,
@@ -53,6 +55,12 @@ function chunks<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
   return out;
+}
+
+function nextDay(iso: string): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
 }
 
 // ---- Page events --------------------------------------------------------------
@@ -100,10 +108,17 @@ export async function prunePageEvents(now: Date = new Date()): Promise<void> {
   throwIfSupabaseError(error, "Could not remove old page events");
 }
 
+// A term's views, taps and requests: everything from the day after the
+// term before it ended (families find a term and sign up before it
+// starts) to the term's own last day. A Nassau day starts at 04:00 or
+// 05:00 UTC; an hour either way does not matter at the edge of a term.
+function eventWindow(period: GrowthPeriod): { from: string; to: string } {
+  return { from: `${period.eventsFrom ?? "2000-01-01"}T05:00:00Z`, to: `${nextDay(period.end)}T05:00:00Z` };
+}
+
 async function eventCounts(organizationId: number, period: GrowthPeriod): Promise<EventCount[]> {
-  // A Nassau day starts at 04:00 or 05:00 UTC; an hour either way does not
-  // matter at the edge of a term.
-  const { data, error } = await getSupabaseAdmin().rpc("growth_event_counts", { p_organization_id: organizationId, p_from: `${period.start}T05:00:00Z`, p_to: `${nextDay(period.end)}T05:00:00Z` });
+  const { from, to } = eventWindow(period);
+  const { data, error } = await getSupabaseAdmin().rpc("growth_event_counts", { p_organization_id: organizationId, p_from: from, p_to: to });
   throwIfSupabaseError(error, "Could not count page events");
   const counts: EventCount[] = [];
   for (const row of (data ?? []) as Array<{ event: string; source_channel: string; events: number | string }>) {
@@ -114,10 +129,11 @@ async function eventCounts(organizationId: number, period: GrowthPeriod): Promis
   return counts;
 }
 
-function nextDay(iso: string): string {
-  const d = new Date(`${iso}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10);
+async function privateRequestCount(organizationId: number, period: GrowthPeriod): Promise<number> {
+  const { from, to } = eventWindow(period);
+  const { count, error } = await getSupabaseAdmin().from("private_session_requests").select("id", { count: "exact", head: true }).eq("organization_id", organizationId).gte("created_at", from).lt("created_at", to);
+  throwIfSupabaseError(error, "Could not count private session requests");
+  return count ?? 0;
 }
 
 // ---- The rows the report is built from -------------------------------------------
@@ -131,19 +147,22 @@ export type GrowthData = {
   attendance: GrowthAttendance[];
 };
 
-export async function loadGrowthData(organizationId: number, termIds: number[] | null = null): Promise<GrowthData> {
+export async function loadGrowthData(organizationId: number): Promise<GrowthData> {
   const db = getSupabaseAdmin();
   const { data: programRows, error: programError } = await db.from("programs").select("id,name,capacity,program_type").eq("organization_id", organizationId);
   throwIfSupabaseError(programError, "Could not load programmes");
-  const programs: GrowthProgram[] = (programRows ?? []).map((p) => ({ id: Number(p.id), name: String(p.name), capacity: Number(p.capacity) || 0 }));
-  const classPrograms = new Set((programRows ?? []).filter((p) => p.program_type !== "camp").map((p) => Number(p.id)));
+  // Classes and camps. A school contract is a different arrangement (the
+  // school pays, the children are the school's) and is not in this report.
+  const kept = (programRows ?? []).filter((p) => p.program_type !== "contract");
+  const programs: GrowthProgram[] = kept.map((p) => ({ id: Number(p.id), name: String(p.name), capacity: Number(p.capacity) || 0 }));
+  const classPrograms = new Set(kept.filter((p) => p.program_type === "term").map((p) => Number(p.id)));
   if (programs.length === 0) return { programs, terms: [], registrations: [], payments: [], sessions: [], attendance: [] };
 
   const { data: termRows, error: termError } = await db.from("program_terms").select("id,program_id,name,start_date,end_date").in("program_id", programs.map((p) => p.id));
   throwIfSupabaseError(termError, "Could not load terms");
   const terms: GrowthTerm[] = (termRows ?? []).map((t) => ({ id: Number(t.id), programId: Number(t.program_id), name: String(t.name), startDate: String(t.start_date), endDate: String(t.end_date), isClass: classPrograms.has(Number(t.program_id)) }));
-  const wanted = termIds ?? terms.map((t) => t.id);
-  if (wanted.length === 0) return { programs, terms, registrations: [], payments: [], sessions: [], attendance: [] };
+  const termIds = terms.map((t) => t.id);
+  if (termIds.length === 0) return { programs, terms, registrations: [], payments: [], sessions: [], attendance: [] };
 
   const registrationRows = await allRows<Record<string, unknown>>(
     (from, to) =>
@@ -151,9 +170,9 @@ export async function loadGrowthData(organizationId: number, termIds: number[] |
         .from("registrations")
         // Named columns only: nothing about a child's health, emergency
         // contact or pickup is ever read for the report.
-        .select("id,program_id,term_id,registration_status,is_new_family,commission_eligible,submitted_at,amount_due_cents,child_name")
+        .select("id,program_id,term_id,registration_status,is_new_family,commission_eligible,submitted_at,amount_due_cents,payment_frequency,payment_status,child_name")
         .eq("organization_id", organizationId)
-        .in("term_id", wanted)
+        .in("term_id", termIds)
         .order("id", { ascending: true })
         .range(from, to),
     "registrations",
@@ -167,6 +186,9 @@ export async function loadGrowthData(organizationId: number, termIds: number[] |
     commissionEligible: Boolean(r.commission_eligible),
     submittedOn: nassauToday(new Date(String(r.submitted_at))),
     amountDueCents: Number(r.amount_due_cents) || 0,
+    // A camp is one fee whatever the family chose on the form.
+    paysWeekly: r.payment_frequency === "weekly" && classPrograms.has(Number(r.program_id)),
+    feeWaived: r.payment_status === "waived",
     childFirstName: firstNameOf(String(r.child_name ?? "")),
   }));
 
@@ -176,14 +198,20 @@ export async function loadGrowthData(organizationId: number, termIds: number[] |
       (from, to) => db.from("payments").select("id,registration_id,amount_cents,received_at,created_at").eq("status", "received").in("registration_id", ids).order("id", { ascending: true }).range(from, to),
       "payments",
     );
-    for (const p of rows) payments.push({ id: Number(p.id), registrationId: Number(p.registration_id), amountCents: Number(p.amount_cents) || 0, receivedOn: nassauToday(new Date(String(p.received_at ?? p.created_at))) });
+    for (const p of rows) payments.push({ id: Number(p.id), registrationId: Number(p.registration_id), amountCents: Number(p.amount_cents) || 0, receivedOn: receivedDate(String(p.received_at ?? p.created_at)) });
   }
 
   const sessionRows = await allRows<Record<string, unknown>>(
-    (from, to) => db.from("sessions").select("id,program_id,term_id,session_date,status").in("term_id", wanted).order("id", { ascending: true }).range(from, to),
+    (from, to) => db.from("sessions").select("id,program_id,term_id,session_date,status").in("term_id", termIds).order("id", { ascending: true }).range(from, to),
     "sessions",
   );
-  const sessions: GrowthSession[] = sessionRows.map((s) => ({ id: Number(s.id), programId: Number(s.program_id), termId: Number(s.term_id), date: String(s.session_date), status: String(s.status) }));
+  // A session dated before its term starts is the free taster Saturday:
+  // only taster children are on its roster, so it is not a session of the
+  // term for attendance, the missed-two list or the "not marked" alert.
+  const startOf = new Map(terms.map((t): [number, string] => [t.id, t.startDate]));
+  const sessions: GrowthSession[] = sessionRows
+    .map((s) => ({ id: Number(s.id), programId: Number(s.program_id), termId: Number(s.term_id), date: String(s.session_date), status: String(s.status) }))
+    .filter((s) => s.date >= (startOf.get(s.termId) ?? s.date));
 
   const attendance: GrowthAttendance[] = [];
   for (const ids of chunks(sessions.map((s) => s.id), 200)) {
@@ -194,17 +222,6 @@ export async function loadGrowthData(organizationId: number, termIds: number[] |
     for (const a of rows) attendance.push({ registrationId: Number(a.registration_id), sessionId: Number(a.session_id), status: String(a.status) });
   }
   return { programs, terms, registrations, payments, sessions, attendance };
-}
-
-async function privateRequestCount(organizationId: number, period: GrowthPeriod): Promise<number> {
-  const { count, error } = await getSupabaseAdmin()
-    .from("private_session_requests")
-    .select("id", { count: "exact", head: true })
-    .eq("organization_id", organizationId)
-    .gte("created_at", `${period.start}T05:00:00Z`)
-    .lt("created_at", `${nextDay(period.end)}T05:00:00Z`);
-  throwIfSupabaseError(error, "Could not count private session requests");
-  return count ?? 0;
 }
 
 // ---- The commission plan ------------------------------------------------------------
@@ -226,6 +243,23 @@ export async function commissionPlan(organizationId: number, today: string): Pro
 function withinPlan(payments: GrowthPayment[], plan: CommissionPlan | null): GrowthPayment[] {
   if (!plan) return payments;
   return payments.filter((p) => p.receivedOn >= plan.startsOn && (!plan.endsOn || p.receivedOn <= plan.endsOn));
+}
+
+type ExistingEvent = { id: number; paymentId: number; feeCents: number; invoiced: boolean };
+
+// Every commission event already written for the business. One row per
+// payment from a commissionable family, so it stays small.
+async function existingCommissionEvents(organizationId: number): Promise<ExistingEvent[]> {
+  const rows = await allRows<Record<string, unknown>>(
+    (from, to) => getSupabaseAdmin().from("billing_events").select("id,source_id,fee_cents,invoice_line_id").eq("organization_id", organizationId).eq("kind", "grow_with_us_commission").eq("source_table", "payments").order("id", { ascending: true }).range(from, to),
+    "billing events",
+  );
+  return rows.map((row) => ({ id: Number(row.id), paymentId: Number(row.source_id), feeCents: Number(row.fee_cents) || 0, invoiced: row.invoice_line_id !== null && row.invoice_line_id !== undefined }));
+}
+
+// Fees already on an invoice, by payment: fixed, and counted against the cap first.
+function lockedFees(events: ExistingEvent[]): Map<number, number> {
+  return new Map(events.filter((e) => e.invoiced).map((e): [number, number] => [e.paymentId, e.feeCents]));
 }
 
 // ---- The report ---------------------------------------------------------------------
@@ -269,19 +303,20 @@ export async function getGrowthReport(organization: { id: number; name: string }
   const [currentReport, previousReport] = await Promise.all([periodReport(current), periodReport(previous)]);
 
   const inCurrent = current ? new Set(current.termIds) : new Set<number>();
-  const currentRegistrations = data.registrations.filter((r) => inCurrent.has(r.termId));
-  const currentSessions = data.sessions.filter((s) => inCurrent.has(s.termId));
+  // "Not marked" looks back two weeks, which can reach into the term
+  // before: the last Saturday of a term must not vanish the day it ends.
+  const inEither = new Set([...(current?.termIds ?? []), ...(previous?.termIds ?? [])]);
   const programName = (id: number) => data.programs.find((p) => p.id === id)?.name ?? "Class";
 
+  // The fee, for both terms: a month at a term change has payments for each.
+  const existing = plan ? await existingCommissionEvents(organization.id) : [];
+  const locked = lockedFees(existing);
+  const payments = withinPlan(data.payments, plan);
+  const commissionOf = (period: GrowthPeriod | null): Commission | null => (period ? commissionForTerm({ period, registrations: data.registrations, payments, terms, locked }) : null);
+  const currentCommission = commissionOf(current);
+  const both = [commissionOf(previous), currentCommission].filter((c): c is Commission => c !== null);
   const month = today.slice(0, 7);
-  const commission = current ? commissionForTerm({ period: current, registrations: data.registrations, payments: withinPlan(data.payments, plan), terms }) : null;
-  const none = { families: 0, collectedCents: 0, feeCents: 0 };
-  let invoicedCents = 0;
-  if (plan && current) {
-    const { data: invoiced, error } = await getSupabaseAdmin().from("billing_events").select("fee_cents").eq("organization_id", organization.id).eq("kind", "grow_with_us_commission").not("invoice_line_id", "is", null).gte("event_on", current.start).lte("event_on", current.end);
-    throwIfSupabaseError(error, "Could not load invoiced fees");
-    invoicedCents = (invoiced ?? []).reduce((sum, row) => sum + (Number(row.fee_cents) || 0), 0);
-  }
+  const currentPaymentIds = new Set((currentCommission?.lines ?? []).map((l) => l.paymentId));
 
   return {
     organizationId: organization.id,
@@ -289,16 +324,17 @@ export async function getGrowthReport(organization: { id: number; name: string }
     today,
     current: currentReport,
     previous: previousReport,
-    missedTwo: missedTwoInARow({ today, programs: data.programs, registrations: currentRegistrations, sessions: currentSessions, attendance: data.attendance }),
-    unmarked: unmarkedSessions({ clock, sessions: currentSessions, attendance: data.attendance, registrations: currentRegistrations }).map((s) => ({ date: s.date, programName: programName(s.programId) })),
+    missedTwo: missedTwoInARow({ today, programs: data.programs, registrations: data.registrations.filter((r) => inCurrent.has(r.termId)), sessions: data.sessions.filter((s) => inCurrent.has(s.termId)), attendance: data.attendance }),
+    unmarked: unmarkedSessions({ clock, sessions: data.sessions.filter((s) => inEither.has(s.termId)), attendance: data.attendance, registrations: data.registrations.filter((r) => inEither.has(r.termId)) }).map((s) => ({ date: s.date, programName: programName(s.programId) })),
     value: {
       onPlan: plan !== null,
       terms,
       month,
-      thisMonth: commission ? commissionForMonth(commission, month) : none,
-      lastMonth: commission ? commissionForMonth(commission, previousMonth(month)) : none,
-      term: commission && current ? { label: current.label, families: commission.families, collectedCents: commission.collectedCents, uncappedFeeCents: commission.uncappedFeeCents, feeCents: commission.feeCents, capCents: commission.capCents, capApplied: commission.capApplied } : null,
-      invoicedCents,
+      thisMonth: commissionForMonth(both, month),
+      lastMonth: commissionForMonth(both, previousMonth(month)),
+      term: currentCommission && current ? { label: current.label, families: currentCommission.families, collectedCents: currentCommission.collectedCents, uncappedFeeCents: currentCommission.uncappedFeeCents, feeCents: currentCommission.feeCents, capCents: currentCommission.capCents, capApplied: currentCommission.capApplied } : null,
+      // Of this term's fees, what is already on an invoice.
+      invoicedCents: existing.filter((e) => e.invoiced && currentPaymentIds.has(e.paymentId)).reduce((sum, e) => sum + e.feeCents, 0),
     },
   };
 }
@@ -308,8 +344,9 @@ export async function getGrowthReport(organization: { id: number; name: string }
 // Writes the commission as billing events (kind grow_with_us_commission),
 // one per payment received from a commissionable family, for a business
 // that is on the plan. Safe to run any number of times: an event is keyed
-// by its payment, an event already on an invoice is never touched, and an
-// event whose payment was voided is removed while it is still uninvoiced.
+// by its payment, an event already on an invoice is never touched (and its
+// fee counts against the cap before anything else is shared out), and an
+// uninvoiced event whose payment was voided is removed.
 // Returns null (and writes nothing) for a business that is not on the plan.
 export async function syncCommissionEvents(organizationId: number, now: Date = new Date()): Promise<{ written: number; removed: number } | null> {
   const today = nassauClock(now).date;
@@ -321,44 +358,46 @@ export async function syncCommissionEvents(organizationId: number, now: Date = n
   const periods = [previous, current].filter((p): p is GrowthPeriod => p !== null);
   if (periods.length === 0) return { written: 0, removed: 0 };
 
+  const existing = await existingCommissionEvents(organizationId);
+  const locked = lockedFees(existing);
   const wanted = new Map<number, { receivedOn: string; collectedCents: number; feeCents: number }>();
   for (const period of periods) {
-    const commission = commissionForTerm({ period, registrations: data.registrations, payments: withinPlan(data.payments, plan), terms: plan });
+    const commission = commissionForTerm({ period, registrations: data.registrations, payments: withinPlan(data.payments, plan), terms: plan, locked });
     for (const line of commission.lines) if (line.feeCents > 0) wanted.set(line.paymentId, { receivedOn: line.receivedOn, collectedCents: line.collectedCents, feeCents: line.feeCents });
   }
-
-  const earliest = periods.map((p) => p.start).sort()[0];
-  const { data: existing, error } = await db.from("billing_events").select("id,source_id,fee_cents,invoice_line_id,event_on").eq("organization_id", organizationId).eq("kind", "grow_with_us_commission").eq("source_table", "payments").gte("event_on", earliest);
-  throwIfSupabaseError(error, "Could not load billing events");
-  const bySource = new Map((existing ?? []).map((row): [number, { id: number; feeCents: number; invoiced: boolean }] => [Number(row.source_id), { id: Number(row.id), feeCents: Number(row.fee_cents), invoiced: row.invoice_line_id !== null }]));
+  const byPayment = new Map(existing.map((e): [number, ExistingEvent] => [e.paymentId, e]));
 
   let written = 0;
   for (const [paymentId, line] of wanted) {
-    const have = bySource.get(paymentId);
+    const have = byPayment.get(paymentId);
     if (have && (have.invoiced || have.feeCents === line.feeCents)) continue;
     const row = { organization_id: organizationId, kind: "grow_with_us_commission", source_table: "payments", source_id: paymentId, event_on: line.receivedOn, booking_value_cents: line.collectedCents, rate_bps: plan.rateBps, flat_cents: 0, fee_cents: line.feeCents, updated_at: now.toISOString() };
     const result = have ? await db.from("billing_events").update(row).eq("id", have.id).is("invoice_line_id", null) : await db.from("billing_events").upsert(row, { onConflict: "kind,source_table,source_id", ignoreDuplicates: true });
     throwIfSupabaseError(result.error, "Could not write a billing event");
     written += 1;
   }
+
   // An uninvoiced event that is no longer earned is removed, but only when
   // its payment is gone (a void deletes the row) or belongs to one of the
   // terms just recomputed. A fee from an older term is left alone: it was
   // not looked at here, so its absence from `wanted` means nothing.
-  const candidates = Array.from(bySource.entries()).filter(([paymentId, have]) => !wanted.has(paymentId) && !have.invoiced);
+  const candidates = existing.filter((e) => !e.invoiced && !wanted.has(e.paymentId));
   let removed = 0;
   if (candidates.length > 0) {
     const recomputed = new Set(periods.flatMap((p) => p.termIds));
     const termOf = new Map(data.registrations.map((r): [number, number] => [r.id, r.termId]));
-    const { data: stillThere, error: paymentError } = await db.from("payments").select("id,registration_id").in("id", candidates.map(([paymentId]) => paymentId));
-    throwIfSupabaseError(paymentError, "Could not check payments");
-    const registrationOf = new Map((stillThere ?? []).map((p): [number, number | null] => [Number(p.id), p.registration_id === null ? null : Number(p.registration_id)]));
-    for (const [paymentId, have] of candidates) {
-      const registrationId = registrationOf.get(paymentId);
-      const gone = !registrationOf.has(paymentId);
+    const registrationOf = new Map<number, number | null>();
+    for (const ids of chunks(candidates.map((e) => e.paymentId), 200)) {
+      const { data: stillThere, error: paymentError } = await db.from("payments").select("id,registration_id").in("id", ids);
+      throwIfSupabaseError(paymentError, "Could not check payments");
+      for (const p of stillThere ?? []) registrationOf.set(Number(p.id), p.registration_id === null ? null : Number(p.registration_id));
+    }
+    for (const event of candidates) {
+      const gone = !registrationOf.has(event.paymentId);
+      const registrationId = registrationOf.get(event.paymentId);
       const termId = registrationId === null || registrationId === undefined ? undefined : termOf.get(registrationId);
       if (!gone && (termId === undefined || !recomputed.has(termId))) continue;
-      const { error: removeError } = await db.from("billing_events").delete().eq("id", have.id).is("invoice_line_id", null);
+      const { error: removeError } = await db.from("billing_events").delete().eq("id", event.id).is("invoice_line_id", null);
       throwIfSupabaseError(removeError, "Could not remove a billing event");
       removed += 1;
     }
@@ -442,17 +481,16 @@ export async function sessionsToNudge(organizationId: number, now: Date = new Da
 export type UnmarkedSession = { sessionId: number; date: string; programName: string; organizationName: string };
 
 // For the Admin Overview: sessions in the last two weeks whose attendance
-// was never marked (from noon on the day).
+// was never marked (from noon on the day), in this term or the one before.
 export async function listUnmarkedAttendance(now: Date = new Date()): Promise<UnmarkedSession[]> {
   const organization = await futprepOrganization();
   if (!organization) return [];
   const clock = nassauClock(now);
   const data = await loadGrowthData(organization.id);
-  const { current } = termPeriods(data.terms, clock.date);
-  if (!current) return [];
-  const inCurrent = new Set(current.termIds);
-  const sessions = data.sessions.filter((s) => inCurrent.has(s.termId));
-  return unmarkedSessions({ clock, sessions, attendance: data.attendance, registrations: data.registrations.filter((r) => inCurrent.has(r.termId)) }).map((s) => ({
+  const { current, previous } = termPeriods(data.terms, clock.date);
+  const inEither = new Set([...(current?.termIds ?? []), ...(previous?.termIds ?? [])]);
+  if (inEither.size === 0) return [];
+  return unmarkedSessions({ clock, sessions: data.sessions.filter((s) => inEither.has(s.termId)), attendance: data.attendance, registrations: data.registrations.filter((r) => inEither.has(r.termId)) }).map((s) => ({
     sessionId: s.id,
     date: s.date,
     programName: data.programs.find((p) => p.id === s.programId)?.name ?? "Class",

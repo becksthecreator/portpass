@@ -1,4 +1,5 @@
 import { isFutprepPath, type Attribution, type SourceChannel } from "./attribution";
+import { nassauToday } from "./futprepTerms";
 
 // The growth report (brief 05, parts 2 and 3): pure rules, shared by the
 // event route, the report queries, the monthly email, the scheduled jobs
@@ -93,21 +94,37 @@ function daysBetween(startIso: string, endIso: string): number {
   return Math.round((Date.parse(`${endIso}T12:00:00Z`) - Date.parse(`${startIso}T12:00:00Z`)) / 86_400_000);
 }
 
+// The day a payment was received. Staff pick a date, which is stored as
+// midnight UTC of that date: it is that calendar date, as typed. Anything
+// else is a real moment, read in Nassau time.
+export function receivedDate(raw: string): string {
+  return /T00:00:00(\.0+)?(Z|\+00(:?00)?)$/.test(raw) ? raw.slice(0, 10) : nassauToday(new Date(raw));
+}
+
 // ---- Terms: "this term against last term" ----------------------------------------
 
+// isClass: a weekly class term (programme type "term"). Camps are not
+// class terms; school contracts are left out of the report altogether.
 export type GrowthTerm = { id: number; programId: number; name: string; startDate: string; endDate: string; isClass: boolean };
-export type GrowthPeriod = { label: string; start: string; end: string; termIds: number[] };
+// eventsFrom: the first day whose views, taps and requests count towards
+// this term (the day after the term before ended; null when there is no
+// earlier term, so everything before counts). A term's families find it
+// and sign up before it starts.
+export type GrowthPeriod = { label: string; start: string; end: string; termIds: number[]; eventsFrom: string | null };
 
-function periodOf(anchor: GrowthTerm[], all: GrowthTerm[]): GrowthPeriod {
+function overlapping(classes: GrowthTerm[], pick: GrowthTerm): GrowthTerm[] {
+  return classes.filter((t) => t.startDate <= pick.endDate && t.endDate >= pick.startDate);
+}
+
+function periodOf(anchor: GrowthTerm[], all: GrowthTerm[], eventsFrom: string | null, fallbackLabel: string): GrowthPeriod {
   const start = anchor.map((t) => t.startDate).sort()[0];
   const end = anchor.map((t) => t.endDate).sort().slice(-1)[0];
-  // Anything that starts inside the window belongs to it: the classes that
-  // define it, and a camp held during it.
-  const inside = all.filter((t) => t.startDate >= start && t.startDate <= end);
-  // The term's own name when every class calls it the same thing; otherwise
-  // termPeriods names it "This term" / "Last term".
+  // Every term belongs to exactly one period, by its start date: the
+  // classes that define the period, a camp held during it, and a camp held
+  // in the gap before it (a Christmas camp counts with the January term).
+  const inside = all.filter((t) => t.startDate <= end && (eventsFrom === null || t.startDate >= eventsFrom));
   const names = Array.from(new Set(anchor.map((t) => t.name)));
-  return { label: names.length === 1 ? names[0] : "", start, end, termIds: inside.map((t) => t.id) };
+  return { label: names.length === 1 ? names[0] : fallbackLabel, start, end, termIds: inside.map((t) => t.id), eventsFrom };
 }
 
 // The term running today (or, between terms, the next one to start, or
@@ -120,16 +137,18 @@ export function termPeriods(terms: GrowthTerm[], today: string): { current: Grow
   if (anchor.length === 0) {
     const upcoming = classes.filter((t) => t.startDate > today).sort((a, b) => a.startDate.localeCompare(b.startDate));
     const ended = classes.filter((t) => t.endDate < today).sort((a, b) => b.endDate.localeCompare(a.endDate));
-    const pick = upcoming[0] ?? ended[0];
-    anchor = classes.filter((t) => t.startDate <= pick.endDate && t.endDate >= pick.startDate);
+    anchor = overlapping(classes, upcoming[0] ?? ended[0]);
   }
-  const current = periodOf(anchor, terms);
-  if (!current.label) current.label = "This term";
-  const before = classes.filter((t) => t.endDate < current.start).sort((a, b) => b.endDate.localeCompare(a.endDate));
-  if (before.length === 0) return { current, previous: null };
-  const last = before[0];
-  const previous = periodOf(before.filter((t) => t.startDate <= last.endDate && t.endDate >= last.startDate), terms.filter((t) => t.endDate < current.start));
-  if (!previous.label) previous.label = "Last term";
+  const currentStart = anchor.map((t) => t.startDate).sort()[0];
+  const before = classes.filter((t) => t.endDate < currentStart).sort((a, b) => b.endDate.localeCompare(a.endDate));
+  if (before.length === 0) return { current: periodOf(anchor, terms, null, "This term"), previous: null };
+
+  const previousAnchor = overlapping(before, before[0]);
+  const previousStart = previousAnchor.map((t) => t.startDate).sort()[0];
+  const previousEnd = previousAnchor.map((t) => t.endDate).sort().slice(-1)[0];
+  const earlier = classes.filter((t) => t.endDate < previousStart).sort((a, b) => b.endDate.localeCompare(a.endDate));
+  const previous = periodOf(previousAnchor, terms, earlier.length > 0 ? addDays(earlier[0].endDate, 1) : null, "Last term");
+  const current = periodOf(anchor, terms, addDays(previousEnd, 1), "This term");
   return { current, previous };
 }
 
@@ -146,7 +165,10 @@ export type GrowthRegistration = {
   isNewFamily: boolean | null;
   commissionEligible: boolean;
   submittedOn: string;
+  // The term fee, or one week's fee for a family paying weekly.
   amountDueCents: number;
+  paysWeekly: boolean;
+  feeWaived: boolean;
   childFirstName: string;
 };
 export type GrowthPayment = { id: number; registrationId: number; amountCents: number; receivedOn: string };
@@ -170,6 +192,43 @@ export function firstNameOf(childName: string): string {
   return (part.trim().split(/\s+/)[0] ?? "").replace(/[.,;:]+$/, "");
 }
 
+// ---- Attendance -------------------------------------------------------------------
+
+// Came: marked present or late. Coaches mark a session in one of two ways:
+// they tap everyone who came, or they tap only the children who did not.
+// So a child with no mark came if the session's marks are all "did not
+// come" marks, and did not come if the coach was marking arrivals.
+const CAME = ["present", "late"];
+
+function attendanceReader(attendance: GrowthAttendance[]) {
+  const bySession = new Map<number, Map<number, string>>();
+  for (const a of attendance) {
+    if (!bySession.has(a.sessionId)) bySession.set(a.sessionId, new Map());
+    bySession.get(a.sessionId)!.set(a.registrationId, a.status);
+  }
+  return {
+    taken: (sessionId: number) => (bySession.get(sessionId)?.size ?? 0) > 0,
+    came: (sessionId: number, registrationId: number) => {
+      const marks = bySession.get(sessionId);
+      if (!marks || marks.size === 0) return false;
+      const mark = marks.get(registrationId);
+      if (mark !== undefined) return CAME.includes(mark);
+      const coachMarkedArrivals = Array.from(marks.values()).some((status) => CAME.includes(status));
+      return !coachMarkedArrivals;
+    },
+  };
+}
+
+// What a family owes so far. A term payer owes the term fee; a weekly
+// payer owes one week's fee for each session held since they joined; a
+// waived fee is nothing.
+function dueCents(registration: GrowthRegistration, sessions: GrowthSession[], today: string): number {
+  if (registration.feeWaived) return 0;
+  if (!registration.paysWeekly) return registration.amountDueCents;
+  const held = sessions.filter((s) => s.programId === registration.programId && s.termId === registration.termId && s.status !== "cancelled" && s.date <= today && s.date >= registration.submittedOn).length;
+  return registration.amountDueCents * held;
+}
+
 export type PeriodReport = {
   label: string;
   start: string;
@@ -179,8 +238,9 @@ export type PeriodReport = {
   booked: {
     started: number;
     completed: number;
-    newFamilies: number;
-    returningFamilies: number;
+    // Children, not households: a new family's second child counts here too.
+    newFamilyChildren: number;
+    returningFamilyChildren: number;
     waitlist: number;
     tasters: number;
     classes: Array<{ programName: string; registered: number; capacity: number; fillPercent: number }>;
@@ -228,30 +288,28 @@ export function buildPeriodReport(input: {
   const paidBy = new Map<number, number>();
   for (const p of input.payments) paidBy.set(p.registrationId, (paidBy.get(p.registrationId) ?? 0) + p.amountCents);
   const money = (rows: GrowthRegistration[]) => {
-    let dueCents = 0;
+    let due = 0;
     let collectedCents = 0;
     let outstandingCents = 0;
     for (const r of rows) {
+      const owed = dueCents(r, input.sessions, today);
       const collected = paidBy.get(r.id) ?? 0;
-      dueCents += r.amountDueCents;
+      due += owed;
       collectedCents += collected;
-      outstandingCents += Math.max(0, r.amountDueCents - collected);
+      outstandingCents += Math.max(0, owed - collected);
     }
-    return { dueCents, collectedCents, outstandingCents };
+    return { dueCents: due, collectedCents, outstandingCents };
   };
   const paidClasses = programIds.map((id) => ({ programName: programName(id), ...money(enrolled.filter((r) => r.programId === id)) })).sort((a, b) => a.programName.localeCompare(b.programName));
 
   // Showed up: sessions already held, most recent first.
-  const marks = new Map<number, GrowthAttendance[]>();
-  for (const a of input.attendance) marks.set(a.sessionId, [...(marks.get(a.sessionId) ?? []), a]);
+  const marks = attendanceReader(input.attendance);
   const held = input.sessions.filter((s) => termIds.has(s.termId) && s.date <= today && s.status !== "cancelled").sort((a, b) => b.date.localeCompare(a.date) || a.programId - b.programId);
   const sessions = held
     .map((s) => {
-      const sessionMarks = marks.get(s.id) ?? [];
       const expected = enrolled.filter((r) => r.programId === s.programId && r.termId === s.termId && r.submittedOn <= s.date);
-      const expectedIds = new Set(expected.map((r) => r.id));
-      const present = sessionMarks.filter((m) => m.status === "present" && expectedIds.has(m.registrationId)).length;
-      const taken = sessionMarks.length > 0;
+      const taken = marks.taken(s.id);
+      const present = taken ? expected.filter((r) => marks.came(s.id, r.id)).length : 0;
       return { date: s.date, programName: programName(s.programId), enrolled: expected.length, present, taken, percent: taken && expected.length > 0 ? Math.round((present / expected.length) * 100) : null };
     })
     // A session of a class nobody had joined yet is not a session to report on.
@@ -268,8 +326,8 @@ export function buildPeriodReport(input: {
     booked: {
       started: count("register_start"),
       completed: enrolled.length,
-      newFamilies: enrolled.filter((r) => r.isNewFamily === true).length,
-      returningFamilies: enrolled.filter((r) => r.isNewFamily !== true).length,
+      newFamilyChildren: enrolled.filter((r) => r.isNewFamily === true).length,
+      returningFamilyChildren: enrolled.filter((r) => r.isNewFamily !== true).length,
       waitlist: registrations.filter((r) => r.status === "waitlist").length,
       tasters: registrations.filter((r) => r.status === "trial").length,
       classes,
@@ -279,26 +337,20 @@ export function buildPeriodReport(input: {
   };
 }
 
-// Children who missed the last two sessions of their class for which
-// attendance was taken. First name and class only.
+// Children who did not come to the last two sessions of their class for
+// which attendance was taken. First name and class only.
 export function missedTwoInARow(input: { today: string; programs: GrowthProgram[]; registrations: GrowthRegistration[]; sessions: GrowthSession[]; attendance: GrowthAttendance[] }): Array<{ childFirstName: string; programName: string }> {
-  const marks = new Map<number, Map<number, string>>();
-  for (const a of input.attendance) {
-    if (!marks.has(a.sessionId)) marks.set(a.sessionId, new Map());
-    marks.get(a.sessionId)!.set(a.registrationId, a.status);
-  }
+  const marks = attendanceReader(input.attendance);
   const missed: Array<{ childFirstName: string; programName: string }> = [];
   for (const r of input.registrations) {
     if (!isEnrolled(r.status)) continue;
     // Sessions of this child's class that have happened, with attendance
     // taken, since the child registered: newest first.
     const taken = input.sessions
-      .filter((s) => s.programId === r.programId && s.termId === r.termId && s.date <= input.today && s.date >= r.submittedOn && s.status !== "cancelled" && (marks.get(s.id)?.size ?? 0) > 0)
+      .filter((s) => s.programId === r.programId && s.termId === r.termId && s.date <= input.today && s.date >= r.submittedOn && s.status !== "cancelled" && marks.taken(s.id))
       .sort((a, b) => b.date.localeCompare(a.date));
     if (taken.length < 2) continue;
-    // Not marked present counts as missed: coaches mark who came.
-    const lastTwoMissed = taken.slice(0, 2).every((s) => marks.get(s.id)!.get(r.id) !== "present");
-    if (lastTwoMissed) missed.push({ childFirstName: r.childFirstName, programName: input.programs.find((p) => p.id === r.programId)?.name ?? "Class" });
+    if (taken.slice(0, 2).every((s) => !marks.came(s.id, r.id))) missed.push({ childFirstName: r.childFirstName, programName: input.programs.find((p) => p.id === r.programId)?.name ?? "Class" });
   }
   return missed.sort((a, b) => a.programName.localeCompare(b.programName) || a.childFirstName.localeCompare(b.childFirstName));
 }
@@ -323,8 +375,10 @@ export type CommissionTerms = { rateBps: number; capCentsPerMonth: number };
 // three-month term).
 export const GROW_WITH_US_OFFER: CommissionTerms = { rateBps: 800, capCentsPerMonth: 12_000 };
 
+// A month of term is four weeks of it: an eleven-week term and a
+// twelve-week term are both three months, so both cap at $360.
 export function monthsInTerm(startIso: string, endIso: string): number {
-  return Math.max(1, Math.round((daysBetween(startIso, endIso) + 1) / 30.44));
+  return Math.max(1, Math.round((daysBetween(startIso, endIso) + 1) / 28));
 }
 
 export type CommissionLine = { paymentId: number; registrationId: number; receivedOn: string; collectedCents: number; feeCents: number };
@@ -333,18 +387,30 @@ export type Commission = { lines: CommissionLine[]; families: number; collectedC
 // The fee for one term: a share of each payment actually received from a
 // commissionable family, in the order the money came in, until the term's
 // cap is reached. Fees due but not collected never count.
-export function commissionForTerm(input: { period: GrowthPeriod; registrations: GrowthRegistration[]; payments: GrowthPayment[]; terms: CommissionTerms }): Commission {
+//
+// `locked`: fees already on an invoice, by payment. They are fixed. Their
+// total comes off the cap first, and only what is left is shared among the
+// other payments, so the term can never go over its cap after invoicing.
+export function commissionForTerm(input: { period: GrowthPeriod; registrations: GrowthRegistration[]; payments: GrowthPayment[]; terms: CommissionTerms; locked?: Map<number, number> }): Commission {
   const termIds = new Set(input.period.termIds);
   const eligible = new Set(input.registrations.filter((r) => termIds.has(r.termId) && r.commissionEligible && r.isNewFamily === true && r.status !== "cancelled").map((r) => r.id));
   const capCents = input.terms.capCentsPerMonth * monthsInTerm(input.period.start, input.period.end);
   const payments = input.payments.filter((p) => eligible.has(p.registrationId)).sort((a, b) => a.receivedOn.localeCompare(b.receivedOn) || a.id - b.id);
+  const locked = input.locked ?? new Map<number, number>();
+  let free = Math.max(0, capCents - payments.reduce((sum, p) => sum + (locked.get(p.id) ?? 0), 0));
   let feeCents = 0;
   let uncappedFeeCents = 0;
   let collectedCents = 0;
   const lines: CommissionLine[] = [];
   for (const payment of payments) {
     const full = Math.round((payment.amountCents * input.terms.rateBps) / 10_000);
-    const fee = Math.max(0, Math.min(full, capCents - feeCents));
+    let fee: number;
+    if (locked.has(payment.id)) {
+      fee = locked.get(payment.id) ?? 0;
+    } else {
+      fee = Math.max(0, Math.min(full, free));
+      free -= fee;
+    }
     uncappedFeeCents += full;
     feeCents += fee;
     collectedCents += payment.amountCents;
@@ -353,9 +419,10 @@ export function commissionForTerm(input: { period: GrowthPeriod; registrations: 
   return { lines, families: new Set(lines.map((l) => l.registrationId)).size, collectedCents, uncappedFeeCents, feeCents, capCents, capApplied: uncappedFeeCents > feeCents };
 }
 
-// One calendar month of a term's commission ("2026-10").
-export function commissionForMonth(commission: Commission, month: string): { families: number; collectedCents: number; feeCents: number } {
-  const lines = commission.lines.filter((l) => l.receivedOn.startsWith(month));
+// One calendar month ("2026-10") across one or more terms' commission: a
+// month at a term change has payments for both terms.
+export function commissionForMonth(commissions: Commission | Commission[], month: string): { families: number; collectedCents: number; feeCents: number } {
+  const lines = (Array.isArray(commissions) ? commissions : [commissions]).flatMap((c) => c.lines).filter((l) => l.receivedOn.startsWith(month));
   return { families: new Set(lines.map((l) => l.registrationId)).size, collectedCents: lines.reduce((sum, l) => sum + l.collectedCents, 0), feeCents: lines.reduce((sum, l) => sum + l.feeCents, 0) };
 }
 

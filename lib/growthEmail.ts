@@ -38,8 +38,8 @@ export function growthReportEmail(report: GrowthReport, month: string): { subjec
     parts.push(table([
       row("Forms opened", String(term.booked.started)),
       row("Places taken", String(term.booked.completed)),
-      row("New families", String(term.booked.newFamilies)),
-      row("Returning families", String(term.booked.returningFamilies)),
+      row("Children from new families", String(term.booked.newFamilyChildren)),
+      row("Children from returning families", String(term.booked.returningFamilyChildren)),
       ...term.booked.classes.map((c) => row(`${c.programName}: places filled`, `${c.registered} of ${c.capacity} (${c.fillPercent}%)`)),
     ]));
     parts.push(heading("Paid"));

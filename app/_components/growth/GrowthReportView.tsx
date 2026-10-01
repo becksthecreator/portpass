@@ -68,7 +68,7 @@ export function GrowthReportView({ report }: { report: GrowthReport }) {
         ) : (
           <p className="growth-note">No views counted yet.</p>
         )}
-        <p className="growth-note">Views and taps are counted from the day this report went live. No names and no internet addresses are kept.</p>
+        <p className="growth-note">Views and taps are counted from the day this report went live, and a term&rsquo;s count starts the day after the term before it ended. No names and no internet addresses are kept.</p>
       </section>
 
       <section className="growth-panel" aria-labelledby="growth-asked">
@@ -85,8 +85,8 @@ export function GrowthReportView({ report }: { report: GrowthReport }) {
         <dl className="growth-stats">
           <Stat label="Forms opened" value={String(term.booked.started)} before={n(last?.booked.started)} />
           <Stat label="Places taken" value={String(term.booked.completed)} before={n(last?.booked.completed)} />
-          <Stat label="New families" value={String(term.booked.newFamilies)} before={n(last?.booked.newFamilies)} />
-          <Stat label="Returning families" value={String(term.booked.returningFamilies)} before={n(last?.booked.returningFamilies)} />
+          <Stat label="Children from new families" value={String(term.booked.newFamilyChildren)} before={n(last?.booked.newFamilyChildren)} />
+          <Stat label="Children from returning families" value={String(term.booked.returningFamilyChildren)} before={n(last?.booked.returningFamilyChildren)} />
           <Stat label="On the waitlist" value={String(term.booked.waitlist)} />
           <Stat label="Free tasters" value={String(term.booked.tasters)} />
         </dl>
@@ -144,7 +144,7 @@ export function GrowthReportView({ report }: { report: GrowthReport }) {
             {report.missedTwo.map((m, i) => <li key={`${m.childFirstName}-${m.programName}-${i}`}><span>{m.childFirstName}</span><b>{m.programName}</b></li>)}
           </ul>
         ) : (
-          <p className="growth-note">Nobody has missed the last two sessions.</p>
+          <p className="growth-note">Nobody has missed the last two sessions. A child marked late counts as there.</p>
         )}
       </section>
 
