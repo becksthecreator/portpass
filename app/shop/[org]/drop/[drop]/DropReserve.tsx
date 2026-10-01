@@ -156,7 +156,7 @@ export function DropReserve(props: Props) {
                               setWaitlistFor(available ? null : v.id);
                             }}
                           >
-                            {v.label}
+                            <span className="shop-size-label">{v.label}</span>
                             {!available && <small>Sold out</small>}
                             {available && v.left !== null && <small>{v.left} left</small>}
                           </button>
