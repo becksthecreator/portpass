@@ -158,4 +158,16 @@ describe("children's health details are deleted 90 days after the programme ends
     expect(due).toMatchObject({ allergies: null, medical_conditions: null, medications: null, special_needs: null });
     expect(due!.health_purged_at).not.toBeNull();
   });
+
+  it("clears health details written again after the first purge (a late staff correction or import)", async () => {
+    await db().from("registrations").update({ allergies: "TEST bee stings", additional_notes: "TEST carries an auto-injector" }).eq("id", dueId);
+    await db().from("registration_edits").insert({ registration_id: dueId, changed_by: MARK, changes: { Allergies: { from: "", to: "TEST bee stings" } } });
+    const { data: cleared, error } = await db().rpc("purge_expired_health_details", { p_today: today });
+    expect(error).toBeNull();
+    expect(Number(cleared)).toBeGreaterThanOrEqual(1);
+    const { data: due } = await db().from("registrations").select(HEALTH).eq("id", dueId).single();
+    expect(due).toMatchObject({ allergies: "", additional_notes: "" });
+    const { data: edits } = await db().from("registration_edits").select("changes").eq("registration_id", dueId);
+    expect(JSON.stringify(edits)).not.toContain("bee stings");
+  });
 });

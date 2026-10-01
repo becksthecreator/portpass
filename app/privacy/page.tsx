@@ -102,7 +102,7 @@ export default function PrivacyPage() {
           To handle your enquiry, registration or booking; to put you in touch with the business; to send you messages about that booking; to sign you in; to let a business run its listing, its team and its records; and to answer questions you send us.
         </p>
         <p>
-          <strong>Emails we send.</strong> Your sign-in code. For a child’s registration: that it was received, that a payment was recorded, and that it was confirmed. For a private session: that a coach accepted it, with the time, place and how to pay. These emails carry names, the class, amounts and your reference code. They never carry health or emergency details.
+          <strong>Emails we send.</strong> Your sign-in code. For a child’s registration: that it was received, that a payment was recorded, and that it was confirmed. For a private session: that a coach accepted it, with the time, place and how to pay. If a business adds you to its team: an invitation. If you own a business on PortPass: a warning whenever its bank details are changed. These emails carry names, the class, amounts and your reference code. They never carry health or emergency details. We also email ourselves when someone asks to be listed, and the business when an enquiry arrives; those notes carry the names on the request.
         </p>
         <p>
           We do not sell your information. We do not use it for advertising. We do not send marketing emails.
@@ -117,7 +117,7 @@ export default function PrivacyPage() {
         </p>
         <ul>
           <li><strong>Supabase:</strong> our database, sign-in and photo storage.</li>
-          <li><strong>Vercel:</strong> website hosting. Every form you send passes through its servers, and its logs can hold an email address when an email fails to send.</li>
+          <li><strong>Vercel:</strong> website hosting. Every page you open and every form you send passes through its servers, and its logs record your internet address and the address of each page.</li>
           <li><strong>Resend:</strong> sends our emails, so it handles the address, subject and text of each one.</li>
           <li><strong>Google:</strong> only if you choose to sign in with Google.</li>
           <li><strong>Microsoft Outlook:</strong> our own inbox, where requests to be listed and emails you send us arrive.</li>
@@ -158,7 +158,7 @@ export default function PrivacyPage() {
 
         <h2 id="retention">How long we keep it</h2>
         <ul>
-          <li><strong>Children’s health details</strong> (allergies, medical conditions, medications, special needs and the notes box): deleted automatically 90 days after the programme ends, together with any earlier versions kept in the record’s edit history.</li>
+          <li><strong>Children’s health details</strong> (allergies, medical conditions, medications, special needs and the notes box): deleted automatically 90 days after the programme ends, together with any earlier versions kept in the record’s edit history. “The programme” is the term or camp the child was registered for; a free taster or a waiting-list place counts from the end of that term.</li>
           <li><strong>Payment records:</strong> 7 years.</li>
           <li><strong>Enquiries that don’t become a booking</strong> (wedding enquiries, “tell me when this opens”, and requests to be listed): 2 years.</li>
           <li><strong>Registrations and bookings</strong> (names, contact details, class, attendance): kept as the business’s record while you are its customer, and for up to 7 years where a payment was recorded.</li>

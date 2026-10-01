@@ -31,10 +31,13 @@ export function throwIfSupabaseError(
   context: string,
 ) {
   if (!error) return;
+  // Never `details`: for a failed insert or update Postgres puts the whole
+  // failing row there ("Failing row contains (...)"), which on a
+  // registration means names, contact details and health fields, and these
+  // lines are kept in the host's logs.
   console.error(context, {
     code: error.code,
     message: error.message,
-    details: error.details,
     hint: error.hint,
   });
   const thrown = new Error(context) as Error & { code?: string };
