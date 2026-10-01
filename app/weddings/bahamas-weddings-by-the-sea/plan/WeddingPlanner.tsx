@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { PrivacyNote } from "@/app/_components/PrivacyNote";
 import { useSearchParams } from "next/navigation";
 import type { PublicWeddingPackage } from "@/db/weddingPackages";
 import { formatPrice } from "@/app/_components/blocks/format";
@@ -431,6 +432,7 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
 
         <p className="bws-planner-error" role="alert">{error}</p>
 
+        {step === STEP_LABELS.length - 1 && <PrivacyNote about="enquiry" />}
         <div className="bws-planner-actions">
           {step > 0 && <button className="bws-button bws-planner-back" type="button" onClick={back} disabled={busy}>Back</button>}
           {step < STEP_LABELS.length - 1

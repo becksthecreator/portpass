@@ -15,7 +15,7 @@ type StatusResult = {
   amountDueCents: number;
   paidCents: number;
   paymentStatus: "pending" | "partial" | "paid" | "overdue" | "waived";
-  registrationStatus: "pending" | "confirmed" | "cancelled";
+  registrationStatus: "pending_details" | "pending" | "confirmed" | "cancelled" | "waitlist" | "trial";
   remainingSessionDates: string[];
 };
 
@@ -63,9 +63,16 @@ export function LookupForm({ initialCode = "" }: { initialCode?: string }) {
 
   if (result) {
     const balanceCents = Math.max(0, result.amountDueCents - result.paidCents);
+    // A waiting-list place or a free taster is not a paid place: no amount,
+    // no balance and no list of sessions (terms v2, "Registering, booking
+    // and enquiring").
+    const waitlist = result.registrationStatus === "waitlist";
+    const taster = result.registrationStatus === "trial";
+    const nothingToPay = waitlist || taster;
+    const badge = result.registrationStatus === "cancelled" ? "Cancelled" : waitlist ? "On the waitlist" : taster ? "Free taster" : result.paymentStatus;
     return (
       <section className="my-status-card">
-        <span className={`status status-${result.paymentStatus}`}>{result.registrationStatus === "cancelled" ? "Cancelled" : result.paymentStatus}</span>
+        <span className={`status status-${nothingToPay ? "pending" : result.paymentStatus}`}>{badge}</span>
         <h1>{result.childName}</h1>
         <p className="my-status-reference">Registration code <strong>{result.referenceCode}</strong></p>
 
@@ -73,12 +80,15 @@ export function LookupForm({ initialCode = "" }: { initialCode?: string }) {
           <div><dt>Class</dt><dd>{result.program.name}</dd></div>
           <div><dt>Time</dt><dd>{result.program.day} · {result.program.time}–{result.program.endTime}</dd></div>
           <div><dt>Location</dt><dd>{result.program.location}</dd></div>
-          <div><dt>Plan</dt><dd>{result.paymentFrequency === "term" ? "Full term" : "Weekly"}</dd></div>
-          <div><dt>Amount due</dt><dd>{money(result.amountDueCents)}</dd></div>
-          <div><dt>Recorded</dt><dd>{money(result.paidCents)}</dd></div>
+          {!nothingToPay && <div><dt>Plan</dt><dd>{result.paymentFrequency === "term" ? "Full term" : "Weekly"}</dd></div>}
+          {!nothingToPay && <div><dt>Amount due</dt><dd>{money(result.amountDueCents)}</dd></div>}
+          {!nothingToPay && <div><dt>Recorded</dt><dd>{money(result.paidCents)}</dd></div>}
         </dl>
 
-        {balanceCents > 0 && result.registrationStatus !== "cancelled" && (
+        {waitlist && <p className="my-status-note">This is a waiting-list place. There is nothing to pay unless you are offered a place in the class.</p>}
+        {taster && <p className="my-status-note">This is a free taster. There is nothing to pay.</p>}
+
+        {balanceCents > 0 && !nothingToPay && result.registrationStatus !== "cancelled" && (
           <div className="my-status-balance">
             <span>Balance remaining</span>
             <strong>{money(balanceCents)}</strong>
@@ -86,7 +96,7 @@ export function LookupForm({ initialCode = "" }: { initialCode?: string }) {
           </div>
         )}
 
-        {result.remainingSessionDates.length > 0 && (
+        {result.remainingSessionDates.length > 0 && !nothingToPay && (
           <div className="my-status-sessions">
             <span className="choice-heading">Remaining sessions</span>
             <ul>{result.remainingSessionDates.map((date) => <li key={date}>{readableDate(date)}</li>)}</ul>

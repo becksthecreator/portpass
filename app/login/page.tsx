@@ -4,6 +4,7 @@ import { OtpForm } from "@/app/_components/auth/OtpForm";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { phoneOtpEnabled } from "@/lib/auth/env";
+import { googleSignInEnabled } from "@/lib/auth/google";
 import { safeNext } from "@/lib/auth/next";
 import { LAST_CHOICE_COOKIE, resolveDestination } from "@/lib/auth/routing";
 import { getSession } from "@/lib/auth/session";
@@ -35,7 +36,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     redirect(resolveDestination(session, { next, lastChoice }));
   }
 
-  const google = `/api/auth/google?mode=login${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+  // The Google button shows only once Google is switched on in Supabase.
+  const google = (await googleSignInEnabled()) ? `/api/auth/google?mode=login${next ? `&next=${encodeURIComponent(next)}` : ""}` : null;
   return (
     <main className="form-page auth-page theme-night">
       <SiteHeader breadcrumb={[{ label: "Sign in", href: "/login" }]} />

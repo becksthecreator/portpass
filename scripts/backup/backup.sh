@@ -30,6 +30,12 @@ MONTHLY="$BACKUP_DIR/monthly"
 mkdir -p "$NIGHTLY" "$MONTHLY"
 chmod 700 "$BACKUP_DIR" "$NIGHTLY" "$MONTHLY"
 
+# Retention by age, before anything else, so it still happens on a night
+# the dump fails: no copy is kept longer than 13 months (the Privacy Policy
+# says deleted information leaves the backups within about 13 months).
+find "$NIGHTLY" -name 'portpass-*.dump.age' -type f -mtime +45 -delete
+find "$MONTHLY" -name 'portpass-*.dump.age' -type f -mtime +395 -delete
+
 stamp="$(date -u +%Y%m%d-%H%M)"
 out="$NIGHTLY/portpass-$stamp.dump.age"
 tmp="$out.part"

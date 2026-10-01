@@ -89,6 +89,24 @@ After the preview passes:
 5. Confirm SSL and both apex/www resolve to Vercel.
 6. Remove the obsolete ChatGPT Sites routing records only after Vercel is healthy.
 
+## Children's health details: the 90-day deletion
+
+The Privacy Policy says health details are deleted automatically 90 days
+after the programme ends. That is a nightly database job (pg_cron, 08:15
+UTC) created by `supabase/migrations/202610030001_health_details_retention.sql`;
+the function it runs is defined last in `202610030006_...`. To check it in
+the Supabase SQL editor:
+
+```sql
+select jobname, schedule, active from cron.job where jobname = 'purge-expired-health-details';
+select status, start_time from cron.job_run_details d join cron.job j on j.jobid = d.jobid
+ where j.jobname = 'purge-expired-health-details' order by start_time desc limit 5;
+```
+
+Checked on 1 Oct 2026: the job exists and is active. If the first query
+ever returns nothing, the policy's sentence is no longer true: re-run the
+schedule block at the end of `202610030001`, then `202610030006`.
+
 ## Security
 
 - Never put Supabase secret keys in GitHub.

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { PrivacyNote } from "@/app/_components/PrivacyNote";
 import steamerStyles from "./SteamerLeft.module.css";
 
 export type BookingSlot = { id: number; date: string; startTime: string; endTime: string; location: string };
@@ -207,6 +208,7 @@ export function PrivateSessionBooking({
               </p>
             )}
             {error && <p className="form-error" role="alert">{error}</p>}
+            <PrivacyNote childDetails />
             <button className="private-session-submit" disabled={busy || !schemaReady} type="submit">{busy ? "Sending…" : "Send request →"}</button>
           </form>
         </>}

@@ -49,7 +49,7 @@ export default async function FutprepOfferingPage({ params }: { params: Promise<
     offers: {
       "@type": "Offer",
       price: (offering.priceCents / 100).toFixed(2),
-      priceCurrency: "USD",
+      priceCurrency: "BSD",
       availability: "https://schema.org/InStock",
       url: offering.actionUrl ? `https://portpassbahamas.com${offering.actionUrl}` : undefined,
     },

@@ -73,7 +73,8 @@ export async function POST(request: Request) {
     options: { shouldCreateUser: mode === "signup", data: Object.keys(data).length ? data : undefined },
   });
   if (error) {
-    console.error("auth/send: signInWithOtp failed", { status: error.status, code: error.code, message: error.message });
+    // Status and code only: the provider's message can quote the address typed.
+    console.error("auth/send: signInWithOtp failed", { status: error.status, code: error.code });
     return fail(supabaseSendFailure(error, mode), "supabase");
   }
 

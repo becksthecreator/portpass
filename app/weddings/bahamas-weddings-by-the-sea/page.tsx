@@ -204,8 +204,8 @@ export default async function BahamasWeddingsListingPage() {
           </section>
         )}
         <div className="tpl-whatsapp">
-          <MessageOnWhatsApp e164="+12424241262" businessName="Antonio" />
-          <ShareOnWhatsApp url="https://portpassbahamas.com/weddings/bahamas-weddings-by-the-sea" text="Bahamas Weddings By The Sea on PortPass:" />
+          <MessageOnWhatsApp e164="+12424241262" businessName="Antonio" org="bahamas-weddings" />
+          <ShareOnWhatsApp url="https://portpassbahamas.com/weddings/bahamas-weddings-by-the-sea" text="Bahamas Weddings By The Sea on PortPass:" org="bahamas-weddings" />
         </div>
         <ActionBlock label="See prices & get started" href="#offerings" />
       </main>

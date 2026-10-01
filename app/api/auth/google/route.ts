@@ -2,9 +2,11 @@
 // Google", speed & sign-in brief, 29 Sept, 2.2). Starts Supabase Auth's
 // Google OAuth flow (PKCE; the verifier lives in a cookie the ssr client
 // sets here) and sends the browser to Google. Google itself is switched
-// on by Antonio in the Supabase dashboard; until then the provider error
-// lands back on the sign-in page with a plain message, never a 500.
+// on by Antonio in the Supabase dashboard; until then this sends the
+// visitor back to the sign-in page with a plain message (Supabase would
+// otherwise show an error page of its own), never a 500.
 import { NextResponse } from "next/server";
+import { googleSignInEnabled } from "@/lib/auth/google";
 import { safeNext } from "@/lib/auth/next";
 import { createAuthClient } from "@/lib/auth/server";
 
@@ -17,6 +19,11 @@ export async function GET(request: Request) {
   const mode = url.searchParams.get("mode") === "signup" ? "signup" : "login";
   const back = new URL(mode === "signup" ? "/signup" : "/login", url.origin);
   if (next) back.searchParams.set("next", next);
+
+  if (!(await googleSignInEnabled())) {
+    back.searchParams.set("error", "google_unavailable");
+    return NextResponse.redirect(back);
+  }
 
   let client;
   try {

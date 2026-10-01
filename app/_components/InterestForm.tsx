@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { PrivacyNote } from "@/app/_components/PrivacyNote";
 import type { InterestCategory } from "@/lib/interestCategories";
 import { PhoneInput } from "./PhoneInput";
 
@@ -57,6 +58,7 @@ export function InterestForm({ category, placeholder, defaultNote }: { category:
         <label className="full-field"><span>{placeholder}</span><textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></label>
       </div>
       {error && <p className="form-error">{error}</p>}
+      <PrivacyNote />
       <div className="form-submit">
         <button className="primary-button" disabled={busy} type="submit">{busy ? "Sending…" : "Keep me posted →"}</button>
       </div>

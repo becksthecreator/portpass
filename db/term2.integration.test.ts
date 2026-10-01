@@ -161,6 +161,17 @@ describe("Term 2 early access, trials and the waitlist (brief 06 v2, Part C)", (
     const { data: link } = await db().from("futprep_return_links").select("used_registration_id,last_used_at").eq("source_registration_id", source!.id).single();
     expect(link!.used_registration_id).not.toBeNull();
     expect(link!.last_used_at).not.toBeNull();
+
+    // A link does not live for ever: one made more than 120 days ago is as
+    // good as unknown, so a forwarded link stops showing a family's details.
+    const oldToken = (await createReturnLink(Number(source!.id), MARK)).token;
+    const { data: newest } = await db().from("futprep_return_links").select("id").eq("source_registration_id", source!.id).order("id", { ascending: false }).limit(1);
+    const oldId = Number(newest![0].id);
+    expect(await returnLinkPrefill(oldToken)).not.toBeNull();
+    await db().from("futprep_return_links").update({ created_at: new Date(Date.now() - 121 * 24 * 60 * 60 * 1000).toISOString() }).eq("id", oldId);
+    expect(await returnLinkPrefill(oldToken)).toBeNull();
+    expect((await openReturnLink(oldToken)).state).toBe("invalid");
+    await db().from("futprep_return_links").delete().eq("id", oldId);
   });
 
   it("a made-up link is refused, and a link expires with early access", async () => {

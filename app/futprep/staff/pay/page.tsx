@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { listPayCoaches, listPayLedger, listProgramPnl, listStaffLogins } from "@/db/coachPay";
 import { summarizePay } from "@/lib/coachPay";
 import { StaffLogoutButton } from "../StaffLogoutButton";
-import { resolvePayAccess } from "./access";
+import { payNeedsStepUp, resolvePayAccess } from "./access";
 import { CoachPayManager } from "./CoachPayManager";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +19,7 @@ export const metadata = {
 // coach's pay.
 export default async function CoachPayPage() {
   const access = await resolvePayAccess();
+  if (!access && (await payNeedsStepUp())) redirect(`/admin/verify?next=${encodeURIComponent("/futprep/staff/pay")}`);
   if (!access) redirect(`/futprep/staff/login?returnTo=${encodeURIComponent("/futprep/staff/pay")}`);
   const all = access.kind === "all";
   const ownCoach = access.kind === "own" ? access.coach : null;

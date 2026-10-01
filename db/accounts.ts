@@ -62,6 +62,19 @@ export async function upsertProfile(input: { userId: string; fullName: string; p
   return toProfile(data);
 }
 
+// Which Terms and Privacy Policy versions were in force when the account
+// was created (the sign-up screen says continuing means agreeing to them).
+// Written once; later versions are not silently recorded as accepted.
+export async function recordLegalAcceptance(userId: string, versions: { terms: number; privacy: number }): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ terms_version: versions.terms, privacy_version: versions.privacy, legal_accepted_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .is("legal_accepted_at", null);
+  throwIfSupabaseError(error, "Could not record the accepted terms");
+}
+
 export async function touchLastSeen(userId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("user_id", userId);

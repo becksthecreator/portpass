@@ -280,6 +280,8 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
         </div>
       </form>
 
+      <p className="auth-legal">By continuing you confirm you are 18 or older and agree to our <Link href="/terms">Terms of Service</Link> and <Link href="/privacy">Privacy Policy</Link>.</p>
+
       {mode === "login" ? (
         <>
           <p className="auth-alt">New here? You don&rsquo;t need an account to book. <Link href="/">Browse PortPass</Link>. Want one anyway? <Link href={signupHref}>Create an account</Link>.</p>

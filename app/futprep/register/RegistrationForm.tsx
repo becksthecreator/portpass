@@ -481,7 +481,7 @@ export function RegistrationForm({
                   <input type="radio" checked={form.paymentMethod==="online_banking"} onChange={()=>set("paymentMethod","online_banking")} />
                   <span className="choice-check" /><strong>Online banking transfer</strong><span>Pay from your own bank&apos;s app.</span>
                 </label>
-                <div className="choice-card is-disabled"><span className="coming-soon-pill">Coming soon</span><strong>Online card payment</strong><span>Pay securely through PortPass.</span></div>
+                <div className="choice-card is-disabled"><span className="coming-soon-pill">Coming soon</span><strong>Online card payment</strong><span>Not available yet.</span></div>
               </div>
             </div>}
 
@@ -541,7 +541,7 @@ export function RegistrationForm({
             <label className="signature-field">
               <span>Parent/guardian electronic signature *</span>
               <input value={form.signatureName} onChange={(e)=>set("signatureName",e.target.value)} placeholder="Type your full name" />
-              <small>Typing your name confirms the consent above. The consent version and submission time are recorded automatically.</small>
+              <small>Typing your name confirms the consent above. The consent version and submission time are recorded automatically. How this information is used and how long it is kept: <a href="/privacy#children" target="_blank" rel="noopener">Privacy Policy</a>.</small>
             </label>
           </fieldset>
         )}

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./staff.css";
 import { PwaRegister } from "./_components/PwaRegister";
+import { analyticsRedactionScript } from "@/lib/analyticsRedact";
 import { ppDisplay, ppSans } from "./fonts";
 
 const TITLE = "PortPass Bahamas | Find and Book Sports, Weddings, Venues & Events in Nassau";
@@ -76,6 +77,16 @@ export default function RootLayout({
             <script dangerouslySetInnerHTML={{ __html: "window.si=window.si||function(){(window.siq=window.siq||[]).push(arguments)};" }} />
             <script defer src="/_vercel/speed-insights/script.js" />
           </>
+        )}
+        {/*
+          Before either script sends anything, the page address is cleaned:
+          staff, admin and account pages are not reported, reference codes
+          and link tokens in the path are replaced, and every query
+          parameter except the campaign tags is dropped (lib/analyticsRedact.ts;
+          privacy policy v2). Both scripts replay this from their queue.
+        */}
+        {(process.env.VERCEL_WEB_ANALYTICS === "1" || process.env.VERCEL_SPEED_INSIGHTS === "1") && (
+          <script dangerouslySetInnerHTML={{ __html: analyticsRedactionScript() }} />
         )}
       </body>
     </html>
