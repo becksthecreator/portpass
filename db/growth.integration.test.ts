@@ -238,6 +238,6 @@ describe("scheduled jobs and the messages log", () => {
     await logMessage({ organizationId: organization.id, template: `test_${TAG}`, recipient: `test-delete-${TAG}@test.portpass.local`, status: "skipped", detail: "Email is not set up yet." });
     const { data } = await db().from("message_log").select("*").eq("template", `test_${TAG}`).single();
     expect(data).toMatchObject({ organization_id: organization.id, recipient: `test-delete-${TAG}@test.portpass.local`, status: "skipped", detail: "Email is not set up yet." });
-    expect(Object.keys(data!).sort()).toEqual(["created_at", "detail", "id", "organization_id", "recipient", "status", "template"]);
+    expect(Object.keys(data!).sort()).toEqual(["created_at", "detail", "id", "organization_id", "provider_id", "recipient", "status", "template"]);
   });
 });
