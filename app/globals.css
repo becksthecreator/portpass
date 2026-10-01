@@ -5632,3 +5632,5 @@ a.admin-tile:hover{border-color:var(--sky)}
 .legal-version-links a{color:var(--harbour);text-decoration:underline;text-underline-offset:3px}
 .auth-legal{color:var(--muted);font-size:.8rem;line-height:1.5;margin:18px 0 0}
 .auth-legal a{color:var(--harbour);text-decoration:underline;text-underline-offset:3px}
+.privacy-note{color:var(--muted);font-size:.8rem;line-height:1.5;margin:14px 0 10px}
+.privacy-note a{color:inherit;text-decoration:underline;text-underline-offset:3px}

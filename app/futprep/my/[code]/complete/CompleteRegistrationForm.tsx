@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { PrivacyNote } from "@/app/_components/PrivacyNote";
 import { PhoneInput } from "@/app/_components/PhoneInput";
 
 type Props = {
@@ -160,6 +161,7 @@ export function CompleteRegistrationForm({ referenceCode, childName, programName
 
       {error && <p className="form-error registration-error" role="alert">{error}</p>}
 
+      <PrivacyNote about="registration" childDetails />
       <div className="registration-actions">
         <button className="primary-button" type="submit" disabled={busy}>{busy ? "Submitting…" : "Finish registration →"}</button>
       </div>

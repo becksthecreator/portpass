@@ -27,7 +27,7 @@ export default function TermsPage() {
         <LegalVersionLine doc={TERMS_OF_SERVICE} />
         <h1>Terms of Service.</h1>
         <p>
-          These terms cover your use of portpassbahamas.com and PortPass accounts, run by PortPass Bahamas Technologies (“PortPass”, “we”, “us”). By using the site, creating an account, registering, booking or listing a business, you agree to them.
+          These terms cover your use of portpassbahamas.com, PortPass accounts and a business’s own website where PortPass runs it, all run by PortPass Bahamas Technologies (“PortPass”, “we”, “us”). By using the site, creating an account, registering, booking or listing a business, you agree to them.
         </p>
       </section>
       <article className="legal-body">
@@ -118,7 +118,7 @@ export default function TermsPage() {
           <li><strong>Your customers and their payments.</strong> Your customers pay you directly. You are responsible for your own prices, receipts, refunds and cancellation rules, and for recording payments accurately.</li>
           <li><strong>Your customers’ information.</strong> You may use the information customers give you through PortPass only to provide your service to them. Keep it confidential, give access only to staff who need it, and follow the data protection law of The Bahamas and our <Link href="/privacy">Privacy Policy</Link>. This matters most for children’s health and emergency details.</li>
           <li><strong>Photos and content.</strong> Upload only photos and text you have the right to use. Before you publish a photo that shows a child, you must hold a parent’s or guardian’s consent for every child in it. You give PortPass permission to show your content on the site and in material that promotes your listing.</li>
-          <li><strong>Your team.</strong> You decide who on your team can sign in and what they can do, and you are responsible for what they do there. Remove a person’s access when they leave.</li>
+          <li><strong>Your team.</strong> You decide who on your team can sign in and what they can do, and you are responsible for what they do there. When someone leaves, remove their access or ask us to.</li>
           <li><strong>Leaving.</strong> You can ask us to take your listing down at any time. Records you are required to keep, such as payment records, stay available to you as set out in the Privacy Policy.</li>
         </ul>
 

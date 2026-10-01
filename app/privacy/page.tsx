@@ -28,7 +28,7 @@ export default function PrivacyPage() {
         <LegalVersionLine doc={PRIVACY_POLICY} />
         <h1>Privacy Policy.</h1>
         <p>
-          PortPass Bahamas Technologies (“PortPass”, “we”, “us”) runs portpassbahamas.com, the booking pages of the businesses listed on it, and PortPass accounts. This policy says what we collect, why, who can see it, how long we keep it, and what you can ask us to do with it.
+          PortPass Bahamas Technologies (“PortPass”, “we”, “us”) runs portpassbahamas.com, the booking pages of the businesses listed on it, and PortPass accounts. It also covers a business’s own website where PortPass runs it. This policy says what we collect, why, who can see it, how long we keep it, and what you can ask us to do with it.
         </p>
       </section>
       <article className="legal-body">
@@ -79,7 +79,7 @@ export default function PrivacyPage() {
           <strong>Why.</strong> Only to run that programme safely: to place the child in the right class, to take attendance, and so the coach on the field knows what to do in an emergency.
         </p>
         <p>
-          <strong>Who can see a child’s health details.</strong> Only that business’s own staff who need them: the coaches running the session and the staff on its registration desk. A helper who only checks the roster is not sent them. Health details are never included in spreadsheets or exports, in any email, on any public page, in the status page you open with your reference code, or in your PortPass account. PortPass’s own team does not read them in the ordinary running of the service; the founders can reach the database to maintain it, and do so only to fix a fault or at the business’s request.
+          <strong>Who can see a child’s health details.</strong> Only that business’s own staff who need them: the coaches running the session and the staff on its registration desk. A helper who only checks the roster is not sent them. Health details are never included in spreadsheets or exports, in any email, on any public page, in the status page you open with your reference code, or in your PortPass account. PortPass’s own team does not read them in the ordinary running of the service. The founders, and the people who maintain the system for them, can reach the database, and do so only to fix a fault or at the business’s request.
         </p>
         <p>
           <strong>Emergency contacts and pickup names</strong> are seen by the same staff. They are also filled in for you if the business sends you a personal link to register again next term, so anyone you forward that link to can see them. Health details are never filled in from an earlier registration; we ask for them fresh each time.
@@ -88,7 +88,10 @@ export default function PrivacyPage() {
           <strong>Records the business starts.</strong> Sometimes the business begins a child’s record before you do: a coach may add a child’s name at the field, and a business moving to PortPass may bring over the records it already holds. You then complete and sign the registration yourself.
         </p>
         <p>
-          <strong>Photos.</strong> You choose yes or no to photos and video when you register. We never ask you to upload a photo of your child. A sports business may only publish a photo on PortPass after it confirms it holds consent for every child in that photo.
+          <strong>Photos.</strong> You choose yes or no to photos and video when you register. We never ask you to upload a photo of your child. A photo in a sports business’s gallery is only shown after the business confirms it holds consent for every child in it. PortPass does not see the consent forms; the business is responsible for them.
+        </p>
+        <p>
+          <strong>Other notes.</strong> Anything you write in another free-text box, such as the goal of a private session, is kept with that request and seen by the coaches and the registration desk. Please keep health information to the registration form.
         </p>
         <p>
           <strong>How long.</strong> A child’s health details are deleted 90 days after the programme they registered for ends. See “How long we keep it” below.
@@ -147,7 +150,7 @@ export default function PrivacyPage() {
           Your browser also keeps a few things that never leave your device: whether you closed the “get the app” banner, whether you have seen the opening animation, and copies of public pages you opened so they still open offline. Pages that show or collect personal information are not saved offline. On a coach’s phone, attendance marks wait on the device until they are saved; they hold no names.
         </p>
         <p>
-          There are no advertising cookies and no trackers that follow you to other websites. To count visits and measure page speed we may switch on Vercel’s Web Analytics and Speed Insights. They set no cookies and are not used to identify you. When they are on, they record which pages are opened across the whole site.
+          There are no advertising cookies and no trackers that follow you to other websites. To count visits and measure page speed we use Vercel’s Web Analytics and Speed Insights. They set no cookies and are not used to identify you. They record which pages are opened. We leave out the staff, admin and account areas, and we strip reference codes and personal details from page addresses before they are sent.
         </p>
         <p>
           We use your internet (IP) address only for a few minutes, to slow down repeated attempts on our forms. We do not save it in our database.
@@ -180,7 +183,7 @@ export default function PrivacyPage() {
 
         <h2>Deleting your account</h2>
         <p>
-          Email us and we will delete your PortPass account. That removes your sign-in and your profile. Registrations and payments already made stay with the business you made them with, as its own records, for the periods above. If you were part of a business’s team, your membership ends; the business’s own information stays with the business.
+          Email us and we will close your PortPass account within 30 days. That removes your sign-in and your profile. Registrations and payments already made stay with the business you made them with, as its own records, for the periods above. If you were part of a business’s team, your membership ends; the business’s own information stays with the business, and the log of changes keeps a record that a change was made.
         </p>
 
         <h2>How we protect it</h2>

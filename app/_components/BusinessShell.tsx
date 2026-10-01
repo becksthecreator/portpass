@@ -48,6 +48,10 @@ export function BusinessFooter({ name }: { name: string }) {
       <p className="biz-shell-footer-credit">
         Booking and planning desk powered by <a href={PORTPASS_URL}>PortPass Bahamas</a>.
       </p>
+      {/* The same policy and terms apply on a business's own domain. */}
+      <p className="biz-shell-footer-credit">
+        <a href={`${PORTPASS_URL}/privacy`}>Privacy</a> · <a href={`${PORTPASS_URL}/terms`}>Terms</a>
+      </p>
     </footer>
   );
 }

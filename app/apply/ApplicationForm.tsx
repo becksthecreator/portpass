@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PrivacyNote } from "@/app/_components/PrivacyNote";
 import { FormEvent, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PhoneInput } from "@/app/_components/PhoneInput";
@@ -100,6 +101,7 @@ export function ApplicationForm({ sections, plans }: { sections: SectionOption[]
         <p>We reply on WhatsApp. No account or card needed to get started.</p>
         <button className="primary-button" disabled={busy} type="submit">{busy ? "Sending…" : "Get listed →"}</button>
       </div>
+      <PrivacyNote />
       <p className="apply-alt">Rather just talk? <a href={whatsappHref} target="_blank" rel="noopener noreferrer">Message us on WhatsApp →</a></p>
     </form>
   );
