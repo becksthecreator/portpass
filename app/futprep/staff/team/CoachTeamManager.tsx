@@ -1,10 +1,61 @@
 "use client";
-import { FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useState } from "react";
 import type { CoachProfile } from "@/db/coaches";
+import { squareCropBox } from "@/lib/imageUpload";
+import { initialsOf } from "@/lib/team";
+
+// Brief 16, C2: a coach photo is cropped to a centred square in the
+// browser (the card and the home-grid tile are square) and resampled to at
+// most 640px before upload, so nothing near the 4 MB cap is ever sent.
+// Falls back to the original file where the browser can't draw it.
+async function squarePhoto(file:File):Promise<Blob>{
+  try{
+    const bitmap=await createImageBitmap(file);
+    const {sx,sy,size,out}=squareCropBox(bitmap.width,bitmap.height);
+    const canvas=document.createElement("canvas");
+    canvas.width=out;canvas.height=out;
+    canvas.getContext("2d")!.drawImage(bitmap,sx,sy,size,size,0,0,out,out);
+    bitmap.close?.();
+    const blob=await new Promise<Blob|null>((resolve)=>canvas.toBlob(resolve,"image/jpeg",0.86));
+    if(!blob) throw new Error("toBlob failed");
+    return blob;
+  }catch{
+    return file;
+  }
+}
 
 export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:CoachProfile[];schemaReady:boolean}){
   const [coaches,setCoaches]=useState(initialCoaches);
   const [message,setMessage]=useState("");
+  const [uploadingId,setUploadingId]=useState<number|null>(null);
+
+  async function uploadPhoto(coach:CoachProfile,event:ChangeEvent<HTMLInputElement>){
+    const input=event.currentTarget;
+    const file=input.files?.[0];
+    if(!file) return;
+    setMessage("");
+    setUploadingId(coach.id);
+    const body=new FormData();
+    body.append("coachId",String(coach.id));
+    body.append("file",await squarePhoto(file),file.name.replace(/\.[^.]+$/,"")+".jpg");
+    const response=await fetch("/api/futprep/team/photo",{method:"POST",body}).catch(()=>null);
+    const data=response?((await response.json().catch(()=>({}))) as {error?:string;coaches?:CoachProfile[]}):{};
+    setUploadingId(null);
+    input.value="";
+    if(!response||!response.ok){setMessage(data.error??"Could not upload that photo.");return;}
+    if(data.coaches) setCoaches(data.coaches);
+    setMessage(`${coach.display_name}: photo updated. It shows on the coaches page and the Futprep home grid.`);
+  }
+
+  async function removePhoto(coach:CoachProfile){
+    if(!confirm(`Remove ${coach.display_name}'s photo? The card shows their initials until a new one is uploaded.`)) return;
+    setMessage("");
+    const response=await fetch("/api/futprep/team/photo",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({coachId:coach.id})}).catch(()=>null);
+    const data=response?((await response.json().catch(()=>({}))) as {error?:string;coaches?:CoachProfile[]}):{};
+    if(!response||!response.ok){setMessage(data.error??"Could not remove that photo.");return;}
+    if(data.coaches) setCoaches(data.coaches);
+    setMessage(`${coach.display_name}: photo removed.`);
+  }
 
   async function action(payload:Record<string,unknown>){
     setMessage("");
@@ -34,7 +85,17 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
     {message&&<p className="coach-manager-message">{message}</p>}
     <div className="team-manager-grid">
       {coaches.map((coach)=><article className="team-manager-card" key={coach.id}>
-        <div><span>{coach.position_title}</span><h2>{coach.display_name}</h2><p>{coach.bio||"Bio not added yet."}</p></div>
+        <div className="team-manager-head">
+          {coach.photo_url ? <img className="team-manager-photo" src={coach.photo_url} alt="" /> : <span className="team-manager-photo team-manager-initials" aria-hidden="true">{initialsOf(coach.display_name)}</span>}
+          <div><span>{coach.position_title}</span><h2>{coach.display_name}</h2>{coach.nickname&&<p className="coach-nickname">&ldquo;{coach.nickname}&rdquo;</p>}<p>{coach.bio||"Bio not added yet."}</p></div>
+        </div>
+        {coach.active&&<div className="team-photo-actions">
+          <label className={`team-photo-upload${uploadingId===coach.id?" is-busy":""}`}>
+            <span>{uploadingId===coach.id?"Uploading…":coach.photo_url?"Replace photo":"Upload photo"}</span>
+            <input type="file" accept="image/png,image/jpeg,image/webp" disabled={!schemaReady||uploadingId!==null} onChange={(event)=>uploadPhoto(coach,event)} />
+          </label>
+          {coach.photo_url&&<button type="button" className="team-photo-remove" disabled={!schemaReady||uploadingId!==null} onClick={()=>removePhoto(coach)}>Remove photo</button>}
+        </div>}
         <div className="team-manager-flags">
           {coach.active
             ? <><span className={coach.public_visible?"flag-on":"flag-off"}>{coach.public_visible?"Visible":"Hidden"}</span><span className={coach.bookable?"flag-on":"flag-off"}>{coach.bookable?"Bookable":"Not bookable"}</span></>

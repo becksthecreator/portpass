@@ -5590,3 +5590,23 @@ a.admin-tile:hover{border-color:var(--sky)}
 @media(max-width:374px){
   .site-shell-pricing{display:none}
 }
+
+/* Brief 16, C: the Futprep team grid on the Futprep home page, and the
+   prompt a signed-in coach sees on their own card while it has no times. */
+.team-promo{max-width:1100px;margin:0 auto 50px;padding:26px 24px 22px;border:1px solid var(--line);border-radius:18px;background:var(--paper)}
+.team-promo-head{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;justify-content:space-between;margin-bottom:18px}
+.team-promo-head h2{font-family:var(--font-pp-display),Georgia,serif;margin:0;font-size:1.4rem}
+.team-promo-grid{list-style:none;margin:0;padding:0;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.team-promo-grid li{min-width:0}
+.team-promo-grid a{display:grid;justify-items:center;gap:6px;padding:16px 10px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);text-decoration:none;text-align:center;height:100%}
+.team-promo-grid a:hover,.team-promo-grid a:focus-visible{border-color:var(--brand-text,var(--harbour))}
+.team-promo-grid img,.team-promo-initials{width:84px;height:84px;border-radius:50%;object-fit:cover;background:#0D1B3D}
+.team-promo-initials{display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:Arial,sans-serif;font-size:1.6rem;font-weight:800;letter-spacing:.02em}
+.team-promo-grid strong{font-size:.95rem;line-height:1.3;margin-top:4px}
+.team-promo-nick{font-style:normal;font-weight:700;color:#5B6B75;font-size:.85rem}
+.team-promo-grid small{color:var(--muted);font-size:.74rem;line-height:1.35}
+@media(max-width:760px){.team-promo{margin:0 16px 40px;padding:20px 16px 16px}.team-promo-grid{gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}}
+.coach-own-prompt{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:18px 0 0;padding:12px 14px;border:1px solid #2463AE;border-left-width:5px;border-radius:10px;background:#DCE6F3;color:#0D1B3D;text-decoration:none;font-size:.86rem;line-height:1.4}
+.coach-own-prompt strong{font-weight:800}
+.coach-own-prompt em{font-style:normal;font-weight:800;color:#2463AE}
+.coach-own-prompt:hover span,.coach-own-prompt:focus-visible span{text-decoration:underline;text-underline-offset:3px}

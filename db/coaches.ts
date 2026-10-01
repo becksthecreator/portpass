@@ -659,3 +659,34 @@ export async function saveCoachAvailability(input:{
   if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
   throwIfSupabaseError(error,"Could not save coach availability");
 }
+
+// Brief 16, C1: the prompt a coach sees on their own card and dashboard
+// while their schedule is empty. The coach is the profile tied to this
+// staff login on the Coach pay page (coach_profiles.staff_member_id); null
+// when the login isn't linked to an active, bookable coach, so a parent or
+// an unlinked helper never sees the prompt.
+export async function coachSlotPrompt(staffMemberId:number):Promise<{coachId:number;needsSlots:boolean}|null>{
+  const db=getSupabaseAdmin();
+  const {data:coach,error}=await db.from("coach_profiles").select("id").eq("staff_member_id",staffMemberId).eq("active",true).eq("bookable",true).maybeSingle();
+  if(isMissingTable(error)) return null;
+  throwIfSupabaseError(error,"Could not load the coach for this login");
+  if(!coach) return null;
+  const today=new Date().toISOString().slice(0,10);
+  const {count,error:slotError}=await db.from("coach_availability").select("id",{count:"exact",head:true}).eq("coach_id",coach.id).eq("status","available").gte("availability_date",today);
+  throwIfSupabaseError(slotError,"Could not count the coach's open times");
+  return {coachId:Number(coach.id),needsSlots:(count??0)===0};
+}
+
+// Brief 16, C2: the square photo uploaded from the Team page (or null to
+// remove it). Returns the URL it replaced so the route can delete the old
+// file from storage when that file was ours.
+export async function setCoachPhoto(coachId:number,photoUrl:string|null):Promise<{previousUrl:string|null}>{
+  const db=getSupabaseAdmin();
+  const {data:coach,error}=await db.from("coach_profiles").select("id,photo_url").eq("id",coachId).maybeSingle();
+  if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
+  throwIfSupabaseError(error,"Could not load the coach");
+  if(!coach) throw new Error("COACH_NOT_FOUND");
+  const {error:updateError}=await db.from("coach_profiles").update({photo_url:photoUrl,updated_at:new Date().toISOString()}).eq("id",coachId);
+  throwIfSupabaseError(updateError,"Could not save the coach photo");
+  return {previousUrl:(coach.photo_url as string|null)??null};
+}

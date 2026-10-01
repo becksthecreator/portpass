@@ -18,6 +18,10 @@ const SHOTS = [
   ["brief13-coach-pay-ceo-375", "test-ceo", "/futprep/staff/pay", null],
   ["brief13-coach-pay-coach-375", "test-coach", "/futprep/staff/pay", null],
   ["brief13-roster-who-coached-375", "test-coach", `/futprep/staff/coach?session=${fixture.sessionId}`, ".coach-staff"],
+  // Brief 16: the coach's own card on the public coaches page, with the
+  // "add your weekly slots" prompt; the Team page's photo upload.
+  ["brief16-coaches-own-prompt-375", "test-coach", "/futprep/coaches", ".coach-own-prompt"],
+  ["brief16-team-photo-upload-375", "test-ceo", "/futprep/staff/team", ".team-photo-actions"],
 ];
 
 const browser = await chromium.launch();

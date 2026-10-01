@@ -431,3 +431,21 @@
 .pay-field-edit{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;border-top:1px solid var(--line);padding-top:10px}
 .pay-field-edit label{display:grid;gap:4px;flex:1 1 140px;font-size:.8rem}
 .pay-field-edit input{min-height:40px}
+
+/* Brief 16, C: team photos on the Team page, and the "add your weekly
+   slots" prompt a coach sees on their own dashboard while it is empty. */
+.team-manager-head{display:flex;gap:14px;align-items:flex-start}
+.team-manager-head>div{min-width:0}
+.team-manager-photo{width:64px;height:64px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#0D1B3D}
+.team-manager-card>div:first-child>.team-manager-initials{display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:Arial,sans-serif;font-size:1.15rem;font-weight:800;letter-spacing:.02em;text-transform:none}
+.team-photo-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px}
+.team-photo-upload{position:relative;display:inline-flex;align-items:center;min-height:38px;padding:0 12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font-size:.7rem;font-weight:800;cursor:pointer}
+.team-photo-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.team-photo-upload input:focus-visible+span,.team-photo-upload:focus-within{outline:2px solid var(--sky);outline-offset:2px}
+.team-photo-upload.is-busy{opacity:.6}
+.team-photo-remove{background:none;border:1px solid var(--line);color:var(--muted);cursor:pointer;font-size:.7rem;font-weight:700;min-height:38px;padding:0 12px}
+.team-photo-remove:disabled,.team-photo-upload input:disabled{cursor:default}
+.staff-prompt{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px;margin:0 0 22px;padding:14px 16px;border:1px solid var(--sky);border-left-width:5px;background:rgba(141,184,242,.12);color:var(--ink);text-decoration:none}
+.staff-prompt strong{font-size:.95rem}
+.staff-prompt span{font-size:.8rem;color:var(--muted)}
+.staff-prompt em{font-style:normal;font-weight:800;color:var(--sky);white-space:nowrap}

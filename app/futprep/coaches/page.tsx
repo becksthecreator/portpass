@@ -1,6 +1,8 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
-import { listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
+import { currentFutprepStaffId } from "@/app/futprep/staff-auth";
+import { coachSlotPrompt, listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
+import { initialsOf } from "@/lib/team";
 import { PrivateSessionBooking } from "./PrivateSessionBooking";
 
 // force-dynamic (not ISR/revalidate) because this repo's CI build has no
@@ -13,11 +15,16 @@ function dayLabel(value:string){
 }
 
 export default async function FutprepCoachesPage(){
-  const [{schemaReady,coaches},services]=await Promise.all([
+  const [{schemaReady,coaches},services,staffId]=await Promise.all([
     listPublicCoachProfiles(),
     // Only confirmed (published) prices are offered to parents.
     listFutprepPrivateServices({publishedOnly:true}).catch(()=>[]),
+    // Brief 16, C1: a coach signed in to the staff area sees a prompt on
+    // their own card while their schedule is empty. Parents never do: the
+    // prompt needs the staff cookie and a login linked to this coach.
+    currentFutprepStaffId().catch(()=>null),
   ]);
+  const own=staffId?await coachSlotPrompt(staffId).catch(()=>null):null;
   const bookable=coaches.filter((coach)=>coach.bookable && coach.member_type==="coach");
   const bookingCoaches=bookable.map((c)=>({id:c.id,displayName:c.display_name,slots:c.availability.filter((s)=>s.status==="available").map((s)=>({id:s.id,date:s.availability_date,startTime:s.start_time,endTime:s.end_time,location:s.location}))}));
   const bookingServices=services.map((s)=>({slug:s.slug,name:s.name,priceCents:s.priceCents,priceUnit:s.priceUnit,kind:s.kind,durationMinutes:s.durationMinutes,minChildren:s.minChildren,maxChildren:s.maxChildren,perChildCents:s.perChildCents}));
@@ -44,7 +51,7 @@ export default async function FutprepCoachesPage(){
         {coaches.map((coach)=>(
           <article className="futprep-team-card" key={coach.slug}>
             <div className="futprep-team-photo">
-              {coach.photo_url ? <img src={coach.photo_url} alt={coach.display_name} /> : <div className="futprep-team-initial"><span className="coach-initials" aria-hidden="true">{coach.display_name.replace(/^Coach\s+/i,"").split(/\s+/).filter(Boolean).slice(0,2).map((p)=>p[0]?.toUpperCase()??"").join("") || "F"}</span></div>}
+              {coach.photo_url ? <img src={coach.photo_url} alt={coach.display_name} /> : <div className="futprep-team-initial"><span className="coach-initials" aria-hidden="true">{initialsOf(coach.display_name)}</span></div>}
               <span>{coach.member_type==="coach" ? "Coach" : "Team"}</span>
             </div>
             <div className="futprep-team-copy">
@@ -59,6 +66,11 @@ export default async function FutprepCoachesPage(){
                   {coach.favorite_player && <div><dt>Favorite player</dt><dd>{coach.favorite_player}</dd></div>}
                   {coach.favorite_team && <div><dt>Favorite team</dt><dd>{coach.favorite_team}</dd></div>}
                 </dl>
+              )}
+              {own?.coachId===coach.id && own.needsSlots && (
+                <Link className="coach-own-prompt" href={`/futprep/staff/private-sessions?coach=${coach.id}#weekly-slots`}>
+                  <strong>This is your card.</strong> <span>Add your weekly slots so parents can book</span> <em aria-hidden="true">→</em>
+                </Link>
               )}
               {coach.bookable && (
                 <div className="coach-availability">

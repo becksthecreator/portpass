@@ -9,8 +9,10 @@ export const dynamic="force-dynamic";
 
 const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
 
-export default async function PrivateSessionsPage(){
+export default async function PrivateSessionsPage({ searchParams }: { searchParams: Promise<{ coach?: string }> }){
   const role=await requireFutprepStaff(["admin","coach","ceo"],"/futprep/staff/private-sessions");
+  const { coach } = await searchParams;
+  const defaultCoachId = Number(coach) > 0 ? Number(coach) : null;
   const [{schemaReady,requests},{coaches},services,stats]=await Promise.all([
     listPrivateSessionRequests(),
     listAllCoachProfiles(),
@@ -30,7 +32,7 @@ export default async function PrivateSessionsPage(){
       </div>
       {unpublished.length>0&&<div className="staff-migration-warning"><strong>Prices not live yet.</strong><span>{unpublished.map((s)=>s.name).join(", ")} {unpublished.length===1?"is":"are"} waiting for confirmed prices, so parents can&apos;t book {unpublished.length===1?"it":"them"} online yet.</span></div>}
       {!schemaReady&&<div className="staff-migration-warning"><strong>Database migration required.</strong><span>Run the new Futprep coaches/private-session migration, then this inbox becomes active.</span></div>}
-      <PrivateSessionManager initialRequests={requests} coaches={coaches.filter((c)=>c.member_type==="coach"&&c.active)} services={services.map((s)=>({slug:s.slug,name:s.name}))} schemaReady={schemaReady} />
+      <PrivateSessionManager initialRequests={requests} coaches={coaches.filter((c)=>c.member_type==="coach"&&c.active)} services={services.map((s)=>({slug:s.slug,name:s.name}))} schemaReady={schemaReady} defaultCoachId={defaultCoachId} />
     </section>
   </main>;
 }

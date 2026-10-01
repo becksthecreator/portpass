@@ -9,7 +9,9 @@ const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 // Private sessions inbox (brief 06 v2, Part B), phone-first: post weekly
 // open times, accept or decline requests (accepting books the slot and
 // emails the parent), record payments against the PS- code.
-export function PrivateSessionManager({ initialRequests, coaches, services, schemaReady }: { initialRequests: PrivateSessionRequest[]; coaches: CoachProfile[]; services: ServiceName[]; schemaReady: boolean }) {
+// `defaultCoachId` preselects the coach the "add your weekly slots" prompt
+// came from (brief 16, C1).
+export function PrivateSessionManager({ initialRequests, coaches, services, schemaReady, defaultCoachId }: { initialRequests: PrivateSessionRequest[]; coaches: CoachProfile[]; services: ServiceName[]; schemaReady: boolean; defaultCoachId?: number | null }) {
   const [requests, setRequests] = useState(initialRequests);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -60,12 +62,12 @@ export function PrivateSessionManager({ initialRequests, coaches, services, sche
   return <div className="private-session-manager">
     {message && <p className="coach-manager-message" role="status">{message}</p>}
 
-    <form className="team-admin-form private-slots-form" onSubmit={addSlots}>
+    <form className="team-admin-form private-slots-form" id="weekly-slots" onSubmit={addSlots}>
       <span className="section-kicker">Open times</span>
       <h2>Add weekly times.</h2>
       <p>Pick a coach, a day and a time; parents see these on the coaches page and can book one.</p>
       <div className="team-form-two">
-        <label><span>Coach *</span><select name="coachId" required defaultValue={bookable[0]?.id ?? ""}>{bookable.map((c) => <option key={c.id} value={c.id}>{c.display_name}</option>)}</select></label>
+        <label><span>Coach *</span><select name="coachId" required defaultValue={bookable.find((c) => c.id === defaultCoachId)?.id ?? bookable[0]?.id ?? ""}>{bookable.map((c) => <option key={c.id} value={c.id}>{c.display_name}</option>)}</select></label>
         <label><span>Day *</span><select name="dayOfWeek" required defaultValue="Wednesday">{DAYS.map((d) => <option key={d}>{d}</option>)}</select></label>
       </div>
       <div className="team-form-two">

@@ -1,0 +1,76 @@
+import { createClient } from "@supabase/supabase-js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { addWeeklyCoachSlots, coachSlotPrompt, setCoachPhoto } from "./coaches";
+import { ensureFutprepPilotData } from "./registrations";
+
+// Brief 16, C1 and C2, against CI's local Supabase stack: the "add your
+// weekly slots" prompt shows only for a staff login linked to a bookable
+// coach with no open times, and a coach photo can be set and cleared.
+// Every row is "TEST — delete" and removed afterwards.
+const db = () => createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!);
+const MARK = `TEST — delete ${crypto.randomUUID().slice(0, 6)}`;
+let orgId = 0;
+let linkedStaff = 0;
+let unlinkedStaff = 0;
+let bookableCoach = 0;
+let pausedCoach = 0;
+
+beforeAll(async () => {
+  await ensureFutprepPilotData();
+  const { data: org } = await db().from("organizations").select("id").eq("slug", "futprep").single();
+  orgId = Number(org!.id);
+  const { data: staff, error: staffError } = await db()
+    .from("staff_members")
+    .insert([
+      { organization_id: orgId, name: `${MARK} linked`, role: "coach", responsibilities: "", active: true },
+      { organization_id: orgId, name: `${MARK} unlinked`, role: "coach", responsibilities: "", active: true },
+    ])
+    .select("id,name");
+  expect(staffError).toBeNull();
+  linkedStaff = Number(staff!.find((s) => s.name.endsWith("linked") && !s.name.endsWith("unlinked"))!.id);
+  unlinkedStaff = Number(staff!.find((s) => s.name.endsWith("unlinked"))!.id);
+  const { data: coaches, error: coachError } = await db()
+    .from("coach_profiles")
+    .insert([
+      { organization_id: orgId, slug: `test-delete-prompt-${crypto.randomUUID().slice(0, 6)}`, display_name: `${MARK} Bookable`, member_type: "coach", active: true, public_visible: false, bookable: true, staff_member_id: linkedStaff },
+      { organization_id: orgId, slug: `test-delete-paused-${crypto.randomUUID().slice(0, 6)}`, display_name: `${MARK} Paused`, member_type: "coach", active: true, public_visible: false, bookable: false },
+    ])
+    .select("id,display_name");
+  expect(coachError).toBeNull();
+  bookableCoach = Number(coaches!.find((c) => c.display_name.endsWith("Bookable"))!.id);
+  pausedCoach = Number(coaches!.find((c) => c.display_name.endsWith("Paused"))!.id);
+});
+
+afterAll(async () => {
+  await db().from("coach_availability").delete().in("coach_id", [bookableCoach, pausedCoach].filter(Boolean));
+  await db().from("coach_profiles").delete().in("id", [bookableCoach, pausedCoach].filter(Boolean));
+  await db().from("staff_members").delete().in("id", [linkedStaff, unlinkedStaff].filter(Boolean));
+});
+
+describe("the weekly-slots prompt (brief 16, C1)", () => {
+  it("shows for a linked, bookable coach with no open times, and goes away once they add some", async () => {
+    expect(await coachSlotPrompt(linkedStaff)).toEqual({ coachId: bookableCoach, needsSlots: true });
+    const added = await addWeeklyCoachSlots({ coachId: bookableCoach, dayOfWeek: "Wednesday", startTime: "4:00 PM", endTime: "4:45 PM", weeks: 2, location: "TEST field", actor: MARK });
+    expect(added).toBe(2);
+    expect(await coachSlotPrompt(linkedStaff)).toEqual({ coachId: bookableCoach, needsSlots: false });
+  });
+
+  it("never shows for a login with no coach, or whose coach isn't bookable", async () => {
+    expect(await coachSlotPrompt(unlinkedStaff)).toBeNull();
+    await db().from("coach_profiles").update({ staff_member_id: unlinkedStaff }).eq("id", pausedCoach);
+    expect(await coachSlotPrompt(unlinkedStaff)).toBeNull();
+  });
+});
+
+describe("coach photos (brief 16, C2)", () => {
+  it("sets, replaces and clears photo_url, handing back what it replaced", async () => {
+    const first = "https://example.test/storage/v1/object/public/org-assets/coach/1/first.jpg";
+    const second = "https://example.test/storage/v1/object/public/org-assets/coach/1/second.jpg";
+    expect(await setCoachPhoto(bookableCoach, first)).toEqual({ previousUrl: null });
+    expect(await setCoachPhoto(bookableCoach, second)).toEqual({ previousUrl: first });
+    const { data } = await db().from("coach_profiles").select("photo_url").eq("id", bookableCoach).single();
+    expect(data!.photo_url).toBe(second);
+    expect(await setCoachPhoto(bookableCoach, null)).toEqual({ previousUrl: second });
+    await expect(setCoachPhoto(999999999, first)).rejects.toThrow("COACH_NOT_FOUND");
+  });
+});
