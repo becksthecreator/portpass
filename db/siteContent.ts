@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { cleanSpotlight, EMPTY_ANNOUNCEMENT, readAnnouncement, type Announcement } from "@/lib/siteContent";
 import { logAudit } from "./audit";
-import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
+import { getSupabaseAdmin, throwIfSupabaseError, withOneRetry } from "./supabase";
 
 // Admin -> Content (brief 08, 1.9). Two rows in site_content: the
 // announcement bar and the order of the homepage's "Open now" cards.
@@ -23,7 +23,9 @@ async function fetchSiteContent(): Promise<SiteContent> {
   return { announcement: readAnnouncement(byKey.get("announcement")), spotlight: cleanSpotlight(spotlight?.order) };
 }
 
-const cachedSiteContent = unstable_cache(fetchSiteContent, ["site-content"], { tags: [SITE_CONTENT_TAG] });
+// One retry, like the homepage's other reads: a clock-skew rejection must
+// not be baked into a cached page as "no announcement".
+const cachedSiteContent = unstable_cache(() => withOneRetry(fetchSiteContent), ["site-content"], { tags: [SITE_CONTENT_TAG] });
 
 // The header and the homepage are decoration on top of this: a failed read
 // shows no bar and the usual order, never an error page.

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { listOwnerEmails } from "@/db/business";
+import { getSiteContent } from "@/db/siteContent";
+import { bumpListings } from "@/lib/revalidate";
 import { claimJobRun, futprepOrganization, getGrowthReport, logMessage, prunePageEvents, releaseJobRun, reportRecipients, syncCommissionEvents } from "@/db/growth";
 import { cronAuthorized } from "@/lib/cron";
 import { portpassFrom, sendEmail } from "@/lib/email";
@@ -38,6 +40,13 @@ export async function GET(request: Request) {
     await prunePageEvents(now);
   } catch (error) {
     console.error("daily job: page events retention", error instanceof Error ? error.message : "");
+  }
+
+  try {
+    const { announcement } = await getSiteContent({ fresh: true });
+    if (announcement.active && announcement.until && announcement.until < clock.date) bumpListings();
+  } catch (error) {
+    console.error("daily job: announcement expiry", error instanceof Error ? error.message : "");
   }
 
   const month = monthlyReportPeriod(clock);

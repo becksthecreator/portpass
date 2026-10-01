@@ -45,7 +45,8 @@ export async function deleteSponsor(id: number, actorUserId: string): Promise<vo
   const { data: before, error: beforeError } = await db.from("sponsors").select(COLUMNS).eq("id", id).maybeSingle();
   throwIfSupabaseError(beforeError, "Could not load the sponsor");
   if (!before) throw new Error("NOT_FOUND");
+  // The copy goes into the audit log first: a removed row can't be read back.
+  await logAudit({ actorUserId, action: "sponsor.removed", targetTable: "sponsors", targetId: id, before: toRow({ ...toSponsor(before as Record<string, unknown>) }) });
   const { error } = await db.from("sponsors").delete().eq("id", id);
   throwIfSupabaseError(error, "Could not remove the sponsor");
-  await logAudit({ actorUserId, action: "sponsor.removed", targetTable: "sponsors", targetId: id, before: toRow({ ...toSponsor(before as Record<string, unknown>) }) });
 }

@@ -45,16 +45,15 @@ export default async function AdminRegistrationPage({ params }: { params: Promis
         <div><dt>Child&rsquo;s date of birth</dt><dd>{day(registration.childDob)}</dd></div>
         <div><dt>Photo consent</dt><dd>{words(registration.photoConsent)}</dd></div>
         <div><dt>Payment</dt><dd>{words(registration.paymentStatus)}{registration.paymentMethod ? ` · ${words(registration.paymentMethod)}` : ""}</dd></div>
-        <div><dt>Due and paid</dt><dd>{money(registration.dueCents)} due · {money(registration.paidCents)} paid{owing > 0 ? <> · <strong>{money(owing)} owing</strong></> : null}</dd></div>
+        <div><dt>{registration.paysWeekly ? "Due so far (pays weekly) and paid" : "Due and paid"}</dt><dd>{money(registration.dueCents)} due · {money(registration.paidCents)} paid{owing > 0 ? <> · <strong>{money(owing)} owing</strong></> : null}</dd></div>
       </dl>
 
       <section className="admin-group" aria-labelledby="health-h">
         <h2 id="health-h">Health and emergency details</h2>
-        {registration.healthPurgedAt ? (
-          <p className="admin-form-note">These were deleted on {day(registration.healthPurgedAt)}, 90 days after the programme ended. There is nothing to show.</p>
-        ) : (
-          <RevealHealth registrationId={registration.id} reasonMin={REVEAL_REASON_MIN} reasonMax={REVEAL_REASON_MAX} />
+        {registration.healthPurgedAt && (
+          <p className="admin-form-note">Allergies, medical conditions, medications, special needs and the parent&rsquo;s notes were deleted on {day(registration.healthPurgedAt)}, 90 days after the programme ended. The emergency contact and who may collect the child are still held, and are shown on Reveal.</p>
         )}
+        <RevealHealth registrationId={registration.id} reasonMin={REVEAL_REASON_MIN} reasonMax={REVEAL_REASON_MAX} />
       </section>
     </AdminShell>
   );

@@ -21,7 +21,7 @@ function failed(error: unknown) {
   const message = error instanceof Error ? error.message : "";
   if (message === "NOT_FOUND") return NextResponse.json({ error: "That sponsor is no longer there. Refresh the page." }, { status: 404 });
   console.error("admin sponsors", message);
-  return NextResponse.json({ error: "Could not save. Nothing was changed." }, { status: 500 });
+  return NextResponse.json({ error: "Could not finish saving. Check the list before trying again." }, { status: 500 });
 }
 
 // Admin -> Leads -> Sponsors (brief 08, 1.8). Platform role plus the

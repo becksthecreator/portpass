@@ -30,6 +30,8 @@ const HEADER_MARK_QUERY = "(max-width: 519px)";
 export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
   // The announcement bar (Admin -> Content): one line above the header on
   // every PortPass page, until its last day or until it is switched off.
+  // Its link is never prefetched: it is on every page, and a prefetch of a
+  // business's page must not count as a visit that came from PortPass.
   const [sections, { announcement }] = await Promise.all([getNavTree(), getSiteContent()]);
   const announce = announcementVisible(announcement, nassauDay()) ? announcement : null;
   // The full trail ("PortPass / Weddings / Bahamas Weddings By The Sea")
@@ -51,7 +53,7 @@ export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
     {announce && (
       <p className="site-announcement" role="note">
         <span>{announce.text}</span>
-        {announce.href && (announce.href.startsWith("/") ? <Link href={announce.href}>{announce.linkLabel}</Link> : <a href={announce.href} rel="noopener">{announce.linkLabel}</a>)}
+        {announce.href && (announce.href.startsWith("/") ? <Link href={announce.href} prefetch={false}>{announce.linkLabel}</Link> : <a href={announce.href} rel="noopener">{announce.linkLabel}</a>)}
       </p>
     )}
     <header className="site-shell-header">

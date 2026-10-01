@@ -20,7 +20,7 @@ function centsOf(value: string): number | null | undefined {
 
 const money = (cents: number | null) => (cents === null ? "—" : `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })}`);
 
-function SponsorForm({ draft, setDraft, onSubmit, onCancel, busy, submitLabel }: { draft: Draft; setDraft: (draft: Draft) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onCancel?: () => void; busy: boolean; submitLabel: string }) {
+function SponsorForm({ draft, setDraft, onSubmit, onCancel, busy, submitLabel, error }: { draft: Draft; setDraft: (draft: Draft) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onCancel?: () => void; busy: boolean; submitLabel: string; error: string }) {
   return (
     <form className="admin-content-form" onSubmit={onSubmit}>
       <label><span>Sponsor</span><input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} maxLength={120} required placeholder="Island Print Shop" /></label>
@@ -33,6 +33,7 @@ function SponsorForm({ draft, setDraft, onSubmit, onCancel, busy, submitLabel }:
         </select>
       </label>
       <label><span>Notes</span><input value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} maxLength={600} /></label>
+      {error && <p className="form-error" role="alert">{error}</p>}
       <div className="admin-form-actions">
         <button type="submit" className="admin-action is-primary" disabled={busy}>{busy ? "Saving…" : submitLabel}</button>
         {onCancel && <button type="button" className="admin-action" onClick={onCancel} disabled={busy}>Cancel</button>}
@@ -49,11 +50,15 @@ export function SponsorsManager({ sponsors }: { sponsors: Sponsor[] }) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editing, setEditing] = useState<Draft>(BLANK);
   const [busy, setBusy] = useState(false);
+  // The message is shown beside whatever was being done: the add form, the
+  // row being edited, or (for Remove) above the list.
   const [error, setError] = useState("");
+  const [errorAt, setErrorAt] = useState<"add" | "edit" | "list">("list");
 
   async function send(method: "POST" | "PATCH" | "DELETE", body: Record<string, unknown>): Promise<boolean> {
     setBusy(true);
     setError("");
+    setErrorAt(method === "POST" ? "add" : method === "PATCH" ? "edit" : "list");
     const response = await fetch("/api/admin/sponsors", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
     setBusy(false);
     if (response?.ok) {
@@ -61,13 +66,16 @@ export function SponsorsManager({ sponsors }: { sponsors: Sponsor[] }) {
       return true;
     }
     const data = response ? ((await response.json().catch(() => ({}))) as { error?: string }) : {};
-    setError(data.error ?? "Could not save. Nothing was changed.");
+    setError(data.error ?? "Could not finish saving. Check the list before trying again.");
+    // A failure part-way may still have changed the list: show what is stored.
+    if (!response || response.status >= 500) router.refresh();
     return false;
   }
 
-  function payload(draft: Draft): Record<string, unknown> | null {
+  function payload(draft: Draft, at: "add" | "edit"): Record<string, unknown> | null {
     const valueCents = centsOf(draft.value);
     if (valueCents === undefined) {
+      setErrorAt(at);
       setError("The value is an amount in dollars, like 250 or 1,200.50.");
       return null;
     }
@@ -76,13 +84,13 @@ export function SponsorsManager({ sponsors }: { sponsors: Sponsor[] }) {
 
   async function add(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const sponsor = payload(adding);
+    const sponsor = payload(adding, "add");
     if (sponsor && (await send("POST", { sponsor }))) setAdding(BLANK);
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const sponsor = payload(editing);
+    const sponsor = payload(editing, "edit");
     if (sponsor && editingId && (await send("PATCH", { id: editingId, sponsor }))) setEditingId(null);
   }
 
@@ -96,7 +104,7 @@ export function SponsorsManager({ sponsors }: { sponsors: Sponsor[] }) {
 
   return (
     <>
-      {error && <p className="form-error" role="alert">{error}</p>}
+      {error && errorAt === "list" && <p className="form-error" role="alert">{error}</p>}
       {sponsors.length === 0 ? (
         <p className="admin-empty">No sponsors yet. Add the first one below.</p>
       ) : (
@@ -107,7 +115,7 @@ export function SponsorsManager({ sponsors }: { sponsors: Sponsor[] }) {
             <tbody>
               {sponsors.map((sponsor) => (
                 editingId === sponsor.id ? (
-                  <tr key={sponsor.id}><td colSpan={6}><SponsorForm draft={editing} setDraft={setEditing} onSubmit={save} onCancel={() => setEditingId(null)} busy={busy} submitLabel="Save" /></td></tr>
+                  <tr key={sponsor.id}><td colSpan={6}><SponsorForm draft={editing} setDraft={setEditing} onSubmit={save} onCancel={() => setEditingId(null)} busy={busy} submitLabel="Save" error={errorAt === "edit" ? error : ""} /></td></tr>
                 ) : (
                   <tr key={sponsor.id}>
                     <td data-label="Sponsor"><strong>{sponsor.name}</strong>{sponsor.notes ? <><br /><small>{sponsor.notes}</small></> : null}</td>
@@ -131,7 +139,7 @@ export function SponsorsManager({ sponsors }: { sponsors: Sponsor[] }) {
 
       <section className="admin-group admin-sponsor-add" aria-labelledby="sponsor-add">
         <h2 id="sponsor-add">Add a sponsor</h2>
-        <SponsorForm draft={adding} setDraft={setAdding} onSubmit={add} busy={busy} submitLabel="Add sponsor" />
+        <SponsorForm draft={adding} setDraft={setAdding} onSubmit={add} busy={busy} submitLabel="Add sponsor" error={errorAt === "add" ? error : ""} />
       </section>
     </>
   );

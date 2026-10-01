@@ -16,6 +16,15 @@ describe("the announcement bar", () => {
     expect(cleanAnnouncement({ text: "TEST", href: "javascript:alert(1)", active: true })).toMatchObject({ ok: false });
   });
 
+  it("reads back what it stored, even for an address that grows when written out", () => {
+    const typed = `https://example.com/${"名".repeat(32)}`;
+    // 52 characters typed, over 300 once written out: refused, not stored and then unreadable.
+    expect(cleanHref(typed)).toBeUndefined();
+    const short = cleanHref("https://example.com/café");
+    expect(short).toBe("https://example.com/caf%C3%A9");
+    expect(cleanHref(short)).toBe(short);
+  });
+
   it("can't be switched on empty, be too long, or end on a date that doesn't exist", () => {
     expect(cleanAnnouncement({ text: " ", active: true })).toMatchObject({ ok: false });
     expect(cleanAnnouncement({ text: "x".repeat(141), active: false })).toMatchObject({ ok: false });
@@ -100,6 +109,19 @@ describe("the leads funnel", () => {
     expect(funnel.week).toEqual({ added: 1, contacted: 1, replied: 0, live: 1 });
     expect(funnel.replyRate).toBe(0.75);
     expect(funnel.closeRate).toBe(0.25);
+  });
+
+  it("keeps a stage once reached: a reply that came through the form still counts after the page is drafted", () => {
+    // Arrived already "replied" (no line for that), then moved on.
+    const funnel = leadsFunnel([lead(1, { status: "page_drafted" })], [{ leadId: 1, status: "page_drafted", from: "replied", at: "2026-09-20T12:00:00+00:00" }], weekAgo);
+    expect(funnel.allTime).toEqual({ added: 1, contacted: 1, replied: 1, live: 0 });
+  });
+
+  it("never counts more live this week than all time: a lead moved to live and back is not live", () => {
+    const funnel = leadsFunnel([lead(1, { status: "replied", lastContactOn: "2026-09-28" })], [{ leadId: 1, status: "live", from: "replied", at: "2026-09-29T12:00:00+00:00" }, { leadId: 1, status: "replied", from: "live", at: "2026-09-30T12:00:00+00:00" }], weekAgo);
+    expect(funnel.week.live).toBe(0);
+    expect(funnel.allTime.live).toBe(0);
+    expect(funnel.week.replied).toBe(1);
   });
 
   it("has no rates before anyone was contacted", () => {

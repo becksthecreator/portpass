@@ -6,8 +6,10 @@ import { createRateLimiter } from "@/lib/auth/rateLimit";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-// Deliberately tight: looking at a child's health details is rare.
-const limited = createRateLimiter(10, 60 * 60_000);
+// A cheap first brake on this server. The real limit (ten an hour for each
+// person) is counted from the audit log in revealRegistrationHealth, so it
+// holds across every server.
+const limited = createRateLimiter(30, 60 * 60_000);
 
 // Admin -> Bookings: Reveal (brief 08, 1.6). A child's medical, allergy,
 // medication, special-needs and emergency details are hidden from platform
@@ -30,6 +32,7 @@ export async function POST(request: Request, ctx: Ctx) {
     const message = error instanceof Error ? error.message : "";
     if (message === "REASON_REQUIRED") return NextResponse.json({ error: `Say why you need to see this (at least ${REVEAL_REASON_MIN} characters). It is logged.` }, { status: 400 });
     if (message === "NOT_FOUND") return NextResponse.json({ error: "Not found." }, { status: 404 });
+    if (message === "RATE_LIMITED") return NextResponse.json({ error: "Too many reveals in the last hour. Try again later." }, { status: 429 });
     console.error("admin health reveal", message);
     return NextResponse.json({ error: "Could not show the details. Nothing was shown." }, { status: 500 });
   }

@@ -28,8 +28,11 @@ export function cleanHref(value: unknown): string | null | undefined {
   if (href.length > 300 || /[\s<>"'`\\]/.test(href)) return undefined;
   if (href.startsWith("/")) return href.startsWith("//") ? undefined : href;
   try {
+    // Checked as it will be stored: an address with accents grows when it
+    // is written out, and must still read back as valid.
     const url = new URL(href);
-    return url.protocol === "https:" ? url.toString() : undefined;
+    const stored = url.toString();
+    return url.protocol === "https:" && stored.length <= 300 ? stored : undefined;
   } catch {
     return undefined;
   }

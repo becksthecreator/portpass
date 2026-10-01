@@ -19,22 +19,23 @@ export async function PUT(request: Request) {
   const body = (await request.json().catch(() => null)) as { announcement?: unknown; spotlight?: unknown } | null;
   if (!body || (body.announcement === undefined && body.spotlight === undefined)) return NextResponse.json({ error: "Nothing to save." }, { status: 400 });
 
+  // Everything is checked before anything is written.
+  const announcement = body.announcement === undefined ? null : cleanAnnouncement(body.announcement);
+  if (announcement && !announcement.ok) return NextResponse.json({ error: announcement.error }, { status: 400 });
+  if (body.spotlight !== undefined && !Array.isArray(body.spotlight)) return NextResponse.json({ error: "The order is a list of businesses." }, { status: 400 });
+
   try {
-    if (body.announcement !== undefined) {
-      const cleaned = cleanAnnouncement(body.announcement);
-      if (!cleaned.ok) return NextResponse.json({ error: cleaned.error }, { status: 400 });
-      await saveAnnouncement(cleaned.value, auth.session.userId);
-    }
-    if (body.spotlight !== undefined) {
-      if (!Array.isArray(body.spotlight)) return NextResponse.json({ error: "The order is a list of businesses." }, { status: 400 });
-      await saveSpotlight(cleanSpotlight(body.spotlight), auth.session.userId);
-    }
+    if (announcement?.ok) await saveAnnouncement(announcement.value, auth.session.userId);
+    if (body.spotlight !== undefined) await saveSpotlight(cleanSpotlight(body.spotlight), auth.session.userId);
+    return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("admin content save", error instanceof Error ? error.message : "");
-    return NextResponse.json({ error: "Could not save. Nothing was changed." }, { status: 500 });
+    return NextResponse.json({ error: "Could not finish saving. Reload to see what is stored." }, { status: 500 });
+  } finally {
+    // Whatever was written is what the site shows next, even if a later
+    // step failed. { expire: 0 }: the next request reads the new content,
+    // not the old one once more.
+    revalidateTag(SITE_CONTENT_TAG, { expire: 0 });
+    bumpListings();
   }
-  // { expire: 0 }: the next request reads the new content, not the old one once more.
-  revalidateTag(SITE_CONTENT_TAG, { expire: 0 });
-  bumpListings();
-  return NextResponse.json({ ok: true });
 }

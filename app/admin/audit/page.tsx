@@ -22,6 +22,15 @@ function short(value: unknown): string {
   return text.length > 160 ? `${text.slice(0, 157)}…` : text;
 }
 
+// A reason someone typed (a reveal, a suspension) is shown in full, ahead
+// of the rest: it is the point of the entry and must never be cut off.
+function reasonOf(value: unknown): { reason: string | null; rest: unknown } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { reason: null, rest: value };
+  const { reason, ...rest } = value as Record<string, unknown>;
+  if (typeof reason !== "string" || !reason) return { reason: null, rest: value };
+  return { reason, rest: Object.keys(rest).length ? rest : null };
+}
+
 // Actor, action, target, before/after, time. Read-only by construction:
 // there is no route that updates or deletes audit_log, and the table is
 // service-role only.
@@ -54,7 +63,10 @@ export default async function AdminAuditPage({ searchParams }: { searchParams: P
                 <td data-label="Action">{row.action}</td>
                 <td data-label="Target">{row.targetTable ?? ""}{row.targetId ? ` #${row.targetId}` : ""}{row.organizationId ? <> · <Link href={`/admin/audit?org=${row.organizationId}`}>org {row.organizationId}</Link></> : null}</td>
                 <td data-label="Before"><code>{short(row.before)}</code></td>
-                <td data-label="After"><code>{short(row.after)}</code></td>
+                <td data-label="After">{(() => {
+                  const { reason, rest } = reasonOf(row.after);
+                  return <>{reason && <><strong>Reason:</strong> {reason}{rest ? <br /> : null}</>}{rest !== null && rest !== undefined && <code>{short(rest)}</code>}</>;
+                })()}</td>
               </tr>
             ))}
           </tbody>

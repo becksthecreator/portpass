@@ -5756,7 +5756,7 @@ a.admin-tile:hover{border-color:var(--sky)}
 .admin-owing{color:var(--signal-text);font-weight:700}
 .admin-content>.admin-form-note{margin:0 0 14px}
 /* Announcement bar and Admin -> Content (brief 08, 1.9). */
-.site-announcement{align-items:center;background:#0D1B3D;color:#fff;display:flex;flex-wrap:wrap;font-size:.85rem;font-weight:600;gap:4px 12px;justify-content:center;line-height:1.4;margin:0;padding:9px 16px;text-align:center}
+.site-announcement{overflow-wrap:anywhere;align-items:center;background:#0D1B3D;color:#fff;display:flex;flex-wrap:wrap;font-size:.85rem;font-weight:600;gap:4px 12px;justify-content:center;line-height:1.4;margin:0;padding:9px 16px;text-align:center}
 .site-announcement a,.admin-content-preview-link{color:#fff;text-decoration:underline;text-underline-offset:3px}
 .admin-content-form{display:grid;gap:14px;max-width:640px}
 .admin-content-form label{display:grid;gap:6px}
@@ -5783,6 +5783,7 @@ a.admin-tile:hover{border-color:var(--sky)}
 .leads-board-column ul{display:grid;gap:8px;list-style:none;margin:0;padding:0}
 .leads-board-column li{background:var(--bg);border:1px solid var(--line);border-radius:10px;display:grid;gap:4px;padding:10px}
 .leads-board-column li a{color:var(--sky);font-size:.88rem;font-weight:700;overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:3px}
+.leads-board-column li.leads-board-more{background:none;border-style:dashed}
 .leads-board-column li small,.leads-board-empty{color:var(--muted);font-size:.76rem;margin:0}
 .leads-board-column li .lead-score{justify-self:start}
 @media (max-width:760px){.leads-board{grid-template-columns:1fr;overflow-x:visible}}

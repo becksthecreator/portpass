@@ -1,4 +1,4 @@
-import { outstandingFrom, type AdminPayment, type BookingKind, type Outstanding } from "@/lib/adminBookings";
+import { outstandingFrom, type AdminPayment, type Outstanding, type PaymentKind } from "@/lib/adminBookings";
 import { listAdminBookings } from "./adminBookings";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -27,18 +27,19 @@ async function byIds(table: string, columns: string, ids: number[], label: strin
 }
 
 const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
+const has = (value: unknown): boolean => value !== null && value !== undefined;
 
 export async function listAdminPayments(filter: { organizationId?: number | null } = {}): Promise<AdminPayment[]> {
   const db = getSupabaseAdmin();
   const rows: Row[] = [];
   for (let from = 0; from < MAX_ROWS; from += PAGE) {
-    const { data, error } = await db.from("payments").select("id,registration_id,private_session_request_id,amount_cents,method,status,reference,received_at,recorded_by").order("received_at", { ascending: false }).order("id", { ascending: false }).range(from, from + PAGE - 1);
+    const { data, error } = await db.from("payments").select("id,registration_id,private_session_request_id,amount_cents,method,status,reference,received_at,created_at,recorded_by").order("id", { ascending: false }).range(from, from + PAGE - 1);
     throwIfSupabaseError(error, "Could not load payments");
     rows.push(...((data ?? []) as Row[]));
     if ((data ?? []).length < PAGE) break;
   }
 
-  const idsOf = (column: string) => rows.filter((row) => row[column] !== null && row[column] !== undefined).map((row) => Number(row[column]));
+  const idsOf = (column: string) => rows.filter((row) => has(row[column])).map((row) => Number(row[column]));
   const [registrations, sessions, { data: orgRows, error: orgError }] = await Promise.all([
     byIds("registrations", "id,organization_id,reference_code,parent_name", idsOf("registration_id"), "Could not load registrations"),
     byIds("private_session_requests", "id,organization_id,reference_code,parent_name", idsOf("private_session_request_id"), "Could not load private session requests"),
@@ -49,29 +50,28 @@ export async function listAdminPayments(filter: { organizationId?: number | null
   const named = (id: number | null) => (id === null ? "" : orgNames.get(id) ?? `Business ${id}`);
 
   const payments: AdminPayment[] = rows.map((row) => {
-    let kind: BookingKind = "registration";
+    // A payment tied to neither kind of booking is listed as it is, with
+    // no business guessed for it.
+    let kind: PaymentKind = "other";
     let organizationId: number | null = null;
     let payer = "";
     let bookingReference: string | null = null;
-    if (row.registration_id !== null && row.registration_id !== undefined) {
-      const booking = registrations.get(Number(row.registration_id));
-      organizationId = booking ? Number(booking.organization_id) : null;
-      payer = text(booking?.parent_name);
-      bookingReference = text(booking?.reference_code) || null;
-    } else if (row.private_session_request_id !== null && row.private_session_request_id !== undefined) {
-      const booking = sessions.get(Number(row.private_session_request_id));
-      kind = "private_session";
-      organizationId = booking ? Number(booking.organization_id) : null;
-      payer = text(booking?.parent_name);
-      bookingReference = text(booking?.reference_code) || null;
+    const booking = has(row.registration_id) ? registrations.get(Number(row.registration_id)) : has(row.private_session_request_id) ? sessions.get(Number(row.private_session_request_id)) : undefined;
+    if (has(row.registration_id)) kind = "registration";
+    else if (has(row.private_session_request_id)) kind = "private_session";
+    if (booking) {
+      organizationId = Number(booking.organization_id);
+      payer = text(booking.parent_name);
+      bookingReference = text(booking.reference_code) || null;
     }
     const status = row.status === "voided" || row.status === "refunded" ? row.status : "received";
-    return { source: "payment", id: Number(row.id), kind, organizationId, organizationName: named(organizationId), payer, bookingReference, amountCents: Number(row.amount_cents), method: text(row.method), status, reference: text(row.reference) || null, receivedAt: String(row.received_at), recordedBy: text(row.recorded_by) || null };
+    // A payment with no received date counts from when it was recorded.
+    return { source: "payment", id: Number(row.id), kind, organizationId, organizationName: named(organizationId), payer, bookingReference, amountCents: Number(row.amount_cents), method: text(row.method), status, reference: text(row.reference) || null, receivedAt: String(row.received_at ?? row.created_at), recordedBy: text(row.recorded_by) || null };
   });
 
   // Shop orders marked paid.
   for (let from = 0; from < MAX_ROWS; from += PAGE) {
-    const { data, error } = await db.from("reservations").select("id,organization_id,reference_code,buyer_name,total_cents,payment_method,payment_status,paid_at").in("payment_status", ["paid", "refunded"]).not("paid_at", "is", null).order("paid_at", { ascending: false }).order("id", { ascending: false }).range(from, from + PAGE - 1);
+    const { data, error } = await db.from("reservations").select("id,organization_id,reference_code,buyer_name,total_cents,payment_method,payment_status,paid_at").in("payment_status", ["paid", "refunded"]).not("paid_at", "is", null).order("id", { ascending: false }).range(from, from + PAGE - 1);
     throwIfSupabaseError(error, "Could not load shop orders");
     for (const row of (data ?? []) as Row[]) {
       const organizationId = Number(row.organization_id);
@@ -81,7 +81,8 @@ export async function listAdminPayments(filter: { organizationId?: number | null
   }
 
   const wanted = filter.organizationId ? payments.filter((payment) => payment.organizationId === filter.organizationId) : payments;
-  return wanted.sort((a, b) => (a.receivedAt < b.receivedAt ? 1 : a.receivedAt > b.receivedAt ? -1 : b.id - a.id));
+  // Newest first by the moment stored, then by id.
+  return wanted.sort((a, b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt) || b.id - a.id);
 }
 
 // ---- Outstanding ---------------------------------------------------------------------

@@ -21,6 +21,9 @@ function when(iso: string | null): string {
   return iso ? new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString("en-BS", { day: "numeric", month: "short", timeZone: "UTC" }) : "—";
 }
 
+// A column shows its top leads; the heading keeps the full count.
+const BOARD_COLUMN_MAX = 25;
+
 const percent = (rate: number | null): string => (rate === null ? "—" : `${Math.round(rate * 100)}%`);
 
 function dollars(cents: number): string {
@@ -37,12 +40,15 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
   const source: LeadSource | null = isLeadSource(params.source) ? params.source : null;
   const minScore = params.score && /^\d{1,3}$/.test(params.score) ? Number(params.score) : null;
   const board = params.view === "board";
-  const [sections, leads, digest, usage, funnel] = await Promise.all([
-    listSections({ includeHidden: true }),
-    listLeads({ section: params.section || null, status, source, minScore, area: params.area ?? null, q: params.q ?? null }),
-    leadsDigest(),
-    lookupUsage(),
-    getLeadsFunnel(),
+  const filtered = Boolean(params.section || status || source || minScore !== null || params.area || params.q);
+  // The whole catalogue is read once: the digest and the funnel count it,
+  // and with no filter it is also the list shown.
+  const now = new Date();
+  const [sections, all, usage] = await Promise.all([listSections({ includeHidden: true }), listLeads(), lookupUsage()]);
+  const [leads, digest, funnel] = await Promise.all([
+    filtered ? listLeads({ section: params.section || null, status, source, minScore, area: params.area ?? null, q: params.q ?? null }) : Promise.resolve(all),
+    leadsDigest(now, all),
+    getLeadsFunnel(now, all),
   ]);
   // The same filters, in the other view.
   const viewHref = (view: "table" | "board") => {
@@ -54,7 +60,6 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
   };
   const sectionName = (slug: string | null) => sections.find((s) => s.slug === slug)?.name ?? slug ?? "No section yet";
   const sectionOptions = sections.map((s) => ({ slug: s.slug, name: s.name, subcategories: s.subcategories.map((c) => ({ slug: c.slug, name: c.name })) }));
-  const filtered = Boolean(params.section || status || source || minScore !== null || params.area || params.q);
 
   return (
     <AdminShell
@@ -150,7 +155,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
         {board && <input type="hidden" name="view" value="board" />}
         <div className="leads-filter-actions">
           <button className="primary-button" type="submit">Filter</button>
-          {filtered && <Link href="/admin/leads">Clear</Link>}
+          {filtered && <Link href={board ? "/admin/leads?view=board" : "/admin/leads"}>Clear</Link>}
         </div>
       </form>
 
@@ -172,13 +177,14 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
                   <p className="leads-board-empty">None</p>
                 ) : (
                   <ul>
-                    {cards.map((lead) => (
+                    {cards.slice(0, BOARD_COLUMN_MAX).map((lead) => (
                       <li key={lead.id}>
                         <Link href={`/admin/leads/${lead.id}`}>{lead.businessName}</Link>
                         <small>{[sectionName(lead.section), lead.nextStep].filter(Boolean).join(" · ")}</small>
                         {lead.score !== null && <span className={`lead-score lead-score-${scoreAction(lead.score)}`}>{lead.score}</span>}
                       </li>
                     ))}
+                    {cards.length > BOARD_COLUMN_MAX && <li className="leads-board-more"><Link href={`/admin/leads?status=${column}`}>See all {cards.length} in the table</Link></li>}
                   </ul>
                 )}
               </section>

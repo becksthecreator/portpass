@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
-type Revealed = { purgedAt: string | null; fields: Array<{ label: string; value: string }> };
+type Revealed = { purgedAt: string | null; fields: Array<{ label: string; value: string; deleted?: boolean }> };
 
 // Hidden until someone says why they need it (brief 08, 1.6). The details
 // are fetched only after the reason is logged, live in this screen's
@@ -35,7 +35,7 @@ export function RevealHealth({ registrationId, reasonMin, reasonMax }: { registr
         <p className="admin-form-note">Shown to you once. This was logged with your reason.</p>
         <dl className="admin-facts">
           {revealed.fields.map((field) => (
-            <div key={field.label}><dt>{field.label}</dt><dd>{field.value || "Nothing given"}</dd></div>
+            <div key={field.label}><dt>{field.label}</dt><dd>{field.value || (field.deleted ? "Deleted" : "Nothing given")}</dd></div>
           ))}
         </dl>
         <button type="button" className="admin-action" onClick={() => setRevealed(null)}>Hide</button>

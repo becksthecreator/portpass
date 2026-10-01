@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { BOOKINGS_CSV_HEADER, HEALTH_FIELDS, reconcile } from "@/lib/adminBookings";
+import { BOOKINGS_CSV_HEADER, HEALTH_FIELDS, reconcile, REVEALS_PER_HOUR } from "@/lib/adminBookings";
+import { nassauToday } from "@/lib/futprepTerms";
 import { exportBookings, getAdminRegistration, listAdminBookings, revealRegistrationHealth } from "./adminBookings";
 import { listAdminPayments, outstandingByBusiness } from "./adminPayments";
 import { ensureFutprepPilotData } from "./registrations";
@@ -33,6 +34,13 @@ let programId = 0;
 let owingId = 0;
 let paidId = 0;
 let cancelledId = 0;
+let weeklyId = 0;
+let termId = 0;
+
+const DAY = 24 * 3600_000;
+const dayOffset = (days: number) => new Date(Date.now() + days * DAY).toISOString().slice(0, 10);
+// A weekly payer who joined three weeks ago.
+const JOINED = new Date(Date.now() - 21 * DAY).toISOString();
 
 function registration(label: string, extra: Record<string, unknown>) {
   const now = new Date().toISOString();
@@ -82,21 +90,25 @@ beforeAll(async () => {
     .single();
   expect(programError).toBeNull();
   programId = Number(program!.id);
-  const { data: term, error: termError } = await db.from("program_terms").insert({ program_id: programId, name: "TEST term", start_date: "2026-09-01", end_date: "2026-12-05", weekly_fee_cents: 3500, term_fee_cents: 30000, active: false }).select("id").single();
+  // A term that started five weeks ago and runs five more: its Saturday
+  // sessions are made by the database when the term is added.
+  const { data: term, error: termError } = await db.from("program_terms").insert({ program_id: programId, name: "TEST term", start_date: dayOffset(-35), end_date: dayOffset(35), weekly_fee_cents: 3500, term_fee_cents: 30000, active: false }).select("id").single();
   expect(termError).toBeNull();
-  const termId = Number(term!.id);
+  termId = Number(term!.id);
   const { data: rows, error } = await db
     .from("registrations")
     .insert([
       registration("Owing", { term_id: termId, payment_status: "partial" }),
       registration("Paid", { term_id: termId, payment_status: "paid" }),
       registration("Cancelled", { term_id: termId, registration_status: "cancelled" }),
+      registration("Weekly", { term_id: termId, registration_status: "pending_details", payment_frequency: "weekly", amount_due_cents: 3500, submitted_at: JOINED }),
     ])
     .select("id,child_name");
   expect(error).toBeNull();
   owingId = Number(rows!.find((r) => r.child_name.endsWith("Owing"))!.id);
   paidId = Number(rows!.find((r) => r.child_name.endsWith("Paid"))!.id);
   cancelledId = Number(rows!.find((r) => r.child_name.endsWith("Cancelled"))!.id);
+  weeklyId = Number(rows!.find((r) => r.child_name.endsWith("Weekly"))!.id);
   const { error: paymentError } = await db.from("payments").insert([
     { registration_id: owingId, amount_cents: 10000, method: "cash", status: "received", recorded_by: MARK, note: "", received_at: "2026-10-01T15:00:00Z" },
     { registration_id: owingId, amount_cents: 5000, method: "cash", status: "voided", recorded_by: MARK, note: "", received_at: "2026-10-01T15:05:00Z" },
@@ -107,9 +119,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (programId) {
-    const ids = [owingId, paidId, cancelledId].filter(Boolean);
+    const ids = [owingId, paidId, cancelledId, weeklyId].filter(Boolean);
     if (ids.length) await db.from("payments").delete().in("registration_id", ids);
     await db.from("registrations").delete().eq("program_id", programId);
+    await db.from("sessions").delete().eq("program_id", programId);
     await db.from("program_terms").delete().eq("program_id", programId);
     await db.from("programs").delete().eq("id", programId);
   }
@@ -122,7 +135,7 @@ afterAll(async () => {
 describe("the bookings list", () => {
   it("shows who booked, what for, and what is due and paid", async () => {
     const bookings = mine(await listAdminBookings({ organizationId: orgId, kind: "registration", limit: 5000 }));
-    expect(bookings).toHaveLength(3);
+    expect(bookings).toHaveLength(4);
     const owing = bookings.find((b) => b.id === owingId)!;
     // A voided payment is not money received.
     expect(owing).toMatchObject({ kind: "registration", customer: `${MARK} Parent Owing`, dueCents: 30000, paidCents: 10000, status: "confirmed", paymentStatus: "partial" });
@@ -139,7 +152,21 @@ describe("the bookings list", () => {
 
   it("filters to what still owes: not the paid one, not the cancelled one", async () => {
     const owing = mine(await listAdminBookings({ organizationId: orgId, kind: "registration", owing: true, limit: 5000 }));
-    expect(owing.map((b) => b.id)).toEqual([owingId]);
+    expect(owing.map((b) => b.id).sort()).toEqual([owingId, weeklyId].sort());
+    // The screen's own call (no limit given) reads every row before it filters.
+    expect(mine(await listAdminBookings({ organizationId: orgId, owing: true })).map((b) => b.id)).toContain(owingId);
+  });
+
+  it("charges a weekly payer one week for each session held since they joined, and a cancelled booking nothing", async () => {
+    const { data: held } = await db.from("sessions").select("id").eq("term_id", termId).neq("status", "cancelled").gte("session_date", nassauToday(new Date(JOINED))).lte("session_date", nassauToday());
+    // Three weeks always holds at least three Saturdays.
+    expect(held!.length).toBeGreaterThanOrEqual(3);
+    const bookings = mine(await listAdminBookings({ organizationId: orgId, kind: "registration", limit: 5000 }));
+    const weekly = bookings.find((b) => b.id === weeklyId)!;
+    expect(weekly).toMatchObject({ status: "pending_details", dueCents: 3500 * held!.length, paidCents: 0 });
+    expect(weekly.detail).toContain("pays weekly");
+    expect(bookings.find((b) => b.id === cancelledId)).toMatchObject({ dueCents: 0 });
+    expect(await getAdminRegistration(weeklyId)).toMatchObject({ paysWeekly: true, dueCents: 3500 * held!.length });
   });
 });
 
@@ -187,6 +214,15 @@ describe("one registration, and Reveal", () => {
     const entry = JSON.stringify(logged![0]);
     for (const value of Object.values(HIDDEN)) expect(entry).not.toContain(value);
   });
+
+  it("stops at ten reveals an hour for one person, counted from the log itself", async () => {
+    const { data: already } = await db.from("audit_log").select("id").eq("actor_user_id", founder).eq("action", "registration.health_revealed");
+    const filler = Array.from({ length: REVEALS_PER_HOUR - already!.length }, () => ({ actor_user_id: founder, organization_id: orgId, action: "registration.health_revealed", target_table: "registrations", target_id: String(paidId), after: { reason: "TEST filler for the limit", shown: "health_and_emergency" } }));
+    expect((await db.from("audit_log").insert(filler)).error).toBeNull();
+    await expect(revealRegistrationHealth(owingId, "TEST one more than the limit allows", founder)).rejects.toThrow("RATE_LIMITED");
+    const { data: after } = await db.from("audit_log").select("id").eq("actor_user_id", founder).eq("action", "registration.health_revealed");
+    expect(after).toHaveLength(REVEALS_PER_HOUR);
+  });
 });
 
 describe("payments", () => {
@@ -201,14 +237,14 @@ describe("payments", () => {
     const lines = reconcile(mine(await listAdminPayments({ organizationId: orgId })));
     const cash = lines.find((l) => l.method === "cash")!;
     const transfer = lines.find((l) => l.method === "bank_transfer")!;
-    expect(cash).toMatchObject({ month: "2026-10", count: 1, receivedCents: 10000, reversedCount: 1, reversedCents: 5000, missingReference: 0 });
+    expect(cash).toMatchObject({ month: "2026-10", count: 1, receivedCents: 10000, voidedCount: 1, voidedCents: 5000, refundedCount: 0, missingReference: 0 });
     expect(transfer).toMatchObject({ month: "2026-10", count: 1, receivedCents: 30000, missingReference: 1 });
   });
 
   it("counts what customers still owe the business", async () => {
     const outstanding = (await outstandingByBusiness()).find((entry) => entry.organizationId === orgId);
-    // At least this file's 200.00: other tests may leave their own.
-    expect(outstanding!.owingCents).toBeGreaterThanOrEqual(20000);
+    // At least this file's 200.00 and the weekly payer's three weeks: other tests may leave their own.
+    expect(outstanding!.owingCents).toBeGreaterThanOrEqual(20000 + 3 * 3500);
     expect(outstanding!.byKind.find((k) => k.kind === "registration")!.count).toBeGreaterThanOrEqual(1);
   });
 });

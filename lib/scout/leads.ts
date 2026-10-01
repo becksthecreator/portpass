@@ -28,8 +28,10 @@ export const LEAD_BOARD: LeadStatus[] = [...LEAD_PIPELINE, "not_now"];
 // ---- The funnel (brief 08, 1.8) ---------------------------------------------------
 
 export type FunnelLead = { id: number; status: LeadStatus; lastContactOn: string | null; createdAt: string };
-// One "status changed" line from the audit log.
-export type LeadStatusChange = { leadId: number; status: string; at: string };
+// One "status changed" line from the audit log: where the lead went, and
+// where it came from (older lines, and leads that arrived already replied,
+// have only one of the two).
+export type LeadStatusChange = { leadId: number; status: string; from?: string | null; at: string };
 export type FunnelCounts = { added: number; contacted: number; replied: number; live: number };
 export type LeadsFunnel = { week: FunnelCounts; allTime: FunnelCounts; replyRate: number | null; closeRate: number | null };
 
@@ -52,15 +54,22 @@ export function leadsFunnel(leads: FunnelLead[], changes: LeadStatusChange[], we
   for (const change of changes) {
     // A lead since removed or marked "do not contact" is not counted.
     if (!known.has(change.leadId)) continue;
+    // Where it came from counts too: a lead that arrived already replied
+    // (the get listed form) has no line saying so until it moves on.
+    if (change.from === "contacted" || change.from === "replied") reached.contacted.add(change.leadId);
+    if (change.from === "replied") reached.replied.add(change.leadId);
     if (change.status !== "contacted" && change.status !== "replied" && change.status !== "live") continue;
     if (change.status !== "live") reached[change.status].add(change.leadId);
     if (change.status === "replied") reached.contacted.add(change.leadId);
-    if (change.at >= weekAgoIso) thisWeek[change.status].add(change.leadId);
+    // A lead moved to live and back again is not live: this week never
+    // counts more than all time does.
+    if (change.status === "live" && !reached.live.has(change.leadId)) continue;
+    if (Date.parse(change.at) >= Date.parse(weekAgoIso)) thisWeek[change.status].add(change.leadId);
   }
   const allTime = { added: leads.length, contacted: reached.contacted.size, replied: reached.replied.size, live: reached.live.size };
   const rate = (part: number, whole: number) => (whole > 0 ? Math.min(1, part / whole) : null);
   return {
-    week: { added: leads.filter((lead) => lead.createdAt >= weekAgoIso).length, contacted: thisWeek.contacted.size, replied: thisWeek.replied.size, live: thisWeek.live.size },
+    week: { added: leads.filter((lead) => Date.parse(lead.createdAt) >= Date.parse(weekAgoIso)).length, contacted: thisWeek.contacted.size, replied: thisWeek.replied.size, live: thisWeek.live.size },
     allTime,
     replyRate: rate(allTime.replied, allTime.contacted),
     closeRate: rate(allTime.live, allTime.contacted),

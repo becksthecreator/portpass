@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import type { Announcement } from "@/lib/siteContent";
+import { nassauDay, type Announcement } from "@/lib/siteContent";
 
 type Business = { slug: string; name: string };
 
@@ -10,7 +10,7 @@ async function put(body: Record<string, unknown>): Promise<string | null> {
   const response = await fetch("/api/admin/content", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
   if (response?.ok) return null;
   const data = response ? ((await response.json().catch(() => ({}))) as { error?: string }) : {};
-  return data.error ?? "Could not save. Nothing was changed.";
+  return data.error ?? "Could not finish saving. Reload to see what is stored.";
 }
 
 // The announcement bar and the homepage card order (brief 08, 1.9).
@@ -34,7 +34,7 @@ export function ContentManager({ announcement, businesses, announcementMax, link
     const failed = await put({ announcement: { text, href, linkLabel, until, active } });
     setBusy(null);
     if (failed) return setError(failed);
-    setDone(active ? "Saved. The bar is showing on the site." : "Saved. The bar is off.");
+    setDone(!active ? "Saved. The bar is off." : until && nassauDay() > until ? "Saved, but its last day has passed, so the bar is not showing." : "Saved. The bar is showing on the site.");
     router.refresh();
   }
 

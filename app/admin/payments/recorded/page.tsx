@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { listAdminBusinesses } from "@/db/adminBusinesses";
 import { listAdminPayments, outstandingByBusiness } from "@/db/adminPayments";
-import { BOOKING_KIND_LABEL, methodLabel, reconcile } from "@/lib/adminBookings";
+import { methodLabel, PAYMENT_KIND_LABEL, paymentDay, reconcile } from "@/lib/adminBookings";
 import { requireAdmin } from "@/lib/auth/admin";
 import { formatPriceCents } from "@/app/_components/blocks/format";
 import { AdminShell } from "../_components/AdminShell";
@@ -24,8 +24,9 @@ const PAYMENTS_ON_SCREEN = 200;
 
 const money = (cents: number) => formatPriceCents(cents, { currency: false });
 
+// The day the money was received: the date the desk picked, as typed.
 function when(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-BS", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Nassau" });
+  return new Date(`${paymentDay(iso)}T12:00:00Z`).toLocaleDateString("en-BS", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 }
 
 function monthName(month: string): string {
@@ -52,7 +53,8 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
     const text = query.toString();
     return text ? `/admin/payments?${text}` : "/admin/payments";
   };
-  const received = payments.filter((payment) => payment.status === "received");
+  // Voided payments were never money; a refunded one did arrive.
+  const received = payments.filter((payment) => payment.status !== "voided");
   const receivedCents = received.reduce((sum, payment) => sum + payment.amountCents, 0);
   const lines = view === "months" ? reconcile(payments) : [];
   const owing = organizationId ? outstanding.filter((entry) => entry.organizationId === organizationId) : outstanding;
@@ -76,7 +78,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
           <p className="admin-empty">No payments recorded yet.</p>
         ) : (
           <>
-            <p className="admin-form-note">{received.length} received, {money(receivedCents)} in total{payments.length > PAYMENTS_ON_SCREEN ? `. The newest ${PAYMENTS_ON_SCREEN} are listed` : ""}.</p>
+            <p className="admin-form-note">{received.length} received, {money(receivedCents)} in total (before any refunds){payments.length > PAYMENTS_ON_SCREEN ? `. The newest ${PAYMENTS_ON_SCREEN} are listed` : ""}.</p>
             <table className="admin-table">
               <thead>
                 <tr><th>Received</th><th>Business</th><th>From</th><th>For</th><th>Amount</th><th>Method</th><th>Reference</th><th>Recorded by</th></tr>
@@ -87,7 +89,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
                     <td data-label="Received">{when(payment.receivedAt)}</td>
                     <td data-label="Business">{payment.organizationName || "—"}</td>
                     <td data-label="From">{payment.payer || "—"}</td>
-                    <td data-label="For">{BOOKING_KIND_LABEL[payment.kind]}{payment.bookingReference ? <> · <code>{payment.bookingReference}</code></> : null}</td>
+                    <td data-label="For">{PAYMENT_KIND_LABEL[payment.kind]}{payment.bookingReference ? <> · <code>{payment.bookingReference}</code></> : null}</td>
                     <td data-label="Amount">{money(payment.amountCents)}{payment.status !== "received" ? <> <span className="admin-pill suspended">{payment.status}</span></> : null}</td>
                     <td data-label="Method">{methodLabel(payment.method)}</td>
                     <td data-label="Reference">{payment.reference ? <code>{payment.reference}</code> : "—"}</td>
@@ -128,10 +130,10 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
           <p className="admin-empty">No payments recorded yet.</p>
         ) : (
           <>
-            <p className="admin-form-note">Check each line against the business&rsquo;s bank statement or cash book for that month. A transfer with no reference can&rsquo;t be matched to a statement line.</p>
+            <p className="admin-form-note">Check each line against the business&rsquo;s bank statement or cash book for that month. A transfer with no reference can&rsquo;t be matched to a statement line. &ldquo;Received&rdquo; is the money that arrived that month, including any refunded later; a voided payment is not counted.</p>
             <table className="admin-table">
               <thead>
-                <tr><th>Month</th><th>Business</th><th>Method</th><th>Payments</th><th>Received</th><th>No reference</th><th>Voided or refunded</th></tr>
+                <tr><th>Month</th><th>Business</th><th>Method</th><th>Payments</th><th>Received</th><th>No reference</th><th>Refunded later</th><th>Voided</th></tr>
               </thead>
               <tbody>
                 {lines.map((line) => (
@@ -142,7 +144,8 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
                     <td data-label="Payments">{line.count}</td>
                     <td data-label="Received"><strong>{money(line.receivedCents)}</strong></td>
                     <td data-label="No reference">{line.missingReference > 0 ? <span className="admin-pill submitted">{line.missingReference}</span> : "—"}</td>
-                    <td data-label="Voided or refunded">{line.reversedCount > 0 ? `${line.reversedCount} · ${money(line.reversedCents)}` : "—"}</td>
+                    <td data-label="Refunded later">{line.refundedCount > 0 ? `${line.refundedCount} · ${money(line.refundedCents)}` : "—"}</td>
+                    <td data-label="Voided">{line.voidedCount > 0 ? `${line.voidedCount} · ${money(line.voidedCents)}` : "—"}</td>
                   </tr>
                 ))}
               </tbody>
