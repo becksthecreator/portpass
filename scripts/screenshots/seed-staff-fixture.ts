@@ -158,6 +158,29 @@ async function main() {
     if (reg.reference_code === "FP-TEST-0001") await db.from("registrations").update({ commission_eligible: true }).eq("id", reg.id);
   }
 
+  // Brief 05: the growth report. The TEST families registered before the
+  // term began, one of them brought by PortPass; six children came to all
+  // three Saturdays played, two came to none; and some views and taps of
+  // the public pages, by source.
+  await db.from("registrations").update({ submitted_at: new Date(`${iso(start)}T15:00:00Z`).toISOString() }).eq("program_id", program.id);
+  await db.from("registrations").update({ is_new_family: true }).eq("program_id", program.id).eq("reference_code", "FP-TEST-0001");
+  const { data: enrolled } = await db.from("registrations").select("id").eq("program_id", program.id).eq("registration_status", "confirmed").order("reference_code");
+  const cameEveryWeek = (enrolled ?? []).slice(0, 6);
+  const marks = (played ?? []).flatMap((s) => cameEveryWeek.map((r) => ({ registration_id: r.id, session_id: s.id, status: "present", marked_by: MARK })));
+  if (marks.length) {
+    const { error: markError } = await db.from("attendance").insert(marks);
+    if (markError) throw new Error(`Could not seed attendance: ${markError.message}`);
+  }
+  const counted: Array<[string, string, number]> = [
+    ["view", "qr", 46], ["view", "portpass_listing", 31], ["view", "instagram", 58], ["view", "unknown", 97],
+    ["whatsapp_click", "qr", 5], ["whatsapp_click", "unknown", 9],
+    ["register_click", "qr", 12], ["register_click", "instagram", 7], ["register_click", "unknown", 14],
+    ["register_start", "qr", 8], ["register_start", "unknown", 11],
+  ];
+  const pageEvents = counted.flatMap(([event, source_channel, times]) => Array.from({ length: times }, () => ({ organization_id: org.id, path: "/sports-fitness/futprep-athletics", event, source_channel })));
+  const { error: eventError } = await db.from("page_events").insert(pageEvents);
+  if (eventError) throw new Error(`Could not seed page events: ${eventError.message}`);
+
   // Brief 14: a TEST platform owner (the workflow puts this address in
   // PLATFORM_OWNER_EMAILS for the run) and five TEST leads for Admin -> Leads.
   const adminEmail = "test-delete-admin@test.portpass.local";

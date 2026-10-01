@@ -3,6 +3,7 @@
 import { ShareOnWhatsApp } from "@/app/_components/blocks/WhatsAppActions";
 import { formatPriceCents } from "@/app/_components/blocks/format";
 import { PhoneInput } from "@/app/_components/PhoneInput";
+import { recordGrowthEvent } from "@/app/_components/GrowthBeacon";
 import { track } from "@/lib/analytics";
 import { EMPTY_ATTRIBUTION, HEARD_OPTIONS, type Attribution } from "@/lib/attribution";
 
@@ -211,7 +212,10 @@ export function RegistrationForm({
     if (message) return setError(message);
     // Leaving step 1 is the "started registering" signal (round 4, item 8);
     // the event carries the business, never the parent's details.
-    if (step === 0) track("register_start", { org: "futprep" });
+    if (step === 0) {
+      track("register_start", { org: "futprep" });
+      recordGrowthEvent("register_start");
+    }
     setStep((current) => Math.min(current + 1, steps.length - 1));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }

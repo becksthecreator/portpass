@@ -50,6 +50,7 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
           )}
           {canEdit && <Link className="chooser-card" href={`/business/${slug}/settings`}><strong>Settings</strong><span>Details, photos, prices, payments</span><b>Open →</b></Link>}
           {canEdit && <Link className="chooser-card" href={`/business/${slug}/settings?step=6`}><strong>Team</strong><span>Invite staff, set who sees what</span><b>Open →</b></Link>}
+          {canEdit && <Link className="chooser-card" href={`/business/${slug}/growth`}><strong>Growth report</strong><span>Found you, asked, booked, paid, showed up</span><b>Open →</b></Link>}
           <Link className="chooser-card" href={`/business/${slug}/preview`}><strong>Preview page</strong><span>Exactly what customers will see</span><b>Open →</b></Link>
           {business.isPublished && publicHref && (
             <a className="chooser-card" href={publicHref}><strong>Public page</strong><span>Live on PortPass</span><b>Open →</b></a>

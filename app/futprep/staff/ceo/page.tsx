@@ -51,6 +51,7 @@ export default async function FutprepCeoPage() {
           <span className="staff-workspace-label">Futprep · CEO overview</span>
         </div>
         <nav>
+          <Link href="/futprep/staff/growth">Growth report</Link>
           <Link href="/futprep/staff/team">Team</Link>
           <Link href="/futprep/staff/accounts">Staff accounts</Link>
           <Link href="/futprep/staff/programs">Programs</Link>
