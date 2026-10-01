@@ -55,7 +55,7 @@ const OURS = "https://x.supabase.co/storage/v1/object/public/org-assets/";
 function upload(coachId: unknown, bytes: Uint8Array = JPEG, name = "photo.jpg") {
   const form = new FormData();
   if (coachId !== undefined) form.append("coachId", String(coachId));
-  form.append("file", new File([bytes], name, { type: "image/jpeg" }));
+  form.append("file", new File([bytes as unknown as BlobPart], name, { type: "image/jpeg" }));
   return new Request("http://localhost/api/futprep/team/photo", { method: "POST", body: form });
 }
 
