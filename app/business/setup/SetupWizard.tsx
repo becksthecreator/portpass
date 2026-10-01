@@ -541,6 +541,7 @@ export function SetupWizard(props: Props) {
           <ul className="wiz-checklist">
             {STEPS.slice(0, 6).map((label, i) => <li key={label} className={done[i] ? "is-done" : ""}>{done[i] ? "✓" : "○"} {label}</li>)}
           </ul>
+          {business.status === "draft" && isOwner && <p className="auth-legal">By submitting you agree to the <a href="/terms#business" target="_blank" rel="noopener">terms for listed businesses</a>.</p>}
           <div className="auth-actions">
             {business.status === "draft" && isOwner && <button className="primary-button" type="button" disabled={busy} onClick={() => void submit()}>{busy ? "Submitting…" : "Submit for review →"}</button>}
             {business.status === "draft" && !isOwner && <p className="auth-hint">Only the owner can submit.</p>}

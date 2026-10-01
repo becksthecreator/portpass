@@ -112,7 +112,7 @@ export default function TermsPage() {
           If you list a business on PortPass, these terms apply as well as any written agreement you have with us. Where the two differ, the agreement applies.
         </p>
         <ul>
-          <li><strong>Your listing.</strong> You are responsible for everything on it being true and current: what you offer, your prices, your schedule and your contact details. An offering is only shown once it has a price.</li>
+          <li><strong>Your listing.</strong> You are responsible for everything on it being true and current: what you offer, your prices, your schedule and your contact details. An offering you add without a price is saved as a draft and is not shown until you give it a price.</li>
           <li><strong>Review.</strong> We review a business before it goes live. We may decline a listing, send it back for changes, or hide or remove it, for example if it is misleading, breaks the law or these terms, or draws complaints. If you change your business name, your category or your bank details, we review the listing again, and it may be hidden while we do.</li>
           <li><strong>Plans and fees.</strong> Our plans, what each costs, the free period, and how and when we invoice are on the <Link href="/pricing">pricing page</Link> and in your agreement. We invoice you; we never take our fee out of your customers’ payments. You can cancel as the pricing page describes. We give you at least 30 days’ written notice before a price you already pay goes up.</li>
           <li><strong>Your customers and their payments.</strong> Your customers pay you directly. You are responsible for your own prices, receipts, refunds and cancellation rules, and for recording payments accurately.</li>
