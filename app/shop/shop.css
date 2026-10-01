@@ -27,7 +27,7 @@
 .shop-hero-note a,.shop-drop-hero .shop-eyebrow a{color:#fff}
 
 .shop-phase{align-self:flex-start;display:inline-block;border-radius:999px;padding:4px 10px;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,.18);color:#fff;margin-bottom:12px}
-.shop-phase-open{background:var(--brand,var(--harbour));color:var(--brand-text,#fff)}
+.shop-phase-open{background:var(--brand-text,var(--harbour));color:#fff}
 .shop-phase-followers{background:#F2C14E;color:#0D1B3D}
 .shop-phase-closed{background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
 
@@ -44,7 +44,7 @@
 .shop-drop-card>span:not(.shop-phase){color:var(--muted);font-size:.88rem}
 .shop-drop-card b{color:var(--harbour);font-size:.9rem;margin-top:4px}
 .shop-drop-card .shop-phase{background:var(--tint);color:var(--ink);margin:0}
-.shop-drop-card .shop-phase-open{background:var(--brand,var(--harbour));color:var(--brand-text,#fff)}
+.shop-drop-card .shop-phase-open{background:var(--brand-text,var(--harbour));color:#fff}
 
 .shop-grid,.shop-drop-products{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
 .shop-card{background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;scroll-margin-top:90px}
