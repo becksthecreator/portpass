@@ -13,6 +13,7 @@ const db = vi.hoisted(() => ({
   ],
   created: [] as Array<{ role: string }>,
   toggled: [] as Array<{ id: number; active: boolean }>,
+  emails: [] as Array<{ id: number; email: string | null }>,
 }));
 
 vi.mock("@/app/futprep/staff-auth", () => ({
@@ -27,6 +28,9 @@ vi.mock("@/app/futprep/staff-auth", () => ({
   setStaffAccountActive: vi.fn(async (id: number, active: boolean) => {
     db.toggled.push({ id, active });
   }),
+  setStaffAccountEmail: vi.fn(async (id: number, email: string | null) => {
+    db.emails.push({ id, email });
+  }),
 }));
 
 import { PATCH, POST } from "./route";
@@ -40,6 +44,7 @@ beforeEach(() => {
   auth.role = null;
   db.created = [];
   db.toggled = [];
+  db.emails = [];
 });
 
 describe("creating a staff login", () => {
@@ -62,6 +67,25 @@ describe("creating a staff login", () => {
     auth.role = "ceo";
     expect((await POST(send("POST", { ...NEW, role: "ceo" }))).status).toBe(201);
     expect(db.created).toEqual([{ role: "ceo" }]);
+  });
+});
+
+describe("the email address reminders go to", () => {
+  it("saves a tidy address, clears it when left empty, and refuses one that isn't an address", async () => {
+    auth.role = "admin";
+    expect((await PATCH(send("PATCH", { id: 3, email: "  TEST-Coach@test.portpass.local " }))).status).toBe(200);
+    expect((await PATCH(send("PATCH", { id: 3, email: "" }))).status).toBe(200);
+    expect((await PATCH(send("PATCH", { id: 3, email: "not an address" }))).status).toBe(400);
+    expect(db.emails).toEqual([{ id: 3, email: "test-coach@test.portpass.local" }, { id: 3, email: null }]);
+    expect(db.toggled).toEqual([]);
+  });
+
+  it("lets only the CEO change the CEO login's address (the monthly report goes there)", async () => {
+    auth.role = "admin";
+    expect((await PATCH(send("PATCH", { id: 1, email: "test-someone@test.portpass.local" }))).status).toBe(403);
+    auth.role = "ceo";
+    expect((await PATCH(send("PATCH", { id: 1, email: "test-alex@test.portpass.local" }))).status).toBe(200);
+    expect(db.emails).toEqual([{ id: 1, email: "test-alex@test.portpass.local" }]);
   });
 });
 

@@ -40,6 +40,7 @@ export async function POST(_request: Request, ctx: Ctx) {
   } catch (error) {
     const problems = (error as Error & { problems?: string[] }).problems;
     if (problems) return NextResponse.json({ error: "A few things are missing before we can review it.", problems }, { status: 400 });
+    if (error instanceof Error && error.message === "NOT_DRAFT") return NextResponse.json({ error: "This page has already been sent to PortPass, or is hidden. Message us if you need a hand." }, { status: 409 });
     console.error("business submit", error);
     return NextResponse.json({ error: "Could not submit. Please try again." }, { status: 500 });
   }

@@ -16,6 +16,8 @@ on:
     paths:
       - "app/futprep/staff/**"
       - "app/admin/leads/**"
+      - "app/admin/businesses/**"
+      - "app/admin/people/**"
       - "app/_components/growth/**"
       - "db/growth.ts"
       - "lib/growth.ts"

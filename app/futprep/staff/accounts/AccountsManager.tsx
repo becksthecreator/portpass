@@ -1,7 +1,7 @@
 "use client";
 import { FormEvent, useState } from "react";
 
-type StaffAccount = { id: number; name: string; accountKey: string; role: "admin" | "coach" | "ceo" | "helper"; active: boolean; pinChangedAt: string | null };
+type StaffAccount = { id: number; name: string; accountKey: string; role: "admin" | "coach" | "ceo" | "helper"; active: boolean; pinChangedAt: string | null; email: string | null };
 
 const ROLE_LABEL: Record<StaffAccount["role"], string> = {
   admin: "Admin",
@@ -28,6 +28,24 @@ export function AccountsManager({ initialAccounts, currentAccountKey, canManageC
     const data = (await response.json()) as { accounts?: StaffAccount[]; error?: string };
     if (!response.ok) return setError(data.error ?? "Could not update the account.");
     if (data.accounts) setAccounts(data.accounts);
+  }
+
+  // Where this person's reminders are emailed (the Saturday "mark
+  // attendance" note; the monthly growth report for the CEO).
+  async function saveEmail(event: FormEvent<HTMLFormElement>, account: StaffAccount) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    const email = String(new FormData(event.currentTarget).get("email") ?? "");
+    const response = await fetch("/api/futprep/staff/accounts", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: account.id, email }),
+    });
+    const data = (await response.json()) as { accounts?: StaffAccount[]; error?: string };
+    if (!response.ok) return setError(data.error ?? "Could not save the email address.");
+    if (data.accounts) setAccounts(data.accounts);
+    setMessage(`Email saved for ${account.name}.`);
   }
 
   async function create(event: FormEvent<HTMLFormElement>) {
@@ -79,6 +97,10 @@ export function AccountsManager({ initialAccounts, currentAccountKey, canManageC
                 {account.pinChangedAt ? "PIN changed ✓" : "PIN not changed yet"}
               </span>
             </div>
+            <form className="team-manager-email" onSubmit={(event) => saveEmail(event, account)}>
+              <label><span>Email for reminders</span><input name="email" type="email" inputMode="email" autoCapitalize="none" maxLength={254} defaultValue={account.email ?? ""} placeholder="optional" disabled={account.role === "ceo" && !canManageCeo} /></label>
+              <button type="submit" disabled={account.role === "ceo" && !canManageCeo}>Save</button>
+            </form>
             <div className="team-manager-actions">
               <button
                 className={account.active ? "danger-action" : ""}

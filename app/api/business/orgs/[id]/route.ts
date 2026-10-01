@@ -119,6 +119,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
     const business = await updateBusinessDetails(id, patch, auth.session.userId);
     return NextResponse.json({ business });
   } catch (error) {
+    if (error instanceof Error && error.message === "SUSPENDED") return NextResponse.json({ error: "This page is hidden by PortPass, so its name and category can't change right now. Message us and we'll sort it out." }, { status: 409 });
     console.error("business details save", error);
     return NextResponse.json({ error: "Could not save. Please try again." }, { status: 500 });
   }

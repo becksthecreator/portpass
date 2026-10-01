@@ -11,7 +11,7 @@ describe("redactAnalyticsUrl", () => {
   });
 
   it("never reports staff, admin, account or business-dashboard pages", () => {
-    for (const path of ["/admin", "/admin/people", "/organizations/1", "/account", "/where-to", "/business/setup", "/business/futprep/settings", "/futprep/staff", "/futprep/staff/admin/42", "/weddings/admin/7", "/weddings/staff/login"]) {
+    for (const path of ["/admin", "/admin/people", "/organizations/1", "/account", "/where-to", "/business/setup", "/business/futprep/settings", "/futprep/staff", "/futprep/staff/admin/42", "/weddings/admin/7", "/weddings/staff/login", "/claim/0123456789abcdef0123456789abcdef0123456789abcdef"]) {
       expect(redactAnalyticsUrl(`${SITE}${path}`)).toBeNull();
     }
   });

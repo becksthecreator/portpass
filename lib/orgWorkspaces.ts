@@ -20,6 +20,14 @@ const WORKSPACES: Record<string, WorkspaceLink[]> = {
   ],
 };
 
+// Futprep and the wedding business have hand-built public pages and their
+// own registration and enquiry forms, which the listing switches don't
+// control. Suspending them from Admin -> Businesses would hide only the
+// directory card, so it is refused rather than half done.
+export function hasOwnPages(slug: string | null): boolean {
+  return Boolean(slug && WORKSPACES[slug]);
+}
+
 export function workspaceLinks(slug: string | null): WorkspaceLink[] {
   return slug ? WORKSPACES[slug] ?? [] : [];
 }

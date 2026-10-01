@@ -10,9 +10,9 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-// The /apply inbox, moved under the Control Center. "Create draft business
-// from this" and "Not a fit" arrive in the next build (A2); approve/reject
-// work today through /api/applications/[id], now behind the admin guard.
+// The /apply inbox (brief 08, 1.3): message the business on WhatsApp,
+// create a draft business from the request, or mark it not a fit. All
+// through /api/applications/[id], behind the admin guard.
 export default async function AdminApplicationsPage() {
   const session = await requireAdmin("/admin/applications");
   const applications = await listApplications();

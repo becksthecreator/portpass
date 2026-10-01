@@ -24,6 +24,8 @@ export type ApplicationRecord = {
   submitted_at: string;
   reviewed_at: string | null;
   organization_id?: number | null;
+  // The business made from this request, for the link to its setup.
+  organization_slug?: string | null;
 };
 
 export type NewApplication = {
@@ -85,23 +87,24 @@ export async function listApplications(): Promise<ApplicationRecord[]> {
   const ids = rows.map((row) => row.id);
   const { data: organizations, error: organizationError } = await db
     .from("organizations")
-    .select("id,application_id")
+    .select("id,application_id,slug")
     .in("application_id", ids);
   throwIfSupabaseError(
     organizationError,
     "Could not load organizations for applications",
   );
 
-  const organizationByApplication = new Map<number, number>(
-    (organizations ?? []).map((row: { id: number; application_id: number }) => [
+  const organizationByApplication = new Map<number, { id: number; slug: string | null }>(
+    (organizations ?? []).map((row: { id: number; application_id: number; slug: string | null }) => [
       row.application_id,
-      row.id,
+      { id: row.id, slug: row.slug },
     ]),
   );
 
   return rows.map((row) => ({
     ...row,
-    organization_id: organizationByApplication.get(row.id) ?? null,
+    organization_id: organizationByApplication.get(row.id)?.id ?? null,
+    organization_slug: organizationByApplication.get(row.id)?.slug ?? null,
   }));
 }
 

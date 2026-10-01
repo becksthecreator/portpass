@@ -3,6 +3,9 @@ import { listAdminBusinesses } from "@/db/adminBusinesses";
 import { listCategories, listSections } from "@/db/categories";
 import { requireAdmin } from "@/lib/auth/admin";
 import { AdminShell } from "../_components/AdminShell";
+import { AddBusiness } from "./AddBusiness";
+import { hasOwnPages } from "@/lib/orgWorkspaces";
+import { BusinessActions } from "./BusinessActions";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +20,10 @@ function when(iso: string | null): string {
   return iso ? new Date(iso).toLocaleDateString("en-BS", { dateStyle: "medium", timeZone: "America/Nassau" }) : "—";
 }
 
-// Every organization with its status. Filters by section and status;
-// approve / send back / suspend and "Add a business" arrive in the next
-// build (A2) -- until then the wizard link opens any business as admin.
+// Every organization with its status, filtered by section and status, and
+// what a founder can do to each: approve, send back with a note, publish
+// for the owner, send a claim link, suspend and unsuspend (brief 08, 1.2).
+// "Add a business" starts a draft and opens the setup wizard.
 export default async function AdminBusinessesPage({ searchParams }: { searchParams: Promise<{ status?: string; section?: string }> }) {
   const session = await requireAdmin("/admin/businesses");
   const { status, section } = await searchParams;
@@ -40,7 +44,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
   };
 
   return (
-    <AdminShell session={session} current="/admin/businesses" title="Businesses" lede="draft → submitted → approved → live, or suspended. Approvals and concierge onboarding land in the next build.">
+    <AdminShell session={session} current="/admin/businesses" title="Businesses" lede="draft → submitted → approved → live, or suspended. Approve or send back what owners submit, or add a business yourself." actions={<AddBusiness sections={sections.map((s) => ({ slug: s.slug, name: s.name, subcategories: s.subcategories.map((c) => ({ slug: c.slug, name: c.name })) }))} />}>
       <div className="admin-filters" aria-label="Filter by status">
         <Link href={href({ status: "" })} aria-current={!status ? "true" : undefined}>All statuses</Link>
         {STATUSES.map((s) => <Link key={s} href={href({ status: s })} aria-current={status === s ? "true" : undefined}>{s}</Link>)}
@@ -53,7 +57,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
         <p className="admin-empty">No businesses match.</p>
       ) : (
         <table className="admin-table">
-          <thead><tr><th>Business</th><th>Section</th><th>Status</th><th>Created</th><th>Submitted</th><th>Approved</th><th>Open</th></tr></thead>
+          <thead><tr><th>Business</th><th>Section</th><th>Status</th><th>Created</th><th>Submitted</th><th>Approved</th><th>Open</th><th>Actions</th></tr></thead>
           <tbody>
             {rows.map((b) => (
               <tr key={b.id}>
@@ -64,6 +68,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
                 <td data-label="Submitted">{when(b.submittedAt)}</td>
                 <td data-label="Approved">{when(b.approvedAt)}</td>
                 <td data-label="Open">{b.slug ? <><Link href={`/business/${b.slug}`}>Dashboard</Link> · <Link href={`/business/${b.slug}/settings`}>Edit</Link></> : "—"}</td>
+                <td data-label="Actions"><BusinessActions id={b.id} name={b.name} status={b.status} createdByAdmin={b.createdByAdmin} claimed={Boolean(b.claimedAt)} isPublic={b.isPublished} canSuspend={!hasOwnPages(b.slug)} /></td>
               </tr>
             ))}
           </tbody>

@@ -27,6 +27,7 @@ const NEVER_CACHE = [
   /^\/login/,
   /^\/signup/,
   /^\/where-to/,
+  /^\/claim\//,
   /^\/futprep\/(staff|my|register|coaches|trial)/,
   /^\/weddings\/(admin|staff)/,
   /\/plan(\/|$)/,

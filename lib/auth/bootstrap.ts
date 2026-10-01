@@ -6,9 +6,11 @@ import {
   getProfile,
   linkPersonToUser,
   linkRegistrationsToPerson,
+  listMemberships,
   listPendingInvitesForEmail,
   markInviteAccepted,
   markOrganizationClaimed,
+  ORG_ROLES,
   recordLegalAcceptance,
   upsertMembership,
   upsertProfile,
@@ -66,16 +68,24 @@ export async function bootstrapUser(user: AuthUser): Promise<void> {
   }
 
   if (email) {
+    const memberships = await listMemberships(user.id);
     for (const invite of await listPendingInvitesForEmail(email)) {
-      await upsertMembership({
-        organizationId: invite.organizationId,
-        userId: user.id,
-        role: invite.role,
-        canViewMedical: invite.canViewMedical,
-        invitedBy: invite.invitedBy,
-      });
+      // An invitation can add a person or raise their role, never lower
+      // it: an old invitation that is sent again must not turn an owner
+      // back into staff, or take away access they were given since.
+      const held = memberships.find((m) => m.organizationId === invite.organizationId);
+      const raises = !held || ORG_ROLES.indexOf(invite.role) > ORG_ROLES.indexOf(held.role);
+      if (raises) {
+        await upsertMembership({
+          organizationId: invite.organizationId,
+          userId: user.id,
+          role: invite.role,
+          canViewMedical: invite.canViewMedical || Boolean(held?.canViewMedical),
+          invitedBy: invite.invitedBy,
+        });
+      }
       await markInviteAccepted(invite.id);
-      if (invite.role === "org_owner") await markOrganizationClaimed(invite.organizationId);
+      if (raises && invite.role === "org_owner") await markOrganizationClaimed(invite.organizationId);
       await logAudit({
         actorUserId: user.id,
         organizationId: invite.organizationId,
