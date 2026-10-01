@@ -6,6 +6,7 @@ import { getBusinessBySlug, listBusinessImages } from "@/db/business";
 import { getDrop, getShop, listDropReservations, listProducts, listWaitlist } from "@/db/shop";
 import { requireOrgRole } from "@/lib/auth/guards";
 import { canEditShop } from "@/lib/shop/access";
+import { handlesPayments } from "@/lib/paymentRequests/access";
 import { dropPhase, dropShareLinks, formatNassau, variantKey } from "@/lib/shop/rules";
 import { DropEditor } from "./DropEditor";
 import { ReservationBoard } from "./ReservationBoard";
@@ -81,6 +82,7 @@ export default async function DropListPage({ params }: { params: Promise<{ slug:
           initial={reservations}
           waitlist={waitlist}
           sizes={sizes}
+          requestPaymentHref={(await handlesPayments(access)) ? `/business/${slug}/payments/new?reservation=` : null}
           links={drop.status === "draft" ? null : { portpass: links.portpass, instagram: links.instagram, followers: drop.followersFirstUntil ? links.followers : null }}
         />
       </div>

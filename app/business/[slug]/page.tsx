@@ -4,6 +4,7 @@ import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { getBusinessBySlug, listBusinessOfferings } from "@/db/business";
 import { requireOrgRole } from "@/lib/auth/guards";
+import { handlesPayments } from "@/lib/paymentRequests/access";
 import { workspaceLinks } from "@/lib/orgWorkspaces";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,7 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
   const status = STATUS_COPY[business.status] ?? STATUS_COPY.draft;
   const canEdit = access.membership ? access.membership.role === "org_owner" || access.membership.role === "org_admin" : Boolean(access.session.platformRole);
   const tools = workspaceLinks(slug);
+  const payments = await handlesPayments(access);
   const publicHref = business.primaryCategory ? `/${business.primaryCategory}/${slug}` : null;
 
   return (
@@ -61,6 +63,7 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
           {(canEdit || access.membership?.role === "org_staff") && (
             <Link className="chooser-card" href={`/business/${slug}/shop`}><strong>Shop</strong><span>Products, drops and reservations</span><b>Open →</b></Link>
           )}
+          {payments && <Link className="chooser-card" href={`/business/${slug}/payments`}><strong>Payments</strong><span>Request payment, mark paid, chase</span><b>Open →</b></Link>}
           <Link className="chooser-card" href={`/business/${slug}/preview`}><strong>Preview page</strong><span>Exactly what customers will see</span><b>Open →</b></Link>
           {business.isPublished && publicHref && (
             <a className="chooser-card" href={publicHref}><strong>Public page</strong><span>Live on PortPass</span><b>Open →</b></a>

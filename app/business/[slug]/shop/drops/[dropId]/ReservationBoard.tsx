@@ -26,7 +26,7 @@ const STATUS_LABEL = { cancelled: "Cancelled", released: "Released (unpaid)" } a
 // WhatsApp link prefilled with the reference code (the seller sends it;
 // nothing is ever sent for them). Unpaid reservations past the hold are
 // offered back to stock behind a "Release now?" confirm, never on their own.
-export function ReservationBoard(props: { orgId: number; orgName: string; dropId: number; holdHours: number; canRefund: boolean; initial: ListedReservation[]; waitlist: WaitlistEntry[]; sizes: Size[]; links: Links | null }) {
+export function ReservationBoard(props: { orgId: number; orgName: string; dropId: number; holdHours: number; canRefund: boolean; initial: ListedReservation[]; waitlist: WaitlistEntry[]; sizes: Size[]; links: Links | null; requestPaymentHref?: string | null }) {
   const [list, setList] = useState(props.initial);
   const [filter, setFilter] = useState<ReservationFilter>({ variant: null, paid: "all", collected: "all", showCancelled: false });
   const [busy, setBusy] = useState<number | null>(null);
@@ -224,6 +224,7 @@ export function ReservationBoard(props: { orgId: number; orgName: string; dropId
                       <details className="seller-more">
                         <summary>More</summary>
                         {props.canRefund && paid && <button type="button" className="admin-mini" disabled={busy === r.id} onClick={() => act(r, "refunded")}>Record refund</button>}
+                        {!paid && props.requestPaymentHref && <a className="admin-mini" href={`${props.requestPaymentHref}${r.id}`}>Request payment</a>}
                         {!paid && !collected && <button type="button" className="admin-mini" disabled={busy === r.id} onClick={() => act(r, "cancel")}>Cancel reservation</button>}
                       </details>
                     ) : null}

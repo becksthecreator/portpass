@@ -312,6 +312,10 @@ export function RegistrationDetailEditor({ detail, programs }: { detail: Futprep
 
       <section className="detail-panel detail-panel-wide">
         <h2>Payment history</h2>
+        <p className="detail-hint">
+          <a className="secondary-button" href={`/futprep/staff/payments/new?registration=${detail.id}`}>Request payment</a>{" "}
+          Sends the parent a link that says what&rsquo;s owed and how to pay Futprep directly, by WhatsApp or email.
+        </p>
         {detail.payments.length === 0 && <p className="detail-hint">No payments recorded yet.</p>}
         {detail.payments.length > 0 && (
           <table className="detail-table">

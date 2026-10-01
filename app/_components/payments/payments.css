@@ -1,0 +1,178 @@
+/* Payment requests (brief 17): the business's Payments screens, used both
+   under /business/<slug>/payments and on the Futprep staff desk
+   (/futprep/staff/payments), plus Admin -> Payments. Night theme, phone
+   first: one column until 620px, big tap targets. Its own file, imported
+   by those pages only. The customer's /pay page has app/pay/pay.css. */
+
+.pay-wrap{max-width:820px;margin:0 auto;padding:22px 16px 64px;display:grid;gap:18px}
+.staff-workspace-content .pay-wrap{padding:0 0 40px}
+.pay-head{display:grid;gap:6px}
+.pay-head h1{font-size:clamp(1.6rem,6vw,2.2rem);line-height:1.05;margin:0}
+.pay-head p{margin:0;color:var(--muted);font-size:.92rem;line-height:1.5;max-width:60ch}
+.pay-kicker{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+.pay-nav{display:flex;align-items:center;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.pay-nav a{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line);color:var(--text);font-weight:700;font-size:.9rem;text-decoration:none}
+.pay-nav a[aria-current="page"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+.pay-nav .pay-nav-new{margin-left:auto;background:var(--signal);border-color:var(--signal);color:#fff}
+.pay-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:999px;background:var(--signal);color:#fff;font-size:.72rem;font-weight:800;padding:0 6px}
+.pay-nav a[aria-current="page"] .pay-count{background:var(--bg);color:var(--text)}
+
+.pay-totals{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin:0}
+.pay-totals div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.pay-totals dt{font-size:.8rem;color:var(--muted);font-weight:700}
+.pay-totals dd{margin:0;font-family:var(--font-pp-display),Archivo,sans-serif;font-size:1.35rem;font-weight:800;font-variant-numeric:tabular-nums;text-align:right}
+.pay-totals dd small{display:block;font-family:var(--font-pp-sans),Inter,sans-serif;font-size:.72rem;font-weight:600;color:var(--muted)}
+.pay-totals .is-overdue dd{color:var(--signal-text)}
+
+.pay-notice{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 14px;font-size:.9rem;line-height:1.5;margin:0}
+.pay-notice a{color:var(--link);font-weight:700}
+.pay-notice.is-check{border-color:#c9922b;background:rgba(201,146,43,.14)}
+.pay-notice.is-warn{border-color:var(--signal);background:rgba(215,35,43,.12)}
+.pay-ok{color:#9fe0a8;font-weight:700;margin:0}
+.pay-error{color:#ffb4a8;font-weight:700;margin:0}
+
+.pay-filters{display:grid;gap:10px}
+.pay-segments{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.pay-segments button{flex:none;min-height:40px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--text);font:inherit;font-size:.86rem;font-weight:700;cursor:pointer}
+.pay-segments button[aria-pressed="true"]{background:var(--link);border-color:var(--link);color:var(--bg)}
+.pay-search{display:flex;flex-direction:column;gap:6px;font-size:.76rem;font-weight:800}
+.pay-search input{min-height:46px;border:1px solid var(--muted);border-radius:10px;padding:0 12px;background:var(--bg);color:var(--text);font-size:1rem;width:100%}
+
+.pay-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.pay-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 14px;color:var(--text);text-decoration:none}
+.pay-row:hover{border-color:var(--muted)}
+.pay-row.is-overdue{border-color:var(--signal)}
+.pay-row-main{display:grid;gap:3px;min-width:0}
+.pay-row-main strong{font-size:1rem;overflow-wrap:anywhere}
+.pay-row-main span{color:var(--muted);font-size:.84rem;overflow-wrap:anywhere}
+.pay-ref{font-variant-numeric:tabular-nums;letter-spacing:.04em;font-weight:800;font-size:.8rem;color:var(--muted)}
+.pay-row-side{display:grid;justify-items:end;gap:6px;text-align:right}
+.pay-row-side b{font-size:1.02rem;font-variant-numeric:tabular-nums}
+.pay-row-side small{color:var(--muted);font-size:.76rem}
+.pay-empty{color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:18px;text-align:center;margin:0}
+
+.pay-pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 9px;font-size:.7rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:var(--tint);color:var(--text);white-space:nowrap}
+.pay-pill.is-paid{background:#1f6f43;color:#fff}
+.pay-pill.is-part_paid{background:#c9922b;color:#0D1B3D}
+.pay-pill.is-overdue{background:var(--signal);color:#fff}
+.pay-pill.is-sent{background:#2463AE;color:#fff}
+.pay-pill.is-void{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.pay-flag{display:inline-flex;align-items:center;border-radius:999px;padding:3px 9px;font-size:.7rem;font-weight:800;background:#F2C14E;color:#0D1B3D;white-space:nowrap}
+
+.pay-export{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.pay-export summary{cursor:pointer;font-weight:800;min-height:32px;display:flex;align-items:center}
+.pay-export-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.pay-export-body label{display:flex;flex-direction:column;gap:6px;font-size:.76rem;font-weight:800;min-width:0}
+.pay-export-body input{min-height:44px;border:1px solid var(--muted);border-radius:8px;padding:0 10px;background:var(--bg);color:var(--text);font-size:.95rem;width:100%}
+.pay-export-body .pay-btn{grid-column:span 1}
+
+/* ---- buttons ---- */
+.pay-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-weight:800;font-size:.95rem;text-decoration:none;cursor:pointer;text-align:center}
+.pay-btn:disabled{opacity:.55;cursor:default}
+.pay-btn.is-primary{background:var(--signal);border-color:var(--signal);color:#fff}
+.pay-btn.is-wa{background:#1f6f43;border-color:#1f6f43;color:#fff}
+.pay-btn.is-small{min-height:42px;font-size:.86rem;padding:0 12px}
+.pay-btn.is-danger{border-color:var(--signal);color:var(--signal-text)}
+.pay-btns{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+
+/* ---- forms ---- */
+.pay-form{display:grid;gap:16px}
+.pay-field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.pay-field>span{font-size:.78rem;font-weight:800}
+.pay-field>small{color:var(--muted);font-size:.78rem;line-height:1.45}
+.pay-field input:not([type=checkbox]):not([type=radio]),.pay-field select,.pay-field textarea{min-height:48px;border:1px solid var(--muted);border-radius:8px;padding:10px 12px;background:var(--bg);color:var(--text);width:100%;font-size:1rem;font-family:inherit}
+.pay-field textarea{min-height:0;line-height:1.5}
+.pay-fieldset{border:1px solid var(--line);border-radius:14px;padding:14px;margin:0;display:grid;gap:12px;min-width:0}
+.pay-fieldset legend{font-size:.82rem;font-weight:800;padding:0 6px}
+.pay-check{display:flex;align-items:flex-start;gap:10px;font-size:.92rem;font-weight:600;line-height:1.4}
+.pay-check input{width:22px;height:22px;flex:none;margin:0}
+.pay-check small{display:block;color:var(--muted);font-weight:500;font-size:.8rem}
+.pay-two{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+
+.pay-matches{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.pay-matches button{width:100%;display:grid;gap:2px;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--text);font:inherit;cursor:pointer}
+.pay-matches button span{color:var(--muted);font-size:.8rem;overflow-wrap:anywhere}
+.pay-picked{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg);border:1px solid var(--link);border-radius:12px;padding:10px 12px}
+.pay-picked div{display:grid;gap:2px;min-width:0}
+.pay-picked span{color:var(--muted);font-size:.82rem;overflow-wrap:anywhere}
+
+.pay-lines{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.pay-line{display:grid;grid-template-columns:minmax(0,1fr) 64px 104px 44px;gap:8px;align-items:end;border-bottom:1px solid var(--line);padding-bottom:10px}
+.pay-line .pay-field:first-child{grid-column:1/-1}
+.pay-line .pay-field>span{font-size:.72rem}
+.pay-line-remove{min-height:48px;min-width:44px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--muted);font-size:1.2rem;cursor:pointer}
+.pay-line-total{display:flex;justify-content:space-between;font-weight:800;font-size:1.05rem}
+
+/* ---- preview / detail ---- */
+.pay-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px}
+.pay-card h2{font-size:1.1rem;margin:0}
+.pay-card-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.pay-meta{display:grid;gap:6px;margin:0}
+.pay-meta div{display:flex;justify-content:space-between;gap:12px;font-size:.9rem}
+.pay-meta dt{color:var(--muted)}
+.pay-meta dd{margin:0;text-align:right;font-weight:700;overflow-wrap:anywhere;min-width:0}
+.pay-items{width:100%;border-collapse:collapse;font-size:.92rem}
+.pay-items th{text-align:left;font-size:.72rem;color:var(--muted);font-weight:800;padding:0 0 6px;border-bottom:1px solid var(--line)}
+.pay-items td{padding:8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.pay-items td:last-child,.pay-items th:last-child{text-align:right;white-space:nowrap;padding-left:10px}
+.pay-items tfoot td,.pay-items tfoot th{border-bottom:0;padding-top:8px;font-size:.95rem}
+.pay-items tfoot th{text-align:left;color:var(--text);font-size:.95rem}
+.pay-history{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.pay-history li{display:grid;gap:4px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:.88rem}
+.pay-history li header{display:flex;justify-content:space-between;gap:10px;font-weight:800}
+.pay-history li span{color:var(--muted)}
+.pay-history li.is-refunded{opacity:.7}
+.pay-history details summary{cursor:pointer;color:var(--link);font-weight:700;min-height:36px;display:flex;align-items:center}
+.pay-saying{display:grid;gap:10px}
+.pay-saying blockquote{margin:0;padding:8px 12px;border-left:3px solid #F2C14E;font-style:italic;overflow-wrap:anywhere}
+.pay-danger{border-color:rgba(215,35,43,.5)}
+.pay-danger summary{cursor:pointer;font-weight:800;color:var(--signal-text);min-height:36px;display:flex;align-items:center}
+.pay-link{color:var(--link);font-weight:700;overflow-wrap:anywhere}
+.pay-copyrow{display:flex;gap:8px;align-items:center}
+.pay-copyrow input{flex:1;min-width:0;min-height:44px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:var(--bg);color:var(--muted);font-size:.85rem}
+
+/* ---- chase ---- */
+.pay-chase{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.pay-chase>li{background:var(--surface);border:1px solid var(--signal);border-radius:16px;padding:14px;display:grid;gap:10px}
+.pay-chase header{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.pay-chase header div{display:grid;gap:3px;min-width:0}
+.pay-chase header span{color:var(--muted);font-size:.84rem;overflow-wrap:anywhere}
+.pay-chase-amount{text-align:right;display:grid;gap:3px}
+.pay-chase-amount b{font-size:1.1rem;font-variant-numeric:tabular-nums}
+.pay-chase-amount small{color:var(--signal-text);font-weight:700;font-size:.78rem}
+.pay-last{color:var(--muted);font-size:.84rem;margin:0}
+.pay-last.is-recent{color:#F2C14E;font-weight:700}
+.pay-confirm{display:grid;gap:8px;border:1px solid #c9922b;border-radius:12px;padding:10px 12px;font-size:.88rem}
+
+/* ---- team ---- */
+.pay-team{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.pay-team li{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.pay-team li div{display:grid;gap:2px;min-width:0}
+.pay-team li span{color:var(--muted);font-size:.8rem}
+
+/* ---- Admin -> Payments ---- */
+.admin-pay-totals{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin:0 0 22px}
+.admin-pay-totals div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.admin-pay-totals dt{font-size:.74rem;color:var(--muted);font-weight:700}
+.admin-pay-totals dd{margin:4px 0 0;font-size:1.35rem;font-weight:800;font-variant-numeric:tabular-nums}
+.admin-pay-note{color:var(--muted);font-size:.88rem;margin:0 0 14px;max-width:72ch;line-height:1.5}
+.admin-pay-month{margin:0 0 22px}
+.admin-pay-month h2{font-size:1.05rem;margin:0 0 8px}
+.admin-pay-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+.admin-pay-table{width:100%;border-collapse:collapse;font-size:.86rem;min-width:640px}
+.admin-pay-table th,.admin-pay-table td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.admin-pay-table th:first-child,.admin-pay-table td:first-child{text-align:left;white-space:normal}
+.admin-pay-table thead th{font-size:.72rem;color:var(--muted);font-weight:800}
+.admin-pay-table tfoot td,.admin-pay-table tfoot th{font-weight:800;border-bottom:0}
+
+@media(min-width:620px){
+  .pay-totals{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .pay-totals div{display:grid;gap:4px;align-content:start}
+  .pay-totals dd{text-align:left}
+  .pay-btns{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pay-two{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pay-line{grid-template-columns:minmax(0,1fr) 72px 120px 44px}
+  .pay-line .pay-field:first-child{grid-column:auto}
+  .pay-filters{grid-template-columns:auto minmax(0,1fr);align-items:end}
+}

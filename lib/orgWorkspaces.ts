@@ -6,6 +6,7 @@ export type WorkspaceLink = { href: string; label: string; detail: string };
 const WORKSPACES: Record<string, WorkspaceLink[]> = {
   futprep: [
     { href: "/futprep/staff/admin", label: "Registrations", detail: "Every child, payment status, edits" },
+    { href: "/futprep/staff/payments", label: "Payments", detail: "Payment requests, chase list" },
     { href: "/futprep/staff/coach", label: "Coach roster", detail: "Attendance, session plans" },
     { href: "/futprep/staff/ceo", label: "Overview", detail: "Sessions, plans, work logs" },
     { href: "/futprep/staff/programs", label: "Programs", detail: "Classes and terms" },

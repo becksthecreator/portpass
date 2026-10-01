@@ -1,0 +1,81 @@
+/* The customer's payment request page and receipt (brief 17, §3): light,
+   the platform canvas with the business's own colour as a thin accent.
+   Phone first, one column; prints cleanly from the browser. Its own file,
+   imported by /pay pages only. */
+
+.paypage{background:var(--deck);color:var(--ink);min-height:100vh;font-family:var(--font-pp-sans),Inter,Arial,sans-serif}
+.paypage h1,.paypage h2{font-family:var(--font-pp-display),Archivo,sans-serif;letter-spacing:-.01em}
+.paypage-stripe{height:6px;background:var(--pay-brand,var(--harbour))}
+.paypage-wrap{max-width:620px;margin:0 auto;padding:22px 16px 48px;display:grid;gap:16px}
+.paypage-biz{display:flex;align-items:center;gap:12px}
+.paypage-biz img{width:52px;height:52px;border-radius:12px;object-fit:cover;background:#fff;border:1px solid var(--line);flex:none}
+.paypage-biz-initial{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--pay-brand,var(--ink));color:#fff;font-weight:800;font-size:1.3rem;flex:none}
+.paypage-biz strong{font-size:1.05rem;display:block}
+.paypage-biz span{color:var(--muted);font-size:.85rem}
+.paypage-eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0}
+.paypage h1{font-size:clamp(1.7rem,7vw,2.3rem);line-height:1.05;margin:4px 0 0}
+.paypage-ref{font-variant-numeric:tabular-nums;letter-spacing:.04em}
+
+.paypage-status{border-radius:16px;padding:14px 16px;display:grid;gap:4px;background:var(--paper);border:1px solid var(--line)}
+.paypage-status strong{font-size:1.15rem}
+.paypage-status span{color:var(--muted);font-size:.9rem;line-height:1.45}
+.paypage-status.is-paid{background:#e7f5ec;border-color:#1f6f43}
+.paypage-status.is-paid strong{color:#14512f}
+.paypage-status.is-overdue{background:#fdecec;border-color:#d7232b}
+.paypage-status.is-overdue strong{color:#a3161c}
+.paypage-status.is-void{background:var(--paper);border-style:dashed}
+
+.paypage-card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px}
+.paypage-card h2{font-size:1.15rem;margin:0}
+.paypage-items{width:100%;border-collapse:collapse;font-size:.95rem}
+.paypage-items caption{text-align:left;font-weight:800;font-size:.8rem;color:var(--muted);padding-bottom:6px}
+.paypage-items th,.paypage-items td{padding:9px 0;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.paypage-items thead th{font-size:.74rem;color:var(--muted);font-weight:800;padding-top:0}
+.paypage-items td:last-child,.paypage-items th:last-child{text-align:right;white-space:nowrap;padding-left:12px}
+.paypage-items tfoot th,.paypage-items tfoot td{border-bottom:0;padding:6px 0}
+.paypage-items tfoot tr.is-balance th,.paypage-items tfoot tr.is-balance td{font-size:1.1rem;font-weight:800;padding-top:10px}
+
+.paypage-direct{background:var(--ink);color:#fff;border-radius:12px;padding:12px 14px;font-weight:700;font-size:.95rem;line-height:1.45;margin:0}
+.paypage-quote{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;background:var(--tint);border-radius:12px;padding:10px 14px}
+.paypage-quote span{font-size:.85rem;color:var(--muted)}
+.paypage-quote strong{font-size:1.3rem;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.paypage-method{border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:8px}
+.paypage-method h3{font-size:1rem;margin:0}
+.paypage-method dl{display:grid;gap:6px;margin:0}
+.paypage-method dl div{display:flex;justify-content:space-between;gap:12px;font-size:.92rem}
+.paypage-method dt{color:var(--muted)}
+.paypage-method dd{margin:0;font-weight:700;text-align:right;overflow-wrap:anywhere;min-width:0}
+.paypage-method p{margin:0;font-size:.92rem;line-height:1.55;white-space:pre-line;overflow-wrap:anywhere}
+
+.paypage-btn{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 18px;border-radius:12px;border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);font:inherit;font-weight:800;font-size:1rem;cursor:pointer;text-decoration:none}
+.paypage-btn.is-solid{background:var(--ink);color:#fff}
+.paypage-btn.is-small{min-height:40px;font-size:.88rem;padding:0 14px}
+.paypage-btn:disabled{opacity:.55;cursor:default}
+.paypage-said{display:grid;gap:10px}
+.paypage-said label{display:grid;gap:6px;font-size:.85rem;font-weight:700}
+.paypage-said textarea{border:1px solid var(--muted);border-radius:10px;padding:10px 12px;font:inherit;font-size:1rem;background:#fff;color:var(--ink);min-height:0;width:100%}
+.paypage-thanks{background:#e7f5ec;border:1px solid #1f6f43;border-radius:12px;padding:12px 14px;margin:0;line-height:1.5}
+.paypage-error{color:#a3161c;font-weight:700;margin:0}
+.paypage-muted{color:var(--muted);font-size:.88rem;line-height:1.5;margin:0}
+.paypage-receipts{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.paypage-receipts li{display:flex;justify-content:space-between;gap:10px;font-size:.92rem;border-bottom:1px solid var(--line);padding-bottom:8px}
+.paypage-receipts a{color:var(--harbour);font-weight:700}
+.paypage-contact{display:flex;flex-wrap:wrap;gap:8px}
+.paypage-foot{color:var(--muted);font-size:.8rem;text-align:center;margin:8px 0 0}
+.paypage-foot a{color:inherit}
+
+/* ---- receipt ---- */
+.paypage-receipt-meta{display:grid;gap:8px;margin:0}
+.paypage-receipt-meta div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding-bottom:8px;font-size:.95rem}
+.paypage-receipt-meta dt{color:var(--muted)}
+.paypage-receipt-meta dd{margin:0;font-weight:700;text-align:right;overflow-wrap:anywhere;min-width:0}
+.paypage-receipt-amount{font-size:2rem;font-weight:800;font-variant-numeric:tabular-nums;margin:0}
+.paypage-actions{display:flex;flex-wrap:wrap;gap:10px}
+
+@media print{
+  .paypage{background:#fff}
+  .paypage-stripe,.paypage-actions,.paypage-noprint{display:none!important}
+  .paypage-card{border:0;padding:0}
+  .paypage-wrap{max-width:none;padding:0}
+  .paypage-direct{background:none;color:#000;border:1px solid #000}
+}
