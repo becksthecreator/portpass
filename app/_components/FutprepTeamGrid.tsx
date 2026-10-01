@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CoachPhoto } from "@/app/_components/CoachPhoto";
 import { listPublicCoachProfiles } from "@/db/coaches";
 import { initialsOf } from "@/lib/team";
 
@@ -30,7 +31,7 @@ export async function FutprepTeamGrid() {
           <li key={coach.slug}>
             <Link href={"/futprep/coaches#" + coach.slug}>
               {coach.photo_url ? (
-                <img src={coach.photo_url} alt="" loading="lazy" width={160} height={160} />
+                <CoachPhoto src={coach.photo_url} alt="" loading="lazy" width={160} height={160} fallback={<span className="team-promo-initials" aria-hidden="true">{initialsOf(coach.display_name)}</span>} />
               ) : (
                 <span className="team-promo-initials" aria-hidden="true">{initialsOf(coach.display_name)}</span>
               )}
