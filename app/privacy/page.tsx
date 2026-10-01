@@ -129,7 +129,7 @@ export default function PrivacyPage() {
           <strong>Review badges.</strong> One listing, Bahamas Weddings By The Sea, shows its rating and reviews using WeddingWire’s own badge. On that page your browser loads it from WeddingWire, which can see your internet address and may set its own cookies.
         </p>
         <p>
-          <strong>Where it is kept.</strong> Our providers store and process information in the United States. By using PortPass you agree to your information being sent there. Photos a business or coach uploads for its public page are stored at public web addresses.
+          <strong>Where it is kept.</strong> Our database, photos and emails are stored with the companies above on servers in the United States, and their networks may pass information through other countries on the way. We also keep encrypted backup copies of the database. When you send us your details, you agree to them being stored outside The Bahamas. Photos a business or coach uploads for its public page are stored at public web addresses.
         </p>
         <p>
           We may also disclose information when the law requires us to.
@@ -140,11 +140,11 @@ export default function PrivacyPage() {
           PortPass sets a small number of cookies, all of them its own:
         </p>
         <ul>
-          <li><strong>Sign-in:</strong> keeps you signed in to your PortPass account until you sign out.</li>
+          <li><strong>Sign-in:</strong> keeps you signed in to your PortPass account until you sign out, and holds a one-time check while you are signing in with Google.</li>
           <li><strong>Last place:</strong> remembers which part of PortPass you opened last, for up to a year. It is removed when you sign out.</li>
           <li><strong>Staff sign-in:</strong> keeps a business’s staff signed in to their staff area for up to 12 hours.</li>
           <li><strong>Administrator check:</strong> remembers for up to 12 hours that a PortPass administrator passed the second sign-in step.</li>
-          <li><strong>How you found a business:</strong> on a business’s pages, if you arrived from a tagged link or another website, a cookie remembers the campaign tags and the name of that website for 30 days, so it can be saved with your registration. It holds no name and no identifier.</li>
+          <li><strong>How you found a business:</strong> on some businesses’ pages (today, Futprep’s), if you arrived from a tagged link, another website or another PortPass page, a cookie remembers the campaign tags, the name of that website and that you came through PortPass. It lasts 30 days, so it can be saved with your registration. It holds no name and no identifier.</li>
         </ul>
         <p>
           Your browser also keeps a few things that never leave your device: whether you closed the “get the app” banner, whether you have seen the opening animation, and copies of public pages you opened so they still open offline. Pages that show or collect personal information are not saved offline. On a coach’s phone, attendance marks wait on the device until they are saved; they hold no names.
@@ -172,7 +172,7 @@ export default function PrivacyPage() {
 
         <h2>Your rights</h2>
         <p>
-          You can ask us, in writing, what information we hold about you and for a copy of it. You can ask us to correct it, to delete it, or to stop using it in a particular way. Email us at the address below. We may ask you to confirm who you are first. We answer within 30 days. If we can’t do what you ask, for example because the business must keep a payment record, we will tell you why.
+          You can ask us, in writing, what information we hold about you and for a copy of it. You can ask us to correct it, to delete it, or to stop using it in a particular way. Email us at the address below. We may ask you to confirm who you are first. We answer as soon as we can, and always within 40 days. If we can’t do what you ask, for example because the business must keep a payment record, we will tell you why.
         </p>
         <p>
           For a child’s registration, the business’s registration desk can correct the record for you, and each correction is logged.
@@ -183,7 +183,7 @@ export default function PrivacyPage() {
 
         <h2>Deleting your account</h2>
         <p>
-          Email us and we will close your PortPass account within 30 days. That removes your sign-in and your profile. Registrations and payments already made stay with the business you made them with, as its own records, for the periods above. If you were part of a business’s team, your membership ends; the business’s own information stays with the business, and the log of changes keeps a record that a change was made.
+          Email us and we will close your PortPass account within 40 days. That removes your sign-in and your profile. Registrations and payments already made stay with the business you made them with, as its own records, for the periods above. If you were part of a business’s team, your membership ends; the business’s own information stays with the business, and the log of changes keeps a record that a change was made.
         </p>
 
         <h2>How we protect it</h2>

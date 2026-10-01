@@ -119,7 +119,7 @@ export default function TermsPage() {
           <li><strong>Your customers’ information.</strong> You may use the information customers give you through PortPass only to provide your service to them. Keep it confidential, give access only to staff who need it, and follow the data protection law of The Bahamas and our <Link href="/privacy">Privacy Policy</Link>. This matters most for children’s health and emergency details.</li>
           <li><strong>Photos and content.</strong> Upload only photos and text you have the right to use. Before you publish a photo that shows a child, you must hold a parent’s or guardian’s consent for every child in it. You give PortPass permission to show your content on the site and in material that promotes your listing.</li>
           <li><strong>Your team.</strong> You decide who on your team can sign in and what they can do, and you are responsible for what they do there. When someone leaves, remove their access or ask us to.</li>
-          <li><strong>Leaving.</strong> You can ask us to take your listing down at any time. Records you are required to keep, such as payment records, stay available to you as set out in the Privacy Policy.</li>
+          <li><strong>Leaving.</strong> You can ask us to take your listing down at any time. We send you your customer, booking and payment records within 14 days, then remove the listing.</li>
         </ul>
 
         <h2>Our responsibility to you</h2>
