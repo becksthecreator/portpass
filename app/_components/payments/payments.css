@@ -98,7 +98,7 @@
 .preq-picked span{color:var(--muted);font-size:.82rem;overflow-wrap:anywhere}
 
 .preq-lines{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-.preq-line{display:grid;grid-template-columns:minmax(0,1fr) 64px 104px 44px;gap:8px;align-items:end;border-bottom:1px solid var(--line);padding-bottom:10px}
+.preq-line{display:grid;grid-template-columns:76px minmax(0,1fr) 48px;gap:8px;align-items:end;border-bottom:1px solid var(--line);padding-bottom:10px}
 .preq-line .preq-field:first-child{grid-column:1/-1}
 .preq-line .preq-field>span{font-size:.72rem}
 .preq-line-remove{min-height:48px;min-width:44px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--muted);font-size:1.2rem;cursor:pointer}
@@ -172,7 +172,7 @@
   .preq-totals dd{text-align:left}
   .preq-btns{grid-template-columns:repeat(2,minmax(0,1fr))}
   .preq-two{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .preq-line{grid-template-columns:minmax(0,1fr) 72px 120px 44px}
+  .preq-line{grid-template-columns:minmax(0,1fr) 76px 120px 48px}
   .preq-line .preq-field:first-child{grid-column:auto}
   .preq-filters{grid-template-columns:auto minmax(0,1fr);align-items:end}
 }
