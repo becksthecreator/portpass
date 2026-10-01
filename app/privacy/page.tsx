@@ -44,25 +44,25 @@ export default function PrivacyPage() {
 
         <h2>What we collect, and when</h2>
         <p>
-          <strong>When you register, book or enquire.</strong> We collect what you type into the form: your name, email address and phone number, and the details that booking needs, such as dates, guest numbers, the class or package you chose and how you plan to pay. You don’t need an account to enquire or to register a child.
+          <strong>When you register, book or enquire.</strong> We collect what you type into the form: your name, email address and phone number, and the details that booking needs, such as dates, guest numbers, the class or package you chose and how you plan to pay. You don’t need an account to enquire or to register a child. Only the free taster needs one.
         </p>
         <p>
-          <strong>When you create a PortPass account.</strong> Your name, your email address and, if you give it, your phone number. You sign in with a 6-digit code sent to your email, or with Google. There are no passwords, so we store none. If you booked earlier with the same email address, we link those bookings to your account.
+          <strong>When you create a PortPass account.</strong> Your name, your email address and your phone number. The phone number is optional unless you sign up to run a business. We also record which version of our terms you agreed to and when you last signed in. You sign in with a 6-digit code sent to your email, or with Google. There are no passwords, so we store none. If you registered a child earlier with the same email address, we link those registrations to your account.
         </p>
         <p id="google">
-          <strong>When you sign in with Google.</strong> If you choose “Continue with Google”, Google shares three things with us: your name, your email address and your profile photo. We use your name and email address to create or find your PortPass account. We don’t use or show the photo; it stays with your sign-in record. We ask Google for nothing else, so we can’t see your contacts, calendar, files or anything else in your Google account, and PortPass never posts anything to Google or on your behalf. You can remove PortPass’s access at any time in your Google account settings.
+          <strong>When you sign in with Google.</strong> If you choose “Continue with Google”, Google shares your basic profile with us: your name, your email address and your profile photo, with the ID number Google gives your account. We use your name and email address to create or find your PortPass account. We don’t use or show the photo; it stays with your sign-in record. We ask Google for nothing else, so we can’t see your contacts, calendar, files or anything else in your Google account, and PortPass never posts anything to Google or on your behalf. You can remove PortPass’s access at any time in your Google account settings.
         </p>
         <p>
-          <strong>When you run a business on PortPass.</strong> Your business details (name, section, contact details, photos, prices and payment methods), the names, email addresses and roles of the people you add to your team, and the bank-transfer details you give us for your customers. We keep a log of changes to roles, approvals and payment details: who changed what, when, and the values before and after.
+          <strong>When you run a business on PortPass.</strong> Your business details (name, section, description, location, contact details, website and Instagram, photos, prices and payment methods); the owner’s name, short biography and photo if you add them; the email addresses and roles of the people you add to your team; and the bank-transfer details you give us for your customers. We keep a log of changes to team invitations, listing approvals and payment details: what changed, when, who made the change, and for payment details the values before and after.
         </p>
         <p>
-          <strong>When you ask to be listed.</strong> Your name, business name, section, WhatsApp number, Instagram handle if you give one, and a short note.
+          <strong>When you ask to be listed.</strong> Your name, business name, section, WhatsApp number, Instagram handle if you give one, and a short note. We also save the plan you picked, if any, and any campaign tag on the link that brought you to the form.
         </p>
         <p>
-          <strong>When you work for a business on PortPass.</strong> Your name, your role, and a staff sign-in. Your PIN itself is not stored, only a scrambled form of it. For coaches, the business may also record a public profile (name, photo, short biography), the sessions you worked and what you are owed for them.
+          <strong>When you work for a business on PortPass.</strong> Your name, your role, an account name and a staff sign-in, the hours and notes you log, and your name on the records you enter. We store a coded form of your PIN, not the digits themselves; a PIN is short, so don’t reuse one you use anywhere else. For coaches, the business may also record a public profile (name, nickname, title, photo, short biography, coaching licences, where you played, an introduction video and the times you are available), the sessions you worked and what you are owed for them. What you are owed is shown only to you, to the head of the business and to PortPass’s founders.
         </p>
         <p>
-          <strong>How you found us.</strong> If you reach a business’s page through a link or QR code that carries a campaign tag, or you answer “How did you hear about us?”, we save that with your registration. It tells the business and PortPass which materials work, and whether a new customer came through PortPass. It is saved against your registration, so it is linked to you. It is never used to follow you around the web.
+          <strong>How you found us.</strong> When you register we ask “How did you hear about us?”. We save your answer with your registration, along with any referral code or name you give, the campaign tag on the link or QR code that brought you, the name of the website you came from, and whether your family is new to the business. This tells the business and PortPass which materials work, and whether a new customer came through PortPass. It is saved against your registration, so it is linked to you. It is never used to follow you around the web.
         </p>
         <p>
           <strong>Payments.</strong> PortPass does not take card payments, and we never collect or store card numbers. You pay the business directly, by cash or bank transfer. The business’s staff then record the amount, the method, the date, any reference and who recorded it.
@@ -70,25 +70,25 @@ export default function PrivacyPage() {
 
         <h2 id="children">Children’s information</h2>
         <p>
-          Some businesses on PortPass run programmes for children. A parent or guardian registers the child and signs the consent. We never ask a child for information, and children don’t hold accounts.
+          Some businesses on PortPass run programmes for children. A parent or guardian, or an adult they have authorised, registers the child and signs the consent. We never ask a child for information, and accounts are for adults only.
         </p>
         <p>
-          <strong>What we collect about a child.</strong> Name, date of birth and gender; an emergency contact and who may collect the child; your choice about photos and video; and the health details you choose to give: allergies, medical conditions, medications, special needs and anything you add in the notes box. The health details are optional.
+          <strong>What we collect about a child.</strong> Name, date of birth and gender; the class they join and their attendance; an emergency contact and who may collect the child; your choice about photos and video; and the health details you choose to give: allergies, medical conditions, medications, special needs and anything you add in the notes box. The health details are optional. The business’s staff can add or correct health details you give them directly. For a private session or a party we ask only for the child’s name and age.
         </p>
         <p>
-          <strong>Why.</strong> Only to run that programme safely: to place the child in the right class, to take attendance, and so the coach on the field knows what to do in an emergency.
+          <strong>Why.</strong> To run that programme: to place the child in the right class, take attendance, keep track of what has been paid, write to you about the booking, and so the coach on the field knows what to do in an emergency. Health details are used only to keep the child safe.
         </p>
         <p>
-          <strong>Who can see a child’s health details.</strong> Only that business’s own staff who need them: the coaches running the session and the staff on its registration desk. A helper who only checks the roster is not sent them. Health details are never included in spreadsheets or exports, in any email, on any public page, in the status page you open with your reference code, or in your PortPass account. PortPass’s own team does not read them in the ordinary running of the service. The founders, and the people who maintain the system for them, can reach the database, and do so only to fix a fault or at the business’s request.
+          <strong>Who can see a child’s health details.</strong> Only that business’s own staff who need them: its coaches, the staff on its registration desk and its owner. A helper who only checks the roster is not sent them. Health details are never included in spreadsheets or exports, in any email, on any public page, in the status page you open with your reference code, or in your PortPass account. PortPass’s own admin area never shows them. A PortPass founder who also coaches for a business sees them there as one of that business’s coaches. The founders, and the people who maintain the system for them, can reach the database, and do so only to fix a fault or at the business’s request.
         </p>
         <p>
-          <strong>Emergency contacts and pickup names</strong> are seen by the same staff. They are also filled in for you if the business sends you a personal link to register again next term, so anyone you forward that link to can see them. Health details are never filled in from an earlier registration; we ask for them fresh each time.
+          <strong>Emergency contacts and pickup names</strong> are seen by the same staff. If the business sends you a personal link to register again next term, the link fills in what you gave last time: your name, email and phone, your child’s name, date of birth and gender, the emergency contact and the pickup names. Anyone you forward that link to can see all of it until early registration closes. A personal link never fills in health details; we ask for them fresh each time you register.
         </p>
         <p>
-          <strong>Records the business starts.</strong> Sometimes the business begins a child’s record before you do: a coach may add a child’s name at the field, and a business moving to PortPass may bring over the records it already holds. You then complete and sign the registration yourself.
+          <strong>Records the business starts.</strong> Sometimes the business begins a child’s record before you do. Its staff may add your child’s name, and your name and contact details if they have them. A business moving to PortPass may bring over what it already holds about your child, which can include emergency contacts and health details. You are then sent a link to complete and sign the registration yourself. Where a school has hired the business, the business keeps only your child’s name and attendance; the school holds the rest.
         </p>
         <p>
-          <strong>Photos.</strong> You choose yes or no to photos and video when you register. We never ask you to upload a photo of your child. A photo in a sports business’s gallery is only shown after the business confirms it holds consent for every child in it. PortPass does not see the consent forms; the business is responsible for them.
+          <strong>Photos.</strong> You choose yes or no to photos and video when you register. We never ask you to upload a photo of your child. A photo in a sports business’s gallery is only shown on its page after the business confirms it holds consent for every child in it. PortPass does not see the consent forms; the business is responsible for them. Coach profile photos are not checked this way.
         </p>
         <p>
           <strong>Other notes.</strong> Anything you write in another free-text box, such as the goal of a private session, is kept with that request and seen by the coaches and the registration desk. Please keep health information to the registration form.
@@ -163,8 +163,8 @@ export default function PrivacyPage() {
           <li><strong>Enquiries that don’t become a booking</strong> (wedding enquiries, “tell me when this opens”, and requests to be listed): 2 years.</li>
           <li><strong>Registrations and bookings</strong> (names, contact details, class, attendance): kept as the business’s record while you are its customer, and for up to 7 years where a payment was recorded.</li>
           <li><strong>PortPass accounts:</strong> until you ask us to delete the account.</li>
-          <li><strong>Sign-in codes:</strong> they expire within minutes.</li>
-          <li><strong>The log of changes</strong> to roles, approvals and payment details: for as long as the business is on PortPass.</li>
+          <li><strong>Sign-in codes:</strong> each one works once and stops working soon after it is sent.</li>
+          <li><strong>The log of changes</strong> to team invitations, approvals and payment details: for as long as the business is on PortPass.</li>
         </ul>
         <p>
           At the end of these periods we delete the information, or remove the names from it so it can no longer be linked to you. When a business’s staff correct a record, the earlier value is kept in an edit history so changes can be traced. Our encrypted backups are each kept for no more than 12 months, so deleted information leaves the backups within that time.
