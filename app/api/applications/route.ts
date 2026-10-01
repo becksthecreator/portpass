@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApplication } from "@/db/applications";
+import { createLead, noteInboundRequest } from "@/db/leads";
+import { emptyLeadDraft } from "@/lib/scout/leads";
 import { sendApplicationReceivedEmail } from "@/lib/email";
 import { normalizePhoneE164 } from "@/lib/phone";
 import { isKnownSectionSlug } from "@/db/categories";
@@ -50,6 +52,8 @@ export async function POST(request: NextRequest) {
   const whatsappRaw = str(b, "whatsapp", 40);
   const instagram = instagramHandle(str(b, "instagram", 120));
   const note = str(b, "note", 300) || null;
+  // Letters, digits and dashes only, so a code can't carry anything else.
+  const referralCode = str(b, "referralCode", 40).replace(/[^A-Za-z0-9-]/g, "").toUpperCase() || null;
 
   if (!contactPerson || !organizationName) {
     return NextResponse.json({ error: "Tell us your name and your business name." }, { status: 400 });
@@ -86,7 +90,29 @@ export async function POST(request: NextRequest) {
       utmMedium,
       utmCampaign,
       planCode,
+      referralCode,
     });
+    // Every request to be listed is also a lead in Admin -> Leads (brief 14,
+    // "our own inbound"). A lead that can't be added (the business is
+    // already there, or once asked not to be contacted) never fails the
+    // request itself: the application is saved and the founders are emailed.
+    try {
+      const draft = emptyLeadDraft(organizationName, referralCode ? "referral" : "inbound_form");
+      draft.section = section;
+      draft.instagramHandle = instagram || null;
+      draft.whatsappE164 = whatsappE164;
+      draft.phone = whatsappE164;
+      draft.referralCode = referralCode;
+      draft.notes = note;
+      draft.status = "replied";
+      draft.nextStep = "They asked to be listed: message them on WhatsApp.";
+      const made = await createLead(draft, { actorUserId: null, applicationId: id });
+      // Already a lead (kept from a search, or from the tracker): it moves
+      // to "Replied" and points at this request, instead of being dropped.
+      if (!made.ok && made.reason === "duplicate" && made.existingId) await noteInboundRequest(made.existingId, { applicationId: id, referralCode });
+    } catch (leadError) {
+      console.error("Listing application: lead not created", leadError instanceof Error ? leadError.message : "");
+    }
     await sendApplicationReceivedEmail({
       id,
       organizationName,

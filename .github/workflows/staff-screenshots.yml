@@ -1,11 +1,13 @@
 name: Staff screenshots (TEST data)
 
-# Staff pages sit behind a staff PIN, so they can't be photographed on a
-# Vercel preview. This job runs the app on localhost against the same
-# throwaway local Supabase stack the integration tests use, seeds "TEST —
-# delete" data and a staff account whose PIN is generated for this run
-# only (masked, never printed), and saves 375px screenshots as an
-# artifact. It never touches the real database and isn't a required check.
+# Staff pages sit behind a staff PIN and admin pages behind a sign-in with
+# two-step login, so they can't be photographed on a Vercel preview. This
+# job runs the app on localhost against the same throwaway local Supabase
+# stack the integration tests use, seeds "TEST — delete" data, a staff
+# account whose PIN is generated for this run only (masked, never
+# printed) and a TEST platform owner that exists only in that stack, and
+# saves 375px screenshots as an artifact. It never touches the real
+# database and isn't a required check.
 
 on:
   workflow_dispatch:
@@ -13,6 +15,9 @@ on:
     branches: [main]
     paths:
       - "app/futprep/staff/**"
+      - "app/admin/leads/**"
+      - "db/leads.ts"
+      - "lib/scout/**"
       - "db/staff.ts"
       - "db/coachPay.ts"
       - "scripts/screenshots/**"
@@ -52,6 +57,8 @@ jobs:
           echo "::add-mask::$PIN"
           echo "SCREENSHOT_PIN=$PIN" >> "$GITHUB_ENV"
           echo "SCREENSHOT_FIXTURE=$RUNNER_TEMP/staff-fixture.json" >> "$GITHUB_ENV"
+          # The TEST platform owner seeded by seed-staff-fixture.ts (local stack only).
+          echo "PLATFORM_OWNER_EMAILS=test-delete-admin@test.portpass.local" >> "$GITHUB_ENV"
       - name: Seed test data
         run: |
           npx tsx scripts/seed-test-data.ts

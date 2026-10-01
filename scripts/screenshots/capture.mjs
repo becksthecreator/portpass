@@ -1,8 +1,13 @@
-// Captures staff pages at phone width for the staff screenshot job. Runs
-// against `next start` on localhost with the TEST fixture from
-// seed-staff-fixture.ts; signs in with the one-run PIN the workflow
-// generated (never printed). Writes PNGs to ./screenshots.
+// Captures staff and admin pages at phone width for the staff screenshot
+// job. Runs against `next start` on localhost with the TEST fixture from
+// seed-staff-fixture.ts. Staff pages: signs in with the one-run PIN the
+// workflow generated (never printed). Admin pages: signs in as the TEST
+// platform owner through the real routes (a one-time code issued by the
+// local Supabase stack, then an authenticator code computed here from the
+// secret that enrolment returns). Writes PNGs to ./screenshots.
+import { createHmac } from "node:crypto";
 import { mkdirSync, readFileSync } from "node:fs";
+import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright";
 
 const BASE = process.env.SCREENSHOT_BASE_URL ?? "http://localhost:3000";
@@ -12,6 +17,7 @@ if (!PIN) throw new Error("SCREENSHOT_PIN is not set.");
 mkdirSync("screenshots", { recursive: true });
 
 // [file name, account, path, element to also capture on its own]
+// account "admin" is the TEST platform owner; anything else is a staff PIN account.
 const SHOTS = [
   ["brief12-roster-coaches-today-375", "test-coach", `/futprep/staff/coach?session=${fixture.sessionId}`, ".coach-ratio"],
   // Brief 13: Alex's Coach pay view, a coach's own view, and who coached.
@@ -22,20 +28,74 @@ const SHOTS = [
   // "add your weekly slots" prompt; the Team page's photo upload.
   ["brief16-coaches-own-prompt-375", "test-coach", "/futprep/coaches", ".coach-own-prompt"],
   ["brief16-team-photo-upload-375", "test-ceo", "/futprep/staff/team", ".team-photo-actions"],
+  // Brief 14: Admin -> Leads with five TEST leads, and one lead's card.
+  ["brief14-leads-table-375", "admin", "/admin/leads", ".leads-table"],
+  ["brief14-lead-card-375", "admin", `/admin/leads/${fixture.leadId}`, ".lead-panel"],
 ];
 
+// RFC 6238: the six-digit code an authenticator app would show right now.
+function totp(base32Secret, now = Date.now()) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "";
+  for (const char of base32Secret.replace(/=+$/, "").toUpperCase()) {
+    const value = alphabet.indexOf(char);
+    if (value >= 0) bits += value.toString(2).padStart(5, "0");
+  }
+  const key = Buffer.from((bits.match(/.{8}/g) ?? []).map((byte) => parseInt(byte, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(now / 1000 / 30)));
+  const digest = createHmac("sha1", key).update(counter).digest();
+  const offset = digest[digest.length - 1] & 0x0f;
+  const code = (digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000;
+  return String(code).padStart(6, "0");
+}
+
+async function post(page, url, body) {
+  return page.evaluate(async ({ url, body }) => {
+    const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    return { status: response.status, data: await response.json().catch(() => ({})) };
+  }, { url, body });
+}
+
+async function staffSignIn(page, account) {
+  await page.goto(`${BASE}/futprep/staff/login`, { waitUntil: "networkidle" });
+  const signIn = await post(page, "/api/futprep/staff/session", { accountKey: account, pin: PIN });
+  if (signIn.status !== 200) throw new Error(`Sign-in as ${account} returned ${signIn.status}`);
+}
+
+async function adminSignIn(page) {
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
+  const { data, error } = await supabase.auth.admin.generateLink({ type: "magiclink", email: fixture.adminEmail });
+  if (error || !data?.properties?.email_otp) throw new Error(`Could not issue a sign-in code: ${error?.message ?? "no code"}`);
+
+  await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+  const verified = await post(page, "/api/auth/verify", { email: fixture.adminEmail, token: data.properties.email_otp });
+  if (verified.status !== 200) throw new Error(`Admin sign-in returned ${verified.status}`);
+
+  const enrolled = await post(page, "/api/admin/mfa/enroll", {});
+  if (enrolled.status !== 200 || !enrolled.data.secret) throw new Error(`Two-step enrolment returned ${enrolled.status}`);
+  const stepUp = await post(page, "/api/admin/mfa/verify", { factorId: enrolled.data.factorId, code: totp(enrolled.data.secret) });
+  if (stepUp.status !== 200) throw new Error(`Two-step verification returned ${stepUp.status}`);
+}
+
 const browser = await chromium.launch();
-try {
-  for (const [name, account, path, focus] of SHOTS) {
+// One signed-in browser context per account, reused for all its shots: an
+// authenticator code can't be used twice, so the admin signs in once.
+const contexts = new Map();
+async function pageFor(account) {
+  if (!contexts.has(account)) {
     const context = await browser.newContext({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     const page = await context.newPage();
-    await page.goto(`${BASE}/futprep/staff/login`, { waitUntil: "networkidle" });
-    const signIn = await page.evaluate(async ({ accountKey, pin }) => {
-      const response = await fetch("/api/futprep/staff/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accountKey, pin }) });
-      return response.status;
-    }, { accountKey: account, pin: PIN });
-    if (signIn !== 200) throw new Error(`Sign-in as ${account} returned ${signIn}`);
+    if (account === "admin") await adminSignIn(page);
+    else await staffSignIn(page, account);
+    contexts.set(account, { context, page });
+  }
+  return contexts.get(account).page;
+}
 
+try {
+  for (const [name, account, path, focus] of SHOTS) {
+    const page = await pageFor(account);
     await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
     await page.screenshot({ path: `screenshots/${name}.png`, fullPage: true });
     if (focus) {
@@ -44,8 +104,8 @@ try {
       await page.screenshot({ path: `screenshots/${name}-viewport.png` });
     }
     console.log(`captured ${name}`);
-    await context.close();
   }
 } finally {
+  for (const { context } of contexts.values()) await context.close();
   await browser.close();
 }

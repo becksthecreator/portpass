@@ -37,6 +37,8 @@ export type NewApplication = {
   utmMedium: string | null;
   utmCampaign: string | null;
   planCode: string | null;
+  // "Referred by a business already on PortPass" (brief 14).
+  referralCode?: string | null;
 };
 
 export async function createApplication(values: NewApplication): Promise<{ id: number }> {
@@ -57,6 +59,7 @@ export async function createApplication(values: NewApplication): Promise<{ id: n
       utm_medium: values.utmMedium,
       utm_campaign: values.utmCampaign,
       plan_code: values.planCode,
+      referral_code: values.referralCode ?? null,
       status: "submitted",
       submitted_at: new Date().toISOString(),
     })
