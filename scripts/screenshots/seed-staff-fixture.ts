@@ -193,7 +193,9 @@ async function main() {
       booking_method: "website_booking", website_url: "https://testboattours.example/", status: "not_now", source: "tracker_import", priority: 3, score: 0, notes: "Already takes bookings on its own site.",
       score_reasons: [reason("publishes_prices", "Publishes prices", 15), reason("online_booking", "Already uses online booking", -30)],
     },
-  ].map((lead) => ({ ...lead, dedupe_key: lead.business_name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() }));
+    // A bulk insert sends every column for every row, so the columns only
+    // some leads set get their defaults here rather than null.
+  ].map((lead) => ({ warm_connection: false, source_urls: [] as string[], ...lead, dedupe_key: lead.business_name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() }));
   const { data: seededLeads, error: leadError } = await db.from("leads").insert(leads).select("id,business_name");
   if (leadError || !seededLeads) throw new Error(`Could not seed leads: ${leadError?.message}`);
   const leadId = seededLeads.find((l) => l.business_name.startsWith("TEST Party Rentals"))!.id;
