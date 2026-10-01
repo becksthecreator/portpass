@@ -18,5 +18,10 @@ export function normalizeReferenceCode(value: unknown): string | null {
 // typed is made literal. PostgREST also reads "*" as a wildcard; escaped,
 // it can only match a literal "%", which no name contains.
 export function escapeLikePattern(value: string): string {
-  return value.replace(/[\%_*]/g, (char) => `\${char}`);
+  const BACKSLASH = String.fromCharCode(92);
+  let escaped = "";
+  for (const char of value) {
+    escaped += char === BACKSLASH || char === "%" || char === "_" || char === "*" ? BACKSLASH + char : char;
+  }
+  return escaped;
 }

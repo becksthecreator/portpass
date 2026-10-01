@@ -19,8 +19,12 @@ describe("escapeLikePattern", () => {
   it("leaves an ordinary name alone and makes pattern characters literal", () => {
     expect(escapeLikePattern("Ava Rolle")).toBe("Ava Rolle");
     expect(escapeLikePattern("O'Brien-Smith")).toBe("O'Brien-Smith");
-    expect(escapeLikePattern("%")).toBe("\%");
-    expect(escapeLikePattern("A_a*")).toBe("A\_a\*");
-    expect(escapeLikePattern("back\slash")).toBe("back\\slash");
+    // B is one backslash, spelled by its character code so no editor or
+    // shell can quietly drop it.
+    const B = String.fromCharCode(92);
+    expect(escapeLikePattern("%")).toBe(`${B}%`);
+    expect(escapeLikePattern("%")).toHaveLength(2);
+    expect(escapeLikePattern("A_a*")).toBe(`A${B}_a${B}*`);
+    expect(escapeLikePattern(`back${B}slash`)).toBe(`back${B}${B}slash`);
   });
 });
