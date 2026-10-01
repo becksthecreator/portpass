@@ -128,6 +128,7 @@ afterAll(async () => {
     const { error } = await admin.from("organizations").delete().eq("id", id);
     expect(error).toBeNull();
   }
+  await admin.from("message_log").delete().like("template", "payment_%").like("recipient", `%${tag}@test.portpass.local`);
   if (userId) await admin.auth.admin.deleteUser(userId);
 });
 

@@ -1,4 +1,4 @@
-import { escapeHtml, portpassFrom, sendEmail } from "@/lib/email";
+import { escapeHtml, portpassFrom } from "@/lib/email";
 import { firstName, formatDay, money, type LineItem } from "./rules";
 
 // Payment request emails (brief 17). Sent only when a staff member presses
@@ -83,12 +83,4 @@ export function paymentEmail(input: PaymentEmailInput, today?: string): { subjec
     <p style="color:#647069;font-size:12px;margin-top:32px">Sent by ${business} through PortPass · portpassbahamas.com</p>
   </div>`;
   return { subject, html };
-}
-
-// Sends one email for a staff member's click. Resolves "failed" when
-// Resend refused it (lib/email.ts logs no address or subject).
-export async function sendPaymentEmail(to: string, input: PaymentEmailInput): Promise<"sent" | "failed" | "skipped"> {
-  const { subject, html } = paymentEmail(input);
-  const outcome: unknown = await sendEmail({ to, subject, html, from: viaPortpassFrom(input.businessName) });
-  return outcome === "failed" ? "failed" : outcome === "skipped" ? "skipped" : "sent";
 }

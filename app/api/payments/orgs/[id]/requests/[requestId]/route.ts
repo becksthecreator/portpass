@@ -11,7 +11,8 @@ import {
   type PaymentRequest,
 } from "@/db/paymentRequests";
 import { paymentRouteError, paymentsApiAccess, positiveId } from "@/lib/paymentRequests/access";
-import { sendPaymentEmail, type PaymentEmailKind } from "@/lib/paymentRequests/email";
+import type { PaymentEmailKind } from "@/lib/paymentRequests/email";
+import { sendPaymentEmail } from "@/lib/paymentRequests/send";
 import { paymentErrorMessage, parseReminderVia, parseRequestInput, parseSentVia } from "@/lib/paymentRequests/input";
 import { balanceCents, methodsSetUp, payPath, receiptPath } from "@/lib/paymentRequests/rules";
 
@@ -89,7 +90,7 @@ export async function POST(request: Request, ctx: Ctx) {
         if (req.status === "void") return refuse("VOID", 409);
         if (via === "email") {
           if (!req.customerEmail) return refuse("NO_EMAIL");
-          const outcome = await sendPaymentEmail(req.customerEmail, emailFor("request", req, orgName, origin));
+          const outcome = await sendPaymentEmail(orgId, req.customerEmail, emailFor("request", req, orgName, origin));
           if (outcome !== "sent") return refuse("EMAIL_FAILED", 502);
         }
         const sent = await markPaymentRequestSent(orgId, requestId, via, actor);
@@ -101,7 +102,7 @@ export async function POST(request: Request, ctx: Ctx) {
         if (req.status !== "sent" && req.status !== "part_paid") return refuse(req.status === "paid" ? "ALREADY_PAID" : req.status === "void" ? "VOID" : "NOT_SENT_YET", 409);
         if (via === "email") {
           if (!req.customerEmail) return refuse("NO_EMAIL");
-          const outcome = await sendPaymentEmail(req.customerEmail, emailFor("reminder", req, orgName, origin));
+          const outcome = await sendPaymentEmail(orgId, req.customerEmail, emailFor("reminder", req, orgName, origin));
           if (outcome !== "sent") return refuse("EMAIL_FAILED", 502);
         }
         const reminded = await recordReminder(orgId, requestId, via, actor);
@@ -111,7 +112,7 @@ export async function POST(request: Request, ctx: Ctx) {
         const payment = found.payments.find((p) => p.id === Number(body.paymentId) && p.status === "received" && p.receiptNumber);
         if (!payment) return refuse("NOT_FOUND", 404);
         if (!req.customerEmail) return refuse("NO_EMAIL");
-        const outcome = await sendPaymentEmail(req.customerEmail, emailFor("receipt", req, orgName, origin, { number: payment.receiptNumber!, amountCents: payment.amountCents }));
+        const outcome = await sendPaymentEmail(orgId, req.customerEmail, emailFor("receipt", req, orgName, origin, { number: payment.receiptNumber!, amountCents: payment.amountCents }));
         if (outcome !== "sent") return refuse("EMAIL_FAILED", 502);
         await logAudit({ actorUserId: actor.userId, organizationId: orgId, action: "payment_request.receipt_emailed", targetTable: "payment_requests", targetId: requestId, after: { reference: req.referenceCode, receipt: payment.receiptNumber, by: actor.name } });
         return NextResponse.json({ ok: true });
