@@ -144,19 +144,25 @@ export function perkConditions(perk: Pick<MemberPerk, "firstBookingOnly" | "minS
   return parts.join(" ");
 }
 
+// Prices that are per hour, per person, per child or per day: an amount off
+// comes off the booking, not off each unit, so no member unit price is
+// shown for them (it wouldn't be real).
+const PER_UNIT = new Set(["per_hour", "per_person", "per_child", "per_day"]);
+
 // The member's price for something with a real price, or null when the
-// perk doesn't change a price (a free extra, early access, priority) or
-// the price is below the perk's minimum spend. Never below zero.
-export function memberPriceCents(priceCents: number, perk: Pick<MemberPerk, "kind" | "percent" | "amountCents" | "minSpendCents">): number | null {
+// perk doesn't change a price (a free extra, early access, priority), the
+// price is below the perk's minimum spend, or an amount off can't be shown
+// on a unit price. Never below zero.
+export function memberPriceCents(priceCents: number, perk: Pick<MemberPerk, "kind" | "percent" | "amountCents" | "minSpendCents">, priceUnit: string | null = null): number | null {
   if (perk.minSpendCents && priceCents < perk.minSpendCents) return null;
   if (perk.kind === "percent_off" && perk.percent) return Math.max(0, priceCents - Math.round((priceCents * perk.percent) / 100));
-  if (perk.kind === "amount_off" && perk.amountCents) return Math.max(0, priceCents - perk.amountCents);
+  if (perk.kind === "amount_off" && perk.amountCents && !(priceUnit && PER_UNIT.has(priceUnit))) return Math.max(0, priceCents - perk.amountCents);
   return null;
 }
 
 // "$300 · Members $270": both prices, both real.
-export function bothPrices(priceCents: number, perk: Pick<MemberPerk, "kind" | "percent" | "amountCents" | "minSpendCents">): string | null {
-  const member = memberPriceCents(priceCents, perk);
+export function bothPrices(priceCents: number, perk: Pick<MemberPerk, "kind" | "percent" | "amountCents" | "minSpendCents">, priceUnit: string | null = null): string | null {
+  const member = memberPriceCents(priceCents, perk, priceUnit);
   return member === null || member === priceCents ? null : `${dollars(priceCents)} · Members ${dollars(member)}`;
 }
 

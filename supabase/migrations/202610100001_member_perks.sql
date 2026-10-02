@@ -127,6 +127,7 @@ create table if not exists public.member_perks (
 );
 
 create index if not exists member_perks_org_idx on public.member_perks (organization_id, status);
+create index if not exists member_perks_offering_idx on public.member_perks (offering_id) where offering_id is not null;
 create index if not exists member_perks_live_idx on public.member_perks (published_at desc) where status = 'live';
 
 alter table public.member_perks enable row level security;
@@ -161,6 +162,79 @@ create index if not exists perk_redemptions_perk_idx on public.perk_redemptions 
 
 alter table public.perk_redemptions enable row level security;
 revoke all on public.perk_redemptions from anon, authenticated;
+
+-- 3b. An offering a perk was for is removed: the perk ends with it,
+--     rather than becoming a perk on everything the business sells (a
+--     published perk never changes). Logged.
+create or replace function public.end_perks_for_removed_offering()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  r record;
+begin
+  -- The whole business is being deleted: its perks go with it, and there is
+  -- no business left to log against.
+  if not exists (select 1 from public.organizations where id = old.organization_id) then
+    return old;
+  end if;
+  for r in
+    update public.member_perks
+       set status = 'ended', ended_at = now(), ended_reason = 'The offering it was for was removed', updated_at = now()
+     where offering_id = old.id and status <> 'ended'
+    returning id, organization_id, title
+  loop
+    insert into public.audit_log (actor_user_id, organization_id, action, target_table, target_id, before, after)
+    values (null, r.organization_id, 'perk.ended', 'member_perks', r.id::text, jsonb_build_object('title', r.title), jsonb_build_object('status', 'ended', 'reason', 'The offering it was for was removed'));
+  end loop;
+  return old;
+end;
+$$;
+
+revoke all on function public.end_perks_for_removed_offering() from public, anon, authenticated;
+
+drop trigger if exists offerings_end_member_perks on public.offerings;
+create trigger offerings_end_member_perks
+  before delete on public.offerings
+  for each row execute function public.end_perks_for_removed_offering();
+
+-- 3c. Recording a perk used: the month's limit is counted and the use
+--     written in one step, under a lock per perk, so two tills can't both
+--     take the last one. "First booking only" is held by the unique index.
+create or replace function public.record_perk_redemption(
+  p_perk_id bigint,
+  p_profile_id uuid,
+  p_organization_id bigint,
+  p_booking_ref text,
+  p_method text,
+  p_discount_cents integer,
+  p_first_booking boolean,
+  p_recorded_by text,
+  p_month_start timestamptz,
+  p_monthly_cap integer
+)
+returns bigint
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_id bigint;
+begin
+  perform pg_advisory_xact_lock(hashtext('perk_redemptions'), p_perk_id::integer);
+  if p_monthly_cap is not null and (select count(*) from public.perk_redemptions where perk_id = p_perk_id and redeemed_at >= p_month_start) >= p_monthly_cap then
+    raise exception 'MONTH_FULL';
+  end if;
+  insert into public.perk_redemptions (perk_id, profile_id, organization_id, booking_ref, method, discount_cents, first_booking, recorded_by)
+  values (p_perk_id, p_profile_id, p_organization_id, p_booking_ref, p_method, p_discount_cents, p_first_booking, p_recorded_by)
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+revoke all on function public.record_perk_redemption(bigint, uuid, bigint, text, text, integer, boolean, text, timestamptz, integer) from public, anon, authenticated;
 
 comment on table public.perk_redemptions is
   'One row each time a member used a perk: which perk, which member, how, and the discount when it was money.';

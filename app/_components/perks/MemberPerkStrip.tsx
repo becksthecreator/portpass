@@ -3,7 +3,7 @@ import { bothPrices, perkChip, perkConditions } from "@/lib/memberPerks";
 import { PerkUnlock } from "./PerkUnlock";
 import "./perks.css";
 
-type PricedOffering = { id: number; name: string; priceCents: number | null };
+type PricedOffering = { id: number; name: string; priceCents: number | null; priceUnit?: string | null };
 
 // A business's live member perks on its own page (brief 10, 6.2): the gold
 // chip, the perk in the business's words, its conditions in plain words
@@ -23,7 +23,7 @@ export async function MemberPerkStrip({ slug, path, offerings = [] }: { slug: st
             const conditions = perkConditions(perk);
             const prices = priced
               .filter((o) => perk.offeringId === null || perk.offeringId === o.id)
-              .map((o) => ({ id: o.id, name: o.name, line: bothPrices(o.priceCents, perk) }))
+              .map((o) => ({ id: o.id, name: o.name, line: bothPrices(o.priceCents, perk, o.priceUnit ?? null) }))
               .filter((o): o is { id: number; name: string; line: string } => o.line !== null)
               .slice(0, 4);
             return (

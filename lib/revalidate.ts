@@ -1,4 +1,8 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+
+// The cached list of live member perks (db/memberPerks.ts): a business
+// changed or an offering removed (which ends its perks) drops it too.
+export const MEMBER_PERKS_TAG = "member-perks";
 
 // Public pages are ISR (speed brief, 29 Sept, 1.2): the homepage, section
 // and subsection pages, business listings and their offering pages are
@@ -13,6 +17,7 @@ import { revalidatePath } from "next/cache";
 export function bumpListings(): void {
   try {
     revalidatePath("/", "layout");
+    revalidateTag(MEMBER_PERKS_TAG, { expire: 0 });
   } catch {
     // Not inside a Next request (tests, scripts): nothing to invalidate.
   }

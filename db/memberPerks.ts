@@ -1,7 +1,8 @@
 import { unstable_cache } from "next/cache";
-import { nassauToday } from "@/lib/futprepTerms";
+import { nassauLocalToIso, nassauToday } from "@/lib/futprepTerms";
 import { checkPassCode, passSecret } from "@/lib/memberPass";
 import { eligibility, isPerkLive, memberFirstName, memberPriceCents, normalizeMemberNumber, type Eligibility, type MemberPerk, type PerkInput, type PerkKind, type PerkStatus } from "@/lib/memberPerks";
+import { MEMBER_PERKS_TAG } from "@/lib/revalidate";
 import { logAudit } from "./audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -15,7 +16,7 @@ import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 // A perk never changes what a customer is charged: the business applies
 // it when it takes payment.
 
-export const MEMBER_PERKS_TAG = "member-perks";
+export { MEMBER_PERKS_TAG };
 
 type Row = Record<string, unknown>;
 
@@ -197,11 +198,17 @@ export async function listMemberRedemptions(userId: string): Promise<MemberRedem
 
 // ---- The counter: checking a pass, recording a use ------------------------------------
 
+// Midnight on the 1st of this month in Nassau, as an instant (Nassau is
+// UTC-4 in summer and UTC-5 in winter).
+function nassauMonthStart(): string {
+  return nassauLocalToIso(`${nassauToday().slice(0, 7)}-01T00:00`) ?? `${nassauToday().slice(0, 7)}-01T05:00:00Z`;
+}
+
 // How many times this perk has been used: by this member ever, and by
-// anyone this month (Nassau's calendar month, near enough in UTC).
+// anyone this month (Nassau's calendar month).
 async function usage(perkId: number, profileId: string): Promise<{ byThisMember: number; thisMonth: number }> {
   const db = getSupabaseAdmin();
-  const monthStart = `${nassauToday().slice(0, 7)}-01T00:00:00-05:00`;
+  const monthStart = nassauMonthStart();
   const [mine, month] = await Promise.all([
     db.from("perk_redemptions").select("id", { count: "exact", head: true }).eq("perk_id", perkId).eq("profile_id", profileId),
     db.from("perk_redemptions").select("id", { count: "exact", head: true }).eq("perk_id", perkId).gte("redeemed_at", monthStart),
@@ -250,14 +257,22 @@ export async function recordRedemption(organizationId: number, perkId: number, m
   if (perk.minSpendCents && input.priceCents !== null && input.priceCents < perk.minSpendCents) throw new Error("BELOW_MINIMUM");
   const member_price = input.priceCents === null ? null : memberPriceCents(input.priceCents, perk);
   const discountCents = input.priceCents !== null && member_price !== null ? input.priceCents - member_price : null;
-  const { data, error } = await db
-    .from("perk_redemptions")
-    .insert({ perk_id: perkId, profile_id: profileId, organization_id: organizationId, booking_ref: input.bookingRef ? input.bookingRef.slice(0, 80) : null, method: input.method, discount_cents: discountCents, first_booking: perk.firstBookingOnly, recorded_by: input.recordedBy ? input.recordedBy.slice(0, 80) : null })
-    .select("id")
-    .single();
+  const id = await insertRedemption(perk, profileId, organizationId, { bookingRef: input.bookingRef, method: input.method, discountCents, recordedBy: input.recordedBy });
+  return { id, discountCents };
+}
+
+// The write itself: the month's limit counted and the row inserted in one
+// step (record_perk_redemption). A second first-booking use is refused by
+// the unique index.
+async function insertRedemption(perk: MemberPerk, profileId: string, organizationId: number, input: { bookingRef: string | null; method: "online" | "pass_scan"; discountCents: number | null; recordedBy: string | null }): Promise<number> {
+  const { data, error } = await getSupabaseAdmin().rpc("record_perk_redemption", {
+    p_perk_id: perk.id, p_profile_id: profileId, p_organization_id: organizationId, p_booking_ref: input.bookingRef ? input.bookingRef.slice(0, 80) : null, p_method: input.method,
+    p_discount_cents: input.discountCents, p_first_booking: perk.firstBookingOnly, p_recorded_by: input.recordedBy ? input.recordedBy.slice(0, 80) : null, p_month_start: nassauMonthStart(), p_monthly_cap: perk.monthlyCap,
+  });
   if (error && (error as { code?: string }).code === "23505") throw new Error("ALREADY_USED");
+  if (error?.message?.includes("MONTH_FULL")) throw new Error("MONTH_FULL");
   throwIfSupabaseError(error, "Could not record the perk");
-  return { id: Number(data!.id), discountCents };
+  return Number(data);
 }
 
 export type BusinessRedemption = { id: number; perkTitle: string; firstName: string; memberNumber: string | null; redeemedAt: string; method: string; bookingRef: string | null; discountCents: number | null };
@@ -354,13 +369,17 @@ export async function prunePassChecks(now: number = Date.now()): Promise<number>
 
 // ---- Early access ---------------------------------------------------------------------
 
-// How many hours before the public a member may book with this business:
-// the longest of its live early-access perks that cover the whole
-// business, or null when it has none.
-export async function memberEarlyAccess(organizationId: number): Promise<{ perkId: number; hours: number } | null> {
+// How many hours before the public this member may book with this
+// business: the longest of its live early-access perks that cover the
+// whole business and that this member can still have (a first-booking
+// perk they have used, or a month's limit reached, doesn't count). Null
+// when there is none.
+export async function memberEarlyAccess(organizationId: number, userId: string): Promise<{ perkId: number; hours: number } | null> {
   const today = nassauToday();
   const perks = (await listBusinessPerks(organizationId)).filter((perk) => perk.kind === "early_access" && perk.offeringId === null && perk.earlyAccessHours && isPerkLive(perk, today));
-  const best = perks.sort((a, b) => (b.earlyAccessHours ?? 0) - (a.earlyAccessHours ?? 0))[0];
+  const usable: MemberPerk[] = [];
+  for (const perk of perks) if (eligibility(perk, today, await usage(perk.id, userId)).eligible) usable.push(perk);
+  const best = usable.sort((a, b) => (b.earlyAccessHours ?? 0) - (a.earlyAccessHours ?? 0))[0];
   return best ? { perkId: best.id, hours: best.earlyAccessHours as number } : null;
 }
 
@@ -369,9 +388,7 @@ export async function memberEarlyAccess(organizationId: number): Promise<{ perkI
 // it follows: the caller logs and moves on.
 export async function recordOnlineRedemption(organizationId: number, perkId: number, userId: string, bookingRef: string): Promise<void> {
   const perk = await ownPerk(organizationId, perkId);
-  const { error } = await getSupabaseAdmin().from("perk_redemptions").insert({ perk_id: perkId, profile_id: userId, organization_id: organizationId, booking_ref: bookingRef.slice(0, 80), method: "online", discount_cents: null, first_booking: perk.firstBookingOnly, recorded_by: "online" });
-  if (error && (error as { code?: string }).code === "23505") return;
-  throwIfSupabaseError(error, "Could not record the perk");
+  await insertRedemption(perk, userId, organizationId, { bookingRef, method: "online", discountCents: null, recordedBy: "online" });
 }
 
 // ---- Sign-ups -------------------------------------------------------------------------

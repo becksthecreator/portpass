@@ -42,7 +42,7 @@ async function memberEarlyHours(): Promise<number | null> {
     const session = await getSession();
     if (!session) return null;
     const organization = await futprepOrganization();
-    return organization ? (await memberEarlyAccess(organization.id))?.hours ?? null : null;
+    return organization ? (await memberEarlyAccess(organization.id, session.userId))?.hours ?? null : null;
   } catch {
     return null;
   }

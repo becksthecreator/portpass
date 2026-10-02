@@ -86,7 +86,7 @@ export default async function BusinessPerksPage({ params }: { params: Promise<{ 
           <section className="seller-block" aria-labelledby="perks-new">
             <h2 id="perks-new">Add a perk</h2>
             <p className="seller-note">It is saved as a draft first. Once you publish a perk you must honour it: it can be ended at any time, but not changed, and anyone who has already used it keeps it.</p>
-            <PerkForm orgId={business.id} offerings={offerings.filter((o) => o.priceCents !== null).map((o) => ({ id: o.id, name: o.name, priceCents: o.priceCents as number }))} />
+            <PerkForm orgId={business.id} offerings={offerings.filter((o) => o.priceCents !== null).map((o) => ({ id: o.id, name: o.name, priceCents: o.priceCents as number, priceUnit: o.priceUnit }))} />
           </section>
         )}
 

@@ -80,6 +80,11 @@ describe("how a perk reads", () => {
     // A free extra, early access and priority change no price.
     expect(bothPrices(30000, perk({ kind: "free_addon", percent: null, addonText: "prints" }))).toBeNull();
     expect(bothPrices(30000, perk({ kind: "early_access", percent: null, earlyAccessHours: 48 }))).toBeNull();
+    // An amount off comes off a booking, not off each hour or person: no member unit price.
+    expect(bothPrices(5000, perk({ kind: "amount_off", percent: null, amountCents: 1000 }), "per_hour")).toBeNull();
+    expect(bothPrices(5000, perk({ kind: "amount_off", percent: null, amountCents: 1000 }), "per_session")).toBe("$50 · Members $40");
+    // A percentage is right whatever the unit.
+    expect(bothPrices(5000, perk(), "per_hour")).toBe("$50 · Members $45");
     // A discount that rounds to nothing shows no second price.
     expect(bothPrices(1, perk())).toBeNull();
     expect(dollars(120000)).toBe("$1,200");

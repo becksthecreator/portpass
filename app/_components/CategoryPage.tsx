@@ -172,7 +172,7 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
             const perk = leadPerk(perksBySlug.get(org.slug) ?? []);
             // Both prices, both real: the business's own price and what a
             // member pays with its perk.
-            const memberCents = cheapest && perk && (perk.offeringId === null || perk.offeringId === cheapest.id) ? memberPriceCents(cheapest.priceCents as number, perk) : null;
+            const memberCents = cheapest && perk && (perk.offeringId === null || perk.offeringId === cheapest.id) ? memberPriceCents(cheapest.priceCents as number, perk, cheapest.priceUnit) : null;
             const fromLabel = cheapest ? `From ${formatPrice(cheapest.priceCents as number, cheapest.priceUnit)}` : null;
             return (
               <FeatureCard

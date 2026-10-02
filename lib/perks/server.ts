@@ -1,16 +1,10 @@
 import "server-only";
-import { revalidateTag } from "next/cache";
-import { MEMBER_PERKS_TAG } from "@/db/memberPerks";
 import { bumpListings } from "@/lib/revalidate";
 
 // A perk that is published or ended changes cards, pages, /perks and the
-// homepage row: drop the cached list and the pages built from it.
+// homepage row: drop the cached list and the pages built from it
+// (bumpListings does both).
 export function bumpPerks(): void {
-  try {
-    revalidateTag(MEMBER_PERKS_TAG, { expire: 0 });
-  } catch {
-    // Not inside a Next request (tests, scripts): nothing to invalidate.
-  }
   bumpListings();
 }
 

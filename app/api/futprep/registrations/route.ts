@@ -115,7 +115,7 @@ export async function POST(request: Request) {
   // a hiccup reading the perk leaves the public rules in force.
   const session = await getSession();
   const early = session && mode === "standard"
-    ? await futprepOrganization().then(async (organization) => (organization ? { organizationId: organization.id, perk: await memberEarlyAccess(organization.id) } : null)).catch(() => null)
+    ? await futprepOrganization().then(async (organization) => (organization ? { organizationId: organization.id, perk: await memberEarlyAccess(organization.id, session.userId) } : null)).catch(() => null)
     : null;
 
   const input: FutprepRegistrationInput = {

@@ -13,6 +13,14 @@ import { unlockHref } from "@/lib/memberPerks";
 export function PerkUnlock({ path, className = "perk-unlock" }: { path?: string; className?: string }) {
   const pathname = usePathname();
   const [member, setMember] = useState(false);
+  // On a business's own domain the links go to PortPass itself, and back
+  // to the business's page there.
+  const [base, setBase] = useState("");
+
+  useEffect(() => {
+    const host = window.location.hostname;
+    if (!(host === "portpassbahamas.com" || host.endsWith(".portpassbahamas.com") || host.endsWith(".vercel.app") || host === "localhost" || host === "127.0.0.1")) setBase("https://portpassbahamas.com");
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,6 +35,6 @@ export function PerkUnlock({ path, className = "perk-unlock" }: { path?: string;
     };
   }, []);
 
-  if (member) return <Link className={className} href="/pass" prefetch={false}>You&rsquo;re a member: show your Member Pass <span aria-hidden="true">→</span></Link>;
-  return <Link className={className} href={unlockHref(path ?? pathname ?? "/perks")} prefetch={false}>Sign up free to unlock <span aria-hidden="true">→</span></Link>;
+  if (member) return <Link className={className} href={`${base}/pass`} prefetch={false}>You&rsquo;re a member: show your Member Pass <span aria-hidden="true">→</span></Link>;
+  return <Link className={className} href={`${base}${unlockHref(path ?? pathname ?? "/perks")}`} prefetch={false}>Sign up free to unlock <span aria-hidden="true">→</span></Link>;
 }

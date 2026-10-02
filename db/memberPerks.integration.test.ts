@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { passCode, passSecret, passWindow } from "@/lib/memberPass";
 import { cleanPerk, isMemberNumber, type PerkInput } from "@/lib/memberPerks";
 import { publishForOwner } from "./adminBusinessActions";
-import { createDraftBusiness, updateBusinessDetails, updatePaymentMethods, upsertBusinessOffering } from "./business";
+import { createDraftBusiness, removeBusinessOffering, updateBusinessDetails, updatePaymentMethods, upsertBusinessOffering } from "./business";
 import {
   checkMemberPass,
   endPerk,
@@ -295,19 +295,53 @@ describe("recording a perk used", () => {
 
 describe("early access for members", () => {
   it("is the longest early-access perk the business has running, and stops when it is ended", async () => {
-    expect(await memberEarlyAccess(liveOrg)).toBeNull();
+    expect(await memberEarlyAccess(liveOrg, member)).toBeNull();
     const short = await savePerk(liveOrg, null, perk({ kind: "early_access", title: "TEST members book a day early", earlyAccessHours: 24, firstBookingOnly: false }), founder);
     const long = await savePerk(liveOrg, null, perk({ kind: "early_access", title: "TEST members book two days early", earlyAccessHours: 48, firstBookingOnly: false }), founder);
     await publishPerk(liveOrg, short.id, founder);
-    expect(await memberEarlyAccess(liveOrg)).toEqual({ perkId: short.id, hours: 24 });
+    expect(await memberEarlyAccess(liveOrg, member)).toEqual({ perkId: short.id, hours: 24 });
     await publishPerk(liveOrg, long.id, founder);
-    expect(await memberEarlyAccess(liveOrg)).toEqual({ perkId: long.id, hours: 48 });
+    expect(await memberEarlyAccess(liveOrg, member)).toEqual({ perkId: long.id, hours: 48 });
     // A place booked online in the members' window is on the record, once.
     await recordOnlineRedemption(liveOrg, long.id, member, "FP-TEST-EARLY");
     expect((await listBusinessRedemptions(liveOrg)).find((row) => row.bookingRef === "FP-TEST-EARLY")).toMatchObject({ method: "online", firstName: "TEST", discountCents: null });
     await endPerk(long.id, founder, { organizationId: liveOrg });
     await endPerk(short.id, founder, { organizationId: liveOrg });
-    expect(await memberEarlyAccess(liveOrg)).toBeNull();
+    expect(await memberEarlyAccess(liveOrg, member)).toBeNull();
+  });
+
+  it("isn't given to a member who has used a first-booking early-access perk", async () => {
+    const once = await savePerk(liveOrg, null, perk({ kind: "early_access", title: "TEST members book early, once", earlyAccessHours: 72, firstBookingOnly: true }), founder);
+    await publishPerk(liveOrg, once.id, founder);
+    expect(await memberEarlyAccess(liveOrg, member)).toEqual({ perkId: once.id, hours: 72 });
+    await recordOnlineRedemption(liveOrg, once.id, member, "FP-TEST-EARLY-ONCE");
+    expect(await memberEarlyAccess(liveOrg, member)).toBeNull();
+    // A second early booking by the same member is refused, not quietly let in.
+    await expect(recordOnlineRedemption(liveOrg, once.id, member, "FP-TEST-EARLY-TWICE")).rejects.toThrow("ALREADY_USED");
+    await endPerk(once.id, founder, { organizationId: liveOrg });
+  });
+});
+
+describe("an offering a perk was for", () => {
+  it("ends the perk when it is removed, rather than making it a perk on everything", async () => {
+    const extra = await upsertBusinessOffering(liveOrg, null, { name: "TEST prints", summary: null, priceCents: 5000, priceUnit: null, scheduleText: null, capacity: null, type: "service" }, founder);
+    const prints = await savePerk(liveOrg, null, perk({ title: "TEST 50% off prints", percent: 50, firstBookingOnly: false, offeringId: extra.id }), founder);
+    await publishPerk(liveOrg, prints.id, founder);
+    await removeBusinessOffering(liveOrg, extra.id, founder);
+    const after = (await listBusinessPerks(liveOrg)).find((p) => p.id === prints.id)!;
+    expect(after).toMatchObject({ status: "ended", endedReason: "The offering it was for was removed" });
+    expect((await listLivePerks({ fresh: true })).map((p) => p.id)).not.toContain(prints.id);
+  });
+});
+
+describe("the month's limit", () => {
+  it("can't be passed by two tills at once", async () => {
+    const capped = await savePerk(liveOrg, null, perk({ kind: "free_addon", title: "TEST free prints, 1 a month", addonText: "prints", firstBookingOnly: false, monthlyCap: 1 }), founder);
+    await publishPerk(liveOrg, capped.id, founder);
+    const results = await Promise.all([memberNumber, memberNumber, memberNumber].map((number) => refused(recordRedemption(liveOrg, capped.id, number, { method: "pass_scan", bookingRef: null, priceCents: null, recordedBy: "TEST" }))));
+    expect(results.filter((r) => r === "OK")).toHaveLength(1);
+    expect(results.filter((r) => r === "MONTH_FULL")).toHaveLength(2);
+    await endPerk(capped.id, founder, { organizationId: liveOrg });
   });
 });
 

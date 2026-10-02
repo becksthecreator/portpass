@@ -7,7 +7,7 @@ import { bothPrices, cleanPerk, PERK_KIND_HINT, PERK_KIND_LABEL, perkChip, perkC
 // Suggested first: the two that cost a business least (brief 10, section 2).
 const KIND_ORDER: PerkKind[] = ["free_addon", "early_access", "priority", "percent_off", "amount_off"];
 
-type OfferingOption = { id: number; name: string; priceCents: number };
+type OfferingOption = { id: number; name: string; priceCents: number; priceUnit: string | null };
 
 function toCents(dollarsTyped: string): number | null {
   const value = Number(dollarsTyped);
@@ -56,7 +56,7 @@ export function PerkForm({ orgId, offerings }: { orgId: number; offerings: Offer
   const checked = cleanPerk(draft);
   const preview = checked.ok ? checked.value : null;
   // Both prices, on a real price of the business's own: never an invented one.
-  const example = preview ? offerings.filter((o) => preview.offeringId === null || o.id === preview.offeringId).map((o) => ({ name: o.name, line: bothPrices(o.priceCents, preview) })).find((o) => o.line) : null;
+  const example = preview ? offerings.filter((o) => preview.offeringId === null || o.id === preview.offeringId).map((o) => ({ name: o.name, line: bothPrices(o.priceCents, preview, o.priceUnit) })).find((o) => o.line) : null;
 
   async function save(event: FormEvent) {
     event.preventDefault();
