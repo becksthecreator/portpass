@@ -50,6 +50,7 @@ export default async function PerksPage() {
 
   return (
     <main className={`tpl-page perks-page ${ppDisplay.variable} ${ppSans.variable}`}>
+      <JsonLd data={sectionJsonLd({ name: "Member perks", path: "/perks", description: DESCRIPTION, businesses: [...new Map(perks.map((perk) => [perk.businessSlug, { name: perk.businessName, path: directoryHref(perk.businessSlug, perk.section) }])).values()] })} />
       <SiteHeader breadcrumb={[{ label: "Member perks", href: "/perks" }]} />
       <section className="category-hero category-hero-plain">
         <div className="category-hero-inner">
