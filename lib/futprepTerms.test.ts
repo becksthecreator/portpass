@@ -85,4 +85,21 @@ describe("early access and proration (Part C)", () => {
     expect(prorateCents(3500, 9)).toBe(31500);
     expect(prorateCents(3500, -1)).toBe(0);
   });
+
+  it("opens a term to members the given hours before the public, and never a closed or finished one", async () => {
+    const { isTermMemberEarlyOpen } = await import("./futprepTerms");
+    const term = { active: true, endDate: "2027-03-20", registrationOpensAt: "2026-11-19T05:00:00Z", registrationClosesAt: null };
+    expect(isTermMemberEarlyOpen(term, 48, new Date("2026-11-16T12:00:00Z"))).toBe(false);
+    expect(isTermMemberEarlyOpen(term, 48, new Date("2026-11-18T12:00:00Z"))).toBe(true);
+    // From the public opening it is simply open.
+    expect(isTermMemberEarlyOpen(term, 48, new Date("2026-11-19T05:00:00Z"))).toBe(false);
+    // No early-access perk, no window.
+    expect(isTermMemberEarlyOpen(term, null, new Date("2026-11-18T12:00:00Z"))).toBe(false);
+    expect(isTermMemberEarlyOpen(term, undefined, new Date("2026-11-18T12:00:00Z"))).toBe(false);
+    expect(isTermMemberEarlyOpen({ ...term, active: false }, 48, new Date("2026-11-18T12:00:00Z"))).toBe(false);
+    expect(isTermMemberEarlyOpen({ ...term, registrationClosesAt: "2026-11-18T00:00:00Z" }, 48, new Date("2026-11-18T12:00:00Z"))).toBe(false);
+    expect(isTermMemberEarlyOpen({ ...term, endDate: "2026-11-01" }, 48, new Date("2026-11-18T12:00:00Z"))).toBe(false);
+    // A term with no opening date is open already: there is no early window.
+    expect(isTermMemberEarlyOpen({ ...term, registrationOpensAt: null }, 48, new Date("2026-11-18T12:00:00Z"))).toBe(false);
+  });
 });

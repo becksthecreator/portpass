@@ -1,18 +1,21 @@
 import Link from "next/link";
 import type { Category, Section } from "@/db/categories";
+import { leadPerk, livePerksBySlug } from "@/db/memberPerks";
 import { getOrganizationListingBySlug, listPublishedOrganizations, listSectionBusinesses, liveCountsByCategory, type OrganizationListing, type SectionBusiness } from "@/db/organizations";
 import { withOneRetry } from "@/db/supabase";
 import { isInterestCategory, type InterestCategory } from "@/lib/interestCategories";
+import { memberPriceCents, perkChip } from "@/lib/memberPerks";
 import { getNavSections } from "@/lib/navSections";
 import { computeBrandTokens, DEFAULT_BRAND } from "./blocks/brand";
 import { ComingSoonCard } from "./blocks/ComingSoonCard";
 import { directoryHref } from "./blocks/directoryHref";
 import { FeatureCard } from "./blocks/FeatureCard";
-import { formatPrice } from "./blocks/format";
+import { formatPrice, formatPriceCents } from "./blocks/format";
 import { InterestForm } from "./InterestForm";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 import { SubsectionChips } from "./SubsectionChips";
+import "./perks/perks.css";
 import { ppDisplay, ppSans } from "@/app/fonts";
 
 // The data-driven section / subcategory page: whatever the categories
@@ -105,9 +108,12 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
   }
   const published = businesses.filter((b) => b.isPublished);
   const comingSoon = businesses.filter((b) => !b.isPublished);
-  const [listings, counts] = await Promise.all([
+  const [listings, counts, perksBySlug] = await Promise.all([
     Promise.all(published.map((b) => safeListing(b.slug))).then((all) => all.filter((l): l is OrganizationListing => l !== null)),
     safeCounts(),
+    // Member perks (brief 10): a labelled chip on the card. It never
+    // changes the order of the cards.
+    livePerksBySlug(),
   ]);
   const liveCount = listings.length;
   const belowThreshold = liveCount < current.comingSoonThreshold;
@@ -163,6 +169,11 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
               .filter((offering) => offering.priceCents !== null)
               .sort((a, b) => (a.priceCents as number) - (b.priceCents as number))[0];
             const { brand, brandText } = computeBrandTokens(org.brandColor);
+            const perk = leadPerk(perksBySlug.get(org.slug) ?? []);
+            // Both prices, both real: the business's own price and what a
+            // member pays with its perk.
+            const memberCents = cheapest && perk && (perk.offeringId === null || perk.offeringId === cheapest.id) ? memberPriceCents(cheapest.priceCents as number, perk, cheapest.priceUnit) : null;
+            const fromLabel = cheapest ? `From ${formatPrice(cheapest.priceCents as number, cheapest.priceUnit)}` : null;
             return (
               <FeatureCard
                 key={org.slug}
@@ -174,7 +185,8 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
                 brand={brand}
                 brandText={brandText}
                 description={org.oneLiner ?? ""}
-                priceLabel={cheapest ? `From ${formatPrice(cheapest.priceCents as number, cheapest.priceUnit)}` : null}
+                priceLabel={fromLabel && memberCents !== null && memberCents !== cheapest?.priceCents ? `${fromLabel} · Members ${formatPriceCents(memberCents, { currency: false })}` : fromLabel}
+                perkLabel={perk ? perkChip(perk) : null}
                 actionHref={directoryHref(org.slug, org.primaryCategory)}
                 actionLabel={`Explore ${org.name} →`}
                 wide={cardCount === 1}

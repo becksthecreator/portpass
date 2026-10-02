@@ -3,7 +3,10 @@ import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { Suspense } from "react";
 import { RegistrationForm, type JoinQuote } from "./RegistrationForm";
-import { getFutprepAvailability, getFutprepOffer, trialJoinQuote, type FutprepAvailability } from "@/db/registrations";
+import { futprepOrganization } from "@/db/growth";
+import { memberEarlyAccess } from "@/db/memberPerks";
+import { getFutprepOffer, listFutprepOffers, trialJoinQuote, type FutprepAvailability } from "@/db/registrations";
+import { getSession } from "@/lib/auth/session";
 import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAttribution, parseAttributionCookie, type Attribution } from "@/lib/attribution";
 import { shortDate, upcomingTaster } from "@/lib/futprepClasses";
 import { nassauToday, offerHeadline } from "@/lib/futprepTerms";
@@ -31,13 +34,28 @@ async function loadJoinQuote(searchParams: SearchParams, offers: FutprepAvailabi
 // The canonical form is /futprep/register?program=<slug>&term=<id> (brief
 // 06 v2, A1.5). The offers shown are every public open one, plus the one
 // the link names even if its program is unlisted (is_public = false).
+// Member early access (brief 10): a signed-in PortPass member sees a term
+// in the hours before it opens to everyone, when Futprep has a live
+// early-access perk. Anyone else, or any hiccup, gets the public list.
+async function memberEarlyHours(): Promise<number | null> {
+  try {
+    const session = await getSession();
+    if (!session) return null;
+    const organization = await futprepOrganization();
+    return organization ? (await memberEarlyAccess(organization.id, session.userId))?.hours ?? null : null;
+  } catch {
+    return null;
+  }
+}
+
 async function loadOffers(searchParams: SearchParams): Promise<{ offers: FutprepAvailability[]; requested: FutprepAvailability | null }> {
   const params = await searchParams;
+  const earlyHours = await memberEarlyHours();
   const slug = typeof params.program === "string" ? normalizeProgramSlug(params.program) : "";
   const termId = typeof params.term === "string" && /^\d+$/.test(params.term) ? Number(params.term) : null;
   const [offers, requested] = await Promise.all([
-    getFutprepAvailability().catch(() => [] as FutprepAvailability[]),
-    slug ? getFutprepOffer(slug, termId).catch(() => null) : Promise.resolve(null),
+    listFutprepOffers({ publicOnly: true, memberEarlyHours: earlyHours }).catch(() => [] as FutprepAvailability[]),
+    slug ? getFutprepOffer(slug, termId, { memberEarlyHours: earlyHours }).catch(() => null) : Promise.resolve(null),
   ]);
   if (requested && !offers.some((o) => o.programId === requested.programId && o.termId === requested.termId)) {
     return { offers: [requested, ...offers], requested };
@@ -93,7 +111,7 @@ export default async function FutprepRegisterPage({ searchParams }: { searchPara
           joinQuote={joinQuote}
           trialHref={taster && !joinQuote ? "/futprep/trial" : null}
           trialLabel={taster ? `Free taster Saturday, ${shortDate(taster.date)}` : null}
-          intro={joinQuote ? { eyebrow: "Futprep · after the free taster", title: `Join the rest of the term.`, lead: `Keep ${joinQuote.childName.split(" ")[0]} playing for the ${joinQuote.remainingSessions} Saturdays left in the term. You pay only for those.` } : null}
+          intro={!joinQuote && offers.some((offer) => offer.earlyAccessOnly) ? { eyebrow: "Futprep · PortPass member early access", title: "You're in early.", lead: "As a PortPass member you can register before it opens to everyone." } : joinQuote ? { eyebrow: "Futprep · after the free taster", title: `Join the rest of the term.`, lead: `Keep ${joinQuote.childName.split(" ")[0]} playing for the ${joinQuote.remainingSessions} Saturdays left in the term. You pay only for those.` } : null}
         />
       </Suspense>
     </main>

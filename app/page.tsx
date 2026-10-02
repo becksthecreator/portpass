@@ -5,6 +5,7 @@ import { HomeHero } from "./HomeHero";
 import { BusinessCarousel } from "./_components/BusinessCarousel";
 import { OpenNowCards, type OpenNowCard } from "./_components/OpenNowCards";
 import { SectionGrid } from "./_components/SectionGrid";
+import { HomePerksRow } from "./_components/perks/HomePerksRow";
 import { DEFAULT_BRAND } from "./_components/blocks/brand";
 import { categoryLabel } from "./_components/blocks/categoryLabel";
 import { directoryHref } from "./_components/blocks/directoryHref";
@@ -122,6 +123,9 @@ export default async function Home() {
       <HomeHero />
 
       {directory.length >= CAROUSEL_FROM ? <BusinessCarousel businesses={directory} /> : <OpenNowCards cards={cards} />}
+
+      {/* Member perks (brief 10): hidden until three are live. */}
+      <HomePerksRow />
 
       <section className="home-chooser" id="chooser">
         <div className="home-section-heading">

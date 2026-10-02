@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { getAdminOverview } from "@/db/adminStats";
+import { getPerkStats, type PerkStats } from "@/db/memberPerks";
 import { requireAdmin } from "@/lib/auth/admin";
 import { formatPriceCents } from "@/app/_components/blocks/format";
 import { backupState, deploymentInfo } from "@/lib/adminHealth";
 import { shortDate } from "@/lib/growth";
+import { signupSourceLabel } from "@/lib/memberPerks";
 import { AdminShell } from "./_components/AdminShell";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +24,12 @@ const show = (value: number | null) => (value === null ? "—" : String(value));
 export default async function AdminOverviewPage() {
   const session = await requireAdmin("/admin");
   const o = await getAdminOverview();
+  // Member perks (brief 10): sign-ups by where they came from, and perks used.
+  // One tile, never the page: a failed read shows a dash.
+  const perks = await getPerkStats(o.since).catch((error): PerkStats | null => {
+    console.error("admin overview tile failed: member perks", error instanceof Error ? error.message : error);
+    return null;
+  });
   const deployment = deploymentInfo();
   const backup = backupState(o.health.backup, new Date());
   const checkProblems = o.health.databaseChecks === null ? null : o.health.databaseChecks.reduce((sum, check) => sum + check.problems, 0);
@@ -54,7 +62,8 @@ export default async function AdminOverviewPage() {
       <section className="admin-group" aria-labelledby="week">
         <h2 id="week">This week</h2>
         <div className="admin-tiles">
-          <Link className="admin-tile" href="/admin/people"><strong>{show(o.thisWeek.signUps)}</strong><span>New sign-ups</span></Link>
+          <Link className="admin-tile" href="/admin/perks"><strong>{show(o.thisWeek.signUps)}</strong><span>New sign-ups</span><small>{perks === null ? "Sources could not be read" : perks.bySource.length === 0 ? "None this week" : perks.bySource.map((entry) => `${signupSourceLabel(entry.source)}: ${entry.count}`).join(" · ")}</small></Link>
+          <Link className="admin-tile" href="/admin/perks"><strong>{perks === null ? "—" : String(perks.redemptions)}</strong><span>Member perks used</span><small>{perks === null ? "—" : `${perks.livePerks} perk${perks.livePerks === 1 ? "" : "s"} live`}</small></Link>
           <Link className="admin-tile" href="/admin/businesses"><strong>{show(o.thisWeek.businesses)}</strong><span>New businesses</span></Link>
           <Link className="admin-tile" href="/futprep/staff/admin"><strong>{show(o.thisWeek.registrations)}</strong><span>Registrations</span></Link>
           <Link className="admin-tile" href="/futprep/staff/admin"><strong>{show(o.thisWeek.paymentsCount)}</strong><span>Payments recorded</span><small>{o.thisWeek.paymentsCents === null ? "—" : `${formatPriceCents(o.thisWeek.paymentsCents, { currency: false })} received`}</small></Link>

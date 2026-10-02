@@ -6,6 +6,7 @@ import {
   createReturnLink,
   ensureFutprepPilotData,
   getFutprepAvailability,
+  listFutprepOffers,
   listTrialSessions,
   openReturnLink,
   returnLinkPrefill,
@@ -32,6 +33,8 @@ const WEEKLY = 2500;
 let programId = 0;
 let t1 = 0;
 let t2 = 0;
+// Opens to everyone 24 hours from whenever this runs (brief 10: members early).
+let t3 = 0;
 const saturday: Record<string, number> = {};
 
 function child(over: Partial<FutprepRegistrationInput> = {}): FutprepRegistrationInput {
@@ -99,6 +102,14 @@ beforeAll(async () => {
     .single();
   expect(t2Error).toBeNull();
   t2 = Number(term2!.id);
+
+  const { data: term3, error: t3Error } = await db()
+    .from("program_terms")
+    .insert({ program_id: programId, name: "TEST Term C", start_date: "2099-04-04", end_date: "2099-06-20", weekly_fee_cents: WEEKLY, term_fee_cents: 25000, active: true, registration_opens_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() })
+    .select("id")
+    .single();
+  expect(t3Error).toBeNull();
+  t3 = Number(term3!.id);
 
   const { data: sessions } = await db().from("sessions").select("id,session_date").eq("term_id", t1).order("session_date");
   for (const s of sessions ?? []) saturday[String(s.session_date)] = Number(s.id);
@@ -264,5 +275,33 @@ describe("Term 2 early access, trials and the waitlist (brief 06 v2, Part C)", (
     await updateFutprepRegistration({ registrationId: Number(waitRow!.id), registrationStatus: "pending" });
     const { data: promoted } = await db().from("registrations").select("registration_status").eq("id", waitRow!.id).single();
     expect(promoted!.registration_status).toBe("pending");
+  });
+
+  it("opens a term to signed-in members the given hours before the public, and to nobody else", async () => {
+    // T3 opens to everyone tomorrow. Today it is closed to the public...
+    expect((await getFutprepAvailability()).some((o) => o.termId === t3)).toBe(false);
+    expect(await refused(createFutprepRegistration(child({ termId: t3, childDob: "2093-03-01" })))).toBe("TERM_CLOSED");
+    // ...and to a member whose perk is 12 hours early: the window hasn't opened yet.
+    expect((await listFutprepOffers({ publicOnly: true, memberEarlyHours: 12 })).some((o) => o.termId === t3)).toBe(false);
+    expect(await refused(createFutprepRegistration(child({ termId: t3, childDob: "2093-03-01", memberEarlyHours: 12 })))).toBe("TERM_CLOSED");
+
+    // A 48-hour perk: the members' window is open now.
+    const offers = await listFutprepOffers({ publicOnly: true, memberEarlyHours: 48 });
+    expect(offers.find((o) => o.termId === t3)?.earlyAccessOnly).toBe(true);
+    // A term that is open to everyone is not "early" for a member.
+    expect(offers.find((o) => o.termId === t1)?.earlyAccessOnly).toBe(false);
+    const early = await createFutprepRegistration(child({ termId: t3, childDob: "2093-03-01", memberEarlyHours: 48 }));
+    expect(early).toMatchObject({ registrationStatus: "pending", memberEarlyAccess: true });
+    expect(early.term.id).toBe(t3);
+    // The fee is the term's own: a perk never changes what is charged.
+    expect(early.amountDueCents).toBe(WEEKLY);
+
+    // Once the term is open to everyone, a member's booking is an ordinary one.
+    await db().from("program_terms").update({ registration_opens_at: new Date(Date.now() - 60_000).toISOString() }).eq("id", t3);
+    const open = await createFutprepRegistration(child({ termId: t3, childDob: "2093-03-01", memberEarlyHours: 48 }));
+    expect(open.memberEarlyAccess).toBe(false);
+    // A term that has closed is closed to members too.
+    await db().from("program_terms").update({ registration_opens_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), registration_closes_at: new Date(Date.now() - 60_000).toISOString() }).eq("id", t3);
+    expect(await refused(createFutprepRegistration(child({ termId: t3, childDob: "2093-03-01", memberEarlyHours: 48 })))).toBe("TERM_CLOSED");
   });
 });

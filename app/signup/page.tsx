@@ -8,6 +8,7 @@ import { googleSignInEnabled } from "@/lib/auth/google";
 import { safeNext } from "@/lib/auth/next";
 import { LAST_CHOICE_COOKIE, resolveDestination } from "@/lib/auth/routing";
 import { getSession } from "@/lib/auth/session";
+import { cleanSignupSource } from "@/lib/memberPerks";
 import { getSectionOptions } from "@/lib/navSections";
 
 export const dynamic = "force-dynamic";
@@ -26,8 +27,13 @@ const NOTICES: Record<string, string> = {
 // Guest-first (speed & sign-in brief, 29 Sept, 2.1): a confirmation
 // screen's "Save this to a free PortPass account" arrives here with
 // ?as=customer&email=…&name=… so the form is already filled in.
-export default async function SignupPage({ searchParams }: { searchParams: Promise<{ next?: string; as?: string; error?: string; email?: string; name?: string }> }) {
-  const { next: rawNext, as, error, email, name } = await searchParams;
+// ?utm_source= on the link that brought them (a member perk, the OWN
+// conference QR, a counter sign) is kept with the new account as a short
+// tag, so sign-ups can be counted by source (brief 10). Nothing else from
+// the link is kept.
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ next?: string; as?: string; error?: string; email?: string; name?: string; utm_source?: string }> }) {
+  const { next: rawNext, as, error, email, name, utm_source } = await searchParams;
+  const source = cleanSignupSource(utm_source);
   const next = safeNext(rawNext, "") || null;
   const initialIntent = as === "business" ? "business" : as === "customer" ? "customer" : null;
 
@@ -39,7 +45,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
 
   const sections = await getSectionOptions();
   // The Google button shows only once Google is switched on in Supabase.
-  const google = (await googleSignInEnabled()) ? `/api/auth/google?mode=signup${next ? `&next=${encodeURIComponent(next)}` : ""}` : null;
+  const google = (await googleSignInEnabled()) ? `/api/auth/google?mode=signup${next ? `&next=${encodeURIComponent(next)}` : ""}${source ? `&src=${encodeURIComponent(source)}` : ""}` : null;
   return (
     <main className="form-page auth-page theme-night">
       <SiteHeader breadcrumb={[{ label: "Create an account", href: "/signup" }]} />
@@ -47,6 +53,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
         mode="signup"
         next={next}
         initialIntent={initialIntent}
+        source={source}
         phoneEnabled={phoneOtpEnabled()}
         sections={sections}
         google={google}

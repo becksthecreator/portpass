@@ -4,6 +4,7 @@ import { clientIp, createRateLimiterWithRetry } from "@/lib/auth/rateLimit";
 import { appLimitFailure, supabaseSendFailure, type SendFailure } from "@/lib/auth/sendErrors";
 import { normalizePhoneE164 } from "@/lib/phone";
 import { isKnownSectionSlug } from "@/db/categories";
+import { cleanSignupSource } from "@/lib/memberPerks";
 
 // @public-route: this is how anyone starts signing in.
 const ipLimit = createRateLimiterWithRetry(10, 10 * 60_000);
@@ -58,6 +59,9 @@ export async function POST(request: Request) {
     if (intent === "business" || intent === "customer") data.intent = intent;
     if (businessName) data.business_name = businessName;
     if (section) data.section = section;
+    // Where the sign-up link came from, as a short tag (never an identifier).
+    const source = cleanSignupSource(str(body, "source", 40));
+    if (source) data.signup_source = source;
   }
 
   let client;

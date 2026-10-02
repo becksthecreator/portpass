@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { pruneHealthRecords } from "@/db/adminHealth";
+import { prunePassChecks } from "@/db/memberPerks";
 import { listOwnerEmails } from "@/db/business";
 import { getSiteContent } from "@/db/siteContent";
 import { bumpListings } from "@/lib/revalidate";
@@ -70,6 +71,12 @@ export async function GET(request: Request) {
     await pruneHealthRecords(now);
   } catch (error) {
     console.error("daily job: messages log and site errors retention", error instanceof Error ? error.message : "");
+  }
+  // Member Pass checks are kept 30 days (brief 10; the Privacy Policy says so).
+  try {
+    await prunePassChecks(now.getTime());
+  } catch (error) {
+    console.error("daily job: pass checks retention", error instanceof Error ? error.message : "");
   }
 
   const month = monthlyReportPeriod(clock);

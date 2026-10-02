@@ -26,6 +26,9 @@ const NEVER_REWRITE_PREFIXES = [
   "/apple-icon",
   "/login",
   "/signup",
+  // The Member Pass and the perks page are PortPass's, whichever host.
+  "/pass",
+  "/perks",
   "/account",
   "/where-to",
   "/business",

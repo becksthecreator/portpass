@@ -47,9 +47,13 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   return data ? toProfile(data) : null;
 }
 
-export async function upsertProfile(input: { userId: string; fullName: string; phoneE164?: string | null; platformRole?: PlatformRole | null }): Promise<Profile> {
+// `nameFromEmail`: the name was made from the email address because none
+// was typed (shown to businesses as "Member", brief 10). Left as it is
+// when not given.
+export async function upsertProfile(input: { userId: string; fullName: string; phoneE164?: string | null; platformRole?: PlatformRole | null; nameFromEmail?: boolean }): Promise<Profile> {
   const supabase = getSupabaseAdmin();
   const record: Record<string, unknown> = { user_id: input.userId, full_name: input.fullName, last_seen_at: new Date().toISOString() };
+  if (input.nameFromEmail !== undefined) record.name_from_email = input.nameFromEmail;
   if (input.phoneE164 !== undefined) record.phone_e164 = input.phoneE164;
   if (input.platformRole !== undefined) record.platform_role = input.platformRole;
   const { data, error } = await supabase

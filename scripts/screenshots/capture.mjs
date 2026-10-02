@@ -55,6 +55,15 @@ const SHOTS = [
   // Brief 14: Admin -> Leads with five TEST leads, and one lead's card.
   ["brief14-leads-table-375", "admin", "/admin/leads", ".leads-table"],
   ["brief14-lead-card-375", "admin", `/admin/leads/${fixture.leadId}`, ".lead-panel"],
+  // Brief 10: the Member Pass, a business's perk screen (reached by PortPass
+  // staff through the platform door), Admin -> Perks, and the public side.
+  ["brief10-member-pass-375", "admin", "/pass", ".pass-code-box"],
+  ["brief10-business-perks-375", "admin", "/business/test-delete-photo-booth/perks", ".pass-check"],
+  ["brief10-admin-perks-375", "admin", "/admin/perks", ".admin-table"],
+  ["brief10-perks-page-375", "admin", "/perks", null],
+  ["brief10-home-perks-row-375", "admin", "/", null],
+  ["brief10-section-card-chip-375", "admin", "/entertainment", null],
+  ["brief10-business-page-perk-375", "admin", "/entertainment/test-delete-photo-booth", null],
 ];
 
 // RFC 6238: the six-digit code an authenticator app would show right now.

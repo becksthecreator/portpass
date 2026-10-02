@@ -16,6 +16,8 @@ import {
   upsertProfile,
 } from "@/db/accounts";
 import { logAudit } from "@/db/audit";
+import { setSignupSource } from "@/db/memberPerks";
+import { cleanSignupSource } from "@/lib/memberPerks";
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/lib/legal";
 import { platformOwnerEmails } from "./env";
 
@@ -37,12 +39,20 @@ function metaString(meta: Record<string, unknown> | null | undefined, key: strin
 // earlier bookings show up. Nothing here trusts the browser -- the only
 // inputs are the verified user and what they typed at sign-up (name, phone),
 // which Supabase stored as user_metadata.
-export async function bootstrapUser(user: AuthUser): Promise<void> {
+//
+// `signupSource`: for a sign-up through Google, the tag the sign-up link
+// carried (an email sign-up carries it in user_metadata instead). Kept
+// only for a new account, only as a short tag, and never a reason to fail.
+export async function bootstrapUser(user: AuthUser, options: { signupSource?: string | null } = {}): Promise<void> {
   const email = user.email?.trim().toLowerCase() ?? null;
   const meta = user.user_metadata ?? null;
   const existing = await getProfile(user.id);
 
-  const fullName = metaString(meta, "full_name") ?? existing?.fullName ?? (email ? email.split("@")[0] : "PortPass member");
+  const typedName = metaString(meta, "full_name");
+  const fullName = typedName ?? existing?.fullName ?? (email ? email.split("@")[0] : "PortPass member");
+  // A new account with no name typed: the name above is only a stand-in,
+  // never shown to a business. A name typed at sign-up replaces it.
+  const nameFromEmail = typedName ? false : existing ? undefined : true;
   const phoneFromSignup = metaString(meta, "phone_e164");
   const isFounder = email !== null && platformOwnerEmails().includes(email);
   const platformRole = existing?.platformRole ?? (isFounder ? "platform_owner" : null);
@@ -50,6 +60,7 @@ export async function bootstrapUser(user: AuthUser): Promise<void> {
   await upsertProfile({
     userId: user.id,
     fullName,
+    nameFromEmail,
     phoneE164: phoneFromSignup ?? existing?.phoneE164 ?? user.phone ?? null,
     platformRole,
   });
@@ -61,6 +72,15 @@ export async function bootstrapUser(user: AuthUser): Promise<void> {
     await recordLegalAcceptance(user.id, { terms: TERMS_OF_SERVICE.version, privacy: PRIVACY_POLICY.version }).catch((error) => {
       console.error("bootstrap: legal acceptance not recorded", (error as { code?: string } | null)?.code ?? "");
     });
+  }
+
+  if (!existing) {
+    const source = cleanSignupSource(options.signupSource) ?? cleanSignupSource(metaString(meta, "signup_source"));
+    if (source) {
+      await setSignupSource(user.id, source).catch((error) => {
+        console.error("bootstrap: sign-up source not recorded", (error as { code?: string } | null)?.code ?? "");
+      });
+    }
   }
 
   if (!existing && isFounder) {
