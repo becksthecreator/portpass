@@ -11,6 +11,7 @@ export const ADMIN_NAV = [
   { href: "/admin/applications", label: "Applications" },
   { href: "/admin/bookings", label: "Bookings" },
   { href: "/admin/payments", label: "Payments" },
+  { href: "/admin/billing", label: "Billing" },
   { href: "/admin/leads", label: "Leads" },
   { href: "/admin/sections", label: "Sections" },
   { href: "/admin/people", label: "People" },

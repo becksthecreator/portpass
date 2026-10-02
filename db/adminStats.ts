@@ -1,4 +1,5 @@
 import { countMessageProblems, countSiteErrors, databaseChecks, getBackupHeartbeat, type BackupHeartbeat, type DatabaseCheck } from "./adminHealth";
+import { getBillingOverview } from "./billing";
 import { listSections } from "./categories";
 import { listUnmarkedAttendance, type UnmarkedSession } from "./growth";
 import { liveCountsByCategory } from "./organizations";
@@ -22,6 +23,8 @@ export type AdminOverview = {
   // Emails that failed, bounced or were marked as spam in the last 7 days;
   // server errors in the last 24 hours; the last backup to report in
   // (null: none yet; undefined: could not be read); the database's checks.
+  // PortPass's own billing: drafts to send, overdue invoices, and the morning line.
+  billing: { drafts: number; overdue: number; founderCalls: number; morning: string } | null;
   health: { emailProblems: number | null; siteErrors: number | null; backup: BackupHeartbeat | null | undefined; databaseChecks: DatabaseCheck[] | null };
   since: string;
 };
@@ -72,7 +75,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   const supabase = getSupabaseAdmin();
 
   const day = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const [businessesAwaiting, newApplications, unansweredLeads, signUps, businesses, registrations, leads, totalListings, liveListings, accounts, sections, live, payments, attendance, emailProblems, siteErrors, backup, checks] = await Promise.all([
+  const [businessesAwaiting, newApplications, unansweredLeads, signUps, businesses, registrations, leads, totalListings, liveListings, accounts, sections, live, payments, attendance, emailProblems, siteErrors, backup, checks, billing] = await Promise.all([
     tile("businesses awaiting approval", () => countRows("organizations", { eq: ["status", "submitted"] })),
     tile("new applications", () => countRows("applications", { eq: ["status", "submitted"] })),
     tile("unanswered wedding leads", () => countRows("wedding_leads", { eq: ["status", "new"] })),
@@ -98,6 +101,10 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       return undefined;
     }),
     tile("database checks", () => databaseChecks()),
+    tile("billing", async () => {
+      const overview = await getBillingOverview();
+      return { drafts: overview.drafts.length, overdue: overview.open.filter((invoice) => invoice.status === "overdue").length, founderCalls: overview.founderCalls.length, morning: overview.morning };
+    }),
   ]);
 
   return {
@@ -117,6 +124,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       accounts,
     },
     attendance,
+    billing,
     health: { emailProblems, siteErrors, backup, databaseChecks: checks },
     since,
   };

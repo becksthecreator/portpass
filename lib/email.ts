@@ -19,6 +19,8 @@ type SendEmailInput = {
   // was for, which kind of email, and whether it went. Never the text or
   // the subject, which can carry a child's name.
   log?: { template: string; organizationId?: number | null };
+  // Files to attach (an invoice PDF), each as base64.
+  attachments?: Array<{ filename: string; content: string }>;
 };
 
 // The log is loaded only when an email asks for it, and a failed log line
@@ -66,7 +68,7 @@ export async function sendEmail(input: SendEmailInput): Promise<EmailOutcome> {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from, to, subject, html }),
+      body: JSON.stringify(input.attachments?.length ? { from, to, subject, html, attachments: input.attachments } : { from, to, subject, html }),
     });
     if (!response.ok) {
       console.error(`[email] Resend send failed (${response.status}).`);

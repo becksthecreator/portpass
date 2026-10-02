@@ -58,7 +58,7 @@ export async function listWeddingLeads(): Promise<WeddingLeadListItem[]> {
 }
 
 const LEAD_DETAIL_COLUMNS =
-  "id,public_token,names,email,phone,travel_origin,ceremony_type,package_id,preferred_wedding_date,arrival_date,guest_count,location_idea,venue_id,venue_preference,requested_services,consultation_method,consultation_preferred_date,consultation_preferred_time,consultation_time_zone,notes,contact_consent,marketing_consent,status,created_at,updated_at,wedding_packages(name)";
+  "id,public_token,names,email,phone,travel_origin,ceremony_type,package_id,preferred_wedding_date,arrival_date,guest_count,location_idea,venue_id,venue_preference,requested_services,consultation_method,consultation_preferred_date,consultation_preferred_time,consultation_time_zone,notes,contact_consent,marketing_consent,status,created_at,updated_at,completed_on,desk_coordinated,wedding_packages(name)";
 
 export type WeddingLeadNote = {
   id: number;
@@ -82,6 +82,9 @@ export type WeddingLeadDetail = Omit<WeddingLeadListItem, "packageName"> & {
   marketingConsent: boolean;
   packageName: string | null;
   internalNotes: WeddingLeadNote[];
+  // Set by the Desk once the wedding has happened (db/billing.ts completeWedding).
+  completedOn: string | null;
+  deskCoordinated: boolean;
 };
 
 export async function getWeddingLeadDetail(id: number): Promise<WeddingLeadDetail | null> {
@@ -125,6 +128,8 @@ export async function getWeddingLeadDetail(id: number): Promise<WeddingLeadDetai
     createdAt: row.created_at as string,
     updatedAt,
     unanswered: isStale(status, updatedAt),
+    completedOn: (row.completed_on as string | null) ?? null,
+    deskCoordinated: Boolean(row.desk_coordinated),
     internalNotes: (notesResult.data ?? []).map((n) => ({ id: Number(n.id), author: n.author as string, note: n.note as string, createdAt: n.created_at as string })),
   };
 }

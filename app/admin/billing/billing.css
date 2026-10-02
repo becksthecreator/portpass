@@ -1,0 +1,29 @@
+/* Admin -> Billing (brief 09). Its own file, so it never collides with the
+   end of globals.css. */
+.billing-morning{background:var(--surface);border:1px solid var(--line);border-radius:14px;font-size:1rem;font-weight:700;margin:0 0 14px;padding:14px 16px}
+.billing-without{margin-top:14px}
+.billing-soon{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+.billing-soon li{align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:12px;display:grid;gap:4px 14px;grid-template-columns:minmax(120px,max-content) 1fr;padding:10px 14px}
+.billing-soon li span{color:var(--muted);font-size:.82rem}
+.billing-soon li small{color:var(--muted);grid-column:2}
+.billing-form{display:grid;gap:22px;max-width:760px}
+.billing-form fieldset{border:1px solid var(--line);border-radius:14px;display:grid;gap:14px;margin:0;padding:16px}
+.billing-form legend{color:var(--muted);font-size:.72rem;font-weight:800;letter-spacing:.08em;padding:0 6px;text-transform:uppercase}
+.billing-form label{display:grid;gap:6px}
+.billing-form label>span{color:var(--muted);font-size:.8rem}
+.billing-form input:not([type=checkbox]),.billing-form select,.billing-form textarea{background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:.92rem;min-height:44px;padding:9px 12px;width:100%}
+.billing-form .billing-check{align-items:center;display:flex;gap:10px}
+.billing-form .billing-check input{height:20px;width:20px}
+.billing-form .billing-check span{color:var(--text);font-size:.9rem}
+.billing-pair{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.billing-works-out{background:var(--bg);border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:.85rem;line-height:1.5;margin:0;padding:12px 14px}
+.billing-works-out strong{color:var(--text)}
+.billing-lines{border-collapse:collapse;width:100%}
+.billing-lines th,.billing-lines td{border-bottom:1px solid var(--line);font-size:.88rem;padding:10px 8px;text-align:left;vertical-align:top}
+.billing-lines th{color:var(--muted);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase}
+.billing-lines td.num,.billing-lines th.num{text-align:right;white-space:nowrap}
+.billing-lines tfoot td{border-bottom:0;font-weight:700}
+.billing-actions{display:grid;gap:14px;max-width:640px}
+.billing-actions .admin-action-ask{flex:none}
+.billing-line-row{align-items:end;display:grid;gap:10px;grid-template-columns:1fr 130px}
+@media (max-width:600px){.billing-line-row{grid-template-columns:1fr}.billing-soon li{grid-template-columns:1fr}.billing-soon li small{grid-column:1}}

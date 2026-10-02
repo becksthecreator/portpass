@@ -41,6 +41,11 @@ export default async function AdminOverviewPage() {
             <span>Sessions with attendance not marked</span>
             {o.attendance && o.attendance.length > 0 && <small>{o.attendance.slice(0, 3).map((s) => `${s.organizationName} · ${s.programName} · ${shortDate(s.date)}`).join("; ")}</small>}
           </Link>
+          <Link className={`admin-tile${o.billing && (o.billing.drafts || o.billing.overdue || o.billing.founderCalls) ? " is-alert" : ""}`} href="/admin/billing">
+            <strong>{o.billing === null ? "—" : String(o.billing.drafts + o.billing.overdue)}</strong>
+            <span>Invoices to send or chase</span>
+            <small>{o.billing === null ? "Could not be read" : o.billing.morning}</small>
+          </Link>
           <Link className={`admin-tile${o.health.emailProblems ? " is-alert" : ""}`} href="/admin/messages?status=problems"><strong>{show(o.health.emailProblems)}</strong><span>Emails that did not arrive</span><small>Failed, bounced or marked as spam, last 7 days</small></Link>
           <Link className={`admin-tile${o.health.siteErrors ? " is-alert" : ""}`} href="/admin/health"><strong>{show(o.health.siteErrors)}</strong><span>Site errors (24h)</span></Link>
         </div>

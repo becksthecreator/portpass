@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getBankDetails } from "@/db/billing";
 import { listPlans } from "@/db/pricing";
 import { requireAdmin } from "@/lib/auth/admin";
 import { platformOwnerEmails } from "@/lib/auth/env";
@@ -7,7 +8,9 @@ import { systemSwitches } from "@/lib/adminHealth";
 import { PORTPASS_PHONE_DISPLAY, PORTPASS_SUPPORT_EMAIL, PORTPASS_WHATSAPP_URL } from "@/lib/contact";
 import { legalDate, PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/lib/legal";
 import { formatPriceCents } from "@/app/_components/blocks/format";
+import { bankDetailsComplete } from "@/lib/billing";
 import { AdminShell } from "../_components/AdminShell";
+import { BankDetailsForm } from "./BankDetailsForm";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +25,7 @@ export const metadata = {
 // they are set, never a value.
 export default async function AdminSettingsPage() {
   const session = await requireAdmin("/admin/settings");
-  const [plans, google] = await Promise.all([listPlans({ fresh: true }).catch(() => null), googleSignInEnabled().catch(() => false)]);
+  const [plans, google, bank] = await Promise.all([listPlans({ fresh: true }).catch(() => null), googleSignInEnabled().catch(() => false), getBankDetails().catch(() => null)]);
   const switches = systemSwitches();
   const founders = platformOwnerEmails().length;
   const off = switches.filter((s) => !s.on).length;
@@ -53,6 +56,12 @@ export default async function AdminSettingsPage() {
           </dl>
         )}
         <p className="admin-form-note"><Link className="admin-inline-link" href="/admin/settings/prices">Change prices, features and badges</Link>. /pricing, /business and the setup steps all read from there.</p>
+      </section>
+
+      <section className="admin-group" aria-labelledby="settings-bank">
+        <h2 id="settings-bank">How businesses pay PortPass</h2>
+        <p className="admin-form-note">{bank && bankDetailsComplete(bank) ? "These are printed on every invoice, under How to pay." : "Not filled in yet. Until all four are, no invoice can be sent."} Every change is logged.</p>
+        {bank === null ? <p className="admin-empty">Could not load the bank details. Refresh to try again.</p> : <BankDetailsForm initial={bank} />}
       </section>
 
       <section className="admin-group" aria-labelledby="settings-legal">
