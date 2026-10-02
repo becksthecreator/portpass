@@ -6,6 +6,8 @@ import { JsonLd } from "@/app/_components/seo/JsonLd";
 import { RelatedInSection } from "@/app/_components/seo/RelatedInSection";
 import "@/app/_components/seo/seo.css";
 import { fromPriceCents, listingJsonLd } from "@/lib/seo/fromListing";
+import { absoluteUrl } from "@/lib/seo/jsonLd";
+import { directoryHref } from "@/app/_components/blocks/directoryHref";
 import { businessDescription, businessTitle, sectionDescription, sectionTitle } from "@/lib/seo/titles";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
@@ -64,13 +66,15 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const listing = resolved.listing!;
   const org = listing.organization;
   const what = resolved.section.subcategories.find((sub) => sub.slug === org.subcategory)?.name ?? resolved.section.name;
-  const title = businessTitle(org.name, what, org.area);
+  const title = businessTitle(org.name, what, org.area, org.island);
   const description = businessDescription(org.name, org.oneLiner ?? org.description, fromPriceCents(listing));
   return {
     title,
     description,
-    alternates: { canonical: `https://portpassbahamas.com/${category}/${slug}` },
-    openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url: `https://portpassbahamas.com/${category}/${slug}` },
+    // One address per business: where directoryHref sends people (Futprep
+    // and Bahamas Weddings By The Sea have their own pages).
+    alternates: { canonical: absoluteUrl(directoryHref(org.slug, org.primaryCategory)) },
+    openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url: absoluteUrl(directoryHref(org.slug, org.primaryCategory)) },
     twitter: { card: "summary_large_image", title, description },
   };
 }
@@ -84,7 +88,7 @@ export default async function SectionSlugPage({ params }: { params: Params }) {
   const listing = resolved.listing!;
   return (
     <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
-      <JsonLd data={listingJsonLd(listing, `/${category}/${slug}`)} />
+      <JsonLd data={listingJsonLd(listing, directoryHref(listing.organization.slug, listing.organization.primaryCategory))} />
       <SiteHeader breadcrumb={[{ label: resolved.section.name, href: `/${category}` }, { label: listing.organization.name, href: `/${category}/${slug}` }]} />
       <OrganizationTemplate listing={listing} />
       <RelatedInSection section={category} sectionName={resolved.section.name} exceptSlug={slug} />

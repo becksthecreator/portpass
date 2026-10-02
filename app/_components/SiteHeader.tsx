@@ -5,6 +5,7 @@ import { getNavTree } from "@/lib/navSections";
 import { announcementVisible, nassauDay } from "@/lib/siteContent";
 import { HeaderAccount } from "./HeaderAccount";
 import { SiteNav } from "./SiteNav";
+import { jsonLdString } from "@/lib/seo/jsonLd";
 
 export type Crumb = { label: string; href: string };
 
@@ -75,7 +76,7 @@ export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: jsonLdString({
               "@context": "https://schema.org",
               "@type": "BreadcrumbList",
               itemListElement: schemaTrail.map((crumb, i) => ({

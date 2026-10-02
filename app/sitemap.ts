@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import type { MetadataRoute } from "next";
 import { listSections } from "@/db/categories";
-import { listSectionBusinesses, liveCountsByCategory } from "@/db/organizations";
+import { getOrganizationListingBySlug, listSectionBusinesses, liveCountsByCategory } from "@/db/organizations";
 import { directoryHref } from "@/app/_components/blocks/directoryHref";
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/lib/legal";
 
@@ -33,6 +33,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `https://${PLATFORM_HOST}/contact` },
     { url: `https://${PLATFORM_HOST}/app` },
     { url: `https://${PLATFORM_HOST}/perks` },
+    { url: `https://${PLATFORM_HOST}/futprep/coaches` },
+    { url: `https://${PLATFORM_HOST}/futprep/camps` },
+    { url: `https://${PLATFORM_HOST}/weddings/bahamas-weddings-by-the-sea/plan` },
     { url: `https://${PLATFORM_HOST}/privacy`, lastModified: new Date(`${PRIVACY_POLICY.updated}T12:00:00Z`) },
     { url: `https://${PLATFORM_HOST}/terms`, lastModified: new Date(`${TERMS_OF_SERVICE.updated}T12:00:00Z`) },
   ];
@@ -54,13 +57,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const businesses = (await listSectionBusinesses(section.slug).catch(() => [])).filter((business) => business.isPublished);
       if ((live.get(section.slug) ?? 0) > 0) entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}`, lastModified: newest(businesses.map((b) => b.updatedAt)) });
       for (const sub of section.subcategories) {
-        if ((live.get(sub.slug) ?? 0) > 0) entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}/${sub.slug}`, lastModified: newest(businesses.filter((b) => b.subcategory === sub.slug).map((b) => b.updatedAt)) });
+        if ((live.get(sub.slug) ?? 0) === 0) continue;
+        // The same list the subsection's page shows (organization_categories
+        // as well as a business's own subsection).
+        const inSub = (await listSectionBusinesses(section.slug, sub.slug).catch(() => [])).filter((b) => b.isPublished);
+        entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}/${sub.slug}`, lastModified: newest(inSub.map((b) => b.updatedAt)) });
       }
       for (const business of businesses) {
         if (seen.has(business.slug)) continue;
         seen.add(business.slug);
         entries.push({ url: `https://${PLATFORM_HOST}${directoryHref(business.slug, business.primaryCategory)}`, lastModified: newest([business.updatedAt]) });
       }
+    }
+    // Futprep's programme pages (published offerings only).
+    const futprep = await getOrganizationListingBySlug("futprep").catch(() => null);
+    for (const offering of futprep?.offerings ?? []) {
+      if (offering.slug) entries.push({ url: `https://${PLATFORM_HOST}/sports-fitness/futprep-athletics/${offering.slug}` });
     }
   } catch {
     // No database (or a hiccup): the fixed pages plus the two known live

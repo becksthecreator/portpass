@@ -9,6 +9,7 @@ import { cheapestSubscription, listAddons, listPlans } from "@/db/pricing";
 import { portpassWhatsAppUrl } from "@/lib/contact";
 import { addedFeatures, annualCents, dollars, percentFromBps, UNIT_LABEL, type PricingAddon, type PricingPlan } from "@/lib/pricingFormat";
 import { CompareTable } from "./CompareTable";
+import { jsonLdString } from "@/lib/seo/jsonLd";
 
 const SITE_URL = "https://portpassbahamas.com";
 const SUB = "Your page, bookings and payment records in one place. We build it for you. Prices in Bahamian dollars.";
@@ -186,7 +187,7 @@ export default async function PricingPage() {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: jsonLdString({
               "@context": "https://schema.org",
               "@type": "FAQPage",
               mainEntity: faqs.map((item) => ({ "@type": "Question", name: item.q, acceptedAnswer: { "@type": "Answer", text: item.a } })),

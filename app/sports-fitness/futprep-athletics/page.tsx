@@ -25,7 +25,7 @@ export async function generateMetadata() {
   const listing = await getOrganizationListingBySlug(ORG_SLUG).catch(() => null);
   if (!listing) return { title: "Futprep Athletics | PortPass Bahamas" };
   const { organization } = listing;
-  const title = businessTitle(organization.name, "Kids' football programmes", organization.area);
+  const title = businessTitle(organization.name, "Kids' football programmes", organization.area, organization.island);
   const description = businessDescription(organization.name, organization.oneLiner ?? organization.description, fromPriceCents(listing));
   return {
     title,

@@ -14,7 +14,6 @@ export function listingJsonLd(listing: OrganizationListing, path: string) {
       description: org.oneLiner ?? org.description,
       area: org.area,
       island: org.island,
-      phoneE164: org.phoneE164,
       whatsappE164: org.whatsappE164,
       heroImageUrl: org.heroImageUrl,
       logoUrl: org.logoUrl,
@@ -22,7 +21,7 @@ export function listingJsonLd(listing: OrganizationListing, path: string) {
       instagramHandle: org.instagramHandle,
       googleBusinessUrl: org.googleBusinessUrl,
     },
-    offerings.map((offering) => ({ name: offering.name, type: offering.type, summary: offering.summary, priceCents: offering.priceCents, termStart: offering.termStart, termEnd: offering.termEnd, eventDate: offering.eventDate, actionUrl: offering.actionUrl })),
+    offerings.map((offering) => ({ name: offering.name, type: offering.type, summary: offering.summary, priceCents: offering.priceCents, priceUnit: offering.priceUnit, actionUrl: offering.actionUrl })),
     faqs.map((faq) => ({ question: faq.question, answer: faq.answer })),
   );
 }

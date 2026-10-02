@@ -105,7 +105,8 @@ export type LdBusiness = {
   description: string | null;
   area: string | null;
   island: string | null;
-  phoneE164: string | null;
+  // The number the page shows (its WhatsApp button). Nothing the page
+  // doesn't show is published here.
   whatsappE164: string | null;
   heroImageUrl: string | null;
   logoUrl: string | null;
@@ -119,11 +120,16 @@ export type LdOffering = {
   type: "program" | "event" | "venue" | "service";
   summary: string | null;
   priceCents: number | null;
-  termStart: string | null;
-  termEnd: string | null;
-  eventDate: string | null;
+  // How the page shows the price: "from", "per_session", "per_hour"…
+  priceUnit: string | null;
   actionUrl: string | null;
 };
+
+// The page shows a business's questions only from three (QuestionsBlock):
+// structured data must never say more than the page does.
+export const FAQ_MINIMUM = 3;
+
+const UNIT_TEXT: Record<string, string> = { per_session: "per session", per_term: "per term", per_hour: "per hour", per_day: "per day", per_person: "per person", per_child: "per child" };
 
 export type LdFaq = { question: string; answer: string };
 
@@ -147,9 +153,26 @@ function sameAs(business: LdBusiness): string[] {
   return links;
 }
 
+// The address as the page states it. Off New Providence, the island is the
+// place: "Nassau" is never filled in for somewhere else.
+export function ldAddress(area: string | null, island: string | null): Json {
+  const onNewProvidence = !island || /new providence/i.test(island);
+  return clean({ "@type": "PostalAddress", addressLocality: area ?? (onNewProvidence ? "Nassau" : undefined), addressRegion: island ?? "New Providence", addressCountry: "BS" });
+}
+
+// An offer exactly as the page prices it: "From $500" is a lowest price,
+// "$35 per session" a unit price, anything else the price itself.
+function offerPrice(offering: LdOffering): Json {
+  const price = money(offering.priceCents as number);
+  if (offering.priceUnit === "from") return { priceCurrency: "BSD", priceSpecification: { "@type": "PriceSpecification", minPrice: price, priceCurrency: "BSD" } };
+  const unit = offering.priceUnit ? UNIT_TEXT[offering.priceUnit] : undefined;
+  if (unit) return { price, priceCurrency: "BSD", priceSpecification: { "@type": "UnitPriceSpecification", price, priceCurrency: "BSD", unitText: unit } };
+  return { price, priceCurrency: "BSD" };
+}
+
 // One business page: the business itself, what it offers with prices in
-// Bahamian dollars, its programmes and events, and its questions and
-// answers. Only offerings with a real price are offered.
+// Bahamian dollars as the page shows them, and its questions and answers
+// when the page shows those. Only offerings with a real price are offered.
 export function businessJsonLd(business: LdBusiness, offerings: LdOffering[], faqs: LdFaq[] = []): Json {
   const url = absoluteUrl(business.path);
   const id = `${url}#business`;
@@ -163,8 +186,8 @@ export function businessJsonLd(business: LdBusiness, offerings: LdOffering[], fa
       description: business.description ?? undefined,
       image: [business.heroImageUrl, business.logoUrl].filter((u): u is string => Boolean(u)).map(absoluteUrl),
       logo: business.logoUrl ? absoluteUrl(business.logoUrl) : undefined,
-      telephone: business.phoneE164 ?? business.whatsappE164 ?? undefined,
-      address: { "@type": "PostalAddress", addressLocality: business.area ?? "Nassau", addressRegion: business.island ?? "New Providence", addressCountry: "BS" },
+      telephone: business.whatsappE164 ?? undefined,
+      address: ldAddress(business.area, business.island),
       areaServed: business.island ?? "New Providence",
       priceRange: priceRange(priced),
       sameAs: sameAs(business),
@@ -172,11 +195,10 @@ export function businessJsonLd(business: LdBusiness, offerings: LdOffering[], fa
         clean({
           "@type": "Offer",
           name: offering.name,
-          price: money(offering.priceCents as number),
-          priceCurrency: "BSD",
+          ...offerPrice(offering),
           url: offering.actionUrl ? absoluteUrl(offering.actionUrl) : url,
           itemOffered: clean({
-            "@type": offering.type === "program" ? "Course" : offering.type === "event" ? "Event" : "Service",
+            "@type": offering.type === "program" ? "Course" : "Service",
             name: offering.name,
             description: offering.summary ?? undefined,
             ...(offering.type === "program" ? { provider: { "@id": id } } : {}),
@@ -185,30 +207,7 @@ export function businessJsonLd(business: LdBusiness, offerings: LdOffering[], fa
       ),
     }),
   ];
-  // A programme with term dates, or an event with a date, is also an Event
-  // in its own right: that is what search shows with dates.
-  for (const offering of offerings) {
-    const start = offering.type === "event" ? offering.eventDate : offering.type === "program" ? offering.termStart : null;
-    if (!start) continue;
-    graph.push(
-      clean({
-        "@type": "Event",
-        name: `${offering.name}${offering.type === "program" ? ` (${business.name})` : ""}`,
-        startDate: start,
-        endDate: offering.type === "program" ? offering.termEnd ?? undefined : undefined,
-        eventStatus: "https://schema.org/EventScheduled",
-        eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-        location: { "@type": "Place", name: business.name, address: { "@type": "PostalAddress", addressLocality: business.area ?? "Nassau", addressRegion: business.island ?? "New Providence", addressCountry: "BS" } },
-        organizer: { "@id": id },
-        description: offering.summary ?? undefined,
-        offers:
-          offering.priceCents !== null
-            ? { "@type": "Offer", price: money(offering.priceCents), priceCurrency: "BSD", url: offering.actionUrl ? absoluteUrl(offering.actionUrl) : url, availability: "https://schema.org/InStock" }
-            : undefined,
-      }),
-    );
-  }
-  if (faqs.length) {
+  if (faqs.length >= FAQ_MINIMUM) {
     graph.push({
       "@type": "FAQPage",
       "@id": `${url}#faq`,

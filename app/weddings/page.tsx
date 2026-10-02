@@ -9,6 +9,8 @@ import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SubsectionChips } from "@/app/_components/SubsectionChips";
 import { ppDisplay, ppSans } from "@/app/fonts";
+import { JsonLd } from "@/app/_components/seo/JsonLd";
+import { sectionJsonLd } from "@/lib/seo/jsonLd";
 
 // A category page has to render even when the database is having a bad
 // moment -- these three are the whole reason /weddings went down for 19
@@ -50,9 +52,13 @@ async function safePackages(): Promise<PublicWeddingPackage[]> {
 // safe* loaders above already fall back when the database is unreachable.
 export const revalidate = 300;
 
+const DESCRIPTION = "Island ceremonies and vow renewals in The Bahamas, planned end to end: officiant, venue, photography, paperwork.";
+
 export const metadata = {
   title: "Weddings in The Bahamas | PortPass Bahamas",
-  description: "Island ceremonies and vow renewals in The Bahamas, planned end to end: officiant, venue, photography, paperwork.",
+  description: DESCRIPTION,
+  alternates: { canonical: "https://portpassbahamas.com/weddings" },
+  openGraph: { type: "website", siteName: "PortPass Bahamas", title: "Weddings in The Bahamas | PortPass Bahamas", description: DESCRIPTION, url: "https://portpassbahamas.com/weddings" },
 };
 
 const CATEGORY_HERO_IMAGE = "/weddings/bahamas-by-the-sea/hero.jpg";
@@ -74,6 +80,7 @@ export default async function WeddingsPage() {
 
   return (
     <main className={`tpl-page ${ppDisplay.variable} ${ppSans.variable}`}>
+      <JsonLd data={sectionJsonLd({ name: "Weddings", path: "/weddings", description: DESCRIPTION, businesses: org ? [{ name: org.name, path: "/weddings/bahamas-weddings-by-the-sea" }] : [] })} />
       <SiteHeader breadcrumb={[{ label: "Weddings", href: "/weddings" }]} />
       <section className="category-hero" style={{ backgroundImage: `url(${CATEGORY_HERO_IMAGE})` }}>
         <div className="category-hero-inner">

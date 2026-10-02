@@ -106,8 +106,10 @@ export async function PATCH(request: Request, ctx: Ctx) {
     if (handle && !/^[A-Za-z0-9._]{1,30}$/.test(handle)) return NextResponse.json({ error: "Instagram: just the username, like @yourbusiness." }, { status: 400 });
     patch.instagramHandle = handle || null;
   }
-  const googleBusinessUrl = str(body, "googleBusinessUrl", 300);
+  // Read in full: a link cut at 300 characters would be saved broken.
+  const googleBusinessUrl = str(body, "googleBusinessUrl", 2000);
   if (googleBusinessUrl !== undefined) {
+    if (googleBusinessUrl.length > 300) return NextResponse.json({ error: "That link is too long. Use the short link Google gives you under Share (it starts with g.page or maps.app.goo.gl)." }, { status: 400 });
     const normalised = googleBusinessUrl && !/^https?:\/\//i.test(googleBusinessUrl) ? `https://${googleBusinessUrl}` : googleBusinessUrl.replace(/^http:\/\//i, "https://");
     const cleaned = normalised ? cleanGoogleBusinessUrl(normalised) : null;
     if (normalised && !cleaned) return NextResponse.json({ error: "Paste the link Google gives you for your Business Profile (it starts with g.page, maps.app.goo.gl or google.com)." }, { status: 400 });

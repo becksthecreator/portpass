@@ -72,6 +72,7 @@ const DESCRIPTION = "Antonio Beckford's island wedding ceremonies, summarized: p
 export const metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  alternates: { canonical: "https://portpassbahamas.com/weddings/bahamas-weddings-by-the-sea" },
   openGraph: { type: "website", siteName: "PortPass Bahamas", title: TITLE, description: DESCRIPTION, url: "https://portpassbahamas.com/weddings/bahamas-weddings-by-the-sea" },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
@@ -123,8 +124,8 @@ export default async function BahamasWeddingsListingPage() {
     <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
       <JsonLd
         data={businessJsonLd(
-          { name: "Bahamas Weddings By The Sea", path: "/weddings/bahamas-weddings-by-the-sea", section: "weddings", subcategory: null, description: "Wedding officiant and planner in Nassau: beach, resort and villa ceremonies, vow renewals and the marriage licence.", area: "Nassau", island: "New Providence", phoneE164: "+12424241262", whatsappE164: "+12424241262", heroImageUrl: "/weddings/bahamas-by-the-sea/hero.jpg", logoUrl: null, websiteUrl: null, instagramHandle: null, googleBusinessUrl: null },
-          offerings.map((offering) => ({ name: offering.name, type: "service" as const, summary: offering.summary, priceCents: offering.priceCents, termStart: null, termEnd: null, eventDate: null, actionUrl: null })),
+          { name: "Bahamas Weddings By The Sea", path: "/weddings/bahamas-weddings-by-the-sea", section: "weddings", subcategory: null, description: "Wedding officiant and planner in Nassau: beach, resort and villa ceremonies, vow renewals and the marriage licence.", area: "Nassau", island: "New Providence", whatsappE164: "+12424241262", heroImageUrl: "/weddings/bahamas-by-the-sea/hero.jpg", logoUrl: null, websiteUrl: null, instagramHandle: null, googleBusinessUrl: null },
+          offerings.map((offering) => ({ name: offering.name, type: "service" as const, summary: offering.summary, priceCents: offering.priceCents, priceUnit: offering.priceUnit, actionUrl: null })),
           extras.faqs.map((faq) => ({ question: faq.question, answer: faq.answer })),
         )}
       />

@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import Script from "next/script";
 import { getOfferingListingBySlug } from "@/db/organizations";
 import { ProgramTemplate } from "@/app/_components/blocks/OfferingTemplate";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { bizDisplay, ppSans } from "@/app/fonts";
+import { JsonLd } from "@/app/_components/seo/JsonLd";
 
 // ISR (speed brief, 29 Sept): five-minute cache, rebuilt on demand; no
 // build-time prerender (the params list is empty), so CI's credential-less
@@ -58,9 +58,7 @@ export default async function FutprepOfferingPage({ params }: { params: Promise<
   return (
     <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
       {courseSchema && (
-        <Script id="offering-course-schema" type="application/ld+json">
-          {JSON.stringify(courseSchema)}
-        </Script>
+        <JsonLd data={courseSchema} />
       )}
       <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: organization.name, href: "/sports-fitness/futprep-athletics" }, { label: offering.name, href: `/sports-fitness/futprep-athletics/${offering.slug}` }]} />
       <ProgramTemplate listing={listing} />

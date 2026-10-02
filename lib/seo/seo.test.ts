@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { cleanGoogleBusinessUrl, isGoogleBusinessUrl, reviewRequestMessage } from "./googleBusiness";
-import { businessJsonLd, businessType, homeJsonLd, jsonLdString, priceRange, sectionJsonLd, type LdBusiness } from "./jsonLd";
+import { businessJsonLd, businessType, FAQ_MINIMUM, homeJsonLd, jsonLdString, ldAddress, priceRange, sectionJsonLd, type LdBusiness } from "./jsonLd";
 import { matchesQuery, searchTerms } from "./search";
 import { businessDescription, businessTitle, DESCRIPTION_MAX, fitDescription, nameList, sectionDescription, sectionTitle } from "./titles";
 
 const booth: LdBusiness = {
   name: "TEST Photo Booth", path: "/entertainment/test-photo-booth", section: "entertainment", subcategory: "photo-booths", description: "Photo booths for parties", area: "Cable Beach", island: "New Providence",
-  phoneE164: null, whatsappE164: "+12425550100", heroImageUrl: "/photos/booth.jpg", logoUrl: null, websiteUrl: "https://example.com", instagramHandle: "@test_booth", googleBusinessUrl: "https://g.page/r/TEST",
+  whatsappE164: "+12425550100", heroImageUrl: "/photos/booth.jpg", logoUrl: null, websiteUrl: "https://example.com", instagramHandle: "@test_booth", googleBusinessUrl: "https://g.page/r/TEST",
 };
 
 type Graph = { "@graph": Array<Record<string, unknown>> };
@@ -19,15 +19,22 @@ describe("structured data", () => {
     expect(JSON.stringify(home)).toContain("https://portpassbahamas.com/search?q={search_term_string}");
   });
 
-  it("describes a business with its address, prices in BSD, links and questions, and never a rating", () => {
+  const faqs = [
+    { question: "Do you travel?", answer: "Anywhere on New Providence." },
+    { question: "Do you print on the day?", answer: "Yes, unlimited prints." },
+    { question: "How much space do you need?", answer: "About ten feet square." },
+  ];
+
+  it("describes a business with its address, prices in BSD as the page shows them, links and questions, and never a rating", () => {
     const data = businessJsonLd(
       booth,
       [
-        { name: "Two hours", type: "service", summary: "Unlimited prints", priceCents: 30000, termStart: null, termEnd: null, eventDate: null, actionUrl: null },
-        { name: "Saturday class", type: "program", summary: null, priceCents: 3500, termStart: "2027-01-09", termEnd: "2027-03-27", eventDate: null, actionUrl: "/futprep/register" },
-        { name: "Ask for a price", type: "service", summary: null, priceCents: null, termStart: null, termEnd: null, eventDate: null, actionUrl: null },
+        { name: "Two hours", type: "service", summary: "Unlimited prints", priceCents: 30000, priceUnit: null, actionUrl: null },
+        { name: "Saturday class", type: "program", summary: null, priceCents: 3500, priceUnit: "per_session", actionUrl: "/futprep/register" },
+        { name: "Wedding package", type: "service", summary: null, priceCents: 50000, priceUnit: "from", actionUrl: null },
+        { name: "Ask for a price", type: "service", summary: null, priceCents: null, priceUnit: null, actionUrl: null },
       ],
-      [{ question: "Do you travel?", answer: "Anywhere on New Providence." }],
+      faqs,
     ) as Graph;
     const business = data["@graph"][0];
     expect(business).toMatchObject({
@@ -35,18 +42,35 @@ describe("structured data", () => {
       name: "TEST Photo Booth",
       url: "https://portpassbahamas.com/entertainment/test-photo-booth",
       telephone: "+12425550100",
-      priceRange: "$35–$300",
+      priceRange: "$35–$500",
       address: { addressLocality: "Cable Beach", addressRegion: "New Providence", addressCountry: "BS" },
       sameAs: ["https://www.instagram.com/test_booth/", "https://example.com", "https://g.page/r/TEST"],
     });
     const offers = business.makesOffer as Array<Record<string, unknown>>;
-    // Only real prices are offered.
-    expect(offers.map((offer) => [offer.name, offer.price, offer.priceCurrency])).toEqual([["Two hours", "300.00", "BSD"], ["Saturday class", "35.00", "BSD"]]);
+    // Only real prices are offered, each with the unit the page shows.
+    expect(offers.map((offer) => [offer.name, offer.price, offer.priceCurrency])).toEqual([["Two hours", "300.00", "BSD"], ["Saturday class", "35.00", "BSD"], ["Wedding package", undefined, "BSD"]]);
+    expect(offers[0]).not.toHaveProperty("priceSpecification");
+    expect(offers[1].priceSpecification).toMatchObject({ "@type": "UnitPriceSpecification", price: "35.00", unitText: "per session" });
+    // "From $500" is a lowest price, never a flat one.
+    expect(offers[2].priceSpecification).toMatchObject({ minPrice: "500.00", priceCurrency: "BSD" });
     expect((offers[1].itemOffered as Record<string, unknown>)["@type"]).toBe("Course");
-    // The programme's term is an event with its dates.
-    expect(data["@graph"].find((node) => node["@type"] === "Event")).toMatchObject({ startDate: "2027-01-09", endDate: "2027-03-27" });
-    expect(data["@graph"].find((node) => node["@type"] === "FAQPage")).toMatchObject({ mainEntity: [{ name: "Do you travel?", acceptedAnswer: { text: "Anywhere on New Providence." } }] });
+    // No dates the page doesn't show.
+    expect(data["@graph"].some((node) => node["@type"] === "Event")).toBe(false);
+    expect(JSON.stringify(data)).not.toMatch(/startDate|endDate/);
+    expect(data["@graph"].find((node) => node["@type"] === "FAQPage")).toMatchObject({ mainEntity: [{ name: "Do you travel?", acceptedAnswer: { text: "Anywhere on New Providence." } }, {}, {}] });
     expect(JSON.stringify(data)).not.toMatch(/aggregateRating|reviewCount|ratingValue/);
+  });
+
+  it("prints questions only when the page shows them", () => {
+    expect(FAQ_MINIMUM).toBe(3);
+    const two = businessJsonLd(booth, [], faqs.slice(0, 2)) as Graph;
+    expect(two["@graph"].some((node) => node["@type"] === "FAQPage")).toBe(false);
+  });
+
+  it("never says Nassau for another island", () => {
+    expect(ldAddress("George Town", "Exuma")).toEqual({ "@type": "PostalAddress", addressLocality: "George Town", addressRegion: "Exuma", addressCountry: "BS" });
+    expect(ldAddress(null, "Exuma")).toEqual({ "@type": "PostalAddress", addressRegion: "Exuma", addressCountry: "BS" });
+    expect(ldAddress(null, null)).toMatchObject({ addressLocality: "Nassau", addressRegion: "New Providence" });
   });
 
   it("leaves out what it doesn't know, rather than inventing it", () => {
@@ -96,6 +120,9 @@ describe("titles and descriptions", () => {
     expect(businessTitle("Futprep Athletics", "Kids' football programmes", "Nassau")).toBe("Futprep Athletics: Kids' football programmes in Nassau | PortPass");
     expect(businessTitle("TEST Booth", "Photo Booths", "Cable Beach")).toBe("TEST Booth: Photo Booths in Cable Beach, Nassau | PortPass");
     expect(businessTitle("TEST Booth", null, null)).toBe("TEST Booth in Nassau | PortPass");
+    expect(businessTitle("TEST Boats", "Tours", "George Town", "Exuma")).toBe("TEST Boats: Tours in George Town, Exuma | PortPass");
+    expect(businessTitle("TEST Boats", "Tours", null, "Exuma")).toBe("TEST Boats: Tours in Exuma | PortPass");
+    expect(businessTitle("TEST Booth", null, "Cable Beach", "New Providence")).toBe("TEST Booth in Cable Beach, Nassau | PortPass");
   });
 
   it("uses real counts and names, and stays short enough for a search result", () => {
@@ -121,8 +148,11 @@ describe("titles and descriptions", () => {
 
 describe("site search", () => {
   it("finds every word typed, whatever the case, accents or plurals", () => {
-    const terms = searchTerms("Kids FOOTBALL in Nassau");
-    expect(terms).toEqual(["kids", "football", "in", "nassau"]);
+    // Small words don't count, and nor does the place when something else is asked for.
+    expect(searchTerms("Kids FOOTBALL in Nassau")).toEqual(["kids", "football"]);
+    expect(searchTerms("a photo booth in the Bahamas")).toEqual(["photo", "booth"]);
+    expect(searchTerms("Nassau")).toEqual(["nassau"]);
+    expect(matchesQuery(searchTerms("kids football in nassau"), ["Futprep Athletics", "Kids football programmes"])).toBe(true);
     expect(matchesQuery(searchTerms("kids football"), ["Futprep Athletics", "Kids football programmes in Nassau"])).toBe(true);
     expect(matchesQuery(searchTerms("photo booths"), ["TEST Booth", "Photo booth for parties"])).toBe(true);
     expect(matchesQuery(searchTerms("café"), ["Cafe Matisse"])).toBe(true);
@@ -142,6 +172,8 @@ describe("the Google Business Profile link", () => {
     expect(cleanGoogleBusinessUrl("https://G.Page/r/TEST")).toBe("https://g.page/r/TEST");
     expect(cleanGoogleBusinessUrl("https://g.page:8443/r/TEST")).toBeNull();
     expect(cleanGoogleBusinessUrl("https://example.com")).toBeNull();
+    // Longer than the database allows: refused, never cut short.
+    expect(cleanGoogleBusinessUrl(`https://g.page/r/${"x".repeat(300)}`)).toBeNull();
   });
 
   it("writes the message the business sends one customer itself", () => {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CategoryPage, countLiveBusinesses } from "@/app/_components/CategoryPage";
+import { CategoryPage, liveBusinessNames } from "@/app/_components/CategoryPage";
+import { sectionDescription } from "@/lib/seo/titles";
 import { listSections } from "@/db/categories";
 
 // /shop is the Shop Bahamian section (brief 15, §4). It needs its own file
@@ -22,11 +23,16 @@ async function shopSection() {
 export async function generateMetadata(): Promise<Metadata> {
   const section = await shopSection();
   if (!section) return {};
-  const live = await countLiveBusinesses(SECTION);
+  const names = await liveBusinessNames(SECTION);
+  const title = `${section.name} | PortPass Bahamas`;
+  const description = names.length > 0 ? "Drops and pre-orders from Bahamian brands. Reserve your size, pay the brand directly." : sectionDescription(section.name, []);
+  const url = "https://portpassbahamas.com/shop";
   return {
-    title: `${section.name} | PortPass Bahamas`,
-    description: live > 0 ? "Drops and pre-orders from Bahamian brands. Reserve your size, pay the brand directly." : `${section.name} — coming soon to PortPass.`,
-    robots: live === 0 ? { index: false, follow: true } : undefined,
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url },
+    robots: names.length === 0 ? { index: false, follow: true } : undefined,
   };
 }
 

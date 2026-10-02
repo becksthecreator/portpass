@@ -23,6 +23,7 @@ beforeAll(async () => {
 afterAll(async () => {
   if (orgId) {
     await admin.from("page_events").delete().eq("organization_id", orgId);
+    await admin.from("organization_faqs").delete().eq("organization_id", orgId);
     await admin.from("audit_log").delete().eq("organization_id", orgId);
     await admin.from("organizations").delete().eq("id", orgId);
   }
@@ -43,7 +44,9 @@ describe("the Google Business Profile link", () => {
 
   it("travels with the listing, for the page's structured data", async () => {
     const listing = await getOrganizationListingForPreview(orgId);
-    expect(listing!.organization).toMatchObject({ googleBusinessUrl: "https://g.page/r/TEST-delete", instagramHandle: "test_delete_seo", phoneE164: "+12425550100" });
+    expect(listing!.organization).toMatchObject({ googleBusinessUrl: "https://g.page/r/TEST-delete", instagramHandle: "test_delete_seo" });
+    // The business's own phone is not public: the listing never carries it.
+    expect(listing!.organization).not.toHaveProperty("phoneE164");
   });
 });
 
@@ -60,6 +63,21 @@ describe("when a business last changed", () => {
     const anyListed = (await listSectionBusinesses("sports-fitness"))[0];
     if (anyListed) expect(typeof anyListed.updatedAt).toBe("string");
   });
+
+  it("moves when a question on the page changes, and not for a private change", async () => {
+    const read = async () => new Date((await admin.from("organizations").select("updated_at").eq("id", orgId).single()).data!.updated_at).getTime();
+    const before = await read();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const faq = await admin.from("organization_faqs").insert({ organization_id: orgId, question: "TEST — delete?", answer: "TEST — delete." }).select("id").single();
+    expect(faq.error).toBeNull();
+    const afterFaq = await read();
+    expect(afterFaq).toBeGreaterThan(before);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect((await admin.from("organizations").update({ review_note: "TEST — delete" }).eq("id", orgId)).error).toBeNull();
+    expect(await read()).toBe(afterFaq);
+    await admin.from("organization_faqs").delete().eq("id", faq.data!.id);
+    expect(await read()).toBeGreaterThan(afterFaq);
+  });
 });
 
 describe("page views for the Admin Overview", () => {
@@ -71,6 +89,7 @@ describe("page views for the Admin Overview", () => {
     expect(error).toBeNull();
     const visits = await getSiteVisits(since);
     expect(visits.views).toBeGreaterThanOrEqual(4);
+    expect(visits.topPages.length).toBeLessThanOrEqual(5);
     const mine = visits.topPages.find((page) => page.path === path);
     if (mine) expect(mine.views).toBe(3);
   });

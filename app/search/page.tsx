@@ -8,8 +8,9 @@ import { SiteHeader } from "@/app/_components/SiteHeader";
 import { ppDisplay, ppSans } from "@/app/fonts";
 import { listPublishedOrganizations, type OrganizationDirectoryEntry } from "@/db/organizations";
 import { withOneRetry } from "@/db/supabase";
-import { getNavSections } from "@/lib/navSections";
+import { getNavTree } from "@/lib/navSections";
 import { matchesQuery, searchTerms } from "@/lib/seo/search";
+import "@/app/_components/seo/seo.css";
 
 export const dynamic = "force-dynamic";
 
@@ -22,18 +23,25 @@ export const metadata = {
 
 // Search across what is live on PortPass (brief 11: the homepage's
 // structured data points search engines here). Businesses by name, what
-// they do and their section; sections by name. Nothing personal is
-// searched and nothing typed here is stored.
+// they do, their section and subsection and where they are; sections and
+// subsections by name. Nothing personal is searched and nothing typed here
+// is stored.
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
   const query = typeof q === "string" ? q.slice(0, 80) : "";
   const terms = searchTerms(query);
-  const [businesses, sections] = await Promise.all([
+  const [businesses, tree] = await Promise.all([
     withOneRetry(() => listPublishedOrganizations()).catch((): OrganizationDirectoryEntry[] => []),
-    getNavSections().catch(() => [] as { label: string; href: string }[]),
+    getNavTree().catch(() => []),
   ]);
-  const businessHits = terms.length ? businesses.filter((business) => matchesQuery(terms, [business.name, business.oneLiner, categoryLabel(business.primaryCategory)])) : [];
-  const sectionHits = terms.length ? sections.filter((section) => matchesQuery(terms, [section.label])) : [];
+  const subsectionName = new Map(tree.flatMap((section) => section.subsections.map((sub) => [sub.slug, sub.name] as const)));
+  const places = (business: OrganizationDirectoryEntry) => [business.area, business.island, !business.island || /new providence/i.test(business.island) ? "Nassau New Providence" : null];
+  const businessHits = terms.length ? businesses.filter((business) => matchesQuery(terms, [business.name, business.oneLiner, categoryLabel(business.primaryCategory), business.subcategory ? (subsectionName.get(business.subcategory) ?? null) : null, ...places(business)])) : [];
+  const sections = [
+    ...tree.map((section) => ({ label: section.name, name: section.name, href: section.href })),
+    ...tree.flatMap((section) => section.subsections.map((sub) => ({ label: `${sub.name} · ${section.name}`, name: sub.name, href: sub.href }))),
+  ];
+  const sectionHits = terms.length ? sections.filter((section) => matchesQuery(terms, [section.name])) : [];
 
   return (
     <main className={`tpl-page search-page ${ppDisplay.variable} ${ppSans.variable}`}>

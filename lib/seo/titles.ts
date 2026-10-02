@@ -34,9 +34,12 @@ export function sectionDescription(name: string, businesses: string[]): string {
   return fitDescription(`${count} you can book in Nassau on PortPass: ${nameList(businesses)}. Real prices, schedules and booking online.`);
 }
 
-// "Futprep Athletics: Sports & Fitness in Nassau | PortPass".
-export function businessTitle(name: string, what: string | null, area: string | null): string {
-  const place = area && area.toLowerCase() !== "nassau" ? `${area}, Nassau` : "Nassau";
+// "Futprep Athletics: Sports & Fitness in Nassau | PortPass"; off New
+// Providence, the island: "… in George Town, Exuma | PortPass".
+export function businessTitle(name: string, what: string | null, area: string | null, island: string | null = null): string {
+  const onNewProvidence = !island || /new providence/i.test(island);
+  const town = onNewProvidence ? "Nassau" : island;
+  const place = area && area.toLowerCase() !== town.toLowerCase() ? `${area}, ${town}` : town;
   return what ? `${name}: ${what} in ${place} | PortPass` : `${name} in ${place} | PortPass`;
 }
 

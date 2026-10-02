@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CategoryPage } from "@/app/_components/CategoryPage";
+import { CategoryPage, liveBusinessNames } from "@/app/_components/CategoryPage";
+import { sectionDescription, sectionTitle } from "@/lib/seo/titles";
 import { computeBrandTokens } from "@/app/_components/blocks/brand";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
@@ -39,12 +40,18 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { org } = await params;
   const section = await shopSection();
   const subsection = section?.subcategories.find((c) => c.slug === org);
-  if (section && subsection) return { title: `${subsection.name} · ${section.name} | PortPass Bahamas` };
+  const url = `https://portpassbahamas.com/shop/${org}`;
+  if (section && subsection) {
+    const names = await liveBusinessNames("shop", org);
+    const title = sectionTitle(section.name, subsection.name);
+    const description = sectionDescription(subsection.name, names);
+    return { title, description, alternates: { canonical: url }, openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url }, robots: names.length === 0 ? { index: false, follow: true } : undefined };
+  }
   const shop = await loadShop(org);
   if (!shop) return {};
   const title = `${shop.org.name} shop | PortPass Bahamas`;
   const description = shop.org.oneLiner ?? `Reserve ${shop.org.name} drops on PortPass and pay ${shop.org.name} directly.`;
-  return { title, description, openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url: `https://portpassbahamas.com/shop/${org}` } };
+  return { title, description, alternates: { canonical: url }, openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url } };
 }
 
 function dropStatusLine(drop: Drop, now: Date): string {

@@ -23,5 +23,7 @@ export function reviewRequestMessage(businessName: string, url: string): string 
 // expects. Null when it isn't a Google address.
 export function cleanGoogleBusinessUrl(value: string): string | null {
   if (!isGoogleBusinessUrl(value)) return null;
-  return new URL(value).toString();
+  const stored = new URL(value).toString();
+  // Exactly the database's rule, on the string that is stored.
+  return stored.length <= 300 && /^https:\/\/([a-z0-9-]+\.)*(google\.com|g\.page|goo\.gl)(\/|$)/.test(stored) ? stored : null;
 }
