@@ -22,6 +22,7 @@ export const RESERVED_TOP_LEVEL_SLUGS = new Set<string>([
   "favicon.ico",
   "favicon.svg",
   "futprep",
+  "guides",
   "icons",
   "login",
   "manifest.webmanifest",

@@ -17,6 +17,7 @@ import { SiteFooter } from "@/app/_components/SiteFooter";
 import { bizDisplay, ppSans } from "@/app/fonts";
 import { JsonLd } from "@/app/_components/seo/JsonLd";
 import { RelatedInSection } from "@/app/_components/seo/RelatedInSection";
+import { InOurGuides } from "@/app/guides/InOurGuides";
 import "@/app/_components/seo/seo.css";
 import { businessJsonLd } from "@/lib/seo/jsonLd";
 
@@ -223,6 +224,7 @@ export default async function BahamasWeddingsListingPage() {
         </div>
         <ActionBlock label="See prices & get started" href="#offerings" />
         <RelatedInSection section="weddings" sectionName="Weddings" exceptSlug="bahamas-weddings" />
+        <InOurGuides organizationSlug="bahamas-weddings" />
       </main>
       <SiteFooter orgLine="Bahamas Weddings By The Sea · Booking and payments powered by PortPass" />
     </div>
