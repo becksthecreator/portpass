@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/auth/admin";
 import { createRateLimiter } from "@/lib/auth/rateLimit";
-import { addManualEvent, getAccount, removeEvent } from "@/db/billing";
-import { EVENT_KINDS, isDay } from "@/lib/billing";
+import { addManualEvent, getAccount, listInvoices, raisedPeriods, removeEvent } from "@/db/billing";
+import { EVENT_KINDS, FEE_OUTLOOK_TEXT, feeOutlook, isDay } from "@/lib/billing";
 
 const limited = createRateLimiter(40, 10 * 60_000);
 
@@ -25,10 +25,10 @@ export async function POST(request: Request) {
   if (bookingValueCents === null || rateBps === null || flatCents === null) return NextResponse.json({ error: "Amounts are in dollars and can't be negative. For a credit, tick the credit box." }, { status: 400 });
   try {
     const event = await addManualEvent({ organizationId, kind, eventOn: body.eventOn, bookingValueCents, rateBps, flatCents, note: typeof body?.note === "string" ? body.note : "", credit: body?.credit === true }, auth.session.userId);
-    // Say plainly whether an invoice will pick it up as things stand.
-    const account = await getAccount(organizationId);
-    const willInvoice = Boolean(account && account.cycle !== "not_agreed" && !account.paused && !account.ended);
-    return NextResponse.json({ ok: true, id: event.id, feeCents: event.feeCents, willInvoice }, { status: 201 });
+    // Say plainly what will happen to it, as things stand.
+    const [account, invoices] = await Promise.all([getAccount(organizationId), listInvoices({ organizationId })]);
+    const outlook = feeOutlook(event, account, raisedPeriods(invoices));
+    return NextResponse.json({ ok: true, id: event.id, feeCents: event.feeCents, outlook, message: FEE_OUTLOOK_TEXT[outlook] }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "NOTE_REQUIRED") return NextResponse.json({ error: "Say what the fee is for." }, { status: 400 });

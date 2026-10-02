@@ -747,7 +747,9 @@ export async function getPlanCard(organizationId: number, today: string = nassau
   const shown = invoices.filter(shownToBusiness).map((invoice) => ({ ...invoice, status: invoiceStatus(invoice, today) }));
   if (!account) return { account: null, planName: null, status: null, freeUntil: null, nextInvoiceOn: null, nextInvoiceCents: null, invoices: shown, bank };
   const raised = raisedPeriods(invoices);
-  const next = nextInvoiceOn(account, today, raised);
+  // A draft the business can't see yet is still its next invoice: the
+  // date shown runs from what it has been sent.
+  const next = nextInvoiceOn(account, today, raisedPeriods(invoices.filter(shownToBusiness)));
   let nextInvoiceCents: number | null = null;
   if (next && isSubscription(account.cycle)) {
     // The same test the daily job uses for the one-time setup fee.

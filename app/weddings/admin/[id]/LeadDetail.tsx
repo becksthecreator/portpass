@@ -46,7 +46,7 @@ export function LeadDetail({ lead }: { lead: WeddingLeadDetail }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completedOn, deskCoordinated }),
     });
-    const data = (await response.json().catch(() => ({}))) as { error?: string; feeCreated?: boolean; feeRemoved?: boolean; feeRedated?: boolean; alreadyInvoiced?: boolean };
+    const data = (await response.json().catch(() => ({}))) as { error?: string; feeCreated?: boolean; feeRemoved?: boolean; feeRedated?: boolean; alreadyInvoiced?: boolean; feeWillBeInvoiced?: boolean | null };
     setCompleteBusy(false);
     if (!response.ok) {
       setError(data.error ?? "Could not mark the wedding completed.");
@@ -54,6 +54,7 @@ export function LeadDetail({ lead }: { lead: WeddingLeadDetail }) {
     }
     setCompleteNote(
       data.alreadyInvoiced ? "Saved, but the coordination fee is already on an invoice and has not changed. Tell PortPass if it needs correcting."
+        : data.feeCreated && data.feeWillBeInvoiced === false ? "Saved. The coordination fee is recorded, but it won't be invoiced as things stand (no agreed plan, or the date is in the free period). PortPass will see it under Billing."
         : data.feeCreated ? "Saved. The coordination fee goes on the next monthly invoice."
         : data.feeRemoved ? "Saved. The coordination fee has been taken off."
         : data.feeRedated ? "Saved. The coordination fee has moved to the new date."

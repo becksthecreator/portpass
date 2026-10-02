@@ -48,10 +48,10 @@ export function AddFee({ businesses, today }: { businesses: Array<{ id: number; 
     if (flatCents > 0 && bookingValueCents > 0 && rate > 0) return setError("Enter a flat fee, or a booking value and PortPass's share: not both.");
     setBusy(true);
     const response = await fetch("/api/admin/billing/fees", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ organizationId, kind, eventOn, flatCents, bookingValueCents, rateBps: Math.round(rate * 100), note, credit }) }).catch(() => null);
-    const data = response ? ((await response.json().catch(() => ({}))) as { error?: string; willInvoice?: boolean }) : {};
+    const data = response ? ((await response.json().catch(() => ({}))) as { error?: string; message?: string }) : {};
     setBusy(false);
     if (!response || !response.ok) return setError(data.error ?? "Could not add the fee.");
-    setDone(data.willInvoice ? `Added. It ${credit ? "comes off" : "goes on"} the invoice drafted on the 1st of next month.` : "Added, but nothing will invoice it yet: this business has no billing account with an agreed plan (or its account is paused or ended). Set that up under Billing.");
+    setDone(`Added. ${data.message ?? ""}`.trim());
     setNote("");
     router.refresh();
   }

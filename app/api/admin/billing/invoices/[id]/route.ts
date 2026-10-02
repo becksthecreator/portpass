@@ -6,6 +6,7 @@ import { owedCents } from "@/lib/billing";
 import { invoiceSentEmail, invoiceWhatsappMessage } from "@/lib/billingEmail";
 import { cleanReceipt } from "@/lib/billingInput";
 import { portpassFrom, sendEmail } from "@/lib/email";
+import { nassauToday } from "@/lib/futprepTerms";
 import { invoicePdf } from "@/lib/invoicePdf";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -44,12 +45,14 @@ export async function POST(request: Request, ctx: Ctx) {
   const body = (await request.json().catch(() => null)) as { action?: unknown; reason?: unknown; receipt?: unknown; receiptId?: unknown } | null;
   const action = typeof body?.action === "string" ? body.action : "";
   const actor = auth.session.userId;
+  // One date for the email, the PDF and what is stored, even at midnight.
+  const today = nassauToday();
 
   try {
     if (action === "send_email") {
       // Written as it will read once sent, emailed, and only then marked:
       // a failed email leaves a draft a draft, with no due date running.
-      const invoice = await invoiceAsSent(id);
+      const invoice = await invoiceAsSent(id, today);
       const account = await getAccount(invoice.organizationId);
       if (!account?.billingEmail) return NextResponse.json({ error: "This business has no billing email. Add one to its account, or send it on WhatsApp." }, { status: 409 });
       const bank = await getBankDetails();
@@ -59,22 +62,31 @@ export async function POST(request: Request, ctx: Ctx) {
       if (outcome !== "sent") {
         return NextResponse.json({ error: outcome === "skipped" ? "The email was not sent: email isn't set up here, or this is a test address. Nothing about the invoice has changed." : "The email failed to send (see Messages). Nothing about the invoice has changed." }, { status: 502 });
       }
-      const sent = await markInvoiceSent(id, "email", actor);
-      return NextResponse.json({ ok: true, status: sent.status });
+      // The email has gone. Recording it is tried twice; if it still fails,
+      // the founder is told plainly not to send it again.
+      for (let attempt = 1; attempt <= 2; attempt += 1) {
+        try {
+          const sent = await markInvoiceSent(id, "email", actor, today);
+          return NextResponse.json({ ok: true, status: sent.status });
+        } catch (error) {
+          console.error("admin billing: emailed but not marked sent", attempt, error instanceof Error ? error.message : "");
+        }
+      }
+      return NextResponse.json({ error: `The email with ${invoice.number} has gone to the business, but the invoice could not be marked as sent. Don't email it again: refresh the page and press "Mark as sent another way".`, code: "emailed_not_marked" }, { status: 500 });
     }
     if (action === "whatsapp") {
-      const invoice = await invoiceAsSent(id);
+      const invoice = await invoiceAsSent(id, today);
       const account = await getAccount(invoice.organizationId);
       const number = (account?.billingWhatsappE164 ?? "").replace(/\D/g, "");
       if (!number) return NextResponse.json({ error: "This business has no billing WhatsApp number. Add one to its account." }, { status: 409 });
-      const sent = await markInvoiceSent(id, "whatsapp", actor);
+      const sent = await markInvoiceSent(id, "whatsapp", actor, today);
       const message = invoiceWhatsappMessage({ businessName: sent.organizationName, number: sent.number, totalCents: sent.totalCents, owedCents: owedCents(sent), dueOn: sent.dueOn, dashboardUrl: dashboardUrl(sent.organizationSlug) });
       // The founder taps this and presses send in WhatsApp themselves.
       return NextResponse.json({ ok: true, status: sent.status, whatsappUrl: `https://wa.me/${number}?text=${encodeURIComponent(message)}` });
     }
     if (action === "mark_sent") {
       // Handed over another way (printed, or sent from a founder's own email).
-      const sent = await markInvoiceSent(id, "in_person", actor);
+      const sent = await markInvoiceSent(id, "in_person", actor, today);
       return NextResponse.json({ ok: true, status: sent.status });
     }
     if (action === "receipt") {

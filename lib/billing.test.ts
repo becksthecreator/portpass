@@ -10,6 +10,7 @@ import {
   eventLine,
   eventsToInvoice,
   feeCents,
+  feeOutlook,
   firstInvoiceOn,
   freeUntil,
   howToPay,
@@ -223,6 +224,16 @@ describe("fees earned per booking or wedding", () => {
     expect(eventsToInvoice([december], credited, "2027-01-01", billedFrom).map((e) => e.id)).toEqual([9]);
     // A fee inside the free period it really had stays free.
     expect(eventsToInvoice([event({ id: 10, eventOn: "2026-11-03" })], credited, "2027-01-01", billedFrom)).toEqual([]);
+  });
+
+  it("says truthfully what will happen to a fee or a credit", () => {
+    const plan = account({ goLiveOn: "2026-10-05" });
+    expect(feeOutlook({ eventOn: "2026-11-10", feeCents: 15000 }, plan)).toBe("invoiced_next");
+    expect(feeOutlook({ eventOn: "2026-10-20", feeCents: 15000 }, plan)).toBe("free_period");
+    expect(feeOutlook({ eventOn: "2026-11-10", feeCents: -1000 }, plan)).toBe("credit_waits");
+    expect(feeOutlook({ eventOn: "2026-11-10", feeCents: 15000 }, null)).toBe("no_plan");
+    expect(feeOutlook({ eventOn: "2026-11-10", feeCents: 15000 }, account({ cycle: "not_agreed" }))).toBe("no_plan");
+    expect(feeOutlook({ eventOn: "2026-11-10", feeCents: 15000 }, account({ paused: true }))).toBe("no_plan");
   });
 
   it("writes the line a business can check: what, how much of what, and when", () => {

@@ -317,6 +317,23 @@ export function eventsToInvoice(events: BillingEvent[], account: BillingAccount,
   return events.filter((event) => event.invoiceLineId === null && event.eventOn < invoiceOn && (!free || event.eventOn > free) && event.feeCents !== 0);
 }
 
+// What happens to one fee or credit, in words a founder can act on.
+export type FeeOutlook = "invoiced_next" | "free_period" | "no_plan" | "credit_waits";
+
+export function feeOutlook(event: Pick<BillingEvent, "eventOn" | "feeCents">, account: BillingAccount | null, raised: RaisedPeriod[] = []): FeeOutlook {
+  if (!account || account.cycle === "not_agreed" || account.paused || account.ended) return "no_plan";
+  const probe: BillingEvent = { id: 0, organizationId: account.organizationId, kind: "supplier_commission", eventOn: event.eventOn, bookingValueCents: 0, rateBps: 0, flatCents: 0, feeCents: event.feeCents || 1, invoiceLineId: null, note: null };
+  if (eventsToInvoice([probe], account, "9999-12-31", raised).length === 0) return "free_period";
+  return event.feeCents < 0 ? "credit_waits" : "invoiced_next";
+}
+
+export const FEE_OUTLOOK_TEXT: Record<FeeOutlook, string> = {
+  invoiced_next: "It goes on the invoice of fees drafted on the 1st of next month.",
+  free_period: "It is dated inside the business's free period, so it is never charged.",
+  no_plan: "Nothing will invoice it yet: this business has no billing account with an agreed plan, or its account is paused or ended.",
+  credit_waits: "It comes off the next invoice of fees, once there are fees to set it against. It doesn't reduce a plan invoice.",
+};
+
 export function eventLine(event: BillingEvent): DraftLine {
   const source: LineSource = event.kind === "wedding_coordination" ? "wedding_fee" : "commission";
   const what = event.note ? `${EVENT_KIND_LABEL[event.kind]}: ${event.note}` : EVENT_KIND_LABEL[event.kind];

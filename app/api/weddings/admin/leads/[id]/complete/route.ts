@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { currentWeddingStaffAccount } from "@/app/weddings/staff-auth";
-import { completeWedding } from "@/db/billing";
-import { isDay } from "@/lib/billing";
+import { completeWedding, getAccount, listInvoices, raisedPeriods } from "@/db/billing";
+import { feeOutlook, isDay } from "@/lib/billing";
+import { getSupabaseAdmin } from "@/db/supabase";
 import { nassauToday } from "@/lib/futprepTerms";
 
 // The Wedding Desk marks a wedding as having happened, and says whether
@@ -21,7 +22,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!completedOn || completedOn > nassauToday()) return NextResponse.json({ error: "Enter the date of the wedding. It can't be in the future." }, { status: 400 });
   try {
     const outcome = await completeWedding(leadId, { completedOn, deskCoordinated: body.deskCoordinated === true }, `desk:${staff}`);
-    return NextResponse.json({ ok: true, ...outcome });
+    // Whether the fee will actually be invoiced, as things stand. Never a
+    // reason to fail the save: the wedding is already recorded.
+    let feeWillBeInvoiced: boolean | null = null;
+    if (outcome.feeCreated || outcome.feeRedated) {
+      try {
+        const { data: org } = await getSupabaseAdmin().from("organizations").select("id").eq("slug", "bahamas-weddings").maybeSingle();
+        if (org) {
+          const [account, invoices] = await Promise.all([getAccount(Number(org.id)), listInvoices({ organizationId: Number(org.id) })]);
+          feeWillBeInvoiced = feeOutlook({ eventOn: completedOn, feeCents: 1 }, account, raisedPeriods(invoices)) === "invoiced_next";
+        }
+      } catch (error) {
+        console.error("wedding completed: fee outlook", error instanceof Error ? error.message : "");
+      }
+    }
+    return NextResponse.json({ ok: true, ...outcome, feeWillBeInvoiced });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "NOT_FOUND") return NextResponse.json({ error: "That enquiry no longer exists." }, { status: 404 });

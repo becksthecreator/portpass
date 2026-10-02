@@ -41,7 +41,7 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
         <div><dt>Status</dt><dd><span className={`admin-pill ${invoice.status === "overdue" || invoice.status === "void" ? "suspended" : invoice.status === "paid" ? "live" : ""}`}>{INVOICE_STATUS_LABEL[invoice.status]}</span>{invoice.voidReason ? ` · ${invoice.voidReason}` : ""}</dd></div>
         <div><dt>{invoice.status === "draft" ? "Drafted" : "Issued"}</dt><dd>{longDay(invoice.issuedOn)}{invoice.status === "draft" ? " (it is dated the day you send it)" : ""}</dd></div>
         <div><dt>Due</dt><dd>{invoice.status === "draft" ? "14 days after it is sent" : longDay(invoice.dueOn)}</dd></div>
-        <div><dt>Sent</dt><dd>{invoice.sentAt ? `${longDay(invoice.sentAt.slice(0, 10))}${invoice.sentVia ? ` by ${invoice.sentVia.replace("_", " ")}` : ""}` : "Not yet"}</dd></div>
+        <div><dt>Sent</dt><dd>{invoice.sentAt ? `${longDay(nassauToday(new Date(invoice.sentAt)))}${invoice.sentVia ? ` by ${invoice.sentVia.replace("_", " ")}` : ""}` : "Not yet"}</dd></div>
         <div><dt>Bill to</dt><dd>{account?.billingEmail ?? "No billing email"}{account?.billingWhatsappE164 ? ` · ${account.billingWhatsappE164}` : ""}</dd></div>
         <div><dt>How to pay</dt><dd>{howToPay(bank)}</dd></div>
       </dl>
@@ -84,7 +84,7 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
 
       <section className="admin-group" aria-labelledby="invoice-actions">
         <h2 id="invoice-actions">What to do</h2>
-        <InvoiceActions id={invoice.id} number={invoice.number} status={invoice.status} kind={invoice.kind} owedCents={owedCents(invoice)} paidCents={invoice.paidCents} today={today} canSend={bankDetailsComplete(bank)} hasEmail={Boolean(account?.billingEmail)} hasWhatsapp={Boolean(account?.billingWhatsappE164)} canRedraft={canRedraft} />
+        <InvoiceActions key={`${invoice.status}:${invoice.paidCents}`} id={invoice.id} number={invoice.number} status={invoice.status} kind={invoice.kind} owedCents={owedCents(invoice)} paidCents={invoice.paidCents} today={today} canSend={bankDetailsComplete(bank)} hasEmail={Boolean(account?.billingEmail)} hasWhatsapp={Boolean(account?.billingWhatsappE164)} canRedraft={canRedraft} />
       </section>
     </AdminShell>
   );

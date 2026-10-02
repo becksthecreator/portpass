@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { listAdminBusinesses } from "@/db/adminBusinesses";
-import { listAccounts, listEvents } from "@/db/billing";
+import { listAccounts, listEvents, listInvoices, raisedPeriods } from "@/db/billing";
 import { requireAdmin } from "@/lib/auth/admin";
-import { EVENT_KIND_LABEL, longDay, money } from "@/lib/billing";
+import { EVENT_KIND_LABEL, feeOutlook, longDay, money } from "@/lib/billing";
 import { nassauToday } from "@/lib/futprepTerms";
 import { AdminShell } from "../../_components/AdminShell";
 import { AddFee, RemoveFee } from "./AddFee";
@@ -21,12 +21,13 @@ export default async function AdminBillingFeesPage({ searchParams }: { searchPar
   const session = await requireAdmin("/admin/billing/fees");
   const { show } = await searchParams;
   const invoiced = show === "invoiced" ? true : show === "to_invoice" ? false : null;
-  const [events, businesses, accounts] = await Promise.all([listEvents({ invoiced }), listAdminBusinesses(), listAccounts()]);
+  const [events, businesses, accounts, invoices] = await Promise.all([listEvents({ invoiced }), listAdminBusinesses(), listAccounts(), listInvoices()]);
   const total = events.reduce((sum, event) => sum + event.feeCents, 0);
   // A fee is only drafted onto an invoice for a business with an agreed
   // plan whose account is running.
-  const invoicing = new Set(accounts.filter((account) => account.cycle !== "not_agreed" && !account.paused && !account.ended).map((account) => account.organizationId));
-  const stuck = events.filter((event) => event.invoiceLineId === null && !invoicing.has(event.organizationId));
+  const accountOf = new Map(accounts.map((account) => [account.organizationId, account]));
+  const outlookOf = (event: (typeof events)[number]) => feeOutlook(event, accountOf.get(event.organizationId) ?? null, raisedPeriods(invoices.filter((invoice) => invoice.organizationId === event.organizationId)));
+  const stuck = events.filter((event) => event.invoiceLineId === null && (outlookOf(event) === "no_plan" || outlookOf(event) === "free_period"));
 
   return (
     <AdminShell session={session} current="/admin/billing" title="Fees per booking" lede="Wedding coordination fees and commissions. Each goes on the invoice drafted on the 1st of the month after, once." actions={<Link className="admin-bar-link" href="/admin/billing">All billing</Link>}>
@@ -37,7 +38,7 @@ export default async function AdminBillingFeesPage({ searchParams }: { searchPar
       </div>
       {stuck.length > 0 && (
         <p className="admin-form-note" role="note">
-          <strong>{stuck.length} fee{stuck.length === 1 ? "" : "s"} ({money(stuck.reduce((sum, event) => sum + event.feeCents, 0))}) will not be invoiced as things stand:</strong> the business has no billing account, its plan isn&rsquo;t agreed yet, or its account is paused or ended. They are marked below.
+          <strong>{stuck.length} fee{stuck.length === 1 ? "" : "s"} ({money(stuck.reduce((sum, event) => sum + event.feeCents, 0))}) will not be invoiced as things stand:</strong> the business has no billing account, its plan isn&rsquo;t agreed yet, its account is paused or ended, or the fee is dated inside its free period. They are marked below.
         </p>
       )}
       {events.length === 0 ? (
@@ -56,7 +57,7 @@ export default async function AdminBillingFeesPage({ searchParams }: { searchPar
                   <td data-label="For">{event.note ?? (event.rateBps ? `${event.rateBps / 100}% of ${money(event.bookingValueCents)}` : "—")}</td>
                   <td data-label="Fee"><strong>{money(event.feeCents)}</strong></td>
                   <td data-label="Invoice">
-                    {event.invoiceNumber ? <code>{event.invoiceNumber}</code> : invoicing.has(event.organizationId) ? "Not yet" : "No plan agreed: not invoiced"}
+                    {event.invoiceNumber ? <code>{event.invoiceNumber}</code> : ({ invoiced_next: "Not yet", credit_waits: "Waiting for fees to set it against", free_period: "In the free period: never charged", no_plan: "No plan agreed: not invoiced" } as const)[outlookOf(event)]}
                     {event.invoiceLineId === null && (event.sourceTable === "manual" || event.sourceTable === "wedding_leads") && <> <RemoveFee id={event.id} /></>}
                   </td>
                 </tr>
