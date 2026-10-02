@@ -221,6 +221,7 @@ export default async function BahamasWeddingsListingPage() {
           <ShareOnWhatsApp url="https://portpassbahamas.com/weddings/bahamas-weddings-by-the-sea" text="Bahamas Weddings By The Sea on PortPass:" org="bahamas-weddings" />
         </div>
         <ActionBlock label="See prices & get started" href="#offerings" />
+        <RelatedInSection section="weddings" sectionName="Weddings" exceptSlug="bahamas-weddings" />
       </main>
       <SiteFooter orgLine="Bahamas Weddings By The Sea · Booking and payments powered by PortPass" />
     </div>
