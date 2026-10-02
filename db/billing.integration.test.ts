@@ -298,7 +298,7 @@ describe("a wedding the Desk coordinated", () => {
   it("earns nothing when the Desk did not coordinate it", async () => {
     const lead = await createWeddingLead({ idempotencyKey: `test-delete-billing-b-${TAG}`, names: `TEST delete ${TAG} wedding B`, contactConsent: true, marketingConsent: false });
     try {
-      expect(await completeWedding(lead.id, { completedOn: "2026-10-21", deskCoordinated: false }, "TEST desk")).toEqual({ feeCreated: false });
+      expect(await completeWedding(lead.id, { completedOn: "2026-10-21", deskCoordinated: false }, "TEST desk")).toEqual({ feeCreated: false, feeRemoved: false, feeRedated: false, alreadyInvoiced: false });
       const { data: events } = await admin.from("billing_events").select("id").eq("source_table", "wedding_leads").eq("source_id", lead.id);
       expect(events).toEqual([]);
     } finally {
