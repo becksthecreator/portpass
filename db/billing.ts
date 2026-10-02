@@ -294,7 +294,8 @@ const EVENT_COLUMNS = "id,organization_id,kind,source_table,source_id,event_on,b
 function toEvent(row: Row): StoredEvent {
   const org = (Array.isArray(row.organizations) ? row.organizations[0] : row.organizations) as { name: string } | null;
   const line = (Array.isArray(row.portpass_invoice_lines) ? row.portpass_invoice_lines[0] : row.portpass_invoice_lines) as { portpass_invoices?: { number?: string } | Array<{ number?: string }> } | null;
-  const invoice = Array.isArray(line?.portpass_invoices) ? line?.portpass_invoices[0] : line?.portpass_invoices;
+  const nested = line?.portpass_invoices;
+  const invoice = Array.isArray(nested) ? nested[0] : nested;
   return {
     id: Number(row.id), organizationId: Number(row.organization_id), organizationName: org?.name ?? "", kind: row.kind as BillingEventKind, sourceTable: String(row.source_table), eventOn: String(row.event_on),
     bookingValueCents: Number(row.booking_value_cents), rateBps: Number(row.rate_bps), flatCents: Number(row.flat_cents), feeCents: Number(row.fee_cents),
