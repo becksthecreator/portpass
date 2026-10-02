@@ -12,6 +12,12 @@ import { PrivateSessionBooking } from "./PrivateSessionBooking";
 // makes Next try to prerender this page's DB-backed data during `next build`.
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Futprep coaches and private sessions in Nassau | PortPass",
+  description: "Meet Futprep Athletics' coaches and book a private football session in Nassau. Real prices and times, booked online.",
+  alternates: { canonical: "https://portpassbahamas.com/futprep/coaches" },
+};
+
 function dayLabel(value:string){
   return new Intl.DateTimeFormat("en-BS",{weekday:"short",month:"short",day:"numeric",timeZone:"UTC"}).format(new Date(`${value}T12:00:00Z`));
 }

@@ -1,0 +1,22 @@
+/* Search and "More in this section" (brief 11). Base tokens only, so the
+   rules follow whatever page they sit on. */
+.related-section{border-top:1px solid var(--line);padding:40px 5vw}
+.related-section-inner{margin:0 auto;max-width:1100px}
+.related-section h2{font-family:var(--font-pp-display),Archivo,sans-serif;font-size:1.3rem;margin:0 0 16px}
+.related-section ul,.search-list{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));list-style:none;margin:0;padding:0}
+.related-section li a,.search-list li a{align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:14px;color:var(--ink);display:flex;gap:12px;min-height:64px;padding:14px 16px;text-decoration:none}
+.related-section li a:hover,.search-list li a:hover{border-color:var(--ink)}
+.related-section li span,.search-list li span{display:grid;gap:3px;min-width:0}
+.related-section small,.search-list small{color:var(--muted);font-size:.84rem;line-height:1.4}
+.related-section p{margin:16px 0 0}
+.related-section p a,.search-sections a,.search-none a{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.search-body{margin:0 auto;max-width:900px;padding:34px 16px 70px}
+.search-body h1{font-family:var(--font-pp-display),Archivo,sans-serif;font-size:clamp(1.8rem,6vw,2.4rem);margin:0 0 18px}
+.search-label{color:var(--muted);display:block;font-size:.85rem;font-weight:700;margin-bottom:8px}
+.search-row{display:flex;flex-wrap:wrap;gap:10px}
+.search-row input{background:var(--paper);border:1px solid var(--muted);border-radius:10px;color:var(--ink);flex:1 1 220px;font:inherit;font-size:1rem;min-height:48px;padding:10px 14px}
+.search-row .home-button{border:0;cursor:pointer;min-height:48px}
+.search-results{margin-top:30px}
+.search-results h2{font-size:1.1rem;margin:24px 0 12px}
+.search-sections{display:flex;flex-wrap:wrap;gap:8px 18px;list-style:none;margin:0;padding:0}
+.search-none{color:var(--muted);line-height:1.6;margin:0}

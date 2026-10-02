@@ -37,6 +37,7 @@ export type Business = {
   publicEmail: string | null;
   websiteUrl: string | null;
   instagramHandle: string | null;
+  googleBusinessUrl: string | null;
   logoUrl: string | null;
   heroImageUrl: string | null;
   brandColor: string | null;
@@ -56,7 +57,7 @@ export type Business = {
 };
 
 const BUSINESS_COLUMNS =
-  "id,slug,name,primary_category,subcategory,island,area,one_liner,description,phone_e164,whatsapp_e164,public_email,website_url,instagram_handle,logo_url,hero_image_url,brand_color,owner_name,owner_bio,payment_methods,bank_transfer_details,status,is_published,submitted_at,approved_at,created_by_admin,claimed_at,photo_consent_required,review_note";
+  "id,slug,name,primary_category,subcategory,island,area,one_liner,description,phone_e164,whatsapp_e164,public_email,website_url,instagram_handle,google_business_url,logo_url,hero_image_url,brand_color,owner_name,owner_bio,payment_methods,bank_transfer_details,status,is_published,submitted_at,approved_at,created_by_admin,claimed_at,photo_consent_required,review_note";
 
 function toBusiness(row: Record<string, unknown>): Business {
   const bank = row.bank_transfer_details as Partial<BankTransferDetails> | null;
@@ -75,6 +76,7 @@ function toBusiness(row: Record<string, unknown>): Business {
     publicEmail: (row.public_email as string | null) ?? null,
     websiteUrl: (row.website_url as string | null) ?? null,
     instagramHandle: (row.instagram_handle as string | null) ?? null,
+    googleBusinessUrl: (row.google_business_url as string | null) ?? null,
     logoUrl: (row.logo_url as string | null) ?? null,
     heroImageUrl: (row.hero_image_url as string | null) ?? null,
     brandColor: (row.brand_color as string | null) ?? null,
@@ -200,6 +202,7 @@ export type BusinessDetailsPatch = Partial<{
   publicEmail: string | null;
   websiteUrl: string | null;
   instagramHandle: string | null;
+  googleBusinessUrl: string | null;
   brandColor: string | null;
   ownerName: string | null;
   ownerBio: string | null;
@@ -217,6 +220,7 @@ const COLUMN_FOR: Record<keyof BusinessDetailsPatch, string> = {
   publicEmail: "public_email",
   websiteUrl: "website_url",
   instagramHandle: "instagram_handle",
+  googleBusinessUrl: "google_business_url",
   brandColor: "brand_color",
   ownerName: "owner_name",
   ownerBio: "owner_bio",

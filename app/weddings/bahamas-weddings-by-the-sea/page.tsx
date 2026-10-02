@@ -15,6 +15,10 @@ import { SiteHeader } from "@/app/_components/SiteHeader";
 import { MemberPerkStrip } from "@/app/_components/perks/MemberPerkStrip";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { bizDisplay, ppSans } from "@/app/fonts";
+import { JsonLd } from "@/app/_components/seo/JsonLd";
+import { RelatedInSection } from "@/app/_components/seo/RelatedInSection";
+import "@/app/_components/seo/seo.css";
+import { businessJsonLd } from "@/lib/seo/jsonLd";
 
 const ASSET = "/weddings/bahamas-by-the-sea";
 
@@ -62,7 +66,7 @@ const WEDDINGWIRE_URL = "https://www.weddingwire.com/biz/bahamas-weddings-by-the
 // credential-less build can prerender this route; Vercel's build has the database.
 export const revalidate = 300;
 
-const TITLE = "Bahamas Weddings By The Sea | PortPass Bahamas";
+const TITLE = "Bahamas Weddings By The Sea: Wedding officiant & planner in Nassau | PortPass";
 const DESCRIPTION = "Antonio Beckford's island wedding ceremonies, summarized: prices, photos, and how to start planning.";
 
 export const metadata = {
@@ -117,6 +121,13 @@ export default async function BahamasWeddingsListingPage() {
 
   return (
     <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
+      <JsonLd
+        data={businessJsonLd(
+          { name: "Bahamas Weddings By The Sea", path: "/weddings/bahamas-weddings-by-the-sea", section: "weddings", subcategory: null, description: "Wedding officiant and planner in Nassau: beach, resort and villa ceremonies, vow renewals and the marriage licence.", area: "Nassau", island: "New Providence", phoneE164: "+12424241262", whatsappE164: "+12424241262", heroImageUrl: "/weddings/bahamas-by-the-sea/hero.jpg", logoUrl: null, websiteUrl: null, instagramHandle: null, googleBusinessUrl: null },
+          offerings.map((offering) => ({ name: offering.name, type: "service" as const, summary: offering.summary, priceCents: offering.priceCents, termStart: null, termEnd: null, eventDate: null, actionUrl: null })),
+          extras.faqs.map((faq) => ({ question: faq.question, answer: faq.answer })),
+        )}
+      />
       <SiteHeader breadcrumb={[{ label: "Weddings", href: "/weddings" }, { label: "Bahamas Weddings By The Sea", href: "/weddings/bahamas-weddings-by-the-sea" }]} />
       {/* bws-listing-theme: this listing's own tropical palette (22
           September brief), scoped here only -- most roles (badge, gallery

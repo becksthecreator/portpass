@@ -16,6 +16,9 @@ import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 import { SubsectionChips } from "./SubsectionChips";
 import "./perks/perks.css";
+import { JsonLd } from "./seo/JsonLd";
+import { sectionJsonLd } from "@/lib/seo/jsonLd";
+import { sectionDescription } from "@/lib/seo/titles";
 import { ppDisplay, ppSans } from "@/app/fonts";
 
 // The data-driven section / subcategory page: whatever the categories
@@ -25,11 +28,17 @@ import { ppDisplay, ppSans } from "@/app/fonts";
 // because demand for a section that isn't open yet is the most useful
 // thing it can capture.
 export async function countLiveBusinesses(section: string, subcategory?: string | null): Promise<number> {
+  return (await liveBusinessNames(section, subcategory)).length;
+}
+
+// The names of the businesses live in a section, in the order the page
+// lists them: for the page's description (brief 11: real counts, real names).
+export async function liveBusinessNames(section: string, subcategory?: string | null): Promise<string[]> {
   try {
     const businesses = await withOneRetry(() => listSectionBusinesses(section, subcategory));
-    return businesses.filter((b) => b.isPublished).length;
+    return businesses.filter((b) => b.isPublished).map((b) => b.name);
   } catch {
-    return 0;
+    return [];
   }
 }
 
@@ -127,8 +136,17 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
   // it suits nightlife. One env var switches it on.
   const nightHero = section.slug === "entertainment" && process.env.ENTERTAINMENT_NIGHT_HERO === "1";
 
+  const pagePath = subcategory ? `/${section.slug}/${subcategory.slug}` : `/${section.slug}`;
+  const structured = sectionJsonLd({
+    name: subcategory ? `${subcategory.name} · ${section.name}` : section.name,
+    path: pagePath,
+    description: sectionDescription(current.name, listings.map(({ organization }) => organization.name)),
+    businesses: listings.map(({ organization }) => ({ name: organization.name, path: directoryHref(organization.slug, organization.primaryCategory) })),
+  });
+
   return (
     <main className={`tpl-page ${ppDisplay.variable} ${ppSans.variable}`}>
+      <JsonLd data={structured} />
       <SiteHeader breadcrumb={breadcrumb} />
       <section className={`category-hero category-hero-plain${nightHero ? " category-hero-night" : ""}`}>
         <div className="category-hero-inner">

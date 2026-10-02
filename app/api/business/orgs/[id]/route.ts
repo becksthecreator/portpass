@@ -3,6 +3,7 @@ import { getBusiness, listBusinessImages, listBusinessOfferings, listInvites, li
 import { getCategoryBySlug, getSectionWithSubcategories } from "@/db/categories";
 import { requireOrgRoleApi } from "@/lib/auth/guards";
 import { normalizePhoneE164 } from "@/lib/phone";
+import { cleanGoogleBusinessUrl } from "@/lib/seo/googleBusiness";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -104,6 +105,13 @@ export async function PATCH(request: Request, ctx: Ctx) {
     const handle = instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/^@/, "").replace(/\/.*$/, "");
     if (handle && !/^[A-Za-z0-9._]{1,30}$/.test(handle)) return NextResponse.json({ error: "Instagram: just the username, like @yourbusiness." }, { status: 400 });
     patch.instagramHandle = handle || null;
+  }
+  const googleBusinessUrl = str(body, "googleBusinessUrl", 300);
+  if (googleBusinessUrl !== undefined) {
+    const normalised = googleBusinessUrl && !/^https?:\/\//i.test(googleBusinessUrl) ? `https://${googleBusinessUrl}` : googleBusinessUrl.replace(/^http:\/\//i, "https://");
+    const cleaned = normalised ? cleanGoogleBusinessUrl(normalised) : null;
+    if (normalised && !cleaned) return NextResponse.json({ error: "Paste the link Google gives you for your Business Profile (it starts with g.page, maps.app.goo.gl or google.com)." }, { status: 400 });
+    patch.googleBusinessUrl = cleaned;
   }
   const brandColor = str(body, "brandColor", 7);
   if (brandColor !== undefined) {

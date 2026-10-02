@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CategoryPage, countLiveBusinesses } from "@/app/_components/CategoryPage";
+import { CategoryPage, liveBusinessNames } from "@/app/_components/CategoryPage";
 import { OrganizationTemplate } from "@/app/_components/blocks/OrganizationTemplate";
+import { JsonLd } from "@/app/_components/seo/JsonLd";
+import { RelatedInSection } from "@/app/_components/seo/RelatedInSection";
+import "@/app/_components/seo/seo.css";
+import { fromPriceCents, listingJsonLd } from "@/lib/seo/fromListing";
+import { businessDescription, businessTitle, sectionDescription, sectionTitle } from "@/lib/seo/titles";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { bizDisplay, ppSans } from "@/app/fonts";
@@ -45,19 +50,26 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const resolved = await resolve(category, slug);
   if (!resolved) return {};
   if (resolved.subcategory) {
-    const live = await countLiveBusinesses(category, slug);
+    const names = await liveBusinessNames(category, slug);
+    const title = sectionTitle(resolved.section.name, resolved.subcategory.name);
+    const description = sectionDescription(resolved.subcategory.name, names);
     return {
-      title: `${resolved.subcategory.name} · ${resolved.section.name} | PortPass Bahamas`,
-      description: live > 0 ? `${resolved.subcategory.name} you can book on PortPass in The Bahamas.` : `${resolved.subcategory.name} in The Bahamas — coming soon to PortPass.`,
-      robots: live === 0 ? { index: false, follow: true } : undefined,
+      title,
+      description,
+      alternates: { canonical: `https://portpassbahamas.com/${category}/${slug}` },
+      openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url: `https://portpassbahamas.com/${category}/${slug}` },
+      robots: names.length === 0 ? { index: false, follow: true } : undefined,
     };
   }
-  const org = resolved.listing!.organization;
-  const title = `${org.name} | PortPass Bahamas`;
-  const description = org.oneLiner ?? org.description ?? undefined;
+  const listing = resolved.listing!;
+  const org = listing.organization;
+  const what = resolved.section.subcategories.find((sub) => sub.slug === org.subcategory)?.name ?? resolved.section.name;
+  const title = businessTitle(org.name, what, org.area);
+  const description = businessDescription(org.name, org.oneLiner ?? org.description, fromPriceCents(listing));
   return {
     title,
     description,
+    alternates: { canonical: `https://portpassbahamas.com/${category}/${slug}` },
     openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url: `https://portpassbahamas.com/${category}/${slug}` },
     twitter: { card: "summary_large_image", title, description },
   };
@@ -72,8 +84,10 @@ export default async function SectionSlugPage({ params }: { params: Params }) {
   const listing = resolved.listing!;
   return (
     <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
+      <JsonLd data={listingJsonLd(listing, `/${category}/${slug}`)} />
       <SiteHeader breadcrumb={[{ label: resolved.section.name, href: `/${category}` }, { label: listing.organization.name, href: `/${category}/${slug}` }]} />
       <OrganizationTemplate listing={listing} />
+      <RelatedInSection section={category} sectionName={resolved.section.name} exceptSlug={slug} />
       <SiteFooter orgLine={`${listing.organization.name} · Booking and payments powered by PortPass`} />
     </div>
   );

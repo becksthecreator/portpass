@@ -7,6 +7,11 @@ import { bizDisplay, ppSans } from "@/app/fonts";
 import { FutprepCampsCard } from "@/app/_components/FutprepCampsCard";
 import { FutprepTasterCard } from "@/app/_components/FutprepTasterCard";
 import { FutprepTeamGrid } from "@/app/_components/FutprepTeamGrid";
+import { JsonLd } from "@/app/_components/seo/JsonLd";
+import { RelatedInSection } from "@/app/_components/seo/RelatedInSection";
+import "@/app/_components/seo/seo.css";
+import { fromPriceCents, listingJsonLd } from "@/lib/seo/fromListing";
+import { businessDescription, businessTitle } from "@/lib/seo/titles";
 
 // ISR (speed brief, 29 Sept): five-minute cache, rebuilt on demand. The
 // loader swallows a failed read so CI's credential-less build can still
@@ -20,11 +25,12 @@ export async function generateMetadata() {
   const listing = await getOrganizationListingBySlug(ORG_SLUG).catch(() => null);
   if (!listing) return { title: "Futprep Athletics | PortPass Bahamas" };
   const { organization } = listing;
-  const title = `${organization.name} | PortPass Bahamas`;
-  const description = organization.oneLiner ?? organization.description ?? undefined;
+  const title = businessTitle(organization.name, "Kids' football programmes", organization.area);
+  const description = businessDescription(organization.name, organization.oneLiner ?? organization.description, fromPriceCents(listing));
   return {
     title,
     description,
+    alternates: { canonical: "https://portpassbahamas.com/sports-fitness/futprep-athletics" },
     openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url: "https://portpassbahamas.com/sports-fitness/futprep-athletics" },
     twitter: { card: "summary_large_image", title, description },
   };
@@ -36,11 +42,13 @@ export default async function FutprepOrganizationPage() {
 
   return (
     <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
+      <JsonLd data={listingJsonLd(listing, "/sports-fitness/futprep-athletics")} />
       <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: listing.organization.name, href: "/sports-fitness/futprep-athletics" }]} />
       <OrganizationTemplate listing={listing} />
       <FutprepTeamGrid />
       <FutprepTasterCard />
       <FutprepCampsCard />
+      <RelatedInSection section="sports-fitness" sectionName="Sports & Fitness" exceptSlug="futprep" />
       <SiteFooter orgLine={`${listing.organization.name} · Booking and payments powered by PortPass`} />
     </div>
   );

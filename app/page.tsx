@@ -18,6 +18,8 @@ import { orderBySpotlight } from "@/lib/siteContent";
 import { programTimeRange } from "./futprep/config";
 import { SiteHeader } from "./_components/SiteHeader";
 import { SiteFooter } from "./_components/SiteFooter";
+import { JsonLd } from "./_components/seo/JsonLd";
+import { homeJsonLd } from "@/lib/seo/jsonLd";
 
 // The homepage is the highest-traffic page on the site, and every one of
 // these three queries is decoration on top of static page structure (the
@@ -116,6 +118,8 @@ export default async function Home() {
 
   return (
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`} data-world="portpass">
+      {/* Who PortPass is, and the site search (brief 11). */}
+      <JsonLd data={homeJsonLd()} />
       <ArrivalPlate />
       <a className="home-skip-link" href="#chooser">Skip to browse</a>
 
