@@ -12,6 +12,10 @@ alter table public.message_log drop constraint if exists message_log_status_chec
 alter table public.message_log add constraint message_log_status_check
   check (status in ('sent', 'delivered', 'bounced', 'complained', 'failed', 'skipped'));
 
+-- Addresses are kept in lower case from now on (db/growth.ts), so the
+-- earlier lines are brought in step and one search finds them all.
+update public.message_log set recipient = lower(recipient) where recipient like '%@%' and recipient <> lower(recipient);
+
 -- 2. Site errors: one row each time a page or route fails on the server.
 --    Deliberately thin: the route's pattern (never the address, which can
 --    hold a reference code or a token), the kind of error and the digest

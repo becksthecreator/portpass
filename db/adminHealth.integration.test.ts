@@ -29,6 +29,10 @@ describe("the Messages log", () => {
     expect(mine).toHaveLength(3);
     expect(mine).toContainEqual([address("three"), "failed"]);
     expect((await listMessages({ q: `  ${address("two").toUpperCase()} ` })).map((m) => m.recipient)).toEqual([address("two")]);
+    // An address typed with capitals is stored in lower case, so it is found.
+    await logMessage({ organizationId: null, template: TEMPLATE, recipient: ` ${address("Mixed").toUpperCase()} `, status: "sent" });
+    expect((await listMessages({ q: address("mixed") })).map((m) => m.recipient)).toEqual([address("mixed")]);
+    await db.from("message_log").delete().eq("template", TEMPLATE).eq("recipient", address("mixed"));
     expect((await listMessages({ status: "problems", template: TEMPLATE })).map((m) => m.recipient)).toEqual([address("three")]);
   });
 
@@ -39,6 +43,9 @@ describe("the Messages log", () => {
     const byAddress = new Map((await listMessages({ template: TEMPLATE })).map((m) => [m.recipient, m]));
     expect(byAddress.get(address("one"))).toMatchObject({ status: "delivered", detail: null });
     expect(byAddress.get(address("two"))).toMatchObject({ status: "bounced", detail: "Bounced: Permanent." });
+    // "Failed" after "delivered" changes nothing either.
+    await markDelivery(provider(1), "failed", "The email service could not send it.");
+    expect((await listMessages({ template: TEMPLATE })).find((m) => m.recipient === address("one"))).toMatchObject({ status: "delivered" });
     // A report for an email PortPass never logged changes nothing.
     await markDelivery(`${TAG}-ffff-4000-8000-000000000000`, "bounced", "Bounced: Permanent.");
     expect((await listMessages({ template: TEMPLATE })).filter((m) => m.status === "bounced")).toHaveLength(1);

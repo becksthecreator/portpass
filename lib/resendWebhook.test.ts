@@ -49,6 +49,7 @@ describe("what a webhook event means for the Messages log", () => {
     expect(deliveryFromEvent({ type: "email.delivered", data: { email_id: id } })).toEqual({ providerId: id, status: "delivered", detail: null });
     expect(deliveryFromEvent({ type: "email.bounced", data: { email_id: id, bounce: { type: "Permanent", subType: "Suppressed" } } })).toEqual({ providerId: id, status: "bounced", detail: "Bounced: Permanent, Suppressed." });
     expect(deliveryFromEvent({ type: "email.complained", data: { email_id: id } })).toMatchObject({ status: "complained" });
+    expect(deliveryFromEvent({ type: "email.failed", data: { email_id: id, failed: { reason: "TEST free text that must not be kept" } } })).toEqual({ providerId: id, status: "failed", detail: "The email service could not send it." });
   });
 
   it("keeps only the service's short labels, never free text from the message", () => {
@@ -86,7 +87,10 @@ describe("health, from what this copy of the site knows", () => {
     const env = { RESEND_API_KEY: "value-one-not-real", PORTPASS_FROM_EMAIL: "PortPass <hello@example.test>", CRON_SECRET: "  ", ANTHROPIC_API_KEY: "value-two-not-real" };
     const switches = systemSwitches(env);
     const state = (label: string) => switches.find((s) => s.label === label)?.on;
-    expect(state("Sending email")).toBe(true);
+    expect(state("Sending email from PortPass")).toBe(true);
+    // Parents' emails use Futprep's own sender, which is not set here.
+    expect(state("Sending email to Futprep parents")).toBe(false);
+    expect(systemSwitches({ WEDDING_DESK_NOTIFY_EMAIL: "desk@example.test" }).find((s) => s.label === "Wedding enquiry notices")?.on).toBe(false);
     // Blank is not set.
     expect(state("Scheduled jobs")).toBe(false);
     expect(state("Leads: AI summary and first message")).toBe(true);

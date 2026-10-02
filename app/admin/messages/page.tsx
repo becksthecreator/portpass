@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { listMessages, MESSAGE_STATUSES, MESSAGES_ON_SCREEN, type MessageLogStatus } from "@/db/adminHealth";
 import { requireAdmin } from "@/lib/auth/admin";
 import { AdminShell } from "../_components/AdminShell";
@@ -20,23 +22,42 @@ function when(iso: string): string {
 
 const words = (template: string) => template.replace(/_/g, " ");
 
+// The address being looked up is kept out of the page's address (which is
+// written to the host's logs and the browser's history): it is posted, and
+// held for fifteen minutes in a cookie only this screen's server reads.
+const FIND_COOKIE = "pp_admin_message_find";
+const backTo = (status: unknown) => (status === "problems" || MESSAGE_STATUSES.some((s) => s === status) ? `/admin/messages?status=${status}` : "/admin/messages");
+
+async function find(formData: FormData) {
+  "use server";
+  await requireAdmin("/admin/messages");
+  const address = String(formData.get("q") ?? "").trim().toLowerCase().slice(0, 254);
+  const jar = await cookies();
+  if (address) jar.set({ name: FIND_COOKIE, value: address, httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/admin/messages", maxAge: 15 * 60 });
+  else jar.delete({ name: FIND_COOKIE, path: "/admin/messages" });
+  redirect(backTo(formData.get("status")));
+}
+
+async function clearFind(formData: FormData) {
+  "use server";
+  await requireAdmin("/admin/messages");
+  (await cookies()).delete({ name: FIND_COOKIE, path: "/admin/messages" });
+  redirect(backTo(formData.get("status")));
+}
+
 // The Messages log (brief 08, 1.10): every email PortPass tried to send,
 // who it was for, which kind, and what became of it, so "I never got it"
 // can be answered. Sign-in codes are sent by the sign-in service and are
 // not here. The text of an email is never kept.
-export default async function AdminMessagesPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
+export default async function AdminMessagesPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const session = await requireAdmin("/admin/messages");
   const params = await searchParams;
   const status = params.status === "problems" ? "problems" : MESSAGE_STATUSES.find((s) => s === params.status) ?? null;
-  const q = typeof params.q === "string" ? params.q.trim().slice(0, 254) : "";
+  const q = ((await cookies()).get(FIND_COOKIE)?.value ?? "").trim().slice(0, 254);
   const messages = await listMessages({ status, q: q || null });
 
   const href = (next: string | null) => {
-    const query = new URLSearchParams();
-    if (next) query.set("status", next);
-    if (q) query.set("q", q);
-    const text = query.toString();
-    return text ? `/admin/messages?${text}` : "/admin/messages";
+    return next ? `/admin/messages?status=${next}` : "/admin/messages";
   };
 
   return (
@@ -48,14 +69,15 @@ export default async function AdminMessagesPage({ searchParams }: { searchParams
           <Link key={s} href={href(s)} aria-current={status === s ? "true" : undefined}>{STATUS_LABEL[s]}</Link>
         ))}
       </div>
-      <form className="leads-filter" method="get" action="/admin/messages">
+      <form className="leads-filter" action={find}>
         {status && <input type="hidden" name="status" value={status} />}
         <label><span>Find one address (the whole address)</span><input name="q" type="email" defaultValue={q} placeholder="name@example.com" maxLength={254} autoCapitalize="none" /></label>
         <div className="leads-filter-actions">
           <button className="primary-button" type="submit">Find</button>
-          {q && <Link href={status ? `/admin/messages?status=${status}` : "/admin/messages"}>Clear</Link>}
+          {q && <button className="admin-action" type="submit" formAction={clearFind}>Clear</button>}
         </div>
       </form>
+      {q && <p className="admin-form-note">Showing emails to <strong>{q}</strong>.</p>}
 
       {messages.length === 0 ? (
         <p className="admin-empty">{status || q ? "Nothing matches." : "No emails logged yet."}</p>

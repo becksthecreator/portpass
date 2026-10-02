@@ -29,14 +29,15 @@ export type Switch = { label: string; on: boolean; needs: string[]; note: string
 export function systemSwitches(env: Record<string, string | undefined> = process.env): Switch[] {
   const set = (...names: string[]) => names.every((name) => Boolean(env[name]?.trim()));
   return [
-    { label: "Sending email", on: set("RESEND_API_KEY") && (set("PORTPASS_FROM_EMAIL") || set("FUTPREP_FROM_EMAIL")), needs: ["RESEND_API_KEY", "PORTPASS_FROM_EMAIL"], note: "Owner notices, registration emails, reminders and the monthly report." },
-    { label: "Delivered and bounced in Messages", on: set("RESEND_WEBHOOK_SECRET"), needs: ["RESEND_WEBHOOK_SECRET"], note: "Add a webhook in Resend pointing at /api/webhooks/resend, and put its signing secret here." },
+    { label: "Sending email from PortPass", on: set("RESEND_API_KEY") && (set("PORTPASS_FROM_EMAIL") || set("FUTPREP_FROM_EMAIL")), needs: ["RESEND_API_KEY", "PORTPASS_FROM_EMAIL"], note: "Owner notices, invitations, reminders and the monthly report." },
+    { label: "Sending email to Futprep parents", on: set("RESEND_API_KEY", "FUTPREP_FROM_EMAIL"), needs: ["RESEND_API_KEY", "FUTPREP_FROM_EMAIL"], note: "Registration, payment and private-session emails." },
+    { label: "Delivered and bounced in Messages", on: set("RESEND_WEBHOOK_SECRET"), needs: ["RESEND_WEBHOOK_SECRET"], note: "Add a webhook in Resend pointing at /api/webhooks/resend for delivered, bounced, complained and failed, and put its signing secret here." },
     { label: "Scheduled jobs", on: set("CRON_SECRET"), needs: ["CRON_SECRET"], note: "The daily job, the monthly growth report and the Saturday attendance reminder." },
     { label: "Backup heartbeat", on: set("BACKUP_HEARTBEAT_SECRET"), needs: ["BACKUP_HEARTBEAT_SECRET"], note: "Lets the backup machine report in, for the Last database backup tile." },
     { label: "Founders' admin access", on: set("PLATFORM_OWNER_EMAILS"), needs: ["PLATFORM_OWNER_EMAILS"], note: "Whose first sign-in makes them a platform owner." },
     { label: "Leads: Google Places search", on: set("GOOGLE_PLACES_API_KEY"), needs: ["GOOGLE_PLACES_API_KEY"], note: "Search for businesses from Admin, Leads." },
     { label: "Leads: Instagram lookup", on: set("INSTAGRAM_BUSINESS_ACCOUNT_ID", "INSTAGRAM_GRAPH_ACCESS_TOKEN"), needs: ["INSTAGRAM_BUSINESS_ACCOUNT_ID", "INSTAGRAM_GRAPH_ACCESS_TOKEN"], note: "Reads a business's public Instagram profile." },
     { label: "Leads: AI summary and first message", on: set("ANTHROPIC_API_KEY"), needs: ["ANTHROPIC_API_KEY"], note: "Suggests a section, a score and a first message to edit." },
-    { label: "Wedding enquiry notices", on: set("WEDDING_DESK_NOTIFY_EMAIL"), needs: ["WEDDING_DESK_NOTIFY_EMAIL"], note: "Emails the Wedding Desk when an enquiry arrives." },
+    { label: "Wedding enquiry notices", on: set("WEDDING_DESK_NOTIFY_EMAIL", "RESEND_API_KEY", "FUTPREP_FROM_EMAIL"), needs: ["WEDDING_DESK_NOTIFY_EMAIL", "RESEND_API_KEY", "FUTPREP_FROM_EMAIL"], note: "Emails the Wedding Desk when an enquiry arrives." },
   ];
 }

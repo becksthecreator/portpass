@@ -30,6 +30,7 @@ export async function POST(_request: Request, ctx: Ctx) {
     const business = await submitBusiness(id, auth.session.userId);
     const recipients = Array.from(new Set([...platformOwnerEmails(), PORTPASS_SUPPORT_EMAIL]));
     await sendBusinessSubmittedEmail({
+      organizationId: id,
       to: recipients,
       businessName: business.name,
       section: sectionName(business.primaryCategory),

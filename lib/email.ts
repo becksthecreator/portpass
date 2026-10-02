@@ -170,12 +170,12 @@ export async function sendBankDetailsChangedEmail(input: { to: string[]; busines
   }
 }
 
-export async function sendBusinessSubmittedEmail(input: { to: string[]; businessName: string; section: string | null; submittedBy: string; previewUrl: string }) {
+export async function sendBusinessSubmittedEmail(input: { organizationId?: number | null; to: string[]; businessName: string; section: string | null; submittedBy: string; previewUrl: string }) {
   for (const to of input.to) {
     await sendEmail({
       to,
       from: portpassFrom(),
-      log: { template: "business_submitted_for_review" },
+      log: { template: "business_submitted_for_review", organizationId: input.organizationId ?? null },
       subject: `Review request — ${input.businessName}`,
       html: portpassEmailShell("A business is ready for review", `
         <p><strong>${escapeHtml(input.businessName)}</strong>${input.section ? ` (${escapeHtml(input.section)})` : ""} was submitted by ${escapeHtml(input.submittedBy)}.</p>
@@ -187,6 +187,7 @@ export async function sendBusinessSubmittedEmail(input: { to: string[]; business
 }
 
 export async function sendFutprepRegistrationReceivedEmail(input: {
+  organizationId?: number | null;
   parentEmail: string;
   parentName: string;
   childName: string;
@@ -202,7 +203,7 @@ export async function sendFutprepRegistrationReceivedEmail(input: {
   const money = new Intl.NumberFormat("en-BS", { style: "currency", currency: "BSD", minimumFractionDigits: 0 }).format(input.amountDueCents / 100);
   await sendEmail({
     to: input.parentEmail,
-    log: { template: "futprep_registration_received" },
+    log: { template: "futprep_registration_received", organizationId: input.organizationId ?? null },
     subject: `Futprep registration received — ${input.childName}`,
     html: emailShell("Registration received", `
       <p>Hi ${escapeHtml(input.parentName)},</p>
@@ -220,6 +221,7 @@ export async function sendFutprepRegistrationReceivedEmail(input: {
 }
 
 export async function sendFutprepPaymentRecordedEmail(input: {
+  organizationId?: number | null;
   parentEmail: string;
   parentName: string;
   childName: string;
@@ -231,7 +233,7 @@ export async function sendFutprepPaymentRecordedEmail(input: {
   const money = (cents: number) => new Intl.NumberFormat("en-BS", { style: "currency", currency: "BSD", minimumFractionDigits: 0 }).format(cents / 100);
   await sendEmail({
     to: input.parentEmail,
-    log: { template: "futprep_payment_recorded" },
+    log: { template: "futprep_payment_recorded", organizationId: input.organizationId ?? null },
     subject: `Payment recorded — ${input.childName}`,
     html: emailShell("Payment recorded", `
       <p>Hi ${escapeHtml(input.parentName)},</p>
@@ -243,6 +245,7 @@ export async function sendFutprepPaymentRecordedEmail(input: {
 }
 
 export async function sendFutprepRegistrationConfirmedEmail(input: {
+  organizationId?: number | null;
   parentEmail: string;
   parentName: string;
   childName: string;
@@ -251,7 +254,7 @@ export async function sendFutprepRegistrationConfirmedEmail(input: {
 }) {
   await sendEmail({
     to: input.parentEmail,
-    log: { template: "futprep_registration_confirmed" },
+    log: { template: "futprep_registration_confirmed", organizationId: input.organizationId ?? null },
     subject: `Registration confirmed — ${input.childName}`,
     html: emailShell("Registration confirmed", `
       <p>Hi ${escapeHtml(input.parentName)},</p>
@@ -265,6 +268,7 @@ export async function sendFutprepRegistrationConfirmedEmail(input: {
 // when, where, how much, and how to pay with the PS- code as the transfer
 // reference. Nothing about the child beyond their first name.
 export type PrivateSessionAcceptedInput = {
+  organizationId?: number | null;
   parentName: string;
   childName: string;
   serviceName: string;
@@ -304,5 +308,5 @@ export function privateSessionAcceptedEmail(input: PrivateSessionAcceptedInput):
 
 export async function sendPrivateSessionAcceptedEmail(input: PrivateSessionAcceptedInput & { parentEmail: string }) {
   const { subject, html } = privateSessionAcceptedEmail(input);
-  await sendEmail({ to: input.parentEmail, subject, html, log: { template: "futprep_private_session_accepted" } });
+  await sendEmail({ to: input.parentEmail, subject, html, log: { template: "futprep_private_session_accepted", organizationId: input.organizationId ?? null } });
 }

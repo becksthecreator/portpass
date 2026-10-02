@@ -15,15 +15,18 @@ const digest = (value: string) => createHash("sha256").update(value).digest();
 // accepted. The call says only "a backup finished" or "a backup failed":
 // no data about the backup or the database travels with it.
 export async function POST(request: Request) {
-  const secret = process.env.BACKUP_HEARTBEAT_SECRET;
+  const secret = process.env.BACKUP_HEARTBEAT_SECRET?.trim();
   if (!secret) return NextResponse.json({ error: "Not set up." }, { status: 503 });
   if (limited(clientIp(request))) return NextResponse.json({ error: "Too many calls." }, { status: 429 });
-  const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   // Compared as digests so the lengths always match and the comparison takes the same time.
   if (!given || !timingSafeEqual(digest(given), digest(secret))) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  // It must say plainly whether the backup worked: a body that can't be
+  // read is refused, never taken as "it worked".
   const body = (await request.json().catch(() => null)) as { ok?: unknown } | null;
+  if (typeof body?.ok !== "boolean") return NextResponse.json({ error: "Say whether the backup worked." }, { status: 400 });
   try {
-    await saveBackupHeartbeat(body?.ok !== false);
+    await saveBackupHeartbeat(body.ok);
   } catch (error) {
     console.error("backup heartbeat", error instanceof Error ? error.message : "");
     return NextResponse.json({ error: "Try again." }, { status: 500 });

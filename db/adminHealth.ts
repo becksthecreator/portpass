@@ -41,9 +41,10 @@ export async function countMessageProblems(sinceIso: string): Promise<number> {
 }
 
 // What the email service reported for an email PortPass logged as sent.
-// "Delivered" never overwrites a bounce or a complaint that arrived first.
+// "Delivered" or "failed" never overwrites a bounce or a complaint that
+// arrived first, and "failed" never overwrites "delivered".
 export async function markDelivery(providerId: string, status: DeliveryStatus, detail: string | null): Promise<void> {
-  const from: MessageLogStatus[] = status === "delivered" ? ["sent"] : ["sent", "delivered"];
+  const from: MessageLogStatus[] = status === "delivered" || status === "failed" ? ["sent"] : ["sent", "delivered"];
   const { error } = await getSupabaseAdmin().from("message_log").update({ status, detail }).eq("provider_id", providerId).in("status", from);
   throwIfSupabaseError(error, "Could not update the messages log");
 }

@@ -28,12 +28,14 @@ export function verifyResendSignature(input: { secret: string | undefined; id: s
   return false;
 }
 
-export type DeliveryStatus = "delivered" | "bounced" | "complained";
+export type DeliveryStatus = "delivered" | "bounced" | "complained" | "failed";
 
 const STATUS_FOR_EVENT: Record<string, DeliveryStatus> = {
   "email.delivered": "delivered",
   "email.bounced": "bounced",
   "email.complained": "complained",
+  // Accepted by the service, then it could not send it.
+  "email.failed": "failed",
 };
 
 // What the event means for the Messages log: the email's id and its new
@@ -48,6 +50,6 @@ export function deliveryFromEvent(event: unknown): { providerId: string; status:
   // Only the service's own short labels ("Permanent", "Suppressed"): never
   // free text from the message.
   const words = [data?.bounce?.type, data?.bounce?.subType].filter((w): w is string => typeof w === "string" && /^[A-Za-z ]{1,40}$/.test(w));
-  const detail = status === "bounced" ? (words.length ? `Bounced: ${words.join(", ")}.` : "Bounced: the address did not accept it.") : status === "complained" ? "Marked as spam by the person who received it." : null;
+  const detail = status === "bounced" ? (words.length ? `Bounced: ${words.join(", ")}.` : "Bounced: the address did not accept it.") : status === "complained" ? "Marked as spam by the person who received it." : status === "failed" ? "The email service could not send it." : null;
   return { providerId, status, detail };
 }
