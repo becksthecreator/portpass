@@ -13,6 +13,7 @@ export const ADMIN_NAV = [
   { href: "/admin/payments", label: "Payments" },
   { href: "/admin/billing", label: "Billing" },
   { href: "/admin/leads", label: "Leads" },
+  { href: "/admin/perks", label: "Perks" },
   { href: "/admin/sections", label: "Sections" },
   { href: "/admin/people", label: "People" },
   { href: "/admin/content", label: "Content" },
