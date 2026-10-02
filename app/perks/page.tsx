@@ -10,6 +10,8 @@ import { listLivePerks, type PublicPerk } from "@/db/memberPerks";
 import { getNavSections } from "@/lib/navSections";
 import { perkChip, perkConditions } from "@/lib/memberPerks";
 import { PerksFilter } from "./PerksFilter";
+import { JsonLd } from "@/app/_components/seo/JsonLd";
+import { sectionJsonLd } from "@/lib/seo/jsonLd";
 import "@/app/_components/perks/perks.css";
 
 // ISR, like the other public pages: rebuilt when a perk is published or ended.
