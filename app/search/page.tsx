@@ -9,7 +9,8 @@ import { ppDisplay, ppSans } from "@/app/fonts";
 import { listPublishedOrganizations, type OrganizationDirectoryEntry } from "@/db/organizations";
 import { withOneRetry } from "@/db/supabase";
 import { getNavTree } from "@/lib/navSections";
-import { matchesQuery, searchTerms } from "@/lib/seo/search";
+import { matchesQuery, rankMatches, searchTerms } from "@/lib/seo/search";
+import { listPublishedGuides } from "@/db/guides";
 import "@/app/_components/seo/seo.css";
 
 export const dynamic = "force-dynamic";
@@ -30,13 +31,16 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const { q } = await searchParams;
   const query = typeof q === "string" ? q.slice(0, 80) : "";
   const terms = searchTerms(query);
-  const [businesses, tree] = await Promise.all([
+  const [businesses, tree, guides] = await Promise.all([
     withOneRetry(() => listPublishedOrganizations()).catch((): OrganizationDirectoryEntry[] => []),
     getNavTree().catch(() => []),
+    listPublishedGuides(),
   ]);
   const subsectionName = new Map(tree.flatMap((section) => section.subsections.map((sub) => [sub.slug, sub.name] as const)));
   const places = (business: OrganizationDirectoryEntry) => [business.area, business.island, !business.island || /new providence/i.test(business.island) ? "Nassau New Providence" : null];
-  const businessHits = terms.length ? businesses.filter((business) => matchesQuery(terms, [business.name, business.oneLiner, categoryLabel(business.primaryCategory), business.subcategory ? (subsectionName.get(business.subcategory) ?? null) : null, ...places(business)])) : [];
+  const ranked = rankMatches(terms, businesses, (business) => [business.name, business.oneLiner, categoryLabel(business.primaryCategory), business.subcategory ? (subsectionName.get(business.subcategory) ?? null) : null, ...places(business)]);
+  const businessHits = ranked.items;
+  const guideHits = terms.length ? guides.filter((guide) => matchesQuery(terms, [guide.title, guide.description])) : [];
   const sections = [
     ...tree.map((section) => ({ label: section.name, name: section.name, href: section.href })),
     ...tree.flatMap((section) => section.subsections.map((sub) => ({ label: `${sub.name} · ${section.name}`, name: sub.name, href: sub.href }))),
@@ -66,8 +70,16 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                 </ul>
               </section>
             )}
+            {guideHits.length > 0 && (
+              <section aria-labelledby="search-guides">
+                <h2 id="search-guides">Guides</h2>
+                <ul className="search-sections">
+                  {guideHits.map((guide) => <li key={guide.slug}><Link href={`/guides/${guide.slug}`}>{guide.title} →</Link></li>)}
+                </ul>
+              </section>
+            )}
             <section aria-labelledby="search-businesses">
-              <h2 id="search-businesses">{businessHits.length === 0 ? `Nothing on PortPass matches “${query}” yet` : `${businessHits.length} ${businessHits.length === 1 ? "business" : "businesses"}`}</h2>
+              <h2 id="search-businesses">{businessHits.length === 0 ? `Nothing on PortPass matches “${query}” yet` : !ranked.exact ? `Nothing matches every word of “${query}”. Closest:` : `${businessHits.length} ${businessHits.length === 1 ? "business" : "businesses"}`}</h2>
               {businessHits.length > 0 ? (
                 <ul className="search-list">
                   {businessHits.map((business) => (

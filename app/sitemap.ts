@@ -4,6 +4,7 @@ import { listSections } from "@/db/categories";
 import { getOrganizationListingBySlug, listSectionBusinesses, liveCountsByCategory } from "@/db/organizations";
 import { directoryHref } from "@/app/_components/blocks/directoryHref";
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/lib/legal";
+import { listPublishedGuides } from "@/db/guides";
 
 const PLATFORM_HOST = "portpassbahamas.com";
 
@@ -43,6 +44,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const times = dates.filter((d): d is string => Boolean(d)).map((d) => new Date(d).getTime()).filter((t) => !Number.isNaN(t));
     return times.length ? new Date(Math.max(...times)) : undefined;
   };
+
+  // Published guides only (listPublishedGuides shows none on a failed read).
+  const guides = await listPublishedGuides();
+  if (guides.length) {
+    entries.push({ url: `https://${PLATFORM_HOST}/guides`, lastModified: new Date(Math.max(...guides.map((guide) => new Date(guide.updatedAt).getTime()))) });
+    for (const guide of guides) entries.push({ url: `https://${PLATFORM_HOST}/guides/${guide.slug}`, lastModified: new Date(guide.updatedAt) });
+  }
 
   try {
     const [sections, live] = await Promise.all([listSections(), liveCountsByCategory()]);

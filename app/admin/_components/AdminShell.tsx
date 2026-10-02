@@ -17,6 +17,7 @@ export const ADMIN_NAV = [
   { href: "/admin/sections", label: "Sections" },
   { href: "/admin/people", label: "People" },
   { href: "/admin/content", label: "Content" },
+  { href: "/admin/guides", label: "Guides" },
   { href: "/admin/messages", label: "Messages" },
   { href: "/admin/audit", label: "Audit log" },
   { href: "/admin/settings", label: "Settings" },

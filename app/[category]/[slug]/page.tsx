@@ -4,6 +4,7 @@ import { CategoryPage, liveBusinessNames } from "@/app/_components/CategoryPage"
 import { OrganizationTemplate } from "@/app/_components/blocks/OrganizationTemplate";
 import { JsonLd } from "@/app/_components/seo/JsonLd";
 import { RelatedInSection } from "@/app/_components/seo/RelatedInSection";
+import { InOurGuides } from "@/app/guides/InOurGuides";
 import "@/app/_components/seo/seo.css";
 import { fromPriceCents, listingJsonLd } from "@/lib/seo/fromListing";
 import { absoluteUrl } from "@/lib/seo/jsonLd";
@@ -92,6 +93,7 @@ export default async function SectionSlugPage({ params }: { params: Params }) {
       <SiteHeader breadcrumb={[{ label: resolved.section.name, href: `/${category}` }, { label: listing.organization.name, href: `/${category}/${slug}` }]} />
       <OrganizationTemplate listing={listing} />
       <RelatedInSection section={category} sectionName={resolved.section.name} exceptSlug={slug} />
+      <InOurGuides organizationSlug={slug} />
       <SiteFooter orgLine={`${listing.organization.name} · Booking and payments powered by PortPass`} />
     </div>
   );

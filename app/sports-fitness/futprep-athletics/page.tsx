@@ -9,6 +9,7 @@ import { FutprepTasterCard } from "@/app/_components/FutprepTasterCard";
 import { FutprepTeamGrid } from "@/app/_components/FutprepTeamGrid";
 import { JsonLd } from "@/app/_components/seo/JsonLd";
 import { RelatedInSection } from "@/app/_components/seo/RelatedInSection";
+import { InOurGuides } from "@/app/guides/InOurGuides";
 import "@/app/_components/seo/seo.css";
 import { fromPriceCents, listingJsonLd } from "@/lib/seo/fromListing";
 import { businessDescription, businessTitle } from "@/lib/seo/titles";
@@ -49,6 +50,7 @@ export default async function FutprepOrganizationPage() {
       <FutprepTasterCard />
       <FutprepCampsCard />
       <RelatedInSection section="sports-fitness" sectionName="Sports & Fitness" exceptSlug="futprep" />
+      <InOurGuides organizationSlug="futprep" />
       <SiteFooter orgLine={`${listing.organization.name} · Booking and payments powered by PortPass`} />
     </div>
   );
