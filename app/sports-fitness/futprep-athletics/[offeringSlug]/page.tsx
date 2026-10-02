@@ -5,6 +5,7 @@ import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { bizDisplay, ppSans } from "@/app/fonts";
 import { JsonLd } from "@/app/_components/seo/JsonLd";
+import { absoluteUrl, offerPrice } from "@/lib/seo/jsonLd";
 
 // ISR (speed brief, 29 Sept): five-minute cache, rebuilt on demand; no
 // build-time prerender (the params list is empty), so CI's credential-less
@@ -46,12 +47,12 @@ export default async function FutprepOfferingPage({ params }: { params: Promise<
     name: offering.name,
     description: offering.summary ?? organization.oneLiner ?? undefined,
     provider: { "@type": "Organization", name: organization.name, sameAs: ORG_URL },
+    // The price as the page shows it ("$35 per session"), as on the
+    // business page; nothing about places left, which the page doesn't say.
     offers: {
       "@type": "Offer",
-      price: (offering.priceCents / 100).toFixed(2),
-      priceCurrency: "BSD",
-      availability: "https://schema.org/InStock",
-      url: offering.actionUrl ? `https://portpassbahamas.com${offering.actionUrl}` : undefined,
+      ...offerPrice(offering),
+      url: offering.actionUrl ? absoluteUrl(offering.actionUrl) : undefined,
     },
   } : null;
 

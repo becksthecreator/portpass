@@ -76,7 +76,15 @@ describe("when a business last changed", () => {
     expect((await admin.from("organizations").update({ review_note: "TEST — delete" }).eq("id", orgId)).error).toBeNull();
     expect(await read()).toBe(afterFaq);
     await admin.from("organization_faqs").delete().eq("id", faq.data!.id);
-    expect(await read()).toBeGreaterThan(afterFaq);
+    const afterDelete = await read();
+    expect(afterDelete).toBeGreaterThan(afterFaq);
+    // A draft perk is not on the page: saving one moves nothing.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const perk = await admin.from("member_perks").insert({ organization_id: orgId, title: "TEST — delete", kind: "free_addon", addon_text: "TEST — delete", status: "draft" }).select("id").single();
+    expect(perk.error).toBeNull();
+    expect(await read()).toBe(afterDelete);
+    await admin.from("member_perks").delete().eq("id", perk.data!.id);
+    expect(await read()).toBe(afterDelete);
   });
 });
 

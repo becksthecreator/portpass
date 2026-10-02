@@ -162,7 +162,7 @@ export function ldAddress(area: string | null, island: string | null): Json {
 
 // An offer exactly as the page prices it: "From $500" is a lowest price,
 // "$35 per session" a unit price, anything else the price itself.
-function offerPrice(offering: LdOffering): Json {
+export function offerPrice(offering: Pick<LdOffering, "priceCents" | "priceUnit">): Json {
   const price = money(offering.priceCents as number);
   if (offering.priceUnit === "from") return { priceCurrency: "BSD", priceSpecification: { "@type": "PriceSpecification", minPrice: price, priceCurrency: "BSD" } };
   const unit = offering.priceUnit ? UNIT_TEXT[offering.priceUnit] : undefined;

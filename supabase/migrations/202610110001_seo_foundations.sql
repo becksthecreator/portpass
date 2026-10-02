@@ -52,18 +52,64 @@ create trigger organizations_touch_updated_at
   for each row execute function public.organizations_touch_updated_at();
 
 -- 3. The rest of a business's page lives in other tables: a change there
---    moves the business's updated_at too.
+--    moves the business's updated_at too, when a visitor could see it.
+--    A draft, a hidden row or a private column (pay, contracts, tokens,
+--    who approved what) changing moves nothing. The wedding tables belong
+--    to Bahamas Weddings By The Sea; variants move their product's
+--    business.
+create or replace function public.page_row_shown(page_table text, page_row jsonb)
+returns boolean
+language sql
+immutable
+set search_path = public, pg_temp
+as $$
+  select case page_table
+    when 'offerings' then coalesce((page_row->>'is_published')::boolean, false)
+    when 'products' then coalesce((page_row->>'is_published')::boolean, false)
+    when 'shops' then coalesce((page_row->>'is_published')::boolean, false)
+    when 'drops' then coalesce(page_row->>'status', 'draft') <> 'draft'
+    when 'member_perks' then page_row->>'status' = 'live'
+    when 'coach_profiles' then coalesce((page_row->>'public_visible')::boolean, false) and coalesce((page_row->>'active')::boolean, true)
+    when 'programs' then coalesce((page_row->>'is_public')::boolean, false) and coalesce((page_row->>'active')::boolean, true)
+    when 'wedding_packages' then page_row->>'visibility' = 'live'
+    when 'wedding_gallery_images' then page_row->>'visibility' = 'live'
+    else true
+  end;
+$$;
+
+revoke all on function public.page_row_shown(text, jsonb) from public, anon, authenticated;
+
 create or replace function public.touch_organization_from_page_table()
 returns trigger
 language plpgsql
 set search_path = public, pg_temp
 as $$
+declare
+  private_columns constant text[] := array[
+    'created_at', 'updated_at', 'created_by', 'updated_by', 'published_at', 'followers_token',
+    'licence_approved_at', 'licence_approved_by', 'default_lead_pay_cents', 'default_assistant_pay_cents',
+    'staff_member_id', 'contract_client', 'contract_fee_cents', 'contract_billing',
+    'field_cost_cents_per_term', 'default_lead_coach_id', 'default_coaches', 'children_per_coach', 'reference_prefix'
+  ];
+  before_row jsonb := case when tg_op = 'INSERT' then null else to_jsonb(old) end;
+  after_row jsonb := case when tg_op = 'DELETE' then null else to_jsonb(new) end;
+  touched bigint[];
 begin
-  if tg_op <> 'INSERT' then
-    update public.organizations set updated_at = now() where id = old.organization_id;
+  if before_row is not null and not public.page_row_shown(tg_table_name, before_row) then before_row := null; end if;
+  if after_row is not null and not public.page_row_shown(tg_table_name, after_row) then after_row := null; end if;
+  if before_row is null and after_row is null then return null; end if;
+  if before_row is not null and after_row is not null and (before_row - private_columns) = (after_row - private_columns) then return null; end if;
+
+  if tg_table_name = 'product_variants' then
+    touched := array(select p.organization_id from public.products p
+                      where p.is_published and p.id in ((before_row->>'product_id')::bigint, (after_row->>'product_id')::bigint));
+  elsif tg_table_name like 'wedding\_%' then
+    touched := array(select o.id from public.organizations o where o.slug = 'bahamas-weddings');
+  else
+    touched := array_remove(array[(before_row->>'organization_id')::bigint, (after_row->>'organization_id')::bigint], null);
   end if;
-  if tg_op <> 'DELETE' and (tg_op = 'INSERT' or new.organization_id is distinct from old.organization_id) then
-    update public.organizations set updated_at = now() where id = new.organization_id;
+  if cardinality(touched) > 0 then
+    update public.organizations set updated_at = now() where id = any(touched);
   end if;
   return null;
 end;
@@ -75,7 +121,11 @@ do $$
 declare
   page_table text;
 begin
-  foreach page_table in array array['offerings', 'organization_faqs', 'organization_images', 'organization_categories', 'products', 'drops', 'member_perks'] loop
+  foreach page_table in array array[
+    'offerings', 'organization_faqs', 'organization_images', 'organization_categories', 'products',
+    'product_variants', 'shops', 'drops', 'member_perks', 'coach_profiles', 'programs',
+    'wedding_packages', 'wedding_site_settings', 'wedding_gallery_images'
+  ] loop
     if to_regclass('public.' || page_table) is not null then
       execute format('drop trigger if exists %I on public.%I', page_table || '_touch_organization', page_table);
       execute format('create trigger %I after insert or update or delete on public.%I for each row execute function public.touch_organization_from_page_table()', page_table || '_touch_organization', page_table);
