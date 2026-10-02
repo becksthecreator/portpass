@@ -3,6 +3,7 @@ import { SignOutButton } from "@/app/_components/auth/SignOutButton";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { listMemberRedemptions, type MemberRedemption } from "@/db/memberPerks";
 import { requireSignedIn } from "@/lib/auth/guards";
 import { destinationsFor } from "@/lib/auth/routing";
 
@@ -20,6 +21,8 @@ export default async function AccountPage() {
   const session = await requireSignedIn("/account");
   const name = session.profile?.fullName ?? session.email ?? "there";
   const places = destinationsFor(session).filter((d) => d.kind !== "account");
+  // Decoration on the page: a failed read shows no list, never an error.
+  const perksUsed = await listMemberRedemptions(session.userId).catch((): MemberRedemption[] => []);
 
   return (
     <main className="form-page auth-page theme-night">
@@ -27,6 +30,22 @@ export default async function AccountPage() {
       <div className="auth-card auth-card-wide">
         <div className="eyebrow"><span className="eyebrow-dot" />My account</div>
         <h1>Hi, {name.split(" ")[0]}.</h1>
+
+        <section className="account-section">
+          <h2>Member Pass</h2>
+          <p className="auth-lead">Show it at the counter for member perks. It works on your phone even with no signal.</p>
+          <p className="account-pass-links"><Link className="primary-button" href="/pass">Open my Member Pass</Link> <Link href="/perks">See member perks →</Link></p>
+          {perksUsed.length > 0 && (
+            <>
+              <h3 className="account-subhead">Perks you&rsquo;ve used</h3>
+              <ul className="account-places">
+                {perksUsed.map((used) => (
+                  <li key={used.id}><strong>{used.perkTitle}</strong> <span>{used.businessName} · {new Date(used.redeemedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Nassau" })}</span></li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
 
         <section className="account-section">
           <h2>My bookings</h2>

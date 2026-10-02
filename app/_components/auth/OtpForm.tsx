@@ -27,6 +27,8 @@ type Props = {
   // PortPass account" arrives with the email and name already known.
   initialEmail?: string;
   initialName?: string;
+  // Where the sign-up link came from (its utm_source), as a short tag.
+  source?: string | null;
 };
 
 type Fields = { fullName: string; email: string; phone: string; businessName: string; section: string };
@@ -41,7 +43,7 @@ const PASTE_MAX = 8;
 // needs (sign-in: just the email) and asks for a code; step 2 is the code
 // itself -- a single input styled as six boxes rather than six inputs, so
 // iOS/Android one-time-code autofill and paste both land in one place.
-export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false, sections, google = null, notice = null, initialEmail = "", initialName = "" }: Props) {
+export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false, sections, google = null, notice = null, initialEmail = "", initialName = "", source = null }: Props) {
   const sectionOptions: SectionOption[] = sections ?? SECTIONS.map((s) => ({ slug: s.slug, name: s.name }));
   const [intent, setIntent] = useState<Intent | null>(mode === "login" ? "customer" : initialIntent);
   const [fields, setFields] = useState<Fields>({ fullName: initialName, email: initialEmail, phone: "", businessName: "", section: "" });
@@ -77,6 +79,7 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
         payload.intent = intent;
         payload.fullName = fields.fullName.trim();
         payload.phone = fields.phone.trim();
+        if (source) payload.source = source;
         if (intent === "business") {
           payload.businessName = fields.businessName.trim();
           payload.section = fields.section;

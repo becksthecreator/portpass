@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { futprepOrganization } from "@/db/growth";
+import { memberEarlyAccess, recordOnlineRedemption } from "@/db/memberPerks";
 import { afterResponse } from "@/lib/afterResponse";
 import {
   createFutprepRegistration,
@@ -108,6 +109,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Tell us how you heard about Futprep." }, { status: 400 });
   }
 
+  // Member early access (brief 10): a signed-in member may register in the
+  // hours before a term opens to everyone, when Futprep has a live
+  // early-access perk. Decided here from the session, never from the form;
+  // a hiccup reading the perk leaves the public rules in force.
+  const session = await getSession();
+  const early = session && mode === "standard"
+    ? await futprepOrganization().then(async (organization) => (organization ? { organizationId: organization.id, perk: await memberEarlyAccess(organization.id) } : null)).catch(() => null)
+    : null;
+
   const input: FutprepRegistrationInput = {
     parentName: clean(body,"parentName"),
     parentEmail,
@@ -139,7 +149,8 @@ export async function POST(request: Request) {
     joinFromTrialCode: typeof body.joinFromTrialCode === "string" ? body.joinFromTrialCode.slice(0, 40) : null,
     // A free trial is a member perk: only for a signed-in parent. The
     // session comes from the cookie, never the request body.
-    signedInUserId: mode === "trial" ? (await getSession())?.userId ?? null : null,
+    signedInUserId: mode === "trial" ? session?.userId ?? null : null,
+    memberEarlyHours: early?.perk?.hours ?? null,
     attribution: {
       utmSource: clean(body, "utmSource") || null,
       utmMedium: clean(body, "utmMedium") || null,
@@ -151,6 +162,11 @@ export async function POST(request: Request) {
 
   try {
     const registration = await createFutprepRegistration(input);
+    // Booked in the members-only window: the perk is on the record, with
+    // the registration's reference. Never a reason to fail the booking.
+    if (registration.memberEarlyAccess && session && early?.perk) {
+      await recordOnlineRedemption(early.organizationId, early.perk.perkId, session.userId, registration.referenceCode).catch((error) => console.error("member early access not recorded", error instanceof Error ? error.message : ""));
+    }
     // The "registration received" email carries an amount due and payment
     // instructions, so it goes only for a real place; a waitlist entry or
     // a free trial gets its confirmation on screen.

@@ -12,6 +12,7 @@ import { categoryLabel } from "./categoryLabel";
 import { directoryHref } from "./directoryHref";
 import { formatAgeRange } from "./format";
 import { computeBrandTokens } from "./brand";
+import { MemberPerkStrip } from "../perks/MemberPerkStrip";
 
 // Renders any Organization page -- Futprep today, any future business
 // tomorrow -- from the same eight blocks in the same fixed order: proof,
@@ -51,6 +52,8 @@ export function OrganizationTemplate({ listing }: { listing: OrganizationListing
         reviewsPlatform={org.reviewsPlatform}
       />
       <GalleryBlock images={images} />
+      {/* Member perks (brief 10): renders nothing unless the business has one live. */}
+      <MemberPerkStrip slug={org.slug} path={directoryHref(org.slug, org.primaryCategory)} offerings={offerings} />
       <OfferingsBlock offerings={offerings} />
       <PracticalBlock facts={practicalFacts} />
       <PeopleBlock name={org.ownerName} bio={org.ownerBio} imageUrl={org.ownerImageUrl} />

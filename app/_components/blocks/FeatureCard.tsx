@@ -18,6 +18,7 @@ export function FeatureCard({
   brandText,
   description,
   priceLabel,
+  perkLabel,
   actionHref,
   actionLabel,
   wide,
@@ -34,6 +35,9 @@ export function FeatureCard({
   brandText: string;
   description: string;
   priceLabel: string | null;
+  // "Members: 10% off first booking": the business's live member perk
+  // (brief 10), when it has one.
+  perkLabel?: string | null;
   actionHref: string;
   actionLabel: string;
   wide?: boolean;
@@ -62,6 +66,7 @@ export function FeatureCard({
         </div>
         {description && <p className="feature-card-description">{description}</p>}
         {priceLabel && <p className="feature-card-price">{priceLabel}</p>}
+        {perkLabel && <span className="perk-chip">{perkLabel}</span>}
         <Link className="feature-card-button" href={actionHref}>
           {actionLabel}
         </Link>

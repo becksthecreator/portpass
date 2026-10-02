@@ -49,6 +49,9 @@ export default function PrivacyPage() {
         <p>
           <strong>When you create a PortPass account.</strong> Your name, your email address and your phone number. The phone number is optional unless you sign up to run a business. We also record which version of our terms you agreed to and when you last signed in. You sign in with a 6-digit code sent to your email, or with Google where the sign-in page offers it. There are no passwords, so we store none. If you registered a child earlier with the same email address, we link those registrations to your account.
         </p>
+        <p id="member-pass">
+          <strong>Your member number, your Member Pass and perks.</strong> Every PortPass account has a member number, like PP-7K3Q. Your Member Pass shows your first name, that number, the month you joined and a code that changes every 30 seconds. When you show it at a business, the business sees your first name and member number, and which of its perks you can have. It does not see your email address or phone number. When a perk is used we record which perk, at which business, when, whether it was at the counter or online, and the discount if it was money. Each check of a pass by a business is counted (when, and whether it was valid) to stop anyone guessing codes. We also keep the tag on the link you signed up from (for example, that it was a member perk or a poster), to count sign-ups by source. Having an account for perks does not sign you up for marketing.
+        </p>
         <p id="google">
           <strong>When you sign in with Google.</strong> If you choose “Continue with Google”, Google shares your basic profile with us: your name, your email address and your profile photo, with the ID number Google gives your account. We use your name and email address to create or find your PortPass account. We don’t use or show the photo; it stays with your sign-in record. We ask Google for nothing else. We can’t see your contacts, calendar, files or anything else in your Google account. PortPass never posts anything to Google or on your behalf. You can remove PortPass’s access at any time in your Google account settings.
         </p>
@@ -151,7 +154,7 @@ export default function PrivacyPage() {
           <li><strong>How you found a business:</strong> on some businesses’ pages (today, Futprep’s), if you arrived from a tagged link, another website or another PortPass page, a cookie remembers the tags on the link, the name of that website and that you came through PortPass. It lasts 30 days, so it can be saved with your registration. It holds no name and nothing that identifies you.</li>
         </ul>
         <p>
-          Your browser also keeps a few things that never leave your device: whether you closed the “get the app” banner, whether you have seen the opening animation, and copies of public pages you opened so they still open offline. Pages that show your personal information are not saved offline, and nothing you type into a form is saved offline. On a coach’s phone, attendance marks wait on the device until they are saved; they hold no names.
+          Your browser also keeps a few things that never leave your device: whether you closed the “get the app” banner, whether you have seen the opening animation, and copies of public pages you opened so they still open offline. Pages that show your personal information are not saved offline, and nothing you type into a form is saved offline. The one exception is your Member Pass: your device keeps your first name, your member number and the next few minutes of codes, so the pass opens with no signal. That copy is removed when you sign out. On a coach’s phone, attendance marks wait on the device until they are saved; they hold no names.
         </p>
         <p>
           PortPass sets no advertising cookies and does nothing of its own to follow you to other websites. The WeddingWire badges described above are the one thing on PortPass that another company controls. To count visits and measure page speed we use Vercel’s Web Analytics and Speed Insights, which Vercel builds to work without cookies and without identifying you. They record which public pages are opened and a few button taps, such as starting a registration or tapping a WhatsApp button, with no names or contact details. We leave out the staff, admin and account areas, and we remove reference codes and personal details from page addresses before they are sent.
@@ -172,6 +175,8 @@ export default function PrivacyPage() {
           <li><strong>PortPass accounts:</strong> until you ask us to delete the account.</li>
           <li><strong>A record of emails we send you</strong> (your email address, what kind of email it was and whether it was delivered; never the email’s text): 12 months.</li>
           <li><strong>Sign-in codes:</strong> each one works once and stops working soon after it is sent.</li>
+          <li><strong>Perks you have used:</strong> kept as your record and the business’s while you have an account. If your account is deleted, the record stays with the business without you on it.</li>
+          <li><strong>Checks of a Member Pass by a business:</strong> 30 days.</li>
           <li><strong>The log of changes</strong> to team invitations, approvals and payment details: for as long as the business is on PortPass.</li>
         </ul>
         <p>

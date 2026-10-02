@@ -9,12 +9,14 @@ import { NextResponse } from "next/server";
 import { googleSignInEnabled } from "@/lib/auth/google";
 import { safeNext } from "@/lib/auth/next";
 import { createAuthClient } from "@/lib/auth/server";
+import { cleanSignupSource } from "@/lib/memberPerks";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const next = safeNext(url.searchParams.get("next"), "");
+  const source = cleanSignupSource(url.searchParams.get("src"));
   const intent = url.searchParams.get("intent") === "business" ? "business" : url.searchParams.get("intent") === "customer" ? "customer" : "";
   const mode = url.searchParams.get("mode") === "signup" ? "signup" : "login";
   const back = new URL(mode === "signup" ? "/signup" : "/login", url.origin);
@@ -36,6 +38,7 @@ export async function GET(request: Request) {
   const callback = new URL("/api/auth/callback", url.origin);
   if (next) callback.searchParams.set("next", next);
   if (intent) callback.searchParams.set("intent", intent);
+  if (source) callback.searchParams.set("src", source);
 
   const { data, error } = await client.auth.signInWithOAuth({
     provider: "google",

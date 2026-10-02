@@ -12,6 +12,7 @@ import { QuestionsBlock } from "@/app/_components/blocks/QuestionsBlock";
 import { ActionBlock } from "@/app/_components/blocks/ActionBlock";
 import { MessageOnWhatsApp, ShareOnWhatsApp } from "@/app/_components/blocks/WhatsAppActions";
 import { SiteHeader } from "@/app/_components/SiteHeader";
+import { MemberPerkStrip } from "@/app/_components/perks/MemberPerkStrip";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { bizDisplay, ppSans } from "@/app/fonts";
 
@@ -147,6 +148,7 @@ export default async function BahamasWeddingsListingPage() {
           ratingBadgeHtml={settings.ratingBadgeHtml}
           awardBadgeHtml={settings.awardBadgeHtml}
         />
+        <MemberPerkStrip slug="bahamas-weddings" path="/weddings/bahamas-weddings-by-the-sea" />
         <section className="tpl-gallery-carousel-section">
           <div className="tpl-section-heading">
             <p className="tpl-eyebrow">Real island weddings</p>

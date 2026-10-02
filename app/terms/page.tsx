@@ -92,6 +92,17 @@ export default function TermsPage() {
           Because PortPass does not receive your payment, we cannot refund it. Refunds come from the business.
         </p>
 
+        <h2 id="member-perks">Member perks</h2>
+        <p>
+          Some businesses offer a perk to people who have a PortPass account: money off, a free extra, or the chance to book before everyone else. Each business chooses its own perk, pays for it and applies it when it takes your payment. Some businesses have none. PortPass does not pay for perks and never changes what you are charged.
+        </p>
+        <p>
+          Where a perk changes a price, both prices are shown: the business’s price and the member price. Any conditions, such as “first booking only” or the last day of the perk, are shown with it. A business must honour a perk for as long as it is published. It may end a perk at any time, and a perk you have already used or booked with is kept.
+        </p>
+        <p>
+          To use a perk, book while you are signed in, or show your Member Pass when you pay. The business sees your first name and member number, not your email address or phone number. An account is for one person. Because accounts are for people aged 18 or over, a parent’s account covers their children’s registrations. Having an account for perks does not sign you up for marketing.
+        </p>
+
         <h2>Cancellations, changes and refunds</h2>
         <p>
           Each business sets its own rules on cancelling, missed sessions, bad weather and refunds. Ask the business for them before you pay. To cancel or change a booking, contact the business. If you can’t resolve a problem with a business, email us and we will help you reach it.
@@ -116,6 +127,7 @@ export default function TermsPage() {
           <li><strong>Review.</strong> We review a business before it goes live. We may decline a listing, send it back for changes, or hide or remove it, for example if it is misleading, breaks the law or these terms, or draws complaints. If you change your business name, your category or your bank details, we review the listing again, and it may be hidden while we do.</li>
           <li><strong>Plans and fees.</strong> Our plans, what each costs, the free period, and how and when we invoice are on the <Link href="/pricing">pricing page</Link> and in your agreement. We invoice you; we never take our fee out of your customers’ payments. You can cancel as the pricing page describes. We give you at least 30 days’ written notice before a price you already pay goes up.</li>
           <li><strong>Your customers and their payments.</strong> Your customers pay you directly. You are responsible for your own prices, receipts, refunds and cancellation rules, and for recording payments accurately.</li>
+          <li><strong>Member perks.</strong> A perk for PortPass members is optional. If you publish one, you pay for it and apply it when you take payment, the prices shown must be real, and you must honour it for as long as it is published. You can end it at any time; a member who has already used it or booked with it keeps it. When you check a Member Pass you see a member’s first name and member number only.</li>
           <li><strong>Your customers’ information.</strong> You may use the information customers give you through PortPass only to provide your service to them. Keep it confidential, give access only to staff who need it, and follow the data protection law of The Bahamas and our <Link href="/privacy">Privacy Policy</Link>. This matters most for children’s health and emergency details.</li>
           <li><strong>Photos and content.</strong> Upload only photos and text you have the right to use. Before you publish a photo that shows a child, you must hold a parent’s or guardian’s consent for every child in it. You give PortPass permission to show your content on the site and in material that promotes your listing.</li>
           <li><strong>Your team.</strong> You decide who you invite to your team and which role each person has, and you are responsible for what they do there. When someone leaves, switch off their staff login if your staff area has that option; otherwise tell us and we will remove their access.</li>

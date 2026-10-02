@@ -5,7 +5,7 @@ import {
   FUTPREP_TERM,
 } from "@/app/futprep/config";
 import { EMPTY_ATTRIBUTION, resolveAttribution, type Attribution, type HeardAnswer, type Resolved } from "@/lib/attribution";
-import { amountDueCents as amountDueFor, isTermEarlyAccessOpen, isTermOpen, nassauToday, prorateCents, type ProgramType, type TermWindow } from "@/lib/futprepTerms";
+import { amountDueCents as amountDueFor, isTermEarlyAccessOpen, isTermMemberEarlyOpen, isTermOpen, nassauToday, prorateCents, type ProgramType, type TermWindow } from "@/lib/futprepTerms";
 import { ageLabel, effectiveCap, fitsAgeRule } from "@/lib/futprepClasses";
 import { escapeLikePattern, normalizeReferenceCode } from "@/lib/referenceCode";
 import { generateWeeklySessionDates } from "@/lib/scheduling";
@@ -85,6 +85,10 @@ export type FutprepRegistrationInput = {
   trialSessionId?: number | null;
   joinFromTrialCode?: string | null;
   signedInUserId?: string | null;
+  // Member early access (brief 10): how many hours before the public
+  // opening this signed-in member may register, from the business's live
+  // early-access perk. Set by the route from the session, never the form.
+  memberEarlyHours?: number | null;
 };
 
 // One registrable thing: a program in one open term (brief 06 v2, Part A).
@@ -345,7 +349,7 @@ function termWindow(term: TermOfferRow): TermWindow {
 // Every open offer for Futprep: each active program (public ones only,
 // unless asked) with each of its active terms whose registration window
 // is open. Three queries however many programs and terms there are.
-export async function listFutprepOffers(options: { publicOnly?: boolean; now?: Date; earlyAccess?: boolean } = {}): Promise<FutprepAvailability[]> {
+export async function listFutprepOffers(options: { publicOnly?: boolean; now?: Date; earlyAccess?: boolean; memberEarlyHours?: number | null } = {}): Promise<FutprepAvailability[]> {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
   const organizationId = await futprepOrganizationId();
@@ -389,7 +393,9 @@ export async function listFutprepOffers(options: { publicOnly?: boolean; now?: D
     if (!program) continue;
     const publicOpen = isTermOpen(termWindow(term), now);
     const earlyOpen = Boolean(options.earlyAccess) && isTermEarlyAccessOpen({ ...termWindow(term), earlyAccessUntil: term.early_access_until }, now);
-    if (!publicOpen && !earlyOpen) continue;
+    // A signed-in member, in the hours before the public opening (brief 10).
+    const memberOpen = isTermMemberEarlyOpen(termWindow(term), options.memberEarlyHours, now);
+    if (!publicOpen && !earlyOpen && !memberOpen) continue;
     const capacity = Number(program.capacity);
     const cap = capForTerm(program, term, upcoming);
     const registered = registeredByKey.get(`${program.id}:${term.id}`) ?? 0;
@@ -449,8 +455,8 @@ export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
 // One offer by program slug (and term, when given), including unlisted
 // programs -- a direct /futprep/register?program=&term= link works for a
 // program that is not on the public list.
-export async function getFutprepOffer(programSlug: string, termId?: number | null, options: { earlyAccess?: boolean } = {}): Promise<FutprepAvailability | null> {
-  const offers = (await listFutprepOffers({ earlyAccess: options.earlyAccess })).filter((offer) => offer.slug === programSlug);
+export async function getFutprepOffer(programSlug: string, termId?: number | null, options: { earlyAccess?: boolean; memberEarlyHours?: number | null } = {}): Promise<FutprepAvailability | null> {
+  const offers = (await listFutprepOffers({ earlyAccess: options.earlyAccess, memberEarlyHours: options.memberEarlyHours })).filter((offer) => offer.slug === programSlug);
   if (termId) return offers.find((offer) => offer.termId === termId) ?? null;
   return offers.length === 1 ? offers[0] : null;
 }
@@ -575,10 +581,16 @@ export async function createFutprepRegistration(
   // opening, until early_access_until (Part C).
   const returnLink = input.returnToken ? await findReturnLink(input.returnToken) : null;
   if (input.returnToken && !returnLink) throw new Error("RETURN_LINK_INVALID");
+  // Terms this registration gets into only because the parent is a
+  // signed-in member inside the members-only early window (brief 10).
+  const memberEarlyTerms = new Set<number>();
   const usable = (terms ?? []).filter((row) => {
     if (input.enteredByStaff) return true;
     const window = { active: Boolean(row.active), endDate: row.end_date, registrationOpensAt: row.registration_opens_at, registrationClosesAt: row.registration_closes_at };
-    return isTermOpen(window) || (returnLink !== null && isTermEarlyAccessOpen({ ...window, earlyAccessUntil: row.early_access_until }));
+    if (isTermOpen(window) || (returnLink !== null && isTermEarlyAccessOpen({ ...window, earlyAccessUntil: row.early_access_until }))) return true;
+    if (!isTermMemberEarlyOpen(window, input.memberEarlyHours)) return false;
+    memberEarlyTerms.add(Number(row.id));
+    return true;
   });
   const term = input.termId
     ? usable.find((row) => Number(row.id) === Number(input.termId)) ?? null
@@ -783,6 +795,8 @@ export async function createFutprepRegistration(
     amountDueCents,
     paymentStatus: (registrationStatus === "trial" ? "waived" : "pending") as PaymentStatus,
     registrationStatus,
+    // True when the place was booked in the members-only early window.
+    memberEarlyAccess: memberEarlyTerms.has(Number(term.id)),
   };
 }
 

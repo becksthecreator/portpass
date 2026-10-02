@@ -193,6 +193,28 @@ async function main() {
   ]);
   if (businessError) throw new Error(`Could not seed businesses: ${businessError.message}`);
 
+  // Brief 10: a live TEST business with three member perks, so the public
+  // chips, the /perks page, the homepage row (shown from three) and the
+  // business's own perk screen all have something to show.
+  const { data: booth, error: boothError } = await db
+    .from("organizations")
+    .insert({ name: "TEST Photo Booth (delete)", slug: "test-delete-photo-booth", primary_category: "entertainment", status: "approved", one_liner: "TEST — delete. A photo booth, for screenshots only.", whatsapp_e164: "+12425550100", brand_color: "#7A3E9D", payment_methods: ["cash"], created_at: stamp })
+    .select("id")
+    .single();
+  if (boothError || !booth) throw new Error(`Could not seed the TEST perk business: ${boothError?.message}`);
+  const { error: boothOfferingError } = await db.from("offerings").insert({ organization_id: booth.id, type: "service", slug: "test-two-hour-booth", name: "TEST two-hour photo booth", summary: "TEST — delete.", price_cents: 30000, is_published: true });
+  if (boothOfferingError) throw new Error(`Could not seed the TEST perk offering: ${boothOfferingError.message}`);
+  const { error: boothLiveError } = await db.from("organizations").update({ is_published: true, is_directory_listed: true, status: "live" }).eq("id", booth.id);
+  if (boothLiveError) throw new Error(`Could not publish the TEST perk business: ${boothLiveError.message}`);
+  const published = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000).toISOString();
+  const { error: perkError } = await db.from("member_perks").insert([
+    { organization_id: booth.id, title: "TEST 10% off your first booking", kind: "percent_off", percent: 10, first_booking_only: true, ends_on: "2099-12-31", status: "live", published_at: published(1) },
+    { organization_id: booth.id, title: "TEST free prints for every guest", kind: "free_addon", addon_text: "prints for every guest", status: "live", published_at: published(2) },
+    { organization_id: booth.id, title: "TEST members book 48 hours early", kind: "early_access", early_access_hours: 48, status: "live", published_at: published(3) },
+    { organization_id: booth.id, title: "TEST $20 off (not published yet)", kind: "amount_off", amount_cents: 2000, status: "draft", published_at: null },
+  ].map((perk) => ({ percent: null, amount_cents: null, addon_text: null, early_access_hours: null, first_booking_only: false, ends_on: null, ...perk })));
+  if (perkError) throw new Error(`Could not seed member perks: ${perkError.message}`);
+
   // Brief 14: a TEST platform owner (the workflow puts this address in
   // PLATFORM_OWNER_EMAILS for the run) and five TEST leads for Admin -> Leads.
   const adminEmail = "test-delete-admin@test.portpass.local";

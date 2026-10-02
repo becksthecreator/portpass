@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { clearStoredPass } from "@/lib/memberPassClient";
 
 type Me =
   | { signedIn: false }
@@ -59,6 +60,7 @@ export function HeaderAccount() {
   }
 
   async function signOut() {
+    clearStoredPass();
     await fetch("/api/auth/signout", { method: "POST" }).catch(() => undefined);
     window.location.assign("/");
   }
@@ -75,6 +77,7 @@ export function HeaderAccount() {
         <div className="hdr-menu" role="menu">
           <p className="hdr-menu-name">{me.name}</p>
           <Link role="menuitem" href="/account" onClick={() => setOpen(false)}>My account</Link>
+          <Link role="menuitem" href="/pass" onClick={() => setOpen(false)}>Member Pass</Link>
           {businesses.map((b) => (
             <Link key={b.href} role="menuitem" href={`/api/auth/go?to=${encodeURIComponent(b.href)}`} onClick={() => setOpen(false)}>{b.label}</Link>
           ))}

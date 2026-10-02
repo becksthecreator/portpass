@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(back);
   }
 
-  await bootstrapUser(data.user);
+  await bootstrapUser(data.user, { signupSource: url.searchParams.get("src") });
   const session = await sessionForUser({ id: data.user.id, email: data.user.email ?? null, phone: data.user.phone ?? null });
   const lastChoice = (await cookies()).get(LAST_CHOICE_COOKIE)?.value ?? null;
   const metaIntent = typeof data.user.user_metadata?.intent === "string" ? (data.user.user_metadata.intent as string) : null;

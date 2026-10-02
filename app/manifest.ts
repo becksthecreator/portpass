@@ -18,6 +18,8 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#0D1B3D",
     lang: "en",
     categories: ["sports", "travel", "lifestyle"],
+    // Long-press the home-screen icon: straight to the Member Pass (brief 10).
+    shortcuts: [{ name: "Member Pass", short_name: "Pass", url: "/pass?source=pwa", description: "Show your PortPass Member Pass at the counter" }],
     icons: [
       { src: "/brand/icons/app-icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/brand/icons/app-icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

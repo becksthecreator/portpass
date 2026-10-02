@@ -2,6 +2,8 @@
 // by db/registrations.ts, the camps page, the registration form and the
 // tests; no server imports.
 
+import { memberEarlyAccessOpen } from "./memberPerks";
+
 export type ProgramType = "term" | "camp";
 
 export type TermWindow = {
@@ -112,6 +114,18 @@ export function isTermEarlyAccessOpen(term: TermWindow & { earlyAccessUntil: str
   if (!term.active || !term.earlyAccessUntil) return false;
   if (term.endDate < nassauToday(now)) return false;
   return new Date(term.earlyAccessUntil) > now;
+}
+
+// Early access for PortPass members (brief 10): when the business has a
+// live early-access perk, a signed-in member may register from that many
+// hours before the public opening. The window closes the moment the term
+// opens to everyone (from then it is simply open), and never reopens a
+// term that has closed or finished.
+export function isTermMemberEarlyOpen(term: TermWindow, hours: number | null | undefined, now: Date = new Date()): boolean {
+  if (!term.active || !hours) return false;
+  if (term.endDate < nassauToday(now)) return false;
+  if (term.registrationClosesAt && new Date(term.registrationClosesAt) <= now) return false;
+  return memberEarlyAccessOpen(term.registrationOpensAt, hours, now);
 }
 
 // "Join the rest of the term" after a free trial: the weekly fee for each
