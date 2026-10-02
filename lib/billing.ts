@@ -234,6 +234,16 @@ export function periodsToDraft(account: Scheduled & Pick<BillingAccount, "cycle"
   return periods;
 }
 
+// Whether a period is the length the cycle bills: about a month, or a
+// year. A period drafted under one cycle is never billed at the other's
+// price.
+export function periodFitsCycle(cycle: BillingCycle, start: string, end: string): boolean {
+  const days = daysBetween(start, end) + 1;
+  if (cycle === "annual") return days >= 365 && days <= 366;
+  if (cycle === "monthly") return days >= 28 && days <= 31;
+  return false;
+}
+
 // When the next invoice goes out. A subscription: the start of the next
 // period not yet invoiced (today or earlier means it is due now). Fees per
 // booking or wedding: the 1st of next month, for the month just ended.
@@ -294,8 +304,16 @@ export function feeCents(input: { bookingValueCents: number; rateBps: number; fl
 // The events a commission invoice dated `invoiceOn` (the 1st) picks up:
 // not yet on an invoice, dated before the invoice, and after the free
 // period. An event inside the free period is never charged.
-export function eventsToInvoice(events: BillingEvent[], account: BillingAccount, invoiceOn: string): BillingEvent[] {
-  const free = freeUntil(account);
+//
+// `raised`: the plan periods the business has been invoiced for. The free
+// period was over by the day its first plan period started, whatever free
+// months were given afterwards: those move the next plan invoice, and
+// never reach back to make a fee from a month already billed free.
+export function eventsToInvoice(events: BillingEvent[], account: BillingAccount, invoiceOn: string, raised: RaisedPeriod[] = []): BillingEvent[] {
+  const stated = freeUntil(account);
+  const firstBilled = raised.reduce<string | null>((first, period) => (!first || period.periodStart < first ? period.periodStart : first), null);
+  const beforeBilling = firstBilled ? addDays(firstBilled, -1) : null;
+  const free = beforeBilling && (!stated || beforeBilling < stated) ? beforeBilling : stated;
   return events.filter((event) => event.invoiceLineId === null && event.eventOn < invoiceOn && (!free || event.eventOn > free) && event.feeCents !== 0);
 }
 

@@ -25,6 +25,7 @@ const REFUSALS: Record<string, { status: number; error: string }> = {
   ALREADY_REVERSED: { status: 409, error: "That receipt was already reversed. Refresh the page." },
   NOT_REDRAFTABLE: { status: 409, error: "Only a void plan invoice can be drafted again, for a business on a monthly or annual plan." },
   PERIOD_COVERED: { status: 409, error: "Another invoice already covers that period." },
+  CYCLE_CHANGED: { status: 409, error: "This invoice was for a different billing cycle than the account has now, so its period can't be drafted again as it was. The daily run drafts the next period at the account's terms as they are now." },
 };
 
 const dashboardUrl = (slug: string | null) => (slug ? `https://portpassbahamas.com/business/${encodeURIComponent(slug)}/billing` : null);

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { BILLING_CYCLES, CYCLE_LABEL, firstInvoiceOn, freeUntil, isSubscription, longDay, money, periodsToDraft, subscriptionLines, type BillingAccount, type BillingCycle } from "@/lib/billing";
+import { BILLING_CYCLES, CYCLE_LABEL, freeUntil, isSubscription, longDay, money, nextPeriodStartOn, periodsToDraft, subscriptionLines, type BillingAccount, type BillingCycle } from "@/lib/billing";
 
 export type AccountDraft = {
   planCode: string;
@@ -51,7 +51,11 @@ const whole = (value: string): number | null => (value.trim() === "" ? 0 : /^\d{
 // `billingStarted`: the business has been invoiced for a plan period. Its
 // go-live and free-until dates are then fixed, and free months given now
 // move the next invoice back instead.
-export function AccountForm({ organizationId, organizationName, initial, plans, isNew, today, billingStarted, nextInvoiceOn }: { organizationId: number; organizationName: string; initial: AccountDraft; plans: Plan[]; isNew: boolean; today: string; billingStarted: boolean; nextInvoiceOn: string | null }) {
+//
+// `billingResumesOn`: the stored day billing starts again (after a pause),
+// so the preview follows the same schedule as the daily job. It is
+// cleared when the free period is typed again before anything is invoiced.
+export function AccountForm({ organizationId, organizationName, initial, plans, isNew, today, billingStarted, nextInvoiceOn, billingResumesOn }: { organizationId: number; organizationName: string; initial: AccountDraft; plans: Plan[]; isNew: boolean; today: string; billingStarted: boolean; nextInvoiceOn: string | null; billingResumesOn: string | null }) {
   const router = useRouter();
   const [draft, setDraft] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -74,11 +78,12 @@ export function AccountForm({ organizationId, organizationName, initial, plans, 
   const typed: BillingAccount = {
     organizationId, planCode: draft.planCode || null, cycle: draft.cycle, priceCents: cents(draft.price) ?? 0, annualMonthsCharged: draft.annualMonthsCharged.trim() === "" ? 10 : whole(draft.annualMonthsCharged) || 10,
     retainerCents: cents(draft.retainer) ?? 0, extraLocations: whole(draft.extraLocations) ?? 0, extraLocationCents: cents(draft.extraLocationPrice) ?? 0, commissionBps: 0,
-    goLiveOn: draft.goLiveOn || null, freeMonthsCredit: whole(draft.freeMonthsCredit) ?? 0, creditReason: null, freeUntilOverride: draft.freeUntilOverride || null, freeUntilOverrideReason: null, billingResumesOn: null,
+    goLiveOn: draft.goLiveOn || null, freeMonthsCredit: whole(draft.freeMonthsCredit) ?? 0, creditReason: null, freeUntilOverride: draft.freeUntilOverride || null, freeUntilOverrideReason: null,
+    billingResumesOn: draft.goLiveOn !== initial.goLiveOn || draft.freeUntilOverride !== initial.freeUntilOverride || (whole(draft.freeMonthsCredit) ?? 0) < (whole(initial.freeMonthsCredit) ?? 0) ? null : billingResumesOn,
     setupFeeCents: cents(draft.setupFee) ?? 0, setupStatus: draft.setupStatus, agreementSignedOn: null, agreementVersion: null, billingEmail: null, billingWhatsappE164: null, paused: draft.paused, ended: draft.ended, notes: null,
   };
   const free = freeUntil(typed);
-  const first = firstInvoiceOn(typed);
+  const first = nextPeriodStartOn(typed, []);
   const firstLines = first && isSubscription(draft.cycle) ? subscriptionLines(typed, "", { start: first, end: first }, { firstInvoice: true }) : [];
   const firstTotal = firstLines.reduce((sum, line) => sum + line.amountCents, 0);
   const hasSetup = firstLines.some((line) => line.source === "setup");

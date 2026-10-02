@@ -33,21 +33,26 @@ export async function GET(request: Request) {
   if (!cronAuthorized(request)) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
   const now = new Date();
   const clock = nassauClock(now);
+  const organization = await futprepOrganization().catch(() => null);
+
+  // Fees follow the payments first, so billing drafts from what is true
+  // today: a fee whose payment was voided is gone (or credited) before
+  // anything is put on an invoice.
+  if (organization) {
+    try {
+      await syncCommissionEvents(organization.id, now);
+    } catch (error) {
+      console.error("daily job: commission events", error instanceof Error ? error.message : "");
+    }
+  }
   // PortPass's own billing: drafts, overdue marks and reminder emails.
   try {
     await runBillingStep(clock.date);
   } catch (error) {
     console.error("daily job: billing", error instanceof Error ? error.message : "");
   }
-
-  const organization = await futprepOrganization();
   if (!organization) return NextResponse.json({ ok: true });
 
-  try {
-    await syncCommissionEvents(organization.id, now);
-  } catch (error) {
-    console.error("daily job: commission events", error instanceof Error ? error.message : "");
-  }
   try {
     await prunePageEvents(now);
   } catch (error) {

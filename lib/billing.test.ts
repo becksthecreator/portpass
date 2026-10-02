@@ -23,6 +23,7 @@ import {
   nextInvoiceOn,
   nextPeriodStartOn,
   owedCents,
+  periodFitsCycle,
   periodLabel,
   periodsToDraft,
   remindersDue,
@@ -169,6 +170,15 @@ describe("when the next invoice goes out", () => {
     expect(periodsToDraft(resumed, [november, december, { periodStart: "2027-04-20", periodEnd: "2027-05-19" }], "2027-05-20")).toEqual([{ start: "2027-05-20", end: "2027-06-19" }]);
   });
 
+  it("knows a month from a year, so a period is never billed again at the other cycle's price", () => {
+    expect(periodFitsCycle("monthly", "2026-11-05", "2026-12-04")).toBe(true);
+    expect(periodFitsCycle("monthly", "2027-01-31", "2027-02-27")).toBe(true);
+    expect(periodFitsCycle("monthly", "2027-04-05", "2028-04-04")).toBe(false);
+    expect(periodFitsCycle("annual", "2027-04-05", "2028-04-04")).toBe(true);
+    expect(periodFitsCycle("annual", "2026-11-05", "2026-12-04")).toBe(false);
+    expect(periodFitsCycle("per_event", "2026-11-05", "2026-12-04")).toBe(false);
+  });
+
   it("is the 1st of next month for fees per booking or wedding, and nothing for a plan not agreed, a paused or an ended account", () => {
     expect(nextInvoiceOn(account({ cycle: "commission_monthly", priceCents: 0, commissionBps: 800 }), "2026-10-20")).toBe("2026-11-01");
     expect(nextInvoiceOn(account({ cycle: "per_event" }), "2026-10-20")).toBe("2026-11-01");
@@ -201,6 +211,18 @@ describe("fees earned per booking or wedding", () => {
       "2026-12-01",
     );
     expect(picked.map((e) => e.id)).toEqual([2]);
+  });
+
+  it("keeps the fees' free period where it was when free months are given after billing started", () => {
+    const credited = account({ goLiveOn: "2026-10-05", freeMonthsCredit: 2, creditReason: "TEST banner", billingResumesOn: "2027-03-05" });
+    const billedFrom = [{ periodStart: "2026-11-05", periodEnd: "2026-12-04" }];
+    const december = event({ id: 9, eventOn: "2026-12-10" });
+    // Read from the account alone, the free period would now run to 4 January...
+    expect(eventsToInvoice([december], credited, "2027-01-01")).toEqual([]);
+    // ...but the business has been billed from 5 November: December's fee is owed.
+    expect(eventsToInvoice([december], credited, "2027-01-01", billedFrom).map((e) => e.id)).toEqual([9]);
+    // A fee inside the free period it really had stays free.
+    expect(eventsToInvoice([event({ id: 10, eventOn: "2026-11-03" })], credited, "2027-01-01", billedFrom)).toEqual([]);
   });
 
   it("writes the line a business can check: what, how much of what, and when", () => {

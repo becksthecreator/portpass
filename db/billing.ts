@@ -19,6 +19,7 @@ import {
   nextInvoiceOn,
   nextPeriodStartOn,
   owedCents,
+  periodFitsCycle,
   periodsToDraft,
   remindersDue,
   revenueSummary,
@@ -136,8 +137,11 @@ const accountRow = (input: AccountInput) => ({
 //     (they would re-bill or skip periods already invoiced);
 //   - free months given now push the next invoice back by that many
 //     months, and a credit already given can't be taken back;
-//   - un-pausing resumes billing from today: the paused months are never
-//     billed afterwards.
+//     They count from the day billing would next start, so they can't be
+//     given to an account while it is paused (they would run out unseen);
+//   - when billing starts again (un-paused, re-opened after being ended,
+//     or moved back onto a monthly or annual plan) it starts from today:
+//     the time in between is never billed afterwards.
 // Changing the cycle or the price is always allowed: the next period
 // simply starts where the last invoice ended, at the new terms.
 export async function saveAccount(organizationId: number, input: AccountInput, actorUserId: string | null, today: string = nassauToday()): Promise<StoredAccount> {
@@ -149,15 +153,27 @@ export async function saveAccount(organizationId: number, input: AccountInput, a
   let resumes = before?.billingResumesOn ?? null;
   if (before) {
     const raised = raisedPeriods(await listInvoices({ organizationId }));
-    if (raised.length > 0) {
-      if (input.goLiveOn !== before.goLiveOn || input.freeUntilOverride !== before.freeUntilOverride) throw new Error("BILLING_STARTED");
-      if (input.freeMonthsCredit < before.freeMonthsCredit) throw new Error("CREDIT_FIXED");
-      const extra = input.freeMonthsCredit - before.freeMonthsCredit;
-      const next = nextPeriodStartOn(before, raised);
-      if (extra > 0 && next) resumes = addMonths(next, extra);
+    const started = raised.length > 0;
+    const extra = input.freeMonthsCredit - before.freeMonthsCredit;
+    const datesChanged = input.goLiveOn !== before.goLiveOn || input.freeUntilOverride !== before.freeUntilOverride;
+    if (started) {
+      if (datesChanged) throw new Error("BILLING_STARTED");
+      if (extra < 0) throw new Error("CREDIT_FIXED");
+      if (extra > 0) {
+        if (input.paused) throw new Error("CREDIT_WHILE_PAUSED");
+        const next = nextPeriodStartOn(before, raised);
+        // From the day billing would next start, or from today when that day has passed.
+        if (next) resumes = addMonths(next < today ? today : next, extra);
+      }
+    } else if (extra < 0 || datesChanged) {
+      // Nothing invoiced (or everything voided) and the free period typed
+      // again: the schedule starts over from its first invoice date.
+      resumes = null;
     }
-    // Un-paused: nothing is billed for the time it was paused.
-    if (before.paused && !input.paused && !input.ended) {
+    // Billing starts again: nothing is billed for the time it was off.
+    const wasOff = before.paused || before.ended || (started && !isSubscription(before.cycle));
+    const isOn = !input.paused && !input.ended && isSubscription(input.cycle);
+    if (wasOff && isOn) {
       const next = nextPeriodStartOn({ ...input, billingResumesOn: resumes }, raised);
       if (next && next < today) resumes = today;
     }
@@ -272,6 +288,9 @@ export async function redraftPeriod(voidInvoiceId: number, actorUserId: string, 
   if (old.status !== "void" || old.kind !== "subscription") throw new Error("NOT_REDRAFTABLE");
   const account = await getAccount(old.organizationId);
   if (!account || !isSubscription(account.cycle)) throw new Error("NOT_REDRAFTABLE");
+  // A month is never billed at the year's price, or a year at a month's:
+  // after a change of cycle the daily run drafts the next period itself.
+  if (!periodFitsCycle(account.cycle, old.periodStart, old.periodEnd)) throw new Error("CYCLE_CHANGED");
   const others = raisedPeriods(await listInvoices({ organizationId: old.organizationId }));
   if (others.some((period) => period.periodStart <= old.periodEnd && period.periodEnd >= old.periodStart)) throw new Error("PERIOD_COVERED");
   const names = await planNames();
@@ -559,9 +578,9 @@ export async function runDailyBilling(today: string = nassauToday()): Promise<Da
 
   for (const account of accounts) {
     if (account.ended || account.paused) continue;
+    const raised = raisedPeriods(everyInvoice.filter((invoice) => invoice.organizationId === account.organizationId));
     if (isSubscription(account.cycle) && (account.priceCents > 0 || account.retainerCents > 0)) {
       // Each plan period not yet invoiced, running on from the last one that was.
-      const raised = raisedPeriods(everyInvoice.filter((invoice) => invoice.organizationId === account.organizationId));
       const periods = periodsToDraft(account, raised, today);
       // The one-time setup fee goes on the first plan invoice that stands.
       let setupOwed = periods.length > 0 && setupDueCents(account) > 0 && !(await setupBilled(account.organizationId));
@@ -571,6 +590,14 @@ export async function runDailyBilling(today: string = nassauToday()): Promise<Da
         if (await raiseInvoice({ organizationId: account.organizationId, kind: "subscription", periodStart: period.start, periodEnd: period.end, issuedOn: today, lines, createdBy: null })) {
           drafted += 1;
           setupOwed = false;
+          // Setup is waived on an annual plan. That is settled the day the
+          // year is invoiced: a later move to monthly never brings it back.
+          if (account.cycle === "annual" && account.setupStatus === "due") {
+            const { error: waiveError } = await db.from("billing_accounts").update({ setup_status: "waived", updated_at: new Date().toISOString() }).eq("organization_id", account.organizationId).eq("setup_status", "due");
+            throwIfSupabaseError(waiveError, "Could not record the setup waiver");
+            await logAudit({ actorUserId: null, organizationId: account.organizationId, action: "billing.account.setup_waived", targetTable: "billing_accounts", targetId: account.organizationId, before: { setup_status: "due" }, after: { setup_status: "waived", reason: "Annual plan invoiced" } });
+            account.setupStatus = "waived";
+          }
         }
       }
     }
@@ -581,7 +608,7 @@ export async function runDailyBilling(today: string = nassauToday()): Promise<Da
     // the credits, nothing is raised and the credit waits.
     if (account.cycle !== "not_agreed") {
       const invoiceOn = firstOfMonth(today);
-      const events = eventsToInvoice(await listEvents({ organizationId: account.organizationId, invoiced: false }), account, invoiceOn);
+      const events = eventsToInvoice(await listEvents({ organizationId: account.organizationId, invoiced: false }), account, invoiceOn, raised);
       if (events.reduce((sum, event) => sum + event.feeCents, 0) > 0) {
         const periodStart = addMonths(invoiceOn, -1);
         if (await raiseInvoice({ organizationId: account.organizationId, kind: "commission", periodStart, periodEnd: addDays(invoiceOn, -1), issuedOn: today, lines: events.map(eventLine), createdBy: null })) drafted += 1;
@@ -723,7 +750,9 @@ export async function getPlanCard(organizationId: number, today: string = nassau
   const next = nextInvoiceOn(account, today, raised);
   let nextInvoiceCents: number | null = null;
   if (next && isSubscription(account.cycle)) {
-    nextInvoiceCents = subscriptionLines(account, "", { start: next, end: next }, { firstInvoice: raised.length === 0 }).reduce((sum, line) => sum + line.amountCents, 0);
+    // The same test the daily job uses for the one-time setup fee.
+    const setupOwed = setupDueCents(account) > 0 && !(await setupBilled(organizationId));
+    nextInvoiceCents = subscriptionLines(account, "", { start: next, end: next }, { firstInvoice: setupOwed }).reduce((sum, line) => sum + line.amountCents, 0);
   }
   const status = accountStatus(account, shown, today, raised.length > 0);
   return { account, planName: account.planCode ? names.get(account.planCode) ?? null : null, status, freeUntil: status === "trial" || status === "not_live" ? freeUntil(account) : null, nextInvoiceOn: next, nextInvoiceCents, invoices: shown, bank };

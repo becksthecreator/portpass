@@ -376,6 +376,48 @@ describe("a schedule that has started", () => {
   });
 });
 
+describe("an account that stops and starts again", () => {
+  const plain = () => account({ planCode: "growing", priceCents: 12000, setupFeeCents: 45000, setupStatus: "due", freeMonthsCredit: 2, creditReason: "TEST signage sponsor", billingEmail: `test-delete-schedule-${TAG}@test.portpass.local` });
+  const periods = async () => (await listInvoices({ organizationId: scheduleOrgId })).filter((invoice) => invoice.kind === "subscription" && invoice.status !== "void").map((invoice) => invoice.periodStart).sort();
+
+  it("is never billed for the months it was ended, and free months can't be given while it is paused", async () => {
+    const before = await periods();
+    await saveAccount(scheduleOrgId, { ...plain(), ended: true, statusReason: "TEST moved away" }, founder, "2028-09-01");
+    await runDailyBilling("2028-12-09");
+    expect(await periods()).toEqual(before);
+    const reopened = await saveAccount(scheduleOrgId, plain(), founder, "2028-12-10");
+    expect(reopened).toMatchObject({ billingResumesOn: "2028-12-10", nextInvoiceOn: "2028-12-10", status: "active" });
+    await runDailyBilling("2028-12-10");
+    // One invoice from the day it came back: none for September to December.
+    expect(await periods()).toEqual([...before, "2028-12-10"]);
+    await expect(saveAccount(scheduleOrgId, { ...plain(), freeMonthsCredit: 3, paused: true, statusReason: "TEST closed" }, founder, "2028-12-11")).rejects.toThrow("CREDIT_WHILE_PAUSED");
+  });
+
+  it("never drafts a month again at the year's price: after a change of cycle the next run drafts at the new terms", async () => {
+    const december = (await listInvoices({ organizationId: scheduleOrgId })).find((invoice) => invoice.periodStart === "2028-12-10")!;
+    await voidInvoice(december.id, "TEST they signed annual", founder, "2028-12-10");
+    await saveAccount(scheduleOrgId, { ...plain(), cycle: "annual" }, founder, "2028-12-10");
+    await expect(redraftPeriod(december.id, founder, "2028-12-10")).rejects.toThrow("CYCLE_CHANGED");
+    await runDailyBilling("2028-12-11");
+    const year = (await listInvoices({ organizationId: scheduleOrgId })).find((invoice) => invoice.periodStart === "2028-12-10" && invoice.status !== "void")!;
+    expect(year).toMatchObject({ periodEnd: "2029-12-09", totalCents: 120000 });
+    // Setup is waived on annual, and that is settled: recorded on the account and logged.
+    expect((await getAccount(scheduleOrgId))!.setupStatus).toBe("waived");
+    const { data: logged } = await admin.from("audit_log").select("action").eq("organization_id", scheduleOrgId).eq("action", "billing.account.setup_waived");
+    expect(logged!.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("moves back onto a plan from fees-only without billing the time in between", async () => {
+    await saveAccount(scheduleOrgId, { ...plain(), setupStatus: "waived", cycle: "commission_monthly", priceCents: 0, commissionBps: 800 }, founder, "2029-12-10");
+    await runDailyBilling("2030-06-01");
+    const before = await periods();
+    const back = await saveAccount(scheduleOrgId, { ...plain(), setupStatus: "waived" }, founder, "2030-06-15");
+    expect(back).toMatchObject({ billingResumesOn: "2030-06-15", nextInvoiceOn: "2030-06-15" });
+    await runDailyBilling("2030-06-15");
+    expect(await periods()).toEqual([...before, "2030-06-15"]);
+  });
+});
+
 describe("fees and credits typed in by a founder", () => {
   it("takes a flat fee or a share of a booking, never both; a credit comes off the next invoice", async () => {
     await expect(addManualEvent({ organizationId: otherOrgId, kind: "supplier_commission", eventOn: "2026-11-10", bookingValueCents: 50000, rateBps: 800, flatCents: 15000, note: "TEST both" }, founder)).rejects.toThrow("FLAT_OR_SHARE");

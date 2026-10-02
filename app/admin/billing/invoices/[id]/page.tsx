@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAccount, getBankDetails, getInvoice, listInvoices, raisedPeriods } from "@/db/billing";
 import { requireAdmin } from "@/lib/auth/admin";
-import { bankDetailsComplete, howToPay, INVOICE_STATUS_LABEL, invoiceStatus, longDay, moneyExact, owedCents, periodLabel, RECEIPT_METHOD_LABEL } from "@/lib/billing";
+import { bankDetailsComplete, periodFitsCycle, howToPay, INVOICE_STATUS_LABEL, invoiceStatus, longDay, moneyExact, owedCents, periodLabel, RECEIPT_METHOD_LABEL } from "@/lib/billing";
 import { nassauToday } from "@/lib/futprepTerms";
 import { AdminShell } from "../../../_components/AdminShell";
 import { InvoiceActions, ReverseReceipt } from "./InvoiceActions";
@@ -27,7 +27,7 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
   const invoice = { ...stored, status: invoiceStatus(stored, today) };
   const [account, bank, theirs] = await Promise.all([getAccount(invoice.organizationId), getBankDetails(), listInvoices({ organizationId: invoice.organizationId })]);
   // A void plan invoice can be drafted again while no other invoice covers its period.
-  const canRedraft = invoice.status === "void" && invoice.kind === "subscription" && (account?.cycle === "monthly" || account?.cycle === "annual") && !raisedPeriods(theirs).some((period) => period.periodStart <= invoice.periodEnd && period.periodEnd >= invoice.periodStart);
+  const canRedraft = invoice.status === "void" && invoice.kind === "subscription" && account !== null && periodFitsCycle(account.cycle, invoice.periodStart, invoice.periodEnd) && !raisedPeriods(theirs).some((period) => period.periodStart <= invoice.periodEnd && period.periodEnd >= invoice.periodStart);
 
   return (
     <AdminShell

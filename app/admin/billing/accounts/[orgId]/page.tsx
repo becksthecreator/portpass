@@ -52,7 +52,7 @@ export default async function AdminBillingAccountPage({ params }: { params: Prom
       lede={account ? `${ACCOUNT_STATUS_LABEL[account.status]}${account.freeUntil && (account.status === "trial" || account.status === "not_live") ? ` · free until ${longDay(account.freeUntil)}` : ""}${account.nextInvoiceOn ? ` · next invoice ${longDay(account.nextInvoiceOn)}` : ""}` : "No billing account yet. Nothing is invoiced until you set one up."}
       actions={<Link className="admin-bar-link" href="/admin/billing">All billing</Link>}
     >
-      <AccountForm organizationId={organizationId} organizationName={business.name} initial={initial} isNew={!account} today={today} billingStarted={raisedPeriods(invoices).length > 0} nextInvoiceOn={account?.nextInvoiceOn ?? null} plans={plans.map((plan) => ({ code: plan.code, name: plan.name, monthlyCents: plan.monthlyCents, commissionBps: plan.commissionBps, annualMonthsCharged: plan.annualMonthsCharged }))} />
+      <AccountForm organizationId={organizationId} organizationName={business.name} initial={initial} isNew={!account} today={today} billingStarted={raisedPeriods(invoices).length > 0} nextInvoiceOn={account?.nextInvoiceOn ?? null} billingResumesOn={account?.billingResumesOn ?? null} plans={plans.map((plan) => ({ code: plan.code, name: plan.name, monthlyCents: plan.monthlyCents, commissionBps: plan.commissionBps, annualMonthsCharged: plan.annualMonthsCharged }))} />
 
       <section className="admin-group billing-without" aria-labelledby="account-invoices">
         <h2 id="account-invoices">Invoices</h2>
