@@ -1,6 +1,6 @@
 import { claimReminder, getBankDetails, releaseReminder, runDailyBilling } from "@/db/billing";
 import { logMessage } from "@/db/growth";
-import { addDays, annualPriceCents, owedCents } from "@/lib/billing";
+import { addDays, annualPriceCents, bankDetailsComplete, owedCents } from "@/lib/billing";
 import { invoiceReminderEmail, trialEndingEmail } from "@/lib/billingEmail";
 import { portpassFrom, sendEmail } from "@/lib/email";
 
@@ -32,6 +32,12 @@ export async function runBillingStep(today: string): Promise<void> {
         const annual = account.cycle === "annual";
         email = trialEndingEmail({ businessName: account.organizationName, planName, priceCents: annual ? annualPriceCents(account) : account.priceCents, annual, freeUntil: reminder.freeUntil, firstInvoiceOn: addDays(reminder.freeUntil, 1) });
       } else if (invoice) {
+        // A reminder says how to pay. With PortPass's bank details missing
+        // it would not, so it is not sent (and says so in Messages).
+        if (!bankDetailsComplete(bank)) {
+          if (await claimReminder(reminder, account.organizationId)) await logMessage({ organizationId: account.organizationId, template, recipient: account.billingEmail, status: "skipped", detail: "PortPass's bank details are missing in Settings, so the reminder could not say how to pay." });
+          continue;
+        }
         email = invoiceReminderEmail(reminder.kind, { businessName: account.organizationName, number: invoice.number, totalCents: invoice.totalCents, owedCents: owedCents(invoice), dueOn: invoice.dueOn, bank, dashboardUrl });
       }
       if (!email) continue;

@@ -46,13 +46,19 @@ export function LeadDetail({ lead }: { lead: WeddingLeadDetail }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completedOn, deskCoordinated }),
     });
-    const data = (await response.json().catch(() => ({}))) as { error?: string; feeCreated?: boolean };
+    const data = (await response.json().catch(() => ({}))) as { error?: string; feeCreated?: boolean; feeRemoved?: boolean; feeRedated?: boolean; alreadyInvoiced?: boolean };
     setCompleteBusy(false);
     if (!response.ok) {
       setError(data.error ?? "Could not mark the wedding completed.");
       return;
     }
-    setCompleteNote(data.feeCreated ? "Saved. The coordination fee is on the next monthly invoice." : "Saved.");
+    setCompleteNote(
+      data.alreadyInvoiced ? "Saved, but the coordination fee is already on an invoice and has not changed. Tell PortPass if it needs correcting."
+        : data.feeCreated ? "Saved. The coordination fee goes on the next monthly invoice."
+        : data.feeRemoved ? "Saved. The coordination fee has been taken off."
+        : data.feeRedated ? "Saved. The coordination fee has moved to the new date."
+        : "Saved.",
+    );
     router.refresh();
   }
 

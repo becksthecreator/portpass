@@ -6,6 +6,17 @@
 .billing-soon li{align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:12px;display:grid;gap:4px 14px;grid-template-columns:minmax(120px,max-content) 1fr;padding:10px 14px}
 .billing-soon li span{color:var(--muted);font-size:.82rem}
 .billing-soon li small{color:var(--muted);grid-column:2}
+.billing-actions .admin-action-ask input,.billing-actions .admin-action-ask select{background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:.9rem;min-height:44px;padding:9px 12px;width:100%}
+.billing-actions .admin-action-ask label{display:grid;gap:6px}
+.billing-lines-wrap{overflow-x:auto}
+.billing-reversed td{color:var(--muted)}
+.billing-reversed td:nth-child(-n+2){text-decoration:line-through}
+.billing-reverse{display:grid;gap:8px;min-width:220px}
+.billing-reverse label{display:grid;gap:6px}
+.billing-reverse label>span{color:var(--muted);font-size:.78rem}
+.billing-reverse input{background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:.9rem;min-height:44px;padding:9px 12px;width:100%}
+.billing-reverse-buttons{display:flex;flex-wrap:wrap;gap:8px}
+.billing-reverse .admin-mini,.admin-table td>.admin-mini{min-height:36px;padding:0 12px}
 .billing-form{display:grid;gap:22px;max-width:760px}
 .billing-form fieldset{border:1px solid var(--line);border-radius:14px;display:grid;gap:14px;margin:0;padding:16px}
 .billing-form legend{color:var(--muted);font-size:.72rem;font-weight:800;letter-spacing:.08em;padding:0 6px;text-transform:uppercase}

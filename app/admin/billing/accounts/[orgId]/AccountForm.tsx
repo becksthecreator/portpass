@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { annualPriceCents, BILLING_CYCLES, CYCLE_LABEL, firstInvoiceOn, freeUntil, isSubscription, longDay, money, type BillingCycle } from "@/lib/billing";
+import { BILLING_CYCLES, CYCLE_LABEL, firstInvoiceOn, freeUntil, isSubscription, longDay, money, periodsToDraft, subscriptionLines, type BillingAccount, type BillingCycle } from "@/lib/billing";
 
 export type AccountDraft = {
   planCode: string;
@@ -39,13 +39,19 @@ function cents(value: string): number | null {
   if (!/^\d{1,7}(\.\d{1,2})?$/.test(typed)) return null;
   return Math.round(Number(typed) * 100);
 }
+// A whole number, or nothing typed (0). Anything else is refused, never
+// quietly read as 0.
 const whole = (value: string): number | null => (value.trim() === "" ? 0 : /^\d{1,4}$/.test(value.trim()) ? Number(value.trim()) : null);
 
 // One business's billing account (brief 09, 2.1 and 2.4). The price here
 // is the price agreed at signing: changing the price list later never
 // changes it. A free-month credit, a free-until date of your own, and
 // pausing or ending each need a reason, which is logged.
-export function AccountForm({ organizationId, organizationName, initial, plans, isNew }: { organizationId: number; organizationName: string; initial: AccountDraft; plans: Plan[]; isNew: boolean }) {
+//
+// `billingStarted`: the business has been invoiced for a plan period. Its
+// go-live and free-until dates are then fixed, and free months given now
+// move the next invoice back instead.
+export function AccountForm({ organizationId, organizationName, initial, plans, isNew, today, billingStarted, nextInvoiceOn }: { organizationId: number; organizationName: string; initial: AccountDraft; plans: Plan[]; isNew: boolean; today: string; billingStarted: boolean; nextInvoiceOn: string | null }) {
   const router = useRouter();
   const [draft, setDraft] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -63,11 +69,21 @@ export function AccountForm({ organizationId, organizationName, initial, plans, 
     }));
   }
 
-  const priceCents = cents(draft.price) ?? 0;
-  const preview = { goLiveOn: draft.goLiveOn || null, freeMonthsCredit: whole(draft.freeMonthsCredit) ?? 0, freeUntilOverride: draft.freeUntilOverride || null };
-  const free = freeUntil(preview);
-  const first = firstInvoiceOn(preview);
-  const months = whole(draft.annualMonthsCharged) || 10;
+  // The account as typed, for working out what it would be invoiced: the
+  // same rules the daily job uses.
+  const typed: BillingAccount = {
+    organizationId, planCode: draft.planCode || null, cycle: draft.cycle, priceCents: cents(draft.price) ?? 0, annualMonthsCharged: draft.annualMonthsCharged.trim() === "" ? 10 : whole(draft.annualMonthsCharged) || 10,
+    retainerCents: cents(draft.retainer) ?? 0, extraLocations: whole(draft.extraLocations) ?? 0, extraLocationCents: cents(draft.extraLocationPrice) ?? 0, commissionBps: 0,
+    goLiveOn: draft.goLiveOn || null, freeMonthsCredit: whole(draft.freeMonthsCredit) ?? 0, creditReason: null, freeUntilOverride: draft.freeUntilOverride || null, freeUntilOverrideReason: null, billingResumesOn: null,
+    setupFeeCents: cents(draft.setupFee) ?? 0, setupStatus: draft.setupStatus, agreementSignedOn: null, agreementVersion: null, billingEmail: null, billingWhatsappE164: null, paused: draft.paused, ended: draft.ended, notes: null,
+  };
+  const free = freeUntil(typed);
+  const first = firstInvoiceOn(typed);
+  const firstLines = first && isSubscription(draft.cycle) ? subscriptionLines(typed, "", { start: first, end: first }, { firstInvoice: true }) : [];
+  const firstTotal = firstLines.reduce((sum, line) => sum + line.amountCents, 0);
+  const hasSetup = firstLines.some((line) => line.source === "setup");
+  // A go-live date well in the past: the next daily run drafts one invoice for each period since.
+  const backlog = billingStarted || draft.paused || draft.ended ? 0 : periodsToDraft(typed, [], today).length;
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,13 +96,20 @@ export function AccountForm({ organizationId, organizationName, initial, plans, 
     const commission = draft.commissionPercent.trim() === "" ? 0 : Number(draft.commissionPercent);
     if (price === null || retainer === null || extraLocationCents === null || setupFee === null) return setError("Amounts are in dollars, like 65 or 1,200.50.");
     if (!Number.isFinite(commission) || commission < 0 || commission > 100) return setError("The commission is a percentage between 0 and 100.");
+    const extraLocations = whole(draft.extraLocations);
+    const freeMonthsCredit = whole(draft.freeMonthsCredit);
+    const monthsCharged = draft.annualMonthsCharged.trim() === "" ? 10 : whole(draft.annualMonthsCharged);
+    if (extraLocations === null || freeMonthsCredit === null || monthsCharged === null) return setError("Whole numbers only for extra locations, free months and months charged.");
+    if (monthsCharged < 1 || monthsCharged > 12) return setError("Months charged for a year is between 1 and 12.");
+    if (extraLocations > 0 && extraLocationCents === 0) return setError("Enter what each extra location costs a month.");
+    if (backlog > 1 && !confirm(`The go-live date is far enough back that the next daily run will draft ${backlog} invoices, one for each period since ${first ? longDay(first) : "then"}. Save anyway?`)) return;
     setBusy(true);
     const response = await fetch(`/api/admin/billing/accounts/${organizationId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        planCode: draft.planCode, cycle: draft.cycle, priceCents: price, annualMonthsCharged: whole(draft.annualMonthsCharged) || 10, retainerCents: retainer, extraLocations: whole(draft.extraLocations) ?? 0, extraLocationCents,
-        commissionBps: Math.round(commission * 100), goLiveOn: draft.goLiveOn, freeMonthsCredit: whole(draft.freeMonthsCredit) ?? 0, creditReason: draft.creditReason, freeUntilOverride: draft.freeUntilOverride,
+        planCode: draft.planCode, cycle: draft.cycle, priceCents: price, annualMonthsCharged: monthsCharged, retainerCents: retainer, extraLocations, extraLocationCents,
+        commissionBps: Math.round(commission * 100), goLiveOn: draft.goLiveOn, freeMonthsCredit, creditReason: draft.creditReason, freeUntilOverride: draft.freeUntilOverride,
         freeUntilOverrideReason: draft.freeUntilOverrideReason, setupFeeCents: setupFee, setupStatus: draft.setupStatus, agreementSignedOn: draft.agreementSignedOn, agreementVersion: draft.agreementVersion,
         billingEmail: draft.billingEmail, billingWhatsappE164: draft.billingWhatsapp, paused: draft.paused, ended: draft.ended, statusReason: draft.statusReason, notes: draft.notes,
       }),
@@ -141,18 +164,26 @@ export function AccountForm({ organizationId, organizationName, initial, plans, 
 
       <fieldset>
         <legend>Free period</legend>
-        <label><span>Went live on</span><input type="date" value={draft.goLiveOn} onChange={(event) => set("goLiveOn", event.target.value)} /></label>
+        {billingStarted && <p className="admin-form-note">This business has already been invoiced, so its go-live and free-until dates are fixed. Free months added now move the next invoice back by that many months.</p>}
+        <label><span>Went live on</span><input type="date" value={draft.goLiveOn} onChange={(event) => set("goLiveOn", event.target.value)} disabled={billingStarted} /></label>
         <div className="billing-pair">
           <label><span>Free months given on top of the first 30 days</span><input value={draft.freeMonthsCredit} onChange={(event) => set("freeMonthsCredit", event.target.value)} inputMode="numeric" maxLength={2} /></label>
           <label><span>Why (for example: signage sponsor, banner)</span><input value={draft.creditReason} onChange={(event) => set("creditReason", event.target.value)} maxLength={200} /></label>
         </div>
         <div className="billing-pair">
-          <label><span>Or set the last free day yourself</span><input type="date" value={draft.freeUntilOverride} onChange={(event) => set("freeUntilOverride", event.target.value)} /></label>
+          <label><span>Or set the last free day yourself</span><input type="date" value={draft.freeUntilOverride} onChange={(event) => set("freeUntilOverride", event.target.value)} disabled={billingStarted} /></label>
           <label><span>Why</span><input value={draft.freeUntilOverrideReason} onChange={(event) => set("freeUntilOverrideReason", event.target.value)} maxLength={200} /></label>
         </div>
         <p className="billing-works-out">
-          {free ? <>Free until <strong>{longDay(free)}</strong>. </> : "No go-live date yet, so nothing is billed. "}
-          {isSubscription(draft.cycle) && first ? <>First invoice on <strong>{longDay(first)}</strong>: <strong>{money(draft.cycle === "annual" ? annualPriceCents({ priceCents, annualMonthsCharged: months }) : priceCents)}</strong>{draft.cycle === "annual" ? " for the year, setup waived" : " a month"}.</> : null}
+          {billingStarted ? (
+            <>Billing has started. {nextInvoiceOn ? <>The next invoice is for the period from <strong>{longDay(nextInvoiceOn)}</strong>, at the terms above.</> : "No next invoice is scheduled."}</>
+          ) : (
+            <>
+              {free ? <>Free until <strong>{longDay(free)}</strong>. </> : "No go-live date yet, so nothing is billed. "}
+              {isSubscription(draft.cycle) && first ? <>First invoice on <strong>{longDay(first)}</strong>: <strong>{money(firstTotal)}</strong> ({draft.cycle === "annual" ? "the year, setup waived" : `the first month${hasSetup ? ", with the setup fee" : ""}`}; the plan, the retainer and any extra locations).</> : null}
+              {backlog > 1 ? <> The next daily run will draft <strong>{backlog} invoices</strong>, one for each period since then.</> : null}
+            </>
+          )}
           {draft.cycle === "commission_monthly" || draft.cycle === "per_event" ? " Fees are invoiced on the 1st of each month, for the month before." : null}
           {draft.cycle === "not_agreed" ? " No plan is agreed yet, so no invoice is drafted and no reminder is sent." : null}
         </p>
@@ -172,7 +203,7 @@ export function AccountForm({ organizationId, organizationName, initial, plans, 
 
       <fieldset>
         <legend>Pause or end</legend>
-        <label className="billing-check"><input type="checkbox" checked={draft.paused} onChange={(event) => set("paused", event.target.checked)} /><span>Paused: no invoices and no reminders</span></label>
+        <label className="billing-check"><input type="checkbox" checked={draft.paused} onChange={(event) => set("paused", event.target.checked)} /><span>Paused: no invoices and no reminders. When it is un-paused, billing starts again from that day: the paused time is never billed.</span></label>
         <label className="billing-check"><input type="checkbox" checked={draft.ended} onChange={(event) => set("ended", event.target.checked)} /><span>Ended</span></label>
         <label><span>Why (needed to pause or end; it is logged)</span><input value={draft.statusReason} onChange={(event) => set("statusReason", event.target.value)} maxLength={300} /></label>
         <label><span>Notes</span><textarea rows={3} value={draft.notes} onChange={(event) => set("notes", event.target.value)} maxLength={1000} /></label>

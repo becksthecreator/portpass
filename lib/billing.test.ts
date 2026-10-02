@@ -21,12 +21,14 @@ import {
   morningSummary,
   needsFounderCall,
   nextInvoiceOn,
+  nextPeriodStartOn,
   owedCents,
   periodLabel,
-  periodsDue,
+  periodsToDraft,
   remindersDue,
   revenueSummary,
   setupDueCents,
+  shownToBusiness,
   subscriptionLines,
   subscriptionPeriod,
   type BillingAccount,
@@ -36,7 +38,7 @@ import {
 
 const account = (over: Partial<BillingAccount> = {}): BillingAccount => ({
   organizationId: 7, planCode: "solo", cycle: "monthly", priceCents: 6500, annualMonthsCharged: 10, retainerCents: 0, extraLocations: 0, extraLocationCents: 2500, commissionBps: 0,
-  goLiveOn: "2026-10-05", freeMonthsCredit: 0, creditReason: null, freeUntilOverride: null, freeUntilOverrideReason: null, setupFeeCents: 45000, setupStatus: "waived",
+  goLiveOn: "2026-10-05", freeMonthsCredit: 0, creditReason: null, freeUntilOverride: null, freeUntilOverrideReason: null, billingResumesOn: null, setupFeeCents: 45000, setupStatus: "waived",
   agreementSignedOn: null, agreementVersion: null, billingEmail: "test-delete-owner@test.portpass.local", billingWhatsappE164: null, paused: false, ended: false, notes: null, ...over,
 });
 
@@ -62,6 +64,8 @@ describe("calendar days", () => {
     expect(periodLabel("2026-10-01", "2026-10-31")).toBe("1–31 October 2026");
     expect(periodLabel("2026-11-05", "2026-12-04")).toBe("5 November – 4 December 2026");
     expect(periodLabel("2026-12-15", "2027-01-14")).toBe("15 December 2026 – 14 January 2027");
+    // An invoice for one day (a one-off) reads as that day, not "5–5 October".
+    expect(periodLabel("2026-10-05", "2026-10-05")).toBe("5 October 2026");
   });
 });
 
@@ -107,24 +111,68 @@ describe("what a subscription invoice charges", () => {
 });
 
 describe("when the next invoice goes out", () => {
+  const november = { periodStart: "2026-11-05", periodEnd: "2026-12-04" };
+  const december = { periodStart: "2026-12-05", periodEnd: "2027-01-04" };
+
   it("is the first invoice date during the free period, then each month after", () => {
     const solo = account({ goLiveOn: "2026-10-05" });
     expect(nextInvoiceOn(solo, "2026-10-20")).toBe("2026-11-05");
     // Due today and not raised yet: today.
     expect(nextInvoiceOn(solo, "2026-11-05")).toBe("2026-11-05");
-    expect(nextInvoiceOn(solo, "2026-11-05", ["2026-11-05"])).toBe("2026-12-05");
-    expect(nextInvoiceOn(account({ goLiveOn: "2026-10-05", cycle: "annual" }), "2026-11-06", ["2026-11-05"])).toBe("2027-11-05");
+    expect(nextInvoiceOn(solo, "2026-11-05", [november])).toBe("2026-12-05");
+    expect(nextInvoiceOn(account({ goLiveOn: "2026-10-05", cycle: "annual" }), "2026-11-06", [{ periodStart: "2026-11-05", periodEnd: "2027-11-04" }])).toBe("2027-11-05");
   });
 
   it("catches up every missed period, not one", () => {
-    expect(periodsDue("2026-11-05", "monthly", "2027-01-20").map((p) => p.start)).toEqual(["2026-11-05", "2026-12-05", "2027-01-05"]);
-    expect(nextInvoiceOn(account({ goLiveOn: "2026-10-05" }), "2027-01-20", ["2026-11-05"])).toBe("2026-12-05");
+    const solo = account({ goLiveOn: "2026-10-05" });
+    expect(periodsToDraft(solo, [], "2027-01-20")).toEqual([{ start: "2026-11-05", end: "2026-12-04" }, { start: "2026-12-05", end: "2027-01-04" }, { start: "2027-01-05", end: "2027-02-04" }]);
+    expect(periodsToDraft(solo, [november], "2027-01-20").map((p) => p.start)).toEqual(["2026-12-05", "2027-01-05"]);
+    expect(nextInvoiceOn(solo, "2027-01-20", [november])).toBe("2026-12-05");
+    // Nothing during the free period, and nothing for a business that isn't on a plan.
+    expect(periodsToDraft(solo, [], "2026-11-04")).toEqual([]);
+    expect(periodsToDraft(account({ cycle: "commission_monthly" }), [], "2027-01-20")).toEqual([]);
   });
 
-  it("is the 1st of next month for commission, and nothing for a plan not agreed, a paused or an ended account", () => {
+  it("keeps going after three years: the schedule runs on from the last invoice, not from the start", () => {
+    const solo = account({ goLiveOn: "2026-10-05" });
+    const fortyMonths = [{ periodStart: "2030-02-05", periodEnd: "2030-03-04" }];
+    expect(periodsToDraft(solo, fortyMonths, "2030-03-05")).toEqual([{ start: "2030-03-05", end: "2030-04-04" }]);
+  });
+
+  it("stays on the 31st through shorter months", () => {
+    const end31 = account({ goLiveOn: "2026-12-01" });
+    // Free until 31 December; first invoice 1 January... so use an override to land on the 31st.
+    const on31 = account({ goLiveOn: null, freeUntilOverride: "2027-01-30", freeUntilOverrideReason: "TEST" });
+    expect(periodsToDraft(on31, [], "2027-04-01").map((p) => p.start)).toEqual(["2027-01-31", "2027-02-28", "2027-03-31"]);
+    expect(periodsToDraft(on31, [{ periodStart: "2027-01-31", periodEnd: "2027-02-27" }], "2027-04-01").map((p) => p.start)).toEqual(["2027-02-28", "2027-03-31"]);
+    expect(nextPeriodStartOn(end31, [])).toBe("2027-01-01");
+  });
+
+  it("never re-bills or skips when the account is changed after invoices exist", () => {
+    // Monthly to annual in January: the year starts where the last month ended.
+    const nowAnnual = account({ goLiveOn: "2026-10-05", cycle: "annual" });
+    expect(periodsToDraft(nowAnnual, [november, december], "2027-01-20")).toEqual([{ start: "2027-01-05", end: "2028-01-04" }]);
+    // Annual to monthly in April: nothing until the paid year is over.
+    const nowMonthly = account({ goLiveOn: "2026-10-05", cycle: "monthly" });
+    expect(periodsToDraft(nowMonthly, [{ periodStart: "2026-11-05", periodEnd: "2027-11-04" }], "2027-04-20")).toEqual([]);
+    expect(nextPeriodStartOn(nowMonthly, [{ periodStart: "2026-11-05", periodEnd: "2027-11-04" }])).toBe("2027-11-05");
+    // Free months given after billing started push the next invoice back.
+    const credited = account({ goLiveOn: "2026-10-05", freeMonthsCredit: 2, creditReason: "TEST banner", billingResumesOn: "2027-03-05" });
+    expect(periodsToDraft(credited, [november, december], "2027-02-20")).toEqual([]);
+    expect(periodsToDraft(credited, [november, december], "2027-03-05")).toEqual([{ start: "2027-03-05", end: "2027-04-04" }]);
+  });
+
+  it("does not bill the time an account was paused: it resumes from the day it was un-paused", () => {
+    const resumed = account({ goLiveOn: "2026-10-05", billingResumesOn: "2027-04-20" });
+    expect(periodsToDraft(resumed, [november, december], "2027-04-20")).toEqual([{ start: "2027-04-20", end: "2027-05-19" }]);
+    // And then monthly from the 20th.
+    expect(periodsToDraft(resumed, [november, december, { periodStart: "2027-04-20", periodEnd: "2027-05-19" }], "2027-05-20")).toEqual([{ start: "2027-05-20", end: "2027-06-19" }]);
+  });
+
+  it("is the 1st of next month for fees per booking or wedding, and nothing for a plan not agreed, a paused or an ended account", () => {
     expect(nextInvoiceOn(account({ cycle: "commission_monthly", priceCents: 0, commissionBps: 800 }), "2026-10-20")).toBe("2026-11-01");
+    expect(nextInvoiceOn(account({ cycle: "per_event" }), "2026-10-20")).toBe("2026-11-01");
     expect(nextInvoiceOn(account({ cycle: "not_agreed" }), "2026-10-20")).toBeNull();
-    expect(nextInvoiceOn(account({ cycle: "per_event" }), "2026-10-20")).toBeNull();
     expect(nextInvoiceOn(account({ paused: true }), "2026-10-20")).toBeNull();
     expect(nextInvoiceOn(account({ ended: true }), "2026-10-20")).toBeNull();
   });
@@ -193,6 +241,24 @@ describe("an invoice's number, status and what is owed", () => {
     expect(accountStatus(account({ paused: true }), [invoice()], "2026-11-20")).toBe("paused");
     expect(accountStatus(account({ ended: true }), [], "2026-11-20")).toBe("ended");
   });
+
+  it("is not live before its go-live date, and never a free period again once it has been invoiced", () => {
+    expect(accountStatus(account({ goLiveOn: "2026-11-15" }), [], "2026-10-01")).toBe("not_live");
+    expect(accountStatus(account({ goLiveOn: "2026-11-15" }), [], "2026-11-15")).toBe("trial");
+    // Two free months given in December, after the November invoice: still active.
+    const credited = account({ goLiveOn: "2026-10-05", freeMonthsCredit: 2, creditReason: "TEST banner" });
+    expect(accountStatus(credited, [], "2026-12-20")).toBe("trial");
+    expect(accountStatus(credited, [invoice({ paidCents: 6500 })], "2026-12-20", true)).toBe("active");
+  });
+
+  it("shows a business its sent, paid and void-after-sending invoices, never a draft or one voided before it went", () => {
+    expect(shownToBusiness(invoice())).toBe(true);
+    expect(shownToBusiness(invoice({ status: "draft", sentAt: null }))).toBe(false);
+    expect(shownToBusiness(invoice({ status: "void", sentAt: null }))).toBe(false);
+    expect(shownToBusiness(invoice({ status: "void" }))).toBe(true);
+    // Billed before this system: recorded as sent, with no sent time here.
+    expect(shownToBusiness(invoice({ kind: "historical", status: "sent", sentAt: null }))).toBe(true);
+  });
 });
 
 describe("reminder emails", () => {
@@ -205,6 +271,19 @@ describe("reminder emails", () => {
     // No plan or price agreed: there is nothing true to say.
     expect(remindersDue(account({ goLiveOn: "2026-10-05", cycle: "not_agreed" }), [], "2026-10-28")).toEqual([]);
     expect(remindersDue(account({ goLiveOn: "2026-10-05", priceCents: 0 }), [], "2026-10-28")).toEqual([]);
+  });
+
+  it("never tells a business already being invoiced that its free period is ending", () => {
+    // Two free months given after the November invoice: "free until" is now 4 January.
+    const credited = account({ goLiveOn: "2026-10-05", freeMonthsCredit: 2, creditReason: "TEST banner" });
+    expect(remindersDue(credited, [], "2026-12-28").map((r) => r.kind)).toEqual(["trial_ends_7"]);
+    expect(remindersDue(credited, [], "2026-12-28", true)).toEqual([]);
+    expect(remindersDue(credited, [], "2027-01-03", true)).toEqual([]);
+  });
+
+  it("never chases something billed before this system", () => {
+    const old = invoice({ kind: "historical", number: "TEST-BUILD", sentAt: null });
+    for (const day of ["2026-11-16", "2026-11-20", "2026-11-26"]) expect(remindersDue(solo, [old], day)).toEqual([]);
   });
 
   it("reminds 3 days before due, 1 day and 7 days overdue, and stops at 14: a founder calls instead", () => {

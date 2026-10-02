@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAccount, getBankDetails, getInvoice } from "@/db/billing";
+import { getAccount, getBankDetails, getInvoice, listInvoices, raisedPeriods } from "@/db/billing";
 import { requireAdmin } from "@/lib/auth/admin";
 import { bankDetailsComplete, howToPay, INVOICE_STATUS_LABEL, invoiceStatus, longDay, moneyExact, owedCents, periodLabel, RECEIPT_METHOD_LABEL } from "@/lib/billing";
 import { nassauToday } from "@/lib/futprepTerms";
 import { AdminShell } from "../../../_components/AdminShell";
-import { InvoiceActions } from "./InvoiceActions";
+import { InvoiceActions, ReverseReceipt } from "./InvoiceActions";
 import "../../billing.css";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,9 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
   if (!stored) notFound();
   const today = nassauToday();
   const invoice = { ...stored, status: invoiceStatus(stored, today) };
-  const [account, bank] = await Promise.all([getAccount(invoice.organizationId), getBankDetails()]);
+  const [account, bank, theirs] = await Promise.all([getAccount(invoice.organizationId), getBankDetails(), listInvoices({ organizationId: invoice.organizationId })]);
+  // A void plan invoice can be drafted again while no other invoice covers its period.
+  const canRedraft = invoice.status === "void" && invoice.kind === "subscription" && (account?.cycle === "monthly" || account?.cycle === "annual") && !raisedPeriods(theirs).some((period) => period.periodStart <= invoice.periodEnd && period.periodEnd >= invoice.periodStart);
 
   return (
     <AdminShell
@@ -46,7 +48,7 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
 
       <section className="admin-group" aria-labelledby="invoice-lines">
         <h2 id="invoice-lines">Lines</h2>
-        <table className="billing-lines">
+        <div className="billing-lines-wrap"><table className="billing-lines">
           <thead><tr><th>Description</th><th className="num">Qty</th><th className="num">Unit (BSD)</th><th className="num">Amount (BSD)</th></tr></thead>
           <tbody>
             {invoice.lines.map((line) => (
@@ -60,17 +62,20 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
             {invoice.paidCents > 0 && <tr><td colSpan={3} className="num">Received</td><td className="num">{moneyExact(invoice.paidCents)}</td></tr>}
             {invoice.paidCents > 0 && <tr><td colSpan={3} className="num">Balance</td><td className="num">{moneyExact(owedCents(invoice))}</td></tr>}
           </tfoot>
-        </table>
+        </table></div>
       </section>
 
       {invoice.receipts.length > 0 && (
         <section className="admin-group" aria-labelledby="invoice-receipts">
           <h2 id="invoice-receipts">Received</h2>
           <table className="admin-table">
-            <thead><tr><th>On</th><th>Amount</th><th>How</th><th>Reference</th></tr></thead>
+            <thead><tr><th>On</th><th>Amount</th><th>How</th><th>Reference</th><th>If it is wrong</th></tr></thead>
             <tbody>
               {invoice.receipts.map((receipt) => (
-                <tr key={receipt.id}><td data-label="On">{longDay(receipt.receivedOn)}</td><td data-label="Amount">{moneyExact(receipt.amountCents)}</td><td data-label="How">{RECEIPT_METHOD_LABEL[receipt.method]}</td><td data-label="Reference">{receipt.reference ?? "—"}</td></tr>
+                <tr key={receipt.id} className={receipt.reversedAt ? "billing-reversed" : undefined}>
+                  <td data-label="On">{longDay(receipt.receivedOn)}</td><td data-label="Amount">{moneyExact(receipt.amountCents)}</td><td data-label="How">{RECEIPT_METHOD_LABEL[receipt.method]}</td><td data-label="Reference">{receipt.reference ?? "—"}</td>
+                  <td data-label="If it is wrong">{receipt.reversedAt ? `Reversed: ${receipt.reversedReason ?? ""}` : invoice.status === "void" ? "—" : <ReverseReceipt invoiceId={invoice.id} receiptId={receipt.id} label={`the ${moneyExact(receipt.amountCents)} received on ${longDay(receipt.receivedOn)}`} />}</td>
+                </tr>
               ))}
             </tbody>
           </table>
@@ -79,7 +84,7 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
 
       <section className="admin-group" aria-labelledby="invoice-actions">
         <h2 id="invoice-actions">What to do</h2>
-        <InvoiceActions id={invoice.id} number={invoice.number} status={invoice.status} owedCents={owedCents(invoice)} paidCents={invoice.paidCents} today={today} canSend={bankDetailsComplete(bank)} hasEmail={Boolean(account?.billingEmail)} hasWhatsapp={Boolean(account?.billingWhatsappE164)} />
+        <InvoiceActions id={invoice.id} number={invoice.number} status={invoice.status} kind={invoice.kind} owedCents={owedCents(invoice)} paidCents={invoice.paidCents} today={today} canSend={bankDetailsComplete(bank)} hasEmail={Boolean(account?.billingEmail)} hasWhatsapp={Boolean(account?.billingWhatsappE164)} canRedraft={canRedraft} />
       </section>
     </AdminShell>
   );

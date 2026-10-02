@@ -26,9 +26,17 @@ const payBlock = (input: InvoiceEmailInput) =>
   `${p(`${escapeHtml(howToPay(input.bank))}<br>Please use <strong>${escapeHtml(input.number)}</strong> as your payment reference.`)}${input.dashboardUrl ? p(`Your invoices are also in your PortPass dashboard: <a href="${input.dashboardUrl}" style="color:#2463AE">open my plan</a>.`) : ""}${p("PortPass never deducts its fees from your customers' payments. This invoice is how we are paid.")}`;
 
 export function invoiceSentEmail(input: InvoiceEmailInput): BillingEmail {
+  // Paid already (a copy was asked for): no "please pay" in it.
+  if (input.owedCents <= 0) {
+    return {
+      subject: `PortPass invoice ${input.number} for ${input.businessName}: paid in full`,
+      html: portpassEmailShell(`Invoice ${input.number}`, `${p(`A copy of your PortPass invoice for ${escapeHtml(input.businessName)} is attached: <strong>${money(input.totalCents)}</strong>, paid in full. Thank you.`)}`),
+    };
+  }
+  const balance = input.owedCents < input.totalCents ? ` <strong>${money(input.owedCents)}</strong> of it is still to pay.` : "";
   return {
     subject: `PortPass invoice ${input.number} for ${input.businessName}: ${money(input.totalCents)}, due ${longDay(input.dueOn)}`,
-    html: portpassEmailShell(`Invoice ${input.number}`, `${p(`Your PortPass invoice for ${escapeHtml(input.businessName)} is attached: <strong>${money(input.totalCents)}</strong>, due on <strong>${longDay(input.dueOn)}</strong>.`)}${payBlock(input)}`),
+    html: portpassEmailShell(`Invoice ${input.number}`, `${p(`Your PortPass invoice for ${escapeHtml(input.businessName)} is attached: <strong>${money(input.totalCents)}</strong>, due on <strong>${longDay(input.dueOn)}</strong>.${balance}`)}${payBlock(input)}`),
   };
 }
 
@@ -43,6 +51,10 @@ export function invoiceReminderEmail(kind: Extract<Reminder["kind"], "invoice_du
 
 // The message a founder sends on WhatsApp with an invoice. Nothing is sent
 // from here: this is the text that opens in WhatsApp for them to send.
-export function invoiceWhatsappMessage(input: { businessName: string; number: string; totalCents: number; dueOn: string; dashboardUrl: string | null }): string {
-  return `Hi! Your PortPass invoice ${input.number} for ${input.businessName} is ready: ${money(input.totalCents)}, due ${longDay(input.dueOn)}. We have emailed it to you${input.dashboardUrl ? `, and it is in your dashboard: ${input.dashboardUrl}` : ""}. Please use ${input.number} as your payment reference. Thank you!`;
+// It says only what is true whichever way the invoice went out: the
+// amount, the date, and where to see it. Never that an email was sent.
+export function invoiceWhatsappMessage(input: { businessName: string; number: string; totalCents: number; owedCents: number; dueOn: string; dashboardUrl: string | null }): string {
+  const amount = input.owedCents > 0 && input.owedCents < input.totalCents ? `${money(input.totalCents)}, with ${money(input.owedCents)} still to pay` : money(input.totalCents);
+  const where = input.dashboardUrl ? ` You can see it, with how to pay, in your PortPass dashboard: ${input.dashboardUrl}` : "";
+  return `Hi! Your PortPass invoice ${input.number} for ${input.businessName} is ready: ${amount}, due ${longDay(input.dueOn)}.${where} Please use ${input.number} as your payment reference. Thank you!`;
 }

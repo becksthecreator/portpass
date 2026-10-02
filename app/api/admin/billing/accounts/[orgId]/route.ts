@@ -25,6 +25,11 @@ export async function PUT(request: Request, ctx: Ctx) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "NOT_FOUND") return NextResponse.json({ error: "That business no longer exists." }, { status: 404 });
+    if (message === "BILLING_STARTED") return NextResponse.json({ error: "This business has already been invoiced, so its go-live and free-until dates are fixed. To give free time now, add to the free months: the next invoice moves back by that many months." }, { status: 409 });
+    if (message === "CREDIT_FIXED") return NextResponse.json({ error: "Free months already given can't be taken back once the business has been invoiced. You can add more." }, { status: 409 });
+    if (message === "CREDIT_REASON_REQUIRED") return NextResponse.json({ error: "Say why the free months were given." }, { status: 400 });
+    if (message === "OVERRIDE_REASON_REQUIRED") return NextResponse.json({ error: "Say why the free period has its own end date." }, { status: 400 });
+    if (message === "STATUS_REASON_REQUIRED") return NextResponse.json({ error: "Say why the account is paused or ended. It is logged." }, { status: 400 });
     console.error("admin billing account", message);
     return NextResponse.json({ error: "Could not finish saving. Reload to see what is stored." }, { status: 500 });
   }

@@ -3,6 +3,7 @@ import { requireAdminApi } from "@/lib/auth/admin";
 import { createRateLimiter } from "@/lib/auth/rateLimit";
 import { createManualInvoice } from "@/db/billing";
 import { isDay } from "@/lib/billing";
+import { nassauToday } from "@/lib/futprepTerms";
 
 const limited = createRateLimiter(40, 10 * 60_000);
 
@@ -16,8 +17,12 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as { organizationId?: unknown; issuedOn?: unknown; periodStart?: unknown; periodEnd?: unknown; lines?: unknown; historicalNumber?: unknown } | null;
   const organizationId = Number.isInteger(body?.organizationId) && Number(body?.organizationId) > 0 ? Number(body?.organizationId) : null;
   if (!organizationId) return NextResponse.json({ error: "Choose a business." }, { status: 400 });
-  if (!isDay(body?.issuedOn)) return NextResponse.json({ error: "Enter the invoice date." }, { status: 400 });
-  const periodStart = isDay(body?.periodStart) ? body.periodStart : body.issuedOn;
+  // Only something billed before this system carries its own date. A new
+  // draft is dated today, and again on the day it is sent.
+  const historical = typeof body?.historicalNumber === "string" && body.historicalNumber.trim() !== "";
+  if (historical && !isDay(body?.issuedOn)) return NextResponse.json({ error: "Enter the date the old invoice had." }, { status: 400 });
+  const issuedOn = historical && isDay(body?.issuedOn) ? body.issuedOn : nassauToday();
+  const periodStart = isDay(body?.periodStart) ? body.periodStart : issuedOn;
   const periodEnd = isDay(body?.periodEnd) ? body.periodEnd : periodStart;
   if (periodEnd < periodStart) return NextResponse.json({ error: "The period ends before it starts." }, { status: 400 });
   const lines = (Array.isArray(body?.lines) ? body.lines : []).slice(0, 20).map((line) => {
@@ -26,7 +31,7 @@ export async function POST(request: Request) {
   });
   if (!lines.length || lines.some((line) => !line.description.trim() || !Number.isInteger(line.amountCents) || Math.abs(line.amountCents) > 100_000_000)) return NextResponse.json({ error: "Each line needs a description and an amount." }, { status: 400 });
   try {
-    const invoice = await createManualInvoice({ organizationId, issuedOn: body.issuedOn, periodStart, periodEnd, lines, historicalNumber: typeof body?.historicalNumber === "string" ? body.historicalNumber : null }, auth.session.userId);
+    const invoice = await createManualInvoice({ organizationId, issuedOn, periodStart, periodEnd, lines, historicalNumber: historical && typeof body?.historicalNumber === "string" ? body.historicalNumber : null }, auth.session.userId);
     return NextResponse.json({ ok: true, id: invoice.id, number: invoice.number }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";

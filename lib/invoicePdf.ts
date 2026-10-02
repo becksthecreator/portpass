@@ -92,6 +92,8 @@ class Page {
 }
 
 const COLUMN = { qty: 372, unit: 470, amount: RIGHT };
+// Nothing but the footer is drawn below this height.
+export const FOOTER_CLEAR = 78;
 
 export function invoicePdf(invoice: PdfInvoice): Uint8Array {
   const pages: Page[] = [];
@@ -160,6 +162,15 @@ export function invoicePdf(invoice: PdfInvoice): Uint8Array {
 
   const totals: Array<[string, string, boolean]> = [["Subtotal", moneyExact(invoice.subtotalCents), false], ["VAT", moneyExact(invoice.vatCents), false], ["TOTAL DUE (BSD)", moneyExact(invoice.totalCents), true]];
   if (invoice.paidCents > 0) totals.push(["Received", moneyExact(invoice.paidCents), false], ["Balance (BSD)", moneyExact(Math.max(0, invoice.totalCents - invoice.paidCents)), true]);
+  // The totals and "how to pay" stay together and clear of the footer:
+  // when they don't fit under the last line, they start a new page.
+  const bankLines = wrap(howToPay(invoice.bank), RIGHT - LEFT, 10);
+  const needed = 6 + 17 * totals.length + 38 + 15 * bankLines.length + 15;
+  if (y - needed < FOOTER_CLEAR) {
+    page = new Page();
+    pages.push(page);
+    y = HEIGHT - 40;
+  }
   y -= 6;
   for (const [label, value, bold] of totals) {
     y -= 17;
@@ -169,7 +180,7 @@ export function invoicePdf(invoice: PdfInvoice): Uint8Array {
 
   y -= 38;
   page.text("HOW TO PAY", LEFT, y, { size: 8, bold: true, grey: true });
-  for (const line of wrap(howToPay(invoice.bank), RIGHT - LEFT, 10)) {
+  for (const line of bankLines) {
     y -= 15;
     page.text(line, LEFT, y);
   }

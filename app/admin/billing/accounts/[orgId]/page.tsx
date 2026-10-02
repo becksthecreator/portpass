@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAccount, listInvoices } from "@/db/billing";
+import { getAccount, listInvoices, raisedPeriods } from "@/db/billing";
 import { getBusiness } from "@/db/business";
 import { listPlans } from "@/db/pricing";
 import { requireAdmin } from "@/lib/auth/admin";
@@ -49,10 +49,10 @@ export default async function AdminBillingAccountPage({ params }: { params: Prom
       session={session}
       current="/admin/billing"
       title={business.name}
-      lede={account ? `${ACCOUNT_STATUS_LABEL[account.status]}${account.freeUntil ? ` · free until ${longDay(account.freeUntil)}` : ""}${account.nextInvoiceOn ? ` · next invoice ${longDay(account.nextInvoiceOn)}` : ""}` : "No billing account yet. Nothing is invoiced until you set one up."}
+      lede={account ? `${ACCOUNT_STATUS_LABEL[account.status]}${account.freeUntil && (account.status === "trial" || account.status === "not_live") ? ` · free until ${longDay(account.freeUntil)}` : ""}${account.nextInvoiceOn ? ` · next invoice ${longDay(account.nextInvoiceOn)}` : ""}` : "No billing account yet. Nothing is invoiced until you set one up."}
       actions={<Link className="admin-bar-link" href="/admin/billing">All billing</Link>}
     >
-      <AccountForm organizationId={organizationId} organizationName={business.name} initial={initial} isNew={!account} plans={plans.map((plan) => ({ code: plan.code, name: plan.name, monthlyCents: plan.monthlyCents, commissionBps: plan.commissionBps, annualMonthsCharged: plan.annualMonthsCharged }))} />
+      <AccountForm organizationId={organizationId} organizationName={business.name} initial={initial} isNew={!account} today={today} billingStarted={raisedPeriods(invoices).length > 0} nextInvoiceOn={account?.nextInvoiceOn ?? null} plans={plans.map((plan) => ({ code: plan.code, name: plan.name, monthlyCents: plan.monthlyCents, commissionBps: plan.commissionBps, annualMonthsCharged: plan.annualMonthsCharged }))} />
 
       <section className="admin-group billing-without" aria-labelledby="account-invoices">
         <h2 id="account-invoices">Invoices</h2>

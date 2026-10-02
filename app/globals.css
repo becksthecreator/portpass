@@ -5643,6 +5643,7 @@ a.admin-tile:hover{border-color:var(--sky)}
 .auth-legal a{color:var(--harbour);text-decoration:underline;text-underline-offset:3px}
 .privacy-note{color:var(--muted);font-size:.8rem;line-height:1.5;margin:14px 0 10px}
 .privacy-note a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.admin-page-actions{display:flex;flex-wrap:wrap;gap:6px 18px}
 /* Admin -> Businesses actions, and the owner's "changes asked for" note (brief 08). */
 .admin-row-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;max-width:340px}
 .admin-action{border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);cursor:pointer;display:inline-block;font:inherit;font-size:.78rem;font-weight:700;line-height:1.2;min-height:36px;padding:9px 13px;text-decoration:none}

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { listAdminBusinesses } from "@/db/adminBusinesses";
-import { listEvents } from "@/db/billing";
+import { listAccounts, listEvents } from "@/db/billing";
 import { requireAdmin } from "@/lib/auth/admin";
 import { EVENT_KIND_LABEL, longDay, money } from "@/lib/billing";
 import { nassauToday } from "@/lib/futprepTerms";
 import { AdminShell } from "../../_components/AdminShell";
-import { AddFee } from "./AddFee";
+import { AddFee, RemoveFee } from "./AddFee";
 import "../billing.css";
 
 export const dynamic = "force-dynamic";
@@ -21,16 +21,25 @@ export default async function AdminBillingFeesPage({ searchParams }: { searchPar
   const session = await requireAdmin("/admin/billing/fees");
   const { show } = await searchParams;
   const invoiced = show === "invoiced" ? true : show === "to_invoice" ? false : null;
-  const [events, businesses] = await Promise.all([listEvents({ invoiced }), listAdminBusinesses()]);
+  const [events, businesses, accounts] = await Promise.all([listEvents({ invoiced }), listAdminBusinesses(), listAccounts()]);
   const total = events.reduce((sum, event) => sum + event.feeCents, 0);
+  // A fee is only drafted onto an invoice for a business with an agreed
+  // plan whose account is running.
+  const invoicing = new Set(accounts.filter((account) => account.cycle !== "not_agreed" && !account.paused && !account.ended).map((account) => account.organizationId));
+  const stuck = events.filter((event) => event.invoiceLineId === null && !invoicing.has(event.organizationId));
 
   return (
-    <AdminShell session={session} current="/admin/billing" title="Fees per booking" lede="Wedding coordination fees and commissions. Each goes on the business's next monthly invoice, once." actions={<Link className="admin-bar-link" href="/admin/billing">All billing</Link>}>
+    <AdminShell session={session} current="/admin/billing" title="Fees per booking" lede="Wedding coordination fees and commissions. Each goes on the invoice drafted on the 1st of the month after, once." actions={<Link className="admin-bar-link" href="/admin/billing">All billing</Link>}>
       <div className="admin-filters" aria-label="Filter">
         <Link href="/admin/billing/fees" aria-current={invoiced === null ? "true" : undefined}>All</Link>
         <Link href="/admin/billing/fees?show=to_invoice" aria-current={invoiced === false ? "true" : undefined}>To invoice</Link>
         <Link href="/admin/billing/fees?show=invoiced" aria-current={invoiced === true ? "true" : undefined}>Invoiced</Link>
       </div>
+      {stuck.length > 0 && (
+        <p className="admin-form-note" role="note">
+          <strong>{stuck.length} fee{stuck.length === 1 ? "" : "s"} ({money(stuck.reduce((sum, event) => sum + event.feeCents, 0))}) will not be invoiced as things stand:</strong> the business has no billing account, its plan isn&rsquo;t agreed yet, or its account is paused or ended. They are marked below.
+        </p>
+      )}
       {events.length === 0 ? (
         <p className="admin-empty">No fees {invoiced === false ? "waiting to be invoiced" : invoiced ? "invoiced yet" : "recorded yet"}.</p>
       ) : (
@@ -46,7 +55,10 @@ export default async function AdminBillingFeesPage({ searchParams }: { searchPar
                   <td data-label="Kind">{EVENT_KIND_LABEL[event.kind]}</td>
                   <td data-label="For">{event.note ?? (event.rateBps ? `${event.rateBps / 100}% of ${money(event.bookingValueCents)}` : "—")}</td>
                   <td data-label="Fee"><strong>{money(event.feeCents)}</strong></td>
-                  <td data-label="Invoice">{event.invoiceNumber ? <code>{event.invoiceNumber}</code> : "Not yet"}</td>
+                  <td data-label="Invoice">
+                    {event.invoiceNumber ? <code>{event.invoiceNumber}</code> : invoicing.has(event.organizationId) ? "Not yet" : "No plan agreed: not invoiced"}
+                    {event.invoiceLineId === null && (event.sourceTable === "manual" || event.sourceTable === "wedding_leads") && <> <RemoveFee id={event.id} /></>}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -130,7 +130,7 @@ export default async function AdminBillingPage({ searchParams }: { searchParams:
                   <td data-label="Business"><Link href={`/admin/billing/accounts/${row.account.organizationId}`}><strong>{row.account.organizationName}</strong></Link></td>
                   <td data-label="Plan">{row.account.planCode ?? "—"} · {CYCLE_LABEL[row.account.cycle]}</td>
                   <td data-label="Amount">{isSubscription(row.account.cycle) ? `${money(row.account.priceCents)} a month` : row.account.commissionBps ? `${row.account.commissionBps / 100}% of bookings` : "—"}</td>
-                  <td data-label="Free until">{day(row.freeUntil)}</td>
+                  <td data-label="Free until">{day(row.status === "trial" || row.status === "not_live" ? row.freeUntil : null)}</td>
                   <td data-label="Next invoice">{day(row.nextInvoiceOn)}</td>
                   <td data-label="Owes now">{row.owesCents ? <strong className={row.overdueCents ? "admin-owing" : undefined}>{money(row.owesCents)}</strong> : "—"}</td>
                   <td data-label="Status"><span className={`admin-pill ${STATUS_PILL[row.status]}`}>{ACCOUNT_STATUS_LABEL[row.status]}</span></td>
@@ -160,17 +160,13 @@ export default async function AdminBillingPage({ searchParams }: { searchParams:
 
       <section className="admin-group" aria-labelledby="billing-lines">
         <h2 id="billing-lines">Invoiced, last six months</h2>
-        <table className="admin-table">
-          <thead><tr><th>Month</th>{LINE_SOURCES.map((source) => <th key={source}>{LINE_SOURCE_LABEL[source]}</th>)}</tr></thead>
-          <tbody>
-            {overview.byLine.map((row) => (
-              <tr key={row.month}>
-                <td data-label="Month">{monthName(row.month)}</td>
-                {LINE_SOURCES.map((source) => <td key={source} data-label={LINE_SOURCE_LABEL[source]}>{row.cents[source] ? money(row.cents[source] ?? 0) : "—"}</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ul className="billing-soon">
+          {overview.byLine.map((row) => {
+            const parts = LINE_SOURCES.filter((source) => row.cents[source]).map((source) => `${LINE_SOURCE_LABEL[source]} ${money(row.cents[source] ?? 0)}`);
+            const total = LINE_SOURCES.reduce((sum, source) => sum + (row.cents[source] ?? 0), 0);
+            return <li key={row.month}><span>{monthName(row.month)}</span><strong>{total ? money(total) : "Nothing invoiced"}</strong>{parts.length > 0 && <small>{parts.join(" · ")}</small>}</li>;
+          })}
+        </ul>
       </section>
 
       <section className="admin-group" aria-labelledby="billing-export">

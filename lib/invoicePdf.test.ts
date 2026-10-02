@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { invoiceReminderEmail, invoiceSentEmail, invoiceWhatsappMessage, trialEndingEmail } from "./billingEmail";
 import { cleanAccount, cleanReceipt } from "./billingInput";
-import { invoicePdf, type PdfInvoice } from "./invoicePdf";
+import { FOOTER_CLEAR, invoicePdf, type PdfInvoice } from "./invoicePdf";
 
 const BANK = { bank: "TEST Bank", accountName: "PortPass Bahamas Technologies", accountNumber: "0000000", branch: "TEST Main" };
 
@@ -52,6 +52,20 @@ describe("the invoice PDF", () => {
     expect(long).toContain("TEST line 40");
   });
 
+  it("keeps the totals and how to pay clear of the footer, however many lines there are", () => {
+    // Every text drawn below the clear line must be the footer itself.
+    for (let count = 1; count <= 45; count += 1) {
+      for (const paidCents of [0, 100]) {
+        const file = text(invoicePdf(invoice({ paidCents, lines: Array.from({ length: count }, (_, i) => ({ description: `TEST line ${i + 1}`, qty: 1, unitCents: 100, amountCents: 100 })) })));
+        const low = Array.from(file.matchAll(/ ([\d.]+) ([\d.]+) Td \(([^\n]*)\) Tj ET/g)).filter((m) => Number(m[2]) < FOOTER_CLEAR).map((m) => m[3]);
+        for (const drawn of low) expect(drawn, `${count} lines, paid ${paidCents}`).not.toMatch(/TOTAL DUE|Subtotal|VAT|Received|Balance|HOW TO PAY|TEST Bank|payment reference|TEST line|\d\.\d{2}/);
+        // And the totals are there, once.
+        expect(file.match(/TOTAL DUE/g)).toHaveLength(1);
+        expect(file).toContain("HOW TO PAY");
+      }
+    }
+  });
+
   it("is the same file every time for the same invoice", () => {
     expect(text(invoicePdf(invoice()))).toBe(text(invoicePdf(invoice())));
   });
@@ -76,6 +90,18 @@ describe("billing emails", () => {
     expect(invoiceReminderEmail("invoice_overdue_1", input).html).toContain("was due yesterday");
     expect(invoiceReminderEmail("invoice_overdue_7", input).html).toContain("a week overdue");
     expect(invoiceWhatsappMessage(input)).toContain("PP-2026-001 for TEST Club is ready: $120, due 19 November 2026");
+    // It never says an email was sent: it may not have been.
+    expect(invoiceWhatsappMessage(input)).not.toMatch(/emailed/i);
+    expect(invoiceWhatsappMessage(input)).toContain("https://portpassbahamas.com/business/test-club/billing");
+  });
+
+  it("says what is still to pay on a part-paid invoice, and never asks for money on a paid one", () => {
+    const input = { businessName: "TEST Club", number: "PP-2026-001", totalCents: 12000, owedCents: 7000, dueOn: "2026-11-19", bank: BANK, dashboardUrl: null };
+    expect(invoiceSentEmail(input).html).toContain("$70</strong> of it is still to pay");
+    expect(invoiceWhatsappMessage(input)).toContain("$120, with $70 still to pay");
+    const paid = invoiceSentEmail({ ...input, owedCents: 0 });
+    expect(paid.subject).toContain("paid in full");
+    expect(paid.html).not.toContain("payment reference");
   });
 });
 

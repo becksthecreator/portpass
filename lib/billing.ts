@@ -102,6 +102,7 @@ export function longDay(day: string): string {
 
 // "1–31 October 2026", "15 October – 14 November 2026".
 export function periodLabel(start: string, end: string): string {
+  if (start === end) return longDay(start);
   if (start.slice(0, 7) === end.slice(0, 7)) return `${Number(start.slice(8))}–${longDay(end)}`;
   if (start.slice(0, 4) === end.slice(0, 4)) return `${Number(start.slice(8))} ${MONTHS[Number(start.slice(5, 7)) - 1]} – ${longDay(end)}`;
   return `${longDay(start)} – ${longDay(end)}`;
@@ -146,6 +147,10 @@ export type BillingAccount = {
   agreementVersion: string | null;
   billingEmail: string | null;
   billingWhatsappE164: string | null;
+  // Billing starts again no earlier than this day. Set when an account is
+  // un-paused (the paused months are not billed afterwards) and when free
+  // months are given after billing has started. Never typed in.
+  billingResumesOn: string | null;
   // Set by a founder, with a reason: nothing here pauses or ends an
   // account by itself.
   paused: boolean;
@@ -179,40 +184,64 @@ export function subscriptionPeriod(first: string, cycle: "monthly" | "annual", i
   return { start, end: addDays(addMonths(first, step * (index + 1), anchor), -1) };
 }
 
-// Every invoice date from the first up to and including `today`. An
-// account that goes unbilled for a while owes each period, not one.
-export function periodsDue(first: string, cycle: "monthly" | "annual", today: string, max = 36): Array<{ start: string; end: string }> {
+// The periods a business has already been invoiced for: its subscription
+// invoices that are not void. The schedule runs on from the last of them,
+// so changing the account later (its price, its cycle, a credit) never
+// re-bills a period or leaves a gap. A void invoice is a cancelled piece
+// of paper, not a waived period: its period is billable again.
+export type RaisedPeriod = { periodStart: string; periodEnd: string };
+
+type Scheduled = Pick<BillingAccount, "goLiveOn" | "freeMonthsCredit" | "freeUntilOverride" | "billingResumesOn">;
+
+// The day the next subscription period starts: the day after the last
+// period invoiced, or the first invoice date when nothing has been; and
+// never before the day billing resumes. It can be today or earlier, which
+// means an invoice is due to be drafted now.
+export function nextPeriodStartOn(account: Scheduled, raised: RaisedPeriod[]): string | null {
+  const latestEnd = raised.reduce<string | null>((latest, period) => (!latest || period.periodEnd > latest ? period.periodEnd : latest), null);
+  const natural = latestEnd ? addDays(latestEnd, 1) : firstInvoiceOn(account);
+  if (!natural) return null;
+  return account.billingResumesOn && account.billingResumesOn > natural ? account.billingResumesOn : natural;
+}
+
+// The day of the month the schedule keeps (so the 31st stays the 31st
+// after a February). When `start` is not on that day, because billing
+// resumed or the cycle changed mid-month, the schedule keeps start's own.
+function scheduleDay(account: Scheduled, start: string): number {
+  const own = Number(start.slice(8));
+  const from = account.billingResumesOn && account.billingResumesOn <= start ? account.billingResumesOn : firstInvoiceOn(account);
+  if (!from) return own;
+  const kept = Number(from.slice(8));
+  const [year, month] = start.split("-").map(Number);
+  return own === Math.min(kept, lastDayOf(year, month - 1)) ? kept : own;
+}
+
+// Every period to draft now: from the next period start up to and
+// including `today`, one after another. An account that went unbilled for
+// a while owes each period, not one.
+export function periodsToDraft(account: Scheduled & Pick<BillingAccount, "cycle">, raised: RaisedPeriod[], today: string, max = 36): Array<{ start: string; end: string }> {
+  if (!isSubscription(account.cycle)) return [];
+  let start = nextPeriodStartOn(account, raised);
+  if (!start) return [];
+  const step = account.cycle === "annual" ? 12 : 1;
+  const keep = scheduleDay(account, start);
   const periods: Array<{ start: string; end: string }> = [];
-  for (let index = 0; index < max; index += 1) {
-    const period = subscriptionPeriod(first, cycle, index);
-    if (period.start > today) break;
-    periods.push(period);
+  while (start <= today && periods.length < max) {
+    const next = addMonths(start, step, keep);
+    periods.push({ start, end: addDays(next, -1) });
+    start = next;
   }
   return periods;
 }
 
-// The next invoice date after `today` (or today's, if it is one and has not been raised: see nextInvoiceOn).
-export function nextPeriodStart(first: string, cycle: "monthly" | "annual", today: string): string {
-  for (let index = 0; index < 600; index += 1) {
-    const start = subscriptionPeriod(first, cycle, index).start;
-    if (start > today) return start;
-  }
-  return first;
-}
-
-// When the next invoice goes out. A subscription: the first invoice date,
-// or the next one not yet raised. Commission: the 1st of next month, for
-// the month just ended. Nothing for an account with no agreed plan.
-export function nextInvoiceOn(account: BillingAccount, today: string, invoicedPeriodStarts: string[] = []): string | null {
+// When the next invoice goes out. A subscription: the start of the next
+// period not yet invoiced (today or earlier means it is due now). Fees per
+// booking or wedding: the 1st of next month, for the month just ended.
+// Nothing for an account with no agreed plan, or one paused or ended.
+export function nextInvoiceOn(account: BillingAccount, today: string, raised: RaisedPeriod[] = []): string | null {
   if (account.ended || account.paused) return null;
-  if (isSubscription(account.cycle)) {
-    const first = firstInvoiceOn(account);
-    if (!first) return null;
-    const raised = new Set(invoicedPeriodStarts);
-    const missed = periodsDue(first, account.cycle, today).find((period) => !raised.has(period.start));
-    return missed ? missed.start : nextPeriodStart(first, account.cycle, today);
-  }
-  if (account.cycle === "commission_monthly") return addMonths(firstOfMonth(today), 1);
+  if (isSubscription(account.cycle)) return nextPeriodStartOn(account, raised);
+  if (account.cycle === "commission_monthly" || account.cycle === "per_event") return addMonths(firstOfMonth(today), 1);
   return null;
 }
 
@@ -326,14 +355,22 @@ export function daysOverdue(invoice: Pick<Invoice, "status" | "dueOn" | "totalCe
 
 // Where the account stands. Paused and ended are a founder's decision;
 // the rest follows from the dates and from what is unpaid.
-export function accountStatus(account: BillingAccount, invoices: Array<Pick<Invoice, "status" | "dueOn" | "totalCents" | "paidCents">>, today: string): AccountStatus {
+// `billingStarted`: the business has been invoiced for a plan period. From
+// then on it is never "free period" again, whatever credit it is given.
+export function accountStatus(account: BillingAccount, invoices: Array<Pick<Invoice, "status" | "dueOn" | "totalCents" | "paidCents">>, today: string, billingStarted = false): AccountStatus {
   if (account.ended) return "ended";
   if (account.paused) return "paused";
-  if (!account.goLiveOn && !account.freeUntilOverride) return "not_live";
+  if (!billingStarted && (account.goLiveOn ? account.goLiveOn > today && !account.freeUntilOverride : !account.freeUntilOverride)) return "not_live";
   if (invoices.some((invoice) => daysOverdue(invoice, today) > 0)) return "past_due";
+  if (billingStarted) return "active";
   const free = freeUntil(account);
   return free && today <= free ? "trial" : "active";
 }
+
+// What a business may see of its own invoices: never a draft (PortPass's
+// working copy), and never a draft that was voided before it was sent. An
+// old invoice recorded with its own number was sent long ago, so it shows.
+export const shownToBusiness = (invoice: Pick<Invoice, "status" | "sentAt" | "kind">): boolean => invoice.status !== "draft" && !(invoice.status === "void" && !invoice.sentAt && invoice.kind !== "historical");
 
 // ---- Reminders -------------------------------------------------------------------
 
@@ -344,17 +381,22 @@ export type Reminder =
 // The emails owed today. Each has a key that is recorded when it is sent,
 // so the job can run twice and send once. A reminder is for one exact
 // day: a job that did not run that day does not send it late.
-export function remindersDue(account: BillingAccount, invoices: Invoice[], today: string): Reminder[] {
+export function remindersDue(account: BillingAccount, invoices: Invoice[], today: string, billingStarted = false): Reminder[] {
   const reminders: Reminder[] = [];
   if (account.ended || account.paused) return reminders;
   const free = freeUntil(account);
-  // The message names the plan and its price, so it needs both agreed.
-  if (free && isSubscription(account.cycle) && account.priceCents > 0) {
+  // The message names the plan and its price, so it needs both agreed. A
+  // business already being invoiced is never told its free period is
+  // ending: a credit given later moves its next invoice, nothing more.
+  if (free && !billingStarted && isSubscription(account.cycle) && account.priceCents > 0) {
     if (addDays(free, -7) === today) reminders.push({ kind: "trial_ends_7", key: `trial_ends_7:${account.organizationId}:${free}`, freeUntil: free });
     if (addDays(free, -1) === today) reminders.push({ kind: "trial_ends_1", key: `trial_ends_1:${account.organizationId}:${free}`, freeUntil: free });
   }
   for (const invoice of invoices) {
     if (invoice.status === "draft" || invoice.status === "void" || invoice.paidCents >= invoice.totalCents) continue;
+    // Something billed before this system was never sent from here, so it
+    // is never chased from here either.
+    if (invoice.kind === "historical") continue;
     const overdue = daysBetween(invoice.dueOn, today);
     // From 14 days overdue the emails stop: a founder calls instead.
     if (overdue >= STOP_EMAILS_AFTER_DAYS) continue;

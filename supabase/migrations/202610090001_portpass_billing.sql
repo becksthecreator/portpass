@@ -32,6 +32,9 @@ create table if not exists public.billing_accounts (
   free_until date,
   first_invoice_on date,
   next_invoice_on date,
+  -- Billing starts again no earlier than this day: set when an account is
+  -- un-paused, or when free months are given after billing has started.
+  billing_resumes_on date,
   status text not null default 'not_live' check (status in ('not_live', 'trial', 'active', 'past_due', 'paused', 'ended')),
   setup_fee_cents integer not null default 0 check (setup_fee_cents >= 0),
   setup_status text not null default 'waived' check (setup_status in ('due', 'paid', 'waived')),
@@ -93,7 +96,9 @@ create table if not exists public.portpass_invoices (
 );
 
 -- One invoice for one period of one business, however often the job runs.
-create unique index if not exists portpass_invoices_period_idx on public.portpass_invoices (organization_id, kind, period_start) where kind in ('subscription', 'commission');
+-- A void invoice is a cancelled piece of paper, not a waived period: it
+-- keeps its number and frees its period to be drafted again.
+create unique index if not exists portpass_invoices_period_idx on public.portpass_invoices (organization_id, kind, period_start) where kind in ('subscription', 'commission') and status <> 'void';
 create index if not exists portpass_invoices_org_idx on public.portpass_invoices (organization_id, issued_on desc);
 create index if not exists portpass_invoices_status_idx on public.portpass_invoices (status, due_on);
 
@@ -131,7 +136,13 @@ create table if not exists public.portpass_receipts (
   received_on date not null,
   recorded_by uuid references auth.users(id) on delete set null,
   note text,
-  created_at timestamptz not null default now()
+  -- A receipt typed in wrongly is reversed, never edited or deleted: the
+  -- row stays, with who reversed it and why, and stops counting.
+  reversed_at timestamptz,
+  reversed_by uuid references auth.users(id) on delete set null,
+  reversed_reason text,
+  created_at timestamptz not null default now(),
+  constraint portpass_receipts_reversal_has_reason check (reversed_at is null or length(btrim(coalesce(reversed_reason, ''))) > 0)
 );
 
 create index if not exists portpass_receipts_invoice_idx on public.portpass_receipts (invoice_id);
@@ -159,6 +170,18 @@ revoke all on public.billing_reminders from anon, authenticated;
 --    migration): a few words on what the fee was for, and the link to the
 --    invoice line it was put on.
 alter table public.billing_events add column if not exists note text;
+
+-- A fee refunded after it was invoiced comes back as a credit: a negative
+-- fee on the next invoice (brief 09, 2.2). Only a credit may be negative:
+-- one written for another fee (source_table 'billing_events', source_id
+-- that fee's id, so each fee is credited at most once) or one a founder
+-- typed in (source_table 'manual').
+alter table public.billing_events drop constraint if exists billing_events_fee_cents_check;
+alter table public.billing_events drop constraint if exists billing_events_flat_cents_check;
+alter table public.billing_events drop constraint if exists billing_events_fee_sign;
+alter table public.billing_events drop constraint if exists billing_events_flat_sign;
+alter table public.billing_events add constraint billing_events_fee_sign check (fee_cents >= 0 or source_table in ('billing_events', 'manual'));
+alter table public.billing_events add constraint billing_events_flat_sign check (flat_cents >= 0 or source_table in ('billing_events', 'manual'));
 
 do $$
 begin
@@ -209,7 +232,7 @@ begin
   end if;
   if p_kind in ('subscription', 'commission') and exists (
     select 1 from public.portpass_invoices i
-     where i.organization_id = p_organization_id and i.kind = p_kind and i.period_start = p_period_start
+     where i.organization_id = p_organization_id and i.kind = p_kind and i.period_start = p_period_start and i.status <> 'void'
   ) then
     return null;
   end if;
@@ -222,7 +245,7 @@ begin
     insert into public.portpass_invoice_counters (year, last) values (v_year, 1)
     on conflict (year) do update set last = public.portpass_invoice_counters.last + 1
     returning last into v_seq;
-    v_number := 'PP-' || v_year::text || '-' || lpad(v_seq::text, 3, '0');
+    v_number := 'PP-' || v_year::text || '-' || lpad(v_seq::text, greatest(3, length(v_seq::text)), '0');
   end if;
 
   insert into public.portpass_invoices (number, organization_id, kind, period_start, period_end, issued_on, due_on, status, subtotal_cents, vat_cents, total_cents, created_by)
@@ -283,10 +306,14 @@ begin
   if v_invoice.status in ('draft', 'void') then
     raise exception 'NOT_PAYABLE';
   end if;
+  -- More than is still owed is a typing mistake or the wrong invoice.
+  if v_invoice.paid_cents + p_amount_cents > v_invoice.total_cents then
+    raise exception 'OVERPAID';
+  end if;
   insert into public.portpass_receipts (invoice_id, organization_id, amount_cents, method, reference, received_on, recorded_by, note)
   values (p_invoice_id, v_invoice.organization_id, p_amount_cents, p_method, nullif(btrim(coalesce(p_reference, '')), ''), p_received_on, p_recorded_by, nullif(btrim(coalesce(p_note, '')), ''))
   returning id into v_id;
-  select coalesce(sum(amount_cents), 0) into v_paid from public.portpass_receipts where invoice_id = p_invoice_id;
+  select coalesce(sum(amount_cents), 0) into v_paid from public.portpass_receipts where invoice_id = p_invoice_id and reversed_at is null;
   update public.portpass_invoices
      set paid_cents = v_paid,
          status = case when v_paid >= total_cents then 'paid' when status = 'overdue' then 'overdue' else 'part_paid' end,
@@ -297,3 +324,86 @@ end;
 $$;
 
 revoke all on function public.record_portpass_receipt(bigint, integer, text, text, date, uuid, text) from public, anon, authenticated;
+
+-- 10. Reversing a receipt recorded by mistake: the receipt stays, marked,
+--     and the invoice's paid total and status are worked out again, in one
+--     transaction. Returns the invoice's id.
+create or replace function public.reverse_portpass_receipt(
+  p_receipt_id bigint,
+  p_reason text,
+  p_by uuid,
+  p_today date
+)
+returns bigint
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_receipt public.portpass_receipts%rowtype;
+  v_invoice public.portpass_invoices%rowtype;
+  v_paid integer;
+begin
+  if length(btrim(coalesce(p_reason, ''))) = 0 then
+    raise exception 'REASON_REQUIRED';
+  end if;
+  select * into v_receipt from public.portpass_receipts where id = p_receipt_id;
+  if not found then
+    raise exception 'NOT_FOUND';
+  end if;
+  select * into v_invoice from public.portpass_invoices where id = v_receipt.invoice_id for update;
+  -- Read again now the invoice is locked: two founders may press at once.
+  select * into v_receipt from public.portpass_receipts where id = p_receipt_id;
+  if v_receipt.reversed_at is not null then
+    raise exception 'ALREADY_REVERSED';
+  end if;
+  update public.portpass_receipts set reversed_at = now(), reversed_by = p_by, reversed_reason = btrim(p_reason) where id = p_receipt_id;
+  select coalesce(sum(amount_cents), 0) into v_paid from public.portpass_receipts where invoice_id = v_invoice.id and reversed_at is null;
+  update public.portpass_invoices
+     set paid_cents = v_paid,
+         status = case
+           when status = 'void' then 'void'
+           when v_paid >= total_cents then 'paid'
+           when due_on < p_today then 'overdue'
+           when v_paid > 0 then 'part_paid'
+           else 'sent'
+         end,
+         updated_at = now()
+   where id = v_invoice.id;
+  return v_invoice.id;
+end;
+$$;
+
+revoke all on function public.reverse_portpass_receipt(bigint, text, uuid, date) from public, anon, authenticated;
+
+-- 11. Voiding: the invoice and the release of its fees (they go back to
+--     "to invoice") in one transaction. Safe to call again on an invoice
+--     that is already void: it only makes sure the fees were released.
+create or replace function public.void_portpass_invoice(p_invoice_id bigint, p_reason text)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_invoice public.portpass_invoices%rowtype;
+begin
+  if length(btrim(coalesce(p_reason, ''))) = 0 then
+    raise exception 'REASON_REQUIRED';
+  end if;
+  select * into v_invoice from public.portpass_invoices where id = p_invoice_id for update;
+  if not found then
+    raise exception 'NOT_FOUND';
+  end if;
+  if v_invoice.paid_cents > 0 then
+    raise exception 'HAS_RECEIPTS';
+  end if;
+  if v_invoice.status <> 'void' then
+    update public.portpass_invoices set status = 'void', void_reason = btrim(p_reason), updated_at = now() where id = p_invoice_id;
+  end if;
+  update public.billing_events set invoice_line_id = null, updated_at = now()
+   where invoice_line_id in (select id from public.portpass_invoice_lines where invoice_id = p_invoice_id);
+end;
+$$;
+
+revoke all on function public.void_portpass_invoice(bigint, text) from public, anon, authenticated;

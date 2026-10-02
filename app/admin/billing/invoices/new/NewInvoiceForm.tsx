@@ -10,7 +10,8 @@ type Line = { description: string; amount: string };
 // never uses a PP- number.
 export function NewInvoiceForm({ businesses, today }: { businesses: Array<{ id: number; name: string }>; today: string }) {
   const router = useRouter();
-  const [organizationId, setOrganizationId] = useState(businesses[0]?.id ?? 0);
+  // No business is chosen for you: an invoice to the wrong business is a wrong invoice.
+  const [organizationId, setOrganizationId] = useState(0);
   const [issuedOn, setIssuedOn] = useState(today);
   const [historical, setHistorical] = useState(false);
   const [number, setNumber] = useState("");
@@ -44,11 +45,12 @@ export function NewInvoiceForm({ businesses, today }: { businesses: Array<{ id: 
         <legend>Invoice</legend>
         <div className="billing-pair">
           <label><span>Business</span>
-            <select value={organizationId} onChange={(event) => setOrganizationId(Number(event.target.value))}>
+            <select value={organizationId} onChange={(event) => setOrganizationId(Number(event.target.value))} required>
+              <option value={0} disabled>Choose a business</option>
               {businesses.map((business) => <option key={business.id} value={business.id}>{business.name}</option>)}
             </select>
           </label>
-          <label><span>Invoice date</span><input type="date" value={issuedOn} onChange={(event) => setIssuedOn(event.target.value)} required /></label>
+          {historical ? <label><span>The date the old invoice had</span><input type="date" value={issuedOn} max={today} onChange={(event) => setIssuedOn(event.target.value)} required /></label> : <p className="admin-form-note">It is dated the day you send it, and due 14 days after.</p>}
         </div>
         <label className="billing-check"><input type="checkbox" checked={historical} onChange={(event) => setHistorical(event.target.checked)} /><span>This was billed before this system (it keeps its own number)</span></label>
         {historical && <label><span>The number it had (for example BWS-BUILD)</span><input value={number} onChange={(event) => setNumber(event.target.value)} maxLength={30} autoCapitalize="characters" /></label>}

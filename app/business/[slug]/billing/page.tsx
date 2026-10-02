@@ -36,20 +36,23 @@ export default async function BusinessBillingPage({ params }: { params: Params }
         <div className="eyebrow"><span className="eyebrow-dot" />Your plan</div>
         <h1>{business.name}</h1>
         {!account || account.cycle === "not_agreed" ? (
-          <p className="auth-lead">Your plan with PortPass hasn&rsquo;t been set yet. Nothing is owed. <a href={PORTPASS_WHATSAPP_URL}>Message us</a> if you&rsquo;d like to talk it through.</p>
+          <p className="auth-lead">Your plan with PortPass hasn&rsquo;t been set yet.{owed === 0 ? " Nothing is owed." : ""} <a href={PORTPASS_WHATSAPP_URL}>Message us</a> if you&rsquo;d like to talk it through.</p>
         ) : (
-          <>
-            <p className="auth-lead">
-              {card.planName ? `${card.planName} plan` : CYCLE_LABEL[account.cycle]}
-              {isSubscription(account.cycle) ? `: ${account.cycle === "annual" ? `${money(annualPriceCents(account))} a year` : `${money(account.priceCents)} a month`}` : account.commissionBps ? `: ${account.commissionBps / 100}% of the bookings PortPass brings you, invoiced once a month` : ""}.
-            </p>
-            <ul className="account-places">
-              <li><strong>Where you stand</strong><span>{card.status ? ACCOUNT_STATUS_LABEL[card.status] : "—"}</span></li>
-              {card.freeUntil && <li><strong>Free until</strong><span>{longDay(card.freeUntil)}</span></li>}
-              {card.nextInvoiceOn && <li><strong>Next invoice</strong><span>{longDay(card.nextInvoiceOn)}{card.nextInvoiceCents ? `, ${money(card.nextInvoiceCents)}` : ""}</span></li>}
-              {owed > 0 && <li><strong>Owed now</strong><span>{money(owed)}</span></li>}
-            </ul>
-          </>
+          <p className="auth-lead">
+            {card.planName ? `${card.planName} plan` : CYCLE_LABEL[account.cycle]}
+            {isSubscription(account.cycle) ? `: ${account.cycle === "annual" ? `${money(annualPriceCents(account))} a year` : `${money(account.priceCents)} a month`}` : account.commissionBps ? `: ${account.commissionBps / 100}% of the bookings PortPass brings you, invoiced once a month` : ""}.
+          </p>
+        )}
+        {/* Where things stand shows whenever there is an account, or
+            anything owed: a business with an unpaid invoice is never told
+            "nothing is owed". */}
+        {(account || owed > 0) && (
+          <ul className="account-places">
+            {account && card.status && <li><strong>Where you stand</strong><span>{ACCOUNT_STATUS_LABEL[card.status]}</span></li>}
+            {card.freeUntil && <li><strong>Free until</strong><span>{longDay(card.freeUntil)}</span></li>}
+            {card.nextInvoiceOn && <li><strong>Next invoice</strong><span>{longDay(card.nextInvoiceOn)}{card.nextInvoiceCents ? `, ${money(card.nextInvoiceCents)}` : ""}</span></li>}
+            {owed > 0 && <li><strong>Owed now</strong><span>{money(owed)}</span></li>}
+          </ul>
         )}
 
         <section className="account-section">
