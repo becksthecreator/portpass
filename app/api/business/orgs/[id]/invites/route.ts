@@ -36,6 +36,7 @@ export async function POST(request: Request, ctx: Ctx) {
     await sendEmail({
       to: email,
       from: portpassFrom(),
+      log: { template: "team_invite", organizationId: id },
       subject: `You've been added to ${business?.name ?? "a business"} on PortPass`,
       html: portpassEmailShell(`Join ${business?.name ?? "the team"} on PortPass`, `
         <p>${escapeHtml(auth.session.profile?.fullName ?? "Someone")} added you to <strong>${escapeHtml(business?.name ?? "a business")}</strong> on PortPass as <strong>${role.replace("org_", "")}</strong>.</p>

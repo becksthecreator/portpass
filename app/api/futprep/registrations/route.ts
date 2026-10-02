@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { futprepOrganization } from "@/db/growth";
+import { afterResponse } from "@/lib/afterResponse";
 import {
   createFutprepRegistration,
   type FutprepRegistrationInput,
@@ -152,7 +154,9 @@ export async function POST(request: Request) {
     // The "registration received" email carries an amount due and payment
     // instructions, so it goes only for a real place; a waitlist entry or
     // a free trial gets its confirmation on screen.
-    if (registration.registrationStatus === "pending") sendFutprepRegistrationReceivedEmail({
+    const origin = new URL(request.url).origin;
+    if (registration.registrationStatus === "pending") afterResponse(async () => sendFutprepRegistrationReceivedEmail({
+      organizationId: (await futprepOrganization().catch(() => null))?.id ?? null,
       parentEmail: input.parentEmail,
       parentName: input.parentName,
       childName: input.childName,
@@ -163,8 +167,8 @@ export async function POST(request: Request) {
       location: registration.term.location,
       amountDueCents: registration.amountDueCents,
       referenceCode: registration.referenceCode,
-      statusUrl: `${new URL(request.url).origin}/futprep/my/${registration.referenceCode}`,
-    }).catch((error) => console.error("Futprep registration email error", error));
+      statusUrl: `${origin}/futprep/my/${registration.referenceCode}`,
+    }));
     return NextResponse.json({ registration }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";

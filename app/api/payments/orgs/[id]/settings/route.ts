@@ -28,6 +28,7 @@ export async function PUT(request: Request, ctx: Ctx) {
     if (howToPayChanged && auth.access.door === "business" && auth.access.orgSlug) {
       const owners = await listOwnerEmails(orgId).catch(() => []);
       await sendBankDetailsChangedEmail({
+        organizationId: orgId,
         to: owners,
         businessName: auth.access.orgName,
         changedBy: auth.access.actor.name,

@@ -579,6 +579,7 @@ export async function actOnPrivateSessionRequest(input:{
       const services=existing.service_slug ? await listFutprepPrivateServices() : [];
       const service=services.find((s)=>s.slug===existing.service_slug);
       await sendPrivateSessionAcceptedEmail({
+        organizationId:existing.organization_id===null||existing.organization_id===undefined ? null : Number(existing.organization_id),
         parentEmail:existing.parent_email,
         parentName:existing.parent_name,
         childName:String(existing.child_name).split(" ")[0] ?? existing.child_name,

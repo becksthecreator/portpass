@@ -42,6 +42,12 @@ const SHOTS = [
   ["brief08-admin-payments-months-375", "admin", "/admin/payments/recorded?view=months", ".admin-table"],
   ["brief08-admin-leads-board-375", "admin", "/admin/leads?view=board", ".leads-board"],
   ["brief08-admin-content-375", "admin", "/admin/content", ".admin-content-form"],
+  // Brief 08, build C: the Overview with its health tiles, the Messages
+  // log, Health and Settings.
+  ["brief08-admin-overview-375", "admin", "/admin", "#health"],
+  ["brief08-admin-messages-375", "admin", "/admin/messages", ".admin-table"],
+  ["brief08-admin-health-375", "admin", "/admin/health", ".admin-facts"],
+  ["brief08-admin-settings-375", "admin", "/admin/settings", ".admin-table"],
   // Brief 14: Admin -> Leads with five TEST leads, and one lead's card.
   ["brief14-leads-table-375", "admin", "/admin/leads", ".leads-table"],
   ["brief14-lead-card-375", "admin", `/admin/leads/${fixture.leadId}`, ".lead-panel"],

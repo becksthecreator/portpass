@@ -39,8 +39,7 @@ async function tellOwners(business: Business, notice: BusinessNotice, note: stri
     }
     const email = businessNoticeEmail({ notice, businessName: business.name, slug: business.slug, note });
     for (const to of owners) {
-      const outcome = await sendEmail({ to, subject: email.subject, html: email.html, from: portpassFrom() });
-      await logMessage({ organizationId: business.id, template, recipient: to, status: outcome, detail: outcome === "skipped" ? "Email is not set up yet." : null });
+      await sendEmail({ to, subject: email.subject, html: email.html, from: portpassFrom(), log: { template, organizationId: business.id } });
     }
   } catch (error) {
     // The action itself has happened and is in the audit log; a failed

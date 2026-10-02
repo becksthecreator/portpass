@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { futprepOrganization } from "@/db/growth";
+import { afterResponse } from "@/lib/afterResponse";
 import { currentFutprepStaffRole } from "@/app/futprep/staff-auth";
 import { updateFutprepRegistration } from "@/db/staff";
 import { sendFutprepRegistrationConfirmedEmail } from "@/lib/email";
@@ -34,13 +36,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       paymentStatus: body.paymentStatus as "pending" | "partial" | "paid" | "overdue" | "waived" | undefined,
     });
     if (confirmed) {
-      sendFutprepRegistrationConfirmedEmail({
+      const origin = new URL(request.url).origin;
+      afterResponse(async () => sendFutprepRegistrationConfirmedEmail({
+        organizationId: (await futprepOrganization().catch(() => null))?.id ?? null,
         parentEmail: confirmed.parentEmail,
         parentName: confirmed.parentName,
         childName: confirmed.childName,
         programName: confirmed.programName,
-        statusUrl: `${new URL(request.url).origin}/futprep/my`,
-      }).catch((error) => console.error("Futprep confirmation email error", error));
+        statusUrl: `${origin}/futprep/my`,
+      }));
     }
     return NextResponse.json({ ok: true });
   } catch (error) {

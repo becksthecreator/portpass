@@ -435,8 +435,15 @@ export async function releaseJobRun(job: string, periodKey: string): Promise<voi
 export type MessageStatus = "sent" | "failed" | "skipped";
 
 // One row per email PortPass tried to send. Never the email's text.
-export async function logMessage(input: { organizationId: number | null; template: string; recipient: string; status: MessageStatus; detail?: string | null }): Promise<void> {
-  const { error } = await getSupabaseAdmin().from("message_log").insert({ organization_id: input.organizationId, template: input.template, recipient: input.recipient.slice(0, 254), status: input.status, detail: input.detail ? input.detail.slice(0, 200) : null });
+// providerId is the email service's id for the message, which its webhook
+// later reports "delivered" or "bounced" against.
+export async function logMessage(input: { organizationId: number | null; template: string; recipient: string; status: MessageStatus; detail?: string | null; providerId?: string | null }): Promise<void> {
+  // An address is kept in lower case, so a search finds every email sent to
+  // it however it was typed. A placeholder ("(no owner on file)") or a
+  // coach's name is kept as it is.
+  const typed = input.recipient.trim().slice(0, 254);
+  const recipient = typed.includes("@") ? typed.toLowerCase() : typed;
+  const { error } = await getSupabaseAdmin().from("message_log").insert({ organization_id: input.organizationId, template: input.template, recipient, status: input.status, detail: input.detail ? input.detail.slice(0, 200) : null, provider_id: input.providerId ? input.providerId.slice(0, 100) : null });
   throwIfSupabaseError(error, "Could not write the messages log");
 }
 

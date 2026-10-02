@@ -22,6 +22,22 @@ set +a
 : "${AGE_RECIPIENT:?must be set in $ENV_FILE}"
 : "${BACKUP_DIR:?must be set in $ENV_FILE}"
 
+# Tells PortPass a backup finished (or failed), so Admin -> Overview can show
+# when the last one ran. Optional: only when HEARTBEAT_URL and
+# HEARTBEAT_SECRET are both in the env file. The secret is handed to curl
+# on standard input, never on the command line, and a heartbeat that can't
+# be delivered never fails the backup itself.
+heartbeat() {
+  [[ -n "${HEARTBEAT_URL:-}" && -n "${HEARTBEAT_SECRET:-}" ]] || return 0
+  command -v curl >/dev/null || return 0
+  printf 'header = "Authorization: Bearer %s"\nheader = "Content-Type: application/json"\ndata = "{\\"ok\\": %s}"\n' "$HEARTBEAT_SECRET" "$1" \
+    | curl -fsS -m 20 -o /dev/null -X POST -K - "$HEARTBEAT_URL" \
+    || echo "backup: heartbeat not delivered" >&2
+}
+# However the script stops (a failed step, or a check that calls fail), a
+# failure is reported once, and the unfinished file is removed.
+trap 'rc=$?; rm -f "${tmp:-}"; [[ $rc -eq 0 ]] || heartbeat false' EXIT
+
 command -v pg_dump >/dev/null || fail "pg_dump not installed (postgresql-client-17)"
 command -v age >/dev/null || fail "age not installed"
 
@@ -39,7 +55,6 @@ find "$MONTHLY" -name 'portpass-*.dump.age' -type f -mtime +395 -delete
 stamp="$(date -u +%Y%m%d-%H%M)"
 out="$NIGHTLY/portpass-$stamp.dump.age"
 tmp="$out.part"
-trap 'rm -f "$tmp"' EXIT
 
 # --no-owner/--no-privileges: Supabase's roles don't exist wherever this is
 # restored. The dump itself is the whole database (public, auth, storage
@@ -48,7 +63,7 @@ pg_dump --format=custom --no-owner --no-privileges --dbname="$PORTPASS_DB_URL" \
   | age -r "$AGE_RECIPIENT" -o "$tmp"
 mv "$tmp" "$out"
 chmod 600 "$out"
-trap - EXIT
+tmp=""
 
 # The first backup of each month is also kept as that month's copy.
 month="$(date -u +%Y%m)"
@@ -60,4 +75,5 @@ fi
 ls -1t "$NIGHTLY"/portpass-*.dump.age 2>/dev/null | tail -n +31 | xargs -r rm -f
 ls -1t "$MONTHLY"/portpass-*.dump.age 2>/dev/null | tail -n +13 | xargs -r rm -f
 
+heartbeat true
 echo "backup ok: $out ($(du -h "$out" | cut -f1))"

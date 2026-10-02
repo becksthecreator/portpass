@@ -235,6 +235,20 @@ async function main() {
   if (leadError || !seededLeads) throw new Error(`Could not seed leads: ${leadError?.message}`);
   const leadId = seededLeads.find((l) => l.business_name.startsWith("TEST Party Rentals"))!.id;
 
+  // Brief 08, build C: a few lines in the Messages log (test addresses,
+  // never emailed), one server error and a backup that reported in.
+  const { error: messageError } = await db.from("message_log").insert([
+    { organization_id: org.id, template: "futprep_registration_received", recipient: "test-delete-parent-1@test.portpass.local", status: "delivered", detail: null },
+    { organization_id: org.id, template: "futprep_payment_recorded", recipient: "test-delete-parent-2@test.portpass.local", status: "bounced", detail: "Bounced: Permanent." },
+    { organization_id: org.id, template: "attendance_nudge", recipient: `${MARK} Coach Dre`, status: "skipped", detail: "No email address on this coach's staff account." },
+    { organization_id: null, template: "business_approved", recipient: "test-delete-owner@test.portpass.local", status: "sent", detail: null },
+  ]);
+  if (messageError) throw new Error(`Could not seed the messages log: ${messageError.message}`);
+  const { error: siteErrorError } = await db.from("site_errors").insert({ route: "/test-delete/[id]", route_type: "render", error_name: "TypeError", digest: "1234567890" });
+  if (siteErrorError) throw new Error(`Could not seed a site error: ${siteErrorError.message}`);
+  const { error: heartbeatError } = await db.from("site_content").upsert({ key: "backup_heartbeat", value: { at: new Date().toISOString(), ok: true } }, { onConflict: "key" });
+  if (heartbeatError) throw new Error(`Could not seed the backup heartbeat: ${heartbeatError.message}`);
+
   writeFileSync(out, JSON.stringify({ programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date, adminEmail, leadId, registrationId }, null, 2));
   console.log(`Seeded TEST staff fixture: program ${program.id}, term ${term.id}, session ${session.id} on ${session.session_date}.`);
 }

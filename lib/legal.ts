@@ -39,6 +39,7 @@ export const PRIVACY_POLICY: LegalDocument = {
         "Says how we invite businesses to PortPass, and what we keep about a business that asks not to be contacted.",
         "Says we answer requests about your information within 40 days.",
         "Says we count views and button taps on a business's public pages for its growth report, with no names or internet addresses.",
+        "Says we keep a record of the emails we send (the address, the kind of email and whether it arrived, never its text) for 12 months.",
       ],
     },
     { version: 1, date: "2026-09-01", changes: ["First published."] },

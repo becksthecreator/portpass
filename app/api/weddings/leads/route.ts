@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
     if (notifyTo) {
       await sendEmail({
         to: notifyTo,
+        log: { template: "wedding_enquiry_notice" },
         subject: `New wedding enquiry — ${lead.names}`,
         html: `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#153c46">
           <h1 style="font-size:20px;margin:0 0 16px">New wedding enquiry</h1>
