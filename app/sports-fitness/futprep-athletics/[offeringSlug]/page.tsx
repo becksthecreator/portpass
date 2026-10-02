@@ -48,6 +48,8 @@ export default async function FutprepOfferingPage({ params }: { params: Promise<
     name: offering.name,
     description: offering.summary ?? organization.oneLiner ?? undefined,
     provider: { "@type": "Organization", name: organization.name, sameAs: ORG_URL },
+    // The term dates the page shows under "Term dates".
+    ...(offering.termStart && offering.termEnd ? { hasCourseInstance: { "@type": "CourseInstance", courseMode: "Onsite", startDate: offering.termStart, endDate: offering.termEnd } } : {}),
     // The price as the page shows it ("$35 per session"), as on the
     // business page; nothing about places left, which the page doesn't say.
     offers: {
