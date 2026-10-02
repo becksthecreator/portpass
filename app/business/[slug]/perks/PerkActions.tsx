@@ -10,7 +10,7 @@ export function PerkActions({ orgId, perkId, status, title }: { orgId: number; p
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
 
-  async function act(action: "publish" | "end") {
+  async function act(action: "publish" | "end" | "discard") {
     setBusy(true);
     setError("");
     try {
@@ -34,7 +34,7 @@ export function PerkActions({ orgId, perkId, status, title }: { orgId: number; p
       ) : (
         <span className="perk-confirm" role="group" aria-label={`End ${title}`}>
           <span>{status === "draft" ? "Discard this draft?" : "End it? Members who already used it keep it. It can't be restarted."}</span>
-          <button className="admin-mini is-danger" type="button" disabled={busy} onClick={() => void act("end")}>{busy ? "Ending…" : status === "draft" ? "Yes, discard" : "Yes, end it"}</button>
+          <button className="admin-mini is-danger" type="button" disabled={busy} onClick={() => void act(status === "draft" ? "discard" : "end")}>{busy ? (status === "draft" ? "Discarding…" : "Ending…") : status === "draft" ? "Yes, discard" : "Yes, end it"}</button>
           <button className="admin-mini" type="button" disabled={busy} onClick={() => setConfirming(false)}>Keep it</button>
         </span>
       )}

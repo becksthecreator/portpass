@@ -133,3 +133,4 @@
 
 /* Inside the seller lists every span is greyed (shop.css): the chip keeps its own ink. */
 .seller-row .perk-chip,.pass-result .perk-chip{color:var(--perk-gold-ink)}
+.pass-install svg.app-inline{height:18px;margin:0 2px;vertical-align:-3px;width:18px}

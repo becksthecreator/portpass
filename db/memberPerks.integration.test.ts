@@ -15,6 +15,7 @@ import {
   listLivePerks,
   listMemberRedemptions,
   canUsePerks,
+  discardDraftPerk,
   claimPassCheck,
   logPassCheck,
   memberEarlyAccess,
@@ -319,6 +320,15 @@ describe("early access for members", () => {
     // A second early booking by the same member is refused, not quietly let in.
     await expect(recordOnlineRedemption(liveOrg, once.id, member, "FP-TEST-EARLY-TWICE")).rejects.toThrow("ALREADY_USED");
     await endPerk(once.id, founder, { organizationId: liveOrg });
+  });
+});
+
+describe("a draft perk", () => {
+  it("can be thrown away; a published one can only be ended", async () => {
+    const draft = await savePerk(liveOrg, null, perk({ title: "TEST draft to throw away" }), founder);
+    await discardDraftPerk(liveOrg, draft.id, founder);
+    expect((await listBusinessPerks(liveOrg)).map((p) => p.id)).not.toContain(draft.id);
+    await expect(discardDraftPerk(liveOrg, firstBooking, founder)).rejects.toThrow("NOT_DRAFT");
   });
 });
 

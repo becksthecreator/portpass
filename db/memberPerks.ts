@@ -98,6 +98,17 @@ export async function publishPerk(organizationId: number, perkId: number, actorU
   return toPerk(data as Row);
 }
 
+// A draft nobody has seen can be thrown away. Only a draft: a perk that
+// was published is ended, never deleted, so its record stays.
+export async function discardDraftPerk(organizationId: number, perkId: number, actorUserId: string): Promise<void> {
+  const before = await ownPerk(organizationId, perkId);
+  if (before.status !== "draft") throw new Error("NOT_DRAFT");
+  const { data, error } = await getSupabaseAdmin().from("member_perks").delete().eq("id", perkId).eq("organization_id", organizationId).eq("status", "draft").select("id");
+  throwIfSupabaseError(error, "Could not discard the perk");
+  if (!(data ?? []).length) throw new Error("NOT_DRAFT");
+  await logAudit({ actorUserId, organizationId, action: "perk.discarded", targetTable: "member_perks", targetId: perkId, before: perkRow(before) });
+}
+
 // Ending a perk stops it being offered. Redemptions already recorded stay.
 // When platform staff end one that breaks the rules, the reason is logged.
 export async function endPerk(perkId: number, actorUserId: string, options: { organizationId?: number; reason?: string | null } = {}): Promise<MemberPerk> {

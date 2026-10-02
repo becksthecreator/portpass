@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { endPerk, publishPerk, savePerk } from "@/db/memberPerks";
+import { discardDraftPerk, endPerk, publishPerk, savePerk } from "@/db/memberPerks";
 import { requireOrgRoleApi } from "@/lib/auth/guards";
 import { cleanPerk } from "@/lib/memberPerks";
 import { bumpPerks, perkRefusal } from "@/lib/perks/server";
@@ -49,6 +49,10 @@ export async function POST(request: Request, ctx: Ctx) {
       const perk = await publishPerk(found.id, found.perkId, auth.session.userId);
       bumpPerks();
       return NextResponse.json({ perk });
+    }
+    if (body?.action === "discard") {
+      await discardDraftPerk(found.id, found.perkId, auth.session.userId);
+      return NextResponse.json({ ok: true });
     }
     if (body?.action === "end") {
       const perk = await endPerk(found.perkId, auth.session.userId, { organizationId: found.id });

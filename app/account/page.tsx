@@ -6,6 +6,7 @@ import { formatPhoneDisplay } from "@/lib/phone";
 import { listMemberRedemptions, type MemberRedemption } from "@/db/memberPerks";
 import { requireSignedIn } from "@/lib/auth/guards";
 import { destinationsFor } from "@/lib/auth/routing";
+import "@/app/_components/perks/perks.css";
 
 export const dynamic = "force-dynamic";
 
