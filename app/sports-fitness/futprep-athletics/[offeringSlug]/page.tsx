@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ offeringS
   return {
     title,
     description,
+    alternates: { canonical: `${ORG_URL}/${offeringSlug}` },
     openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url: `${ORG_URL}/${offeringSlug}` },
     twitter: { card: "summary_large_image", title, description },
   };

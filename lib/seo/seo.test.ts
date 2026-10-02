@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cleanGoogleBusinessUrl, isGoogleBusinessUrl, reviewRequestMessage } from "./googleBusiness";
 import { businessJsonLd, businessType, FAQ_MINIMUM, homeJsonLd, jsonLdString, ldAddress, priceRange, sectionJsonLd, type LdBusiness } from "./jsonLd";
-import { matchesQuery, searchTerms } from "./search";
+import { matchCount, matchesQuery, rankMatches, searchTerms } from "./search";
 import { businessDescription, businessTitle, DESCRIPTION_MAX, fitDescription, nameList, sectionDescription, sectionTitle } from "./titles";
 
 const booth: LdBusiness = {
@@ -159,6 +159,16 @@ describe("site search", () => {
     expect(matchesQuery(searchTerms("wedding football"), ["Futprep Athletics", "Kids football"])).toBe(false);
     expect(matchesQuery(searchTerms(""), ["anything"])).toBe(false);
     expect(searchTerms("a b")).toEqual([]);
+  });
+
+  it("shows the closest matches, marked, when nothing has every word", () => {
+    const businesses = [{ name: "TEST Boats", line: "Boat tours" }, { name: "Futprep Athletics", line: "Saturday football for ages 1 to 6" }, { name: "TEST Football Kids", line: "Kids football camps" }];
+    const fields = (b: { name: string; line: string }) => [b.name, b.line];
+    expect(matchCount(searchTerms("kids football"), fields(businesses[1]))).toBe(1);
+    expect(rankMatches(searchTerms("kids football"), businesses, fields)).toEqual({ exact: true, items: [businesses[2]] });
+    expect(rankMatches(searchTerms("kids football"), businesses.slice(0, 2), fields)).toEqual({ exact: false, items: [businesses[1]] });
+    // One word typed: only what has it.
+    expect(rankMatches(searchTerms("golf"), businesses, fields)).toEqual({ exact: true, items: [] });
   });
 });
 
