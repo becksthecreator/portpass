@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CategoryPage, countLiveBusinesses } from "@/app/_components/CategoryPage";
+import { CategoryPage, liveBusinessNames } from "@/app/_components/CategoryPage";
 import { listSections } from "@/db/categories";
+import { sectionDescription, sectionTitle } from "@/lib/seo/titles";
 
 // Every section that exists in the categories table gets a page here
 // unless a hand-built one already claims the path (Next serves a static
@@ -30,10 +31,15 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { category } = await params;
   const section = await visibleSection(category);
   if (!section) return {};
-  const live = await countLiveBusinesses(section.slug);
+  const names = await liveBusinessNames(section.slug);
+  const live = names.length;
+  const title = sectionTitle(section.name);
+  const description = sectionDescription(section.name, names);
   return {
-    title: `${section.name} in The Bahamas | PortPass Bahamas`,
-    description: live > 0 ? `${section.name} you can book on PortPass in The Bahamas.` : `${section.name} in The Bahamas — coming soon to PortPass.`,
+    title,
+    description,
+    alternates: { canonical: `https://portpassbahamas.com/${section.slug}` },
+    openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url: `https://portpassbahamas.com/${section.slug}` },
     // noindex only while there is nothing to book; the coming-soon threshold
     // drives the on-page label, not indexing (mirrors app/sitemap.ts).
     robots: live === 0 ? { index: false, follow: true } : undefined,

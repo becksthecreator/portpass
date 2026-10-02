@@ -10,7 +10,7 @@
      and admin areas, account pages, and every page that shows or collects
      personal data. Those requests are not intercepted at all. */
 
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const SHELL_CACHE = `portpass-shell-${CACHE_VERSION}`;
 const PAGES_CACHE = `portpass-pages-${CACHE_VERSION}`;
 const ASSETS_CACHE = `portpass-assets-${CACHE_VERSION}`;
@@ -19,6 +19,7 @@ const SHELL_URLS = ["/", "/app", "/pass", "/favicon.svg", "/brand/logo/portpass-
 const MAX_PAGES = 40;
 
 const NEVER_CACHE = [
+  /^\/search(\/|$)/,
   /^\/api\//,
   /^\/admin/,
   /^\/organizations/,

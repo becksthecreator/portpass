@@ -5,6 +5,9 @@ import { BusinessHeader, BusinessFooter } from "@/app/_components/BusinessShell"
 import { BusinessArrivalPlate } from "@/app/_components/BusinessArrivalPlate";
 import { computeBrandTokens } from "@/app/_components/blocks/brand";
 import { bizDisplay, ppSans } from "@/app/fonts";
+import { JsonLd } from "@/app/_components/seo/JsonLd";
+import { directoryHref } from "@/app/_components/blocks/directoryHref";
+import { listingJsonLd } from "@/lib/seo/fromListing";
 
 // The paid-tier shell: a business's own domain, its own header/footer (no
 // PortPass chrome, no breadcrumb), its own accent -- and the exact same
@@ -67,19 +70,10 @@ export default async function BusinessSitePage({ params }: { params: Promise<{ s
   // allowed to show up, because on this shell it IS the platform's chrome.
   const { brand, brandText } = computeBrandTokens(org.brandColor);
 
-  const schema = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    name: org.name,
-    description: org.oneLiner ?? org.description ?? undefined,
-    image: org.heroImageUrl ?? undefined,
-    url,
-    address: org.island ? { "@type": "PostalAddress", addressRegion: org.island, addressCountry: "BS" } : undefined,
-    aggregateRating:
-      org.rating !== null && org.reviewCount
-        ? { "@type": "AggregateRating", ratingValue: org.rating, reviewCount: org.reviewCount }
-        : undefined,
-  };
+  // The same structured data as the business's PortPass page, at its own
+  // address. No rating: PortPass doesn't collect reviews, and Google
+  // doesn't accept ratings copied from another site.
+  const schema = listingJsonLd(listing, url ?? directoryHref(org.slug, org.primaryCategory));
 
   return (
     <div
@@ -87,7 +81,7 @@ export default async function BusinessSitePage({ params }: { params: Promise<{ s
       style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}
     >
       {slug === "bahamas-weddings" && <BusinessArrivalPlate mark="🌴" word="Bahamas" sub="Weddings by the sea" />}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <JsonLd data={schema} />
       <BusinessHeader
         name={org.name}
         logoUrl={org.logoUrl}

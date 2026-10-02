@@ -6,6 +6,7 @@ import { getBusinessBySlug, listBusinessOfferings } from "@/db/business";
 import { requireOrgRole } from "@/lib/auth/guards";
 import { handlesPayments } from "@/lib/paymentRequests/access";
 import { workspaceLinks } from "@/lib/orgWorkspaces";
+import { GoogleReviewCard } from "./GoogleReviewCard";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,11 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
             <a className="chooser-card" href={publicHref}><strong>Public page</strong><span>Live on PortPass</span><b>Open →</b></a>
           )}
         </div>
+
+        {business.googleBusinessUrl && business.isPublished && <GoogleReviewCard businessName={business.name} url={business.googleBusinessUrl} />}
+        {!business.googleBusinessUrl && canEdit && business.isPublished && (
+          <p className="auth-hint">On Google Maps? <Link href={`/business/${slug}/settings?step=2`}>Add your Google Business Profile link</Link> to ask customers for Google reviews.</p>
+        )}
 
         <section className="account-section">
           <h2>Offerings</h2>

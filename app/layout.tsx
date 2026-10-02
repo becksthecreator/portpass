@@ -32,6 +32,13 @@ export const metadata: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
   },
+  // Search Console and Bing Webmaster (brief 11, 5 and 8). Verifying by the
+  // DNS record is preferred; these tags are there if the meta-tag method
+  // is used instead. Not secrets: they are printed in every page.
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined,
+  },
 };
 
 // The installed app's title bar takes this colour (round 5, §6).

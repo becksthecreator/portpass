@@ -1,3 +1,5 @@
+import { FAQ_MINIMUM } from "@/lib/seo/jsonLd";
+
 // Block 7 of 8 -- FAQ. Renders only with 3+ real questions, so a business
 // with one or two confirmed answers doesn't get a half-empty-looking FAQ
 // section -- it gets none, until there are enough for it to be worth a
@@ -5,7 +7,7 @@
 type Faq = { question: string; answer: string; linkUrl?: string | null; linkLabel?: string | null };
 
 export function QuestionsBlock({ faqs }: { faqs: Faq[] }) {
-  if (faqs.length < 3) return null;
+  if (faqs.length < FAQ_MINIMUM) return null;
   return (
     <section className="tpl-questions" aria-label="Frequently asked questions">
       {faqs.map((faq) => (

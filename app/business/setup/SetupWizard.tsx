@@ -116,7 +116,7 @@ export function SetupWizard(props: Props) {
   // ---- step 1 ----
   const [s1, setS1] = useState({ name: business.name, subcategory: business.subcategory ?? "", island: business.island ?? "", area: business.area ?? "", oneLiner: business.oneLiner ?? "", description: business.description ?? "" });
   // ---- step 2 ----
-  const [s2, setS2] = useState({ phoneE164: business.phoneE164 ?? "", whatsappE164: business.whatsappE164 ?? "", publicEmail: business.publicEmail ?? "", websiteUrl: business.websiteUrl ?? "", instagramHandle: business.instagramHandle ?? "" });
+  const [s2, setS2] = useState({ phoneE164: business.phoneE164 ?? "", whatsappE164: business.whatsappE164 ?? "", publicEmail: business.publicEmail ?? "", websiteUrl: business.websiteUrl ?? "", instagramHandle: business.instagramHandle ?? "", googleBusinessUrl: business.googleBusinessUrl ?? "" });
   // ---- step 3 ----
   const [brand, setBrand] = useState(business.brandColor ?? "#14303d");
   const contrast = whiteTextContrast(brand);
@@ -351,6 +351,7 @@ export function SetupWizard(props: Props) {
             <label><span>Website (optional)</span><input inputMode="url" placeholder="yourbusiness.com" value={s2.websiteUrl} onChange={(e) => setS2({ ...s2, websiteUrl: e.target.value })} /></label>
             <label><span>Instagram (optional)</span><input placeholder="@yourbusiness" value={s2.instagramHandle} onChange={(e) => setS2({ ...s2, instagramHandle: e.target.value })} /></label>
           </div>
+          <label><span>Google Business Profile link (optional)</span><input inputMode="url" placeholder="g.page/r/…" value={s2.googleBusinessUrl} onChange={(e) => setS2({ ...s2, googleBusinessUrl: e.target.value })} /><small className="auth-hint">Helps people find you on Google, and lets you ask customers for a Google review.</small></label>
           <div className="auth-actions">
             <button className="primary-button" type="submit" disabled={busy}>{busy ? "Saving…" : "Save & continue →"}</button>
             <button className="auth-text-button" type="button" onClick={() => go(1)}>Back</button>

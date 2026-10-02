@@ -35,7 +35,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Plan Your Bahamas Wedding | Bahamas Weddings By The Sea",
-  description: "Plan a Bahamas wedding with the Wedding Desk. Explore venue preferences, choose services, request a consultation, and prepare a complete plan for Antonio Beckford to review.",
+  description: "Plan your Bahamas wedding with the Wedding Desk: choose a venue style and services, request a consultation, and send a full plan to Antonio Beckford.",
 };
 
 // Moved here from app/weddings/bahamas-by-the-sea/plan (redirected in

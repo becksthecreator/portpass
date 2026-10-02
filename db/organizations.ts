@@ -497,6 +497,10 @@ export type Organization = {
   reviewsUrl: string | null;
   reviewsPlatform: string | null;
   whatsappE164: string | null;
+  // For structured data (brief 11): Instagram and the Google Business
+  // Profile (both public links). The business's phone is not public.
+  instagramHandle: string | null;
+  googleBusinessUrl: string | null;
   subcategory: string | null;
   status: string;
   // This business's photos may include children: only images with
@@ -512,6 +516,9 @@ export type OrganizationDirectoryEntry = {
   slug: string;
   name: string;
   primaryCategory: string | null;
+  subcategory: string | null;
+  area: string | null;
+  island: string | null;
   heroImageUrl: string | null;
   logoUrl: string | null;
   brandColor: string | null;
@@ -525,7 +532,7 @@ export type OrganizationListing = {
   faqs: OrganizationFaq[];
 };
 
-const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color,logo_url,custom_domain,identity_layout,reviews_url,reviews_platform,whatsapp_e164,subcategory,status,photo_consent_required";
+const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color,logo_url,custom_domain,identity_layout,reviews_url,reviews_platform,whatsapp_e164,instagram_handle,google_business_url,subcategory,status,photo_consent_required";
 
 const LISTING_OFFERING_COLUMNS = "id,organization_id,type,slug,name,summary,price_cents,price_unit,inclusions,schedule_text,age_min,age_max,age_label,term_start,term_end,event_date,doors_time,ticket_url,capacity,hourly_rate_cents,day_rate_cents,amenities,lead_time_text,image_url,action_url,is_featured";
 
@@ -555,6 +562,8 @@ function toListingOrganization(row: Record<string, unknown>): Organization {
     reviewsUrl: row.reviews_url as string | null,
     reviewsPlatform: row.reviews_platform as string | null,
     whatsappE164: (row.whatsapp_e164 as string | null) ?? null,
+    instagramHandle: (row.instagram_handle as string | null) ?? null,
+    googleBusinessUrl: (row.google_business_url as string | null) ?? null,
     subcategory: (row.subcategory as string | null) ?? null,
     status: (row.status as string | null) ?? "draft",
     photoConsentRequired: Boolean(row.photo_consent_required),
@@ -739,7 +748,7 @@ export async function listPublishedOrganizations(category?: string): Promise<Org
   const supabase = getSupabaseAdmin();
   let query = supabase
     .from("organizations")
-    .select("id,slug,name,primary_category,hero_image_url,logo_url,brand_color,one_liner,photo_consent_required")
+    .select("id,slug,name,primary_category,subcategory,area,island,hero_image_url,logo_url,brand_color,one_liner,photo_consent_required")
     .eq("is_directory_listed", true);
   if (category) query = query.eq("primary_category", category);
   const { data, error } = await query.order("id", { ascending: true });
@@ -751,6 +760,9 @@ export async function listPublishedOrganizations(category?: string): Promise<Org
       slug: row.slug as string,
       name: row.name as string,
       primaryCategory: row.primary_category as string | null,
+      subcategory: (row.subcategory as string | null) ?? null,
+      area: (row.area as string | null) ?? null,
+      island: (row.island as string | null) ?? null,
       heroImageUrl: row.hero_image_url as string | null,
       logoUrl: row.logo_url as string | null,
       brandColor: row.brand_color as string | null,
@@ -761,6 +773,9 @@ export async function listPublishedOrganizations(category?: string): Promise<Org
     slug: row.slug,
     name: row.name,
     primaryCategory: row.primaryCategory,
+    subcategory: row.subcategory,
+    area: row.area,
+    island: row.island,
     heroImageUrl: row.heroImageUrl,
     logoUrl: row.logoUrl,
     brandColor: row.brandColor,
@@ -838,6 +853,8 @@ export type SectionBusiness = {
   heroImageUrl: string | null;
   oneLiner: string | null;
   isPublished: boolean;
+  // When its details last changed (the sitemap's lastmod).
+  updatedAt: string | null;
 };
 
 // The organization ids listed under a section (or one of its subcategories):
@@ -879,7 +896,7 @@ export async function listSectionBusinesses(section: string, subcategory?: strin
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("organizations")
-    .select("id,slug,name,primary_category,subcategory,logo_url,brand_color,hero_image_url,one_liner,is_published,photo_consent_required")
+    .select("id,slug,name,primary_category,subcategory,logo_url,brand_color,hero_image_url,one_liner,is_published,photo_consent_required,updated_at")
     .in("id", ids)
     .or("status.in.(approved,live),is_published.eq.true")
     .order("id", { ascending: true });
@@ -899,6 +916,7 @@ export async function listSectionBusinesses(section: string, subcategory?: strin
         heroImageUrl: (row.hero_image_url as string | null) ?? null,
         oneLiner: (row.one_liner as string | null) ?? null,
         isPublished: Boolean(row.is_published),
+        updatedAt: (row.updated_at as string | null) ?? null,
       })),
   );
   return gated.map((row) => ({
@@ -911,6 +929,7 @@ export async function listSectionBusinesses(section: string, subcategory?: strin
     heroImageUrl: row.heroImageUrl,
     oneLiner: row.oneLiner,
     isPublished: row.isPublished,
+    updatedAt: row.updatedAt,
   }));
 }
 

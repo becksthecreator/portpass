@@ -10,6 +10,8 @@ import { listLivePerks, type PublicPerk } from "@/db/memberPerks";
 import { getNavSections } from "@/lib/navSections";
 import { perkChip, perkConditions } from "@/lib/memberPerks";
 import { PerksFilter } from "./PerksFilter";
+import { JsonLd } from "@/app/_components/seo/JsonLd";
+import { sectionJsonLd } from "@/lib/seo/jsonLd";
 import "@/app/_components/perks/perks.css";
 
 // ISR, like the other public pages: rebuilt when a perk is published or ended.
@@ -48,6 +50,7 @@ export default async function PerksPage() {
 
   return (
     <main className={`tpl-page perks-page ${ppDisplay.variable} ${ppSans.variable}`}>
+      <JsonLd data={sectionJsonLd({ name: "Member perks", path: "/perks", description: DESCRIPTION, businesses: [...new Map(perks.map((perk) => [perk.businessSlug, { name: perk.businessName, path: directoryHref(perk.businessSlug, perk.section) }])).values()] })} />
       <SiteHeader breadcrumb={[{ label: "Member perks", href: "/perks" }]} />
       <section className="category-hero category-hero-plain">
         <div className="category-hero-inner">

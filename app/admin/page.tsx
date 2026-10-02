@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAdminOverview } from "@/db/adminStats";
 import { getPerkStats, type PerkStats } from "@/db/memberPerks";
+import { getSiteVisits, type SiteVisits } from "@/db/siteVisits";
 import { requireAdmin } from "@/lib/auth/admin";
 import { formatPriceCents } from "@/app/_components/blocks/format";
 import { backupState, deploymentInfo } from "@/lib/adminHealth";
@@ -28,6 +29,11 @@ export default async function AdminOverviewPage() {
   // One tile, never the page: a failed read shows a dash.
   const perks = await getPerkStats(o.since).catch((error): PerkStats | null => {
     console.error("admin overview tile failed: member perks", error instanceof Error ? error.message : error);
+    return null;
+  });
+  // Visits to businesses' pages this week (brief 11, 8): one tile, never the page.
+  const visits = await getSiteVisits(o.since).catch((error): SiteVisits | null => {
+    console.error("admin overview tile failed: site visits", error instanceof Error ? error.message : error);
     return null;
   });
   const deployment = deploymentInfo();
@@ -68,6 +74,7 @@ export default async function AdminOverviewPage() {
           <Link className="admin-tile" href="/futprep/staff/admin"><strong>{show(o.thisWeek.registrations)}</strong><span>Registrations</span></Link>
           <Link className="admin-tile" href="/futprep/staff/admin"><strong>{show(o.thisWeek.paymentsCount)}</strong><span>Payments recorded</span><small>{o.thisWeek.paymentsCents === null ? "—" : `${formatPriceCents(o.thisWeek.paymentsCents, { currency: false })} received`}</small></Link>
           <Link className="admin-tile" href="/weddings/admin"><strong>{show(o.thisWeek.leads)}</strong><span>Wedding leads</span></Link>
+          <div className="admin-tile"><strong>{visits === null ? "—" : String(visits.views)}</strong><span>Business page views</span><small>{visits === null ? "Could not be read" : visits.topPages.length === 0 ? "None this week" : visits.topPages.map((page) => `${page.path} (${page.views})`).join(" · ")}</small></div>
         </div>
       </section>
 
