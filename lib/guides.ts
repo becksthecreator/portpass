@@ -17,7 +17,7 @@ export type GuideBlock = { kind: "h2" | "h3" | "p"; parts: GuideInline[] } | { k
 // ("https://..."). Anything else stays as plain text.
 // A path on PortPass: one slash, then no slash or backslash ("//x" and
 // "/\x" are other sites to a browser), and no backslash anywhere.
-const SITE_PATH = /^\/(?![/\])[^\s\]*$/;
+const SITE_PATH = /^\/(?![/\\])[^\s\\]*$/;
 
 function safeHref(href: string): { href: string; external: boolean } | null {
   if (SITE_PATH.test(href)) return { href, external: false };
