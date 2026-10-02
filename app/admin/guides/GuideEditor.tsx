@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { publishProblem, WRITER_NOTE } from "@/lib/guides";
 
 type Listing = { organizationId: number; note: string };
-type Draft = { id: number; slug: string; title: string; description: string; body: string; status: "draft" | "published"; listings: Listing[] };
+type Draft = { id: number; slug: string; title: string; description: string; body: string; status: "draft" | "published"; publishedAt: string | null; listings: Listing[] };
 
 // Writing a guide: the words (with ## headings, - lists and [links](/path)),
 // the businesses it sends readers to, and publishing when it is ready.
@@ -72,7 +72,7 @@ export function GuideEditor({ guide, businesses }: { guide: Draft | null; busine
   return (
     <form className="admin-content-form guide-editor" onSubmit={save}>
       <label><span>Title</span><input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={90} required /></label>
-      <label><span>Address: portpassbahamas.com/guides/…</span><input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} maxLength={80} required pattern="[a-z0-9]+(-[a-z0-9]+)*" /></label>
+      <label><span>Address: portpassbahamas.com/guides/…</span><input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} maxLength={80} required pattern="[a-z0-9]+(-[a-z0-9]+)*" readOnly={Boolean(guide?.publishedAt)} />{guide?.publishedAt ? <small>Fixed once published, so links to it keep working.</small> : null}</label>
       <label><span>Description (what Google shows under the title, about 150 characters)</span><textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={170} /><small>{description.length}/155</small></label>
       <label>
         <span>The guide</span>

@@ -15,12 +15,20 @@ export type GuideBlock = { kind: "h2" | "h3" | "p"; parts: GuideInline[] } | { k
 
 // A link is to a PortPass page ("/sports-fitness") or a secure site
 // ("https://..."). Anything else stays as plain text.
+// A path on PortPass: one slash, then no slash or backslash ("//x" and
+// "/\x" are other sites to a browser), and no backslash anywhere.
+const SITE_PATH = /^\/(?![/\])[^\s\]*$/;
+
 function safeHref(href: string): { href: string; external: boolean } | null {
-  if (/^\/(?!\/)[^\s]*$/.test(href)) return { href, external: false };
+  if (SITE_PATH.test(href)) return { href, external: false };
   if (/^https:\/\/[^\s]+$/i.test(href)) {
     try {
       const url = new URL(href);
-      return url.hostname === "portpassbahamas.com" || url.hostname === "www.portpassbahamas.com" ? { href: `${url.pathname}${url.search}${url.hash}`, external: false } : { href: url.toString(), external: true };
+      if (url.hostname === "portpassbahamas.com" || url.hostname === "www.portpassbahamas.com") {
+        const path = `${url.pathname}${url.search}${url.hash}`;
+        return SITE_PATH.test(path) ? { href: path, external: false } : null;
+      }
+      return { href: url.toString(), external: true };
     } catch {
       return null;
     }
@@ -53,20 +61,33 @@ export function parseGuideBody(body: string): GuideBlock[] {
   for (const chunk of body.replace(/\r/g, "").split(/\n\s*\n/)) {
     const lines = chunk.split("\n").map((line) => line.trim()).filter(Boolean);
     if (!lines.length) continue;
-    if (lines.every((line) => /^[-*] /.test(line))) {
-      blocks.push({ kind: "ul", items: lines.map((line) => parseInline(line.replace(/^[-*] /, ""))) });
-      continue;
-    }
-    for (const [index, line] of lines.entries()) {
-      if (line.startsWith("### ")) blocks.push({ kind: "h3", parts: parseInline(line.slice(4)) });
-      else if (line.startsWith("## ")) blocks.push({ kind: "h2", parts: parseInline(line.slice(3)) });
-      else {
-        // Lines that follow each other make one paragraph.
-        const rest = lines.slice(index).join(" ");
-        blocks.push({ kind: "p", parts: parseInline(rest) });
-        break;
+    // Lines that follow each other make one paragraph; a heading or a list
+    // item starts its own block even without a blank line before it.
+    let paragraph: string[] = [];
+    let list: string[] = [];
+    const endParagraph = () => {
+      if (paragraph.length) blocks.push({ kind: "p", parts: parseInline(paragraph.join(" ")) });
+      paragraph = [];
+    };
+    const endList = () => {
+      if (list.length) blocks.push({ kind: "ul", items: list.map((item) => parseInline(item)) });
+      list = [];
+    };
+    for (const line of lines) {
+      if (line.startsWith("### ") || line.startsWith("## ")) {
+        endParagraph();
+        endList();
+        blocks.push(line.startsWith("### ") ? { kind: "h3", parts: parseInline(line.slice(4)) } : { kind: "h2", parts: parseInline(line.slice(3)) });
+      } else if (/^[-*] /.test(line)) {
+        endParagraph();
+        list.push(line.replace(/^[-*] /, ""));
+      } else {
+        endList();
+        paragraph.push(line);
       }
     }
+    endParagraph();
+    endList();
   }
   return blocks;
 }

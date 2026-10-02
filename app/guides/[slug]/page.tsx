@@ -45,6 +45,8 @@ export default async function GuidePage({ params }: { params: Params }) {
   if (!guide) notFound();
   const businesses = await guideBusinesses(guide.id).catch((): GuideBusiness[] => []);
   const url = `/guides/${guide.slug}`;
+  const published = guide.publishedAt ? longDate(guide.publishedAt) : null;
+  const updated = longDate(guide.updatedAt);
 
   return (
     <main className={`tpl-page guide-page ${ppDisplay.variable} ${ppSans.variable}`}>
@@ -58,7 +60,7 @@ export default async function GuidePage({ params }: { params: Params }) {
           mainEntityOfPage: absoluteUrl(url),
           datePublished: guide.publishedAt ?? undefined,
           dateModified: guide.updatedAt,
-          author: { "@type": "Person", name: "Antonio Beckford" },
+          author: { "@type": "Organization", name: SITE_NAME, url: `${SITE_URL}/` },
           publisher: { "@type": "Organization", name: SITE_NAME, url: `${SITE_URL}/`, logo: { "@type": "ImageObject", url: `${SITE_URL}/brand/icons/app-icon-512.png` } },
           ...(businesses.length ? { mentions: businesses.map((business) => ({ "@type": "LocalBusiness", name: business.name, url: absoluteUrl(directoryHref(business.slug, business.primaryCategory)) })) } : {}),
         }}
@@ -66,9 +68,9 @@ export default async function GuidePage({ params }: { params: Params }) {
       <SiteHeader breadcrumb={[{ label: "Guides", href: "/guides" }, { label: guide.title, href: url }]} />
       <article className="guide-article">
         <header>
-          <span className="guide-eyebrow">PortPass guide</span>
+          <span className="guide-eyebrow">A PortPass guide</span>
           <h1>{guide.title}</h1>
-          <p className="guide-updated">Updated {longDate(guide.updatedAt)}</p>
+          <p className="guide-updated">{[published && `Published ${published}`, updated !== published && `Updated ${updated}`].filter(Boolean).join(" · ")}</p>
         </header>
         <GuideBody body={guide.body} />
         {businesses.length > 0 && (

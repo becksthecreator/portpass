@@ -18,6 +18,7 @@ export function guideRefusal(error: unknown): { status: number; error: string } 
   const message = error instanceof Error ? error.message : "";
   if (message === "NOT_FOUND") return { status: 404, error: "Not found." };
   if (message === "SLUG_TAKEN") return { status: 409, error: "Another guide already has that address." };
+  if (message === "SLUG_FROZEN") return { status: 409, error: "A guide that has been published keeps its address, so links to it keep working." };
   if (message === "BAD_BUSINESS") return { status: 400, error: "One of the businesses no longer exists. Reload the page." };
   if (message === "NOT_PUBLISHABLE") return { status: 409, error: (error as { detail?: string }).detail ?? "This guide isn't ready to publish." };
   return null;

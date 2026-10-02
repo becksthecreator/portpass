@@ -1,6 +1,5 @@
 import { unstable_cache } from "next/cache";
 import { publishProblem, type GuideInput, type GuideStatus } from "@/lib/guides";
-import { logAudit } from "./audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // Guides (brief 11, 3). The public pages see published guides only, and in
@@ -98,30 +97,56 @@ export async function getGuide(id: number): Promise<(Guide & { listings: GuideLi
   return { ...toGuide(data as Row), listings: (listings ?? []).map((row) => ({ organizationId: Number(row.organization_id), note: (row.note as string | null) ?? null, sortOrder: Number(row.sort_order) })) };
 }
 
-// Saves the guide and the businesses it links to. A published guide stays
-// published, but only if it is still fit to publish.
+// The businesses among these that are live today (published, not
+// suspended): the only ones a guide's page lists.
+async function liveCount(organizationIds: number[]): Promise<number> {
+  if (!organizationIds.length) return 0;
+  const { data, error } = await getSupabaseAdmin().from("organizations").select("id").in("id", organizationIds).eq("is_published", true).neq("status", "suspended").not("slug", "is", null);
+  throwIfSupabaseError(error, "Could not check the guide's businesses");
+  return (data ?? []).length;
+}
+
+// What the database said no to, as the errors the routes know.
+function guideError(error: unknown, what: string): never {
+  const { code, message } = (error ?? {}) as { code?: string; message?: string };
+  if (code === "23505") throw new Error("SLUG_TAKEN");
+  if (code === "23503") throw new Error("BAD_BUSINESS");
+  for (const known of ["NOT_FOUND", "SLUG_FROZEN", "NOT_PUBLISHABLE"]) {
+    if (message === known) throw Object.assign(new Error(known), known === "NOT_PUBLISHABLE" ? { detail: "It wouldn't be fit to publish any more. Unpublish it first, or keep at least one live business and no [Antonio: …] notes." } : {});
+  }
+  throwIfSupabaseError(error as { message?: string; code?: string }, what);
+  throw new Error(what);
+}
+
+async function readGuide(id: number): Promise<Guide> {
+  const { data, error } = await getSupabaseAdmin().from("guides").select(COLUMNS).eq("id", id).single();
+  throwIfSupabaseError(error, "Could not load the guide");
+  return toGuide(data as Row);
+}
+
+// Saves the guide and the businesses it links to, with its audit row, in
+// one database call (save_guide): all of it or none of it. A published
+// guide keeps its address and stays published only if it is still fit to
+// publish; the words say why before the database is asked.
 export async function saveGuide(id: number | null, input: GuideInput, listings: GuideListing[], actorUserId: string): Promise<Guide> {
-  const db = getSupabaseAdmin();
   const before = id ? await getGuide(id) : null;
   if (id && !before) throw new Error("NOT_FOUND");
+  if (before?.publishedAt && input.slug !== before.slug) throw new Error("SLUG_FROZEN");
   if (before?.status === "published") {
-    const problem = publishProblem(input, listings.length);
+    const problem = publishProblem(input, await liveCount(listings.map((listing) => listing.organizationId)));
     if (problem) throw Object.assign(new Error("NOT_PUBLISHABLE"), { detail: problem });
   }
-  const row = { slug: input.slug, title: input.title, description: input.description, body: input.body, updated_at: new Date().toISOString(), updated_by: actorUserId };
-  const { data, error } = id ? await db.from("guides").update(row).eq("id", id).select(COLUMNS).single() : await db.from("guides").insert(row).select(COLUMNS).single();
-  if (error && (error as { code?: string }).code === "23505") throw new Error("SLUG_TAKEN");
-  throwIfSupabaseError(error, "Could not save the guide");
-  const guide = toGuide(data as Row);
-  const { error: clearError } = await db.from("guide_listings").delete().eq("guide_id", guide.id);
-  throwIfSupabaseError(clearError, "Could not save the guide's businesses");
-  if (listings.length) {
-    const { error: listingError } = await db.from("guide_listings").insert(listings.map((listing, index) => ({ guide_id: guide.id, organization_id: listing.organizationId, note: listing.note, sort_order: index })));
-    if (listingError && (listingError as { code?: string }).code === "23503") throw new Error("BAD_BUSINESS");
-    throwIfSupabaseError(listingError, "Could not save the guide's businesses");
-  }
-  await logAudit({ actorUserId, action: before ? "guide.updated" : "guide.created", targetTable: "guides", targetId: guide.id, before: before ? { slug: before.slug, title: before.title, listings: before.listings.length } : null, after: { slug: guide.slug, title: guide.title, listings: listings.length } });
-  return guide;
+  const { data, error } = await getSupabaseAdmin().rpc("save_guide", {
+    p_id: id,
+    p_slug: input.slug,
+    p_title: input.title,
+    p_description: input.description,
+    p_body: input.body,
+    p_listings: listings.map((listing) => ({ organizationId: listing.organizationId, note: listing.note })),
+    p_actor: actorUserId,
+  });
+  if (error) guideError(error, "Could not save the guide");
+  return readGuide(Number(data));
 }
 
 export async function setGuideStatus(id: number, status: GuideStatus, actorUserId: string): Promise<Guide> {
@@ -132,9 +157,8 @@ export async function setGuideStatus(id: number, status: GuideStatus, actorUserI
     const problem = publishProblem(guide, (await guideBusinesses(id)).length);
     if (problem) throw Object.assign(new Error("NOT_PUBLISHABLE"), { detail: problem });
   }
-  const now = new Date().toISOString();
-  const { data, error } = await getSupabaseAdmin().from("guides").update({ status, published_at: status === "published" ? guide.publishedAt ?? now : guide.publishedAt, updated_at: now, updated_by: actorUserId }).eq("id", id).select(COLUMNS).single();
-  throwIfSupabaseError(error, "Could not change the guide");
-  await logAudit({ actorUserId, action: status === "published" ? "guide.published" : "guide.unpublished", targetTable: "guides", targetId: id, before: { status: guide.status }, after: { status } });
-  return toGuide(data as Row);
+  // Checked again in the database, under the lock a save takes.
+  const { error } = await getSupabaseAdmin().rpc("set_guide_status", { p_id: id, p_status: status, p_actor: actorUserId });
+  if (error) guideError(error, "Could not change the guide");
+  return readGuide(id);
 }

@@ -14,10 +14,16 @@ describe("a guide's words", () => {
     expect(parseInline("[site](https://example.com/x)")).toEqual([{ kind: "link", text: "site", href: "https://example.com/x", external: true }]);
     // A full PortPass address becomes a link within the site.
     expect(parseInline("[us](https://portpassbahamas.com/weddings)")).toEqual([{ kind: "link", text: "us", href: "/weddings", external: false }]);
-    for (const bad of ["[x](javascript:alert(1))", "[x](//evil.example)", "[x](http://example.com)", "[x](data:text/html,hi)"]) {
+    for (const bad of ["[x](javascript:alert(1))", "[x](//evil.example)", "[x](/\\evil.example)", "[x](https://portpassbahamas.com//evil.example)", "[x](/a\\b)", "[x](http://example.com)", "[x](data:text/html,hi)"]) {
       expect(parseInline(bad).every((part) => part.kind === "text")).toBe(true);
     }
     expect(parseInline("**Free** taster")).toEqual([{ kind: "bold", text: "Free" }, { kind: "text", text: " taster" }]);
+  });
+
+  it("starts a heading or a list even without a blank line before it", () => {
+    const blocks = parseGuideBody("Some words.\n## Fees\nFrom $35.\n- Water\n- Boots\nAfter the list.");
+    expect(blocks.map((b) => b.kind)).toEqual(["p", "h2", "p", "ul", "p"]);
+    expect(blocks[3]).toEqual({ kind: "ul", items: [[{ kind: "text", text: "Water" }], [{ kind: "text", text: "Boots" }]] });
   });
 
   it("never carries HTML: tags stay as text", () => {

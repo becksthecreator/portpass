@@ -53,6 +53,8 @@ describe("the five guides", () => {
       const guide = all.find((g) => g.slug === slug);
       expect(guide).toBeDefined();
       expect(guide!.body).toContain("[Antonio:");
+      // The description is Antonio's to write too.
+      expect(guide!.description).toContain("[Antonio:");
     }
     // An outline can't be published.
     const outline = all.find((g) => g.slug === slugs[0])!;
@@ -79,6 +81,26 @@ describe("a guide", () => {
     await expect(saveGuide(guideId, { slug: `test-delete-${TAG}`, title: `TEST delete ${TAG} guide`, description: "TEST — delete. A guide written for the integration tests, long enough.", body: `${words}[Antonio: more]` }, [{ organizationId: liveOrg, note: null, sortOrder: 0 }], founder)).rejects.toThrow("NOT_PUBLISHABLE");
     const { data: logged } = await admin.from("audit_log").select("action").eq("target_table", "guides").eq("target_id", String(guideId));
     expect(logged!.map((row) => row.action)).toEqual(expect.arrayContaining(["guide.created", "guide.updated", "guide.published"]));
+  });
+
+  it("saves all or nothing, and keeps its address once published", async () => {
+    const before = await getGuide(guideId);
+    // A business that doesn't exist: nothing changes, not even the words.
+    await expect(saveGuide(guideId, { slug: `test-delete-${TAG}`, title: `TEST delete ${TAG} guide`, description: "TEST — delete. A guide written for the integration tests, long enough.", body: `${words} Changed.` }, [{ organizationId: liveOrg, note: null, sortOrder: 0 }, { organizationId: 2_000_000_000, note: null, sortOrder: 1 }], founder)).rejects.toThrow("BAD_BUSINESS");
+    const after = await getGuide(guideId);
+    expect(after!.body).toBe(before!.body);
+    expect(after!.listings).toEqual(before!.listings);
+    // Only a business that isn't live: refused while published.
+    await expect(saveGuide(guideId, { slug: `test-delete-${TAG}`, title: `TEST delete ${TAG} guide`, description: "TEST — delete. A guide written for the integration tests, long enough.", body: words }, [{ organizationId: draftOrg, note: null, sortOrder: 0 }], founder)).rejects.toThrow("NOT_PUBLISHABLE");
+    await expect(saveGuide(guideId, { slug: `test-delete-${TAG}-moved`, title: `TEST delete ${TAG} guide`, description: "TEST — delete. A guide written for the integration tests, long enough.", body: words }, [{ organizationId: liveOrg, note: null, sortOrder: 0 }], founder)).rejects.toThrow("SLUG_FROZEN");
+    // The database refuses too, whatever the app checked first.
+    const direct = await admin.rpc("set_guide_status", { p_id: guideId, p_status: "published", p_actor: founder });
+    expect(direct.error).toBeNull();
+    const { error: frozen } = await admin.rpc("save_guide", { p_id: guideId, p_slug: `test-delete-${TAG}-moved`, p_title: `TEST delete ${TAG} guide`, p_description: "TEST — delete. A guide written for the integration tests, long enough.", p_body: words, p_listings: [{ organizationId: liveOrg }], p_actor: founder });
+    expect(frozen?.message).toBe("SLUG_FROZEN");
+    const { error: unfit } = await admin.rpc("save_guide", { p_id: guideId, p_slug: `test-delete-${TAG}`, p_title: `TEST delete ${TAG} guide`, p_description: "TEST — delete. A guide written for the integration tests, long enough.", p_body: `${words}[Antonio: more]`, p_listings: [{ organizationId: liveOrg }], p_actor: founder });
+    expect(unfit?.message).toBe("NOT_PUBLISHABLE");
+    expect((await getGuide(guideId))!.body).toBe(before!.body);
   });
 
   it("is linked from the business's page, and a second guide can't take the same address", async () => {

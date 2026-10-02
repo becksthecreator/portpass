@@ -32,7 +32,7 @@ export default async function AdminGuidePage({ params }: { params: Promise<{ id:
       actions={<><Link className="admin-bar-link" href="/admin/guides">All guides</Link>{guide?.status === "published" && <a className="admin-bar-link" href={`/guides/${guide.slug}`}>Open it</a>}</>}
     >
       <GuideEditor
-        guide={guide ? { id: guide.id, slug: guide.slug, title: guide.title, description: guide.description, body: guide.body, status: guide.status, listings: guide.listings.map((listing) => ({ organizationId: listing.organizationId, note: listing.note ?? "" })) } : null}
+        guide={guide ? { id: guide.id, slug: guide.slug, title: guide.title, description: guide.description, body: guide.body, status: guide.status, publishedAt: guide.publishedAt, listings: guide.listings.map((listing) => ({ organizationId: listing.organizationId, note: listing.note ?? "" })) } : null}
         businesses={businesses.map((business) => ({ id: business.id, name: business.name }))}
       />
     </AdminShell>
