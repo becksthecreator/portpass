@@ -29,6 +29,39 @@ export function LeadDetail({ lead }: { lead: WeddingLeadDetail }) {
   const [note, setNote] = useState("");
   const [noteBusy, setNoteBusy] = useState(false);
   const [error, setError] = useState("");
+  const [completedOn, setCompletedOn] = useState(lead.completedOn ?? "");
+  const [deskCoordinated, setDeskCoordinated] = useState(lead.deskCoordinated);
+  const [completeBusy, setCompleteBusy] = useState(false);
+  const [completeNote, setCompleteNote] = useState("");
+
+  // The wedding has happened. If the Desk coordinated it, PortPass's
+  // coordination fee goes on the next monthly invoice, once.
+  async function markCompleted() {
+    if (!completedOn) return;
+    setCompleteBusy(true);
+    setError("");
+    setCompleteNote("");
+    const response = await fetch(`/api/weddings/admin/leads/${lead.id}/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completedOn, deskCoordinated }),
+    });
+    const data = (await response.json().catch(() => ({}))) as { error?: string; feeCreated?: boolean; feeRemoved?: boolean; feeRedated?: boolean; alreadyInvoiced?: boolean; feeWillBeInvoiced?: boolean | null };
+    setCompleteBusy(false);
+    if (!response.ok) {
+      setError(data.error ?? "Could not mark the wedding completed.");
+      return;
+    }
+    setCompleteNote(
+      data.alreadyInvoiced ? "Saved, but the coordination fee is already on an invoice and has not changed. Tell PortPass if it needs correcting."
+        : data.feeCreated && data.feeWillBeInvoiced === false ? "Saved. The coordination fee is recorded, but it won't be invoiced as things stand (no agreed plan, or the date is in the free period). PortPass will see it under Billing."
+        : data.feeCreated ? "Saved. The coordination fee goes on the next monthly invoice."
+        : data.feeRemoved ? "Saved. The coordination fee has been taken off."
+        : data.feeRedated ? "Saved. The coordination fee has moved to the new date."
+        : "Saved.",
+    );
+    router.refresh();
+  }
 
   async function saveStatus(next: WeddingLeadStatus) {
     setStatus(next);
@@ -84,6 +117,17 @@ export function LeadDetail({ lead }: { lead: WeddingLeadDetail }) {
             <button key={s} className={status === s ? "is-active" : ""} disabled={statusBusy} onClick={() => saveStatus(s)}>{STATUS_LABEL[s]}</button>
           ))}
         </div>
+      </div>
+
+      <div className="wedding-admin-panel">
+        <h2>After the wedding</h2>
+        <p>{lead.completedOn ? `Marked as completed on ${lead.completedOn}${lead.deskCoordinated ? ", coordinated by the Desk." : "."}` : "Once the wedding has happened, record it here."}</p>
+        <div className="staff-info-grid">
+          <label><span>Date of the wedding</span><input type="date" value={completedOn} onChange={(event) => setCompletedOn(event.target.value)} /></label>
+          <label><input type="checkbox" checked={deskCoordinated} onChange={(event) => setDeskCoordinated(event.target.checked)} /> <span>The Wedding Desk coordinated it</span></label>
+        </div>
+        <button disabled={completeBusy || !completedOn} onClick={markCompleted}>{completeBusy ? "Saving…" : lead.completedOn ? "Save" : "Mark the wedding completed"}</button>
+        {completeNote && <p role="status">{completeNote}</p>}
       </div>
 
       <div className="wedding-admin-panel">

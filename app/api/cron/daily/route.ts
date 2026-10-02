@@ -5,6 +5,7 @@ import { getSiteContent } from "@/db/siteContent";
 import { bumpListings } from "@/lib/revalidate";
 import { claimJobRun, futprepOrganization, getGrowthReport, logMessage, prunePageEvents, releaseJobRun, reportRecipients, syncCommissionEvents } from "@/db/growth";
 import { cronAuthorized } from "@/lib/cron";
+import { runBillingStep } from "./billing";
 import { portpassFrom, sendEmail } from "@/lib/email";
 import { monthlyReportPeriod, nassauClock } from "@/lib/growth";
 import { growthReportEmail } from "@/lib/growthEmail";
@@ -19,6 +20,8 @@ export const dynamic = "force-dynamic";
 //    that is not on a plan gets nothing written.
 // 2. Removes page-event counts too old for the report to read, Messages
 //    log lines older than a year and site-error lines older than a month.
+// 0. PortPass's own billing (./billing.ts): drafts invoices that are due,
+//    marks overdue ones, and sends the reminder emails owed today.
 // 3. On the 1st of the month (Nassau), emails the business's owners last
 //    month's growth report, once, and records it in the Messages log. If
 //    nothing could be delivered the month is released, and the runs on the
@@ -30,14 +33,26 @@ export async function GET(request: Request) {
   if (!cronAuthorized(request)) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
   const now = new Date();
   const clock = nassauClock(now);
-  const organization = await futprepOrganization();
+  const organization = await futprepOrganization().catch(() => null);
+
+  // Fees follow the payments first, so billing drafts from what is true
+  // today: a fee whose payment was voided is gone (or credited) before
+  // anything is put on an invoice.
+  if (organization) {
+    try {
+      await syncCommissionEvents(organization.id, now);
+    } catch (error) {
+      console.error("daily job: commission events", error instanceof Error ? error.message : "");
+    }
+  }
+  // PortPass's own billing: drafts, overdue marks and reminder emails.
+  try {
+    await runBillingStep(clock.date);
+  } catch (error) {
+    console.error("daily job: billing", error instanceof Error ? error.message : "");
+  }
   if (!organization) return NextResponse.json({ ok: true });
 
-  try {
-    await syncCommissionEvents(organization.id, now);
-  } catch (error) {
-    console.error("daily job: commission events", error instanceof Error ? error.message : "");
-  }
   try {
     await prunePageEvents(now);
   } catch (error) {

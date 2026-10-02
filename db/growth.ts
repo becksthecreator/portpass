@@ -1,3 +1,4 @@
+import { logAudit } from "./audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 import { SOURCE_CHANNELS, type SourceChannel } from "@/lib/attribution";
 import { nassauToday } from "@/lib/futprepTerms";
@@ -354,7 +355,7 @@ export async function getGrowthReport(organization: { id: number; name: string }
 // fee counts against the cap before anything else is shared out), and an
 // uninvoiced event whose payment was voided is removed.
 // Returns null (and writes nothing) for a business that is not on the plan.
-export async function syncCommissionEvents(organizationId: number, now: Date = new Date()): Promise<{ written: number; removed: number } | null> {
+export async function syncCommissionEvents(organizationId: number, now: Date = new Date()): Promise<{ written: number; removed: number; credited: number } | null> {
   const today = nassauClock(now).date;
   const plan = await commissionPlan(organizationId, today);
   if (!plan) return null;
@@ -362,7 +363,7 @@ export async function syncCommissionEvents(organizationId: number, now: Date = n
   const data = await loadGrowthData(organizationId);
   const { current, previous, upcoming } = termPeriods(data.terms, today);
   const periods = [previous, current, upcoming].filter((p): p is GrowthPeriod => p !== null);
-  if (periods.length === 0) return { written: 0, removed: 0 };
+  if (periods.length === 0) return { written: 0, removed: 0, credited: 0 };
 
   const existing = await existingCommissionEvents(organizationId);
   const locked = lockedFees(existing);
@@ -387,8 +388,27 @@ export async function syncCommissionEvents(organizationId: number, now: Date = n
   // its payment is gone (a void deletes the row) or belongs to one of the
   // terms just recomputed. A fee from an older term is left alone: it was
   // not looked at here, so its absence from `wanted` means nothing.
-  const candidates = existing.filter((e) => !e.invoiced && !wanted.has(e.paymentId));
+  // The same goes for a fee already on an invoice, except that it is never
+  // touched: it comes back as a credit, once, a negative fee that comes off
+  // the next invoice (brief 09, 2.2).
+  const candidates = existing.filter((e) => !wanted.has(e.paymentId) && (!e.invoiced || e.feeCents > 0));
   let removed = 0;
+  let credited = 0;
+
+  // A credit stands only while the fee it credits is on an invoice and is
+  // not earned. If the fee is earned again (a registration cancelled by
+  // mistake and put back), is no longer on an invoice (the invoice was
+  // voided) or is gone, a credit not yet invoiced is taken back.
+  const { data: openCredits, error: openCreditsError } = await db.from("billing_events").select("id,source_id,fee_cents").eq("organization_id", organizationId).eq("kind", "grow_with_us_commission").eq("source_table", "billing_events").is("invoice_line_id", null);
+  throwIfSupabaseError(openCreditsError, "Could not load credits");
+  const feeById = new Map(existing.map((e): [number, ExistingEvent] => [e.id, e]));
+  for (const credit of openCredits ?? []) {
+    const fee = feeById.get(Number(credit.source_id));
+    if (fee && fee.invoiced && !wanted.has(fee.paymentId)) continue;
+    const { data: gone, error: goneError } = await db.from("billing_events").delete().eq("id", credit.id).is("invoice_line_id", null).select("id");
+    throwIfSupabaseError(goneError, "Could not take back a credit");
+    if ((gone ?? []).length) await logAudit({ actorUserId: null, organizationId, action: "billing.credit.removed", targetTable: "billing_events", targetId: Number(credit.id), before: { credits_event_id: Number(credit.source_id), fee_cents: Number(credit.fee_cents) }, after: { reason: fee ? (fee.invoiced ? "The fee is earned again" : "The fee is no longer on an invoice") : "The fee no longer exists" } });
+  }
   if (candidates.length > 0) {
     const recomputed = new Set(periods.flatMap((p) => p.termIds));
     const termOf = new Map(data.registrations.map((r): [number, number] => [r.id, r.termId]));
@@ -403,12 +423,25 @@ export async function syncCommissionEvents(organizationId: number, now: Date = n
       const registrationId = registrationOf.get(event.paymentId);
       const termId = registrationId === null || registrationId === undefined ? undefined : termOf.get(registrationId);
       if (!gone && (termId === undefined || !recomputed.has(termId))) continue;
+      if (event.invoiced) {
+        // Keyed by the fee it credits, so it is written once however often this runs.
+        const { data: made, error: creditError } = await db
+          .from("billing_events")
+          .upsert({ organization_id: organizationId, kind: "grow_with_us_commission", source_table: "billing_events", source_id: event.id, event_on: today, booking_value_cents: 0, rate_bps: 0, flat_cents: -event.feeCents, fee_cents: -event.feeCents, note: "Credit: the payment was refunded after this fee was invoiced", updated_at: now.toISOString() }, { onConflict: "kind,source_table,source_id", ignoreDuplicates: true })
+          .select("id");
+        throwIfSupabaseError(creditError, "Could not write a credit");
+        if ((made ?? []).length) {
+          credited += 1;
+          await logAudit({ actorUserId: null, organizationId, action: "billing.credit.added", targetTable: "billing_events", targetId: Number(made![0].id), after: { credits_event_id: event.id, fee_cents: -event.feeCents, payment_id: event.paymentId } });
+        }
+        continue;
+      }
       const { error: removeError } = await db.from("billing_events").delete().eq("id", event.id).is("invoice_line_id", null);
       throwIfSupabaseError(removeError, "Could not remove a billing event");
       removed += 1;
     }
   }
-  return { written, removed };
+  return { written, removed, credited };
 }
 
 // ---- Scheduled jobs: once per period ---------------------------------------------------

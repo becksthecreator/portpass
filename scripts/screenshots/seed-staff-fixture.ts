@@ -249,7 +249,22 @@ async function main() {
   const { error: heartbeatError } = await db.from("site_content").upsert({ key: "backup_heartbeat", value: { at: new Date().toISOString(), ok: true } }, { onConflict: "key" });
   if (heartbeatError) throw new Error(`Could not seed the backup heartbeat: ${heartbeatError.message}`);
 
-  writeFileSync(out, JSON.stringify({ programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date, adminEmail, leadId, registrationId }, null, 2));
+  // Brief 09: PortPass billing. A TEST account on this business with one
+  // overdue invoice and one draft, and bank details so Send is allowed.
+  const dayFromNow = (days: number) => new Date(Date.now() + days * 24 * 3600_000).toISOString().slice(0, 10);
+  const { error: bankError } = await db.from("site_content").upsert({ key: "billing_bank", value: { bank: "TEST Bank", accountName: "PortPass Bahamas Technologies", accountNumber: "0000000", branch: "TEST Main" } }, { onConflict: "key" });
+  if (bankError) throw new Error(`Could not seed the bank details: ${bankError.message}`);
+  const { error: accountError } = await db.from("billing_accounts").upsert(
+    { organization_id: org.id, plan_code: "growing", cycle: "monthly", price_cents: 12000, go_live_on: dayFromNow(-75), free_until: dayFromNow(-45), first_invoice_on: dayFromNow(-44), next_invoice_on: dayFromNow(17), status: "past_due", billing_email: "test-delete-billing@test.portpass.local", billing_whatsapp_e164: "+12425550100", agreement_signed_on: dayFromNow(-80), agreement_version: "TEST v1" },
+    { onConflict: "organization_id" },
+  );
+  if (accountError) throw new Error(`Could not seed the billing account: ${accountError.message}`);
+  const planLine = (label: string) => [{ description: `Growing plan, monthly: ${label}`, qty: 1, unit_cents: 12000, amount_cents: 12000, source: "plan" }];
+  const overdue = await db.rpc("create_portpass_invoice", { p_organization_id: org.id, p_kind: "subscription", p_period_start: dayFromNow(-44), p_period_end: dayFromNow(-14), p_issued_on: dayFromNow(-44), p_due_on: dayFromNow(-30), p_lines: planLine("TEST first month"), p_status: "overdue" });
+  const draft = await db.rpc("create_portpass_invoice", { p_organization_id: org.id, p_kind: "subscription", p_period_start: dayFromNow(-13), p_period_end: dayFromNow(16), p_issued_on: dayFromNow(0), p_due_on: dayFromNow(14), p_lines: planLine("TEST second month") });
+  if (overdue.error || draft.error || !draft.data) throw new Error(`Could not seed the invoices: ${overdue.error?.message ?? draft.error?.message ?? "no draft"}`);
+
+  writeFileSync(out, JSON.stringify({ billingOrgId: org.id, billingDraftId: Number(draft.data),  programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date, adminEmail, leadId, registrationId }, null, 2));
   console.log(`Seeded TEST staff fixture: program ${program.id}, term ${term.id}, session ${session.id} on ${session.session_date}.`);
 }
 

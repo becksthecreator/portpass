@@ -12,6 +12,10 @@ const limited = createRateLimiter(20, 10 * 60_000);
 export async function GET(request: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
+  // An export is logged in the founder's name, so it must be their own
+  // click: a link on another site can't trigger one.
+  const site = request.headers.get("sec-fetch-site");
+  if (site === "cross-site" || site === "same-site") return NextResponse.json({ error: "Not allowed." }, { status: 403 });
   if (limited(auth.session.userId)) return NextResponse.json({ error: "Too many exports in a short time. Try again in a few minutes." }, { status: 429 });
   const org = new URL(request.url).searchParams.get("org") ?? "";
   if (!/^\d{1,12}$/.test(org) || Number(org) <= 0) return NextResponse.json({ error: "Choose a business to export." }, { status: 400 });
