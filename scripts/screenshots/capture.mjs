@@ -64,6 +64,11 @@ const SHOTS = [
   ["brief10-home-perks-row-375", "admin", "/", null],
   ["brief10-section-card-chip-375", "admin", "/entertainment", null],
   ["brief10-business-page-perk-375", "admin", "/entertainment/test-delete-photo-booth", null],
+  // Brief 11: Admin -> Guides with the five drafts, a draft's editor, and
+  // the site search.
+  ["brief11-admin-guides-375", "admin", "/admin/guides", ".admin-table"],
+  ["brief11-guide-editor-375", "admin", `/admin/guides/${fixture.guideId}`, ".guide-editor"],
+  ["brief11-search-375", "admin", "/search?q=kids+football", ".search-results"],
 ];
 
 // RFC 6238: the six-digit code an authenticator app would show right now.

@@ -286,7 +286,11 @@ async function main() {
   const draft = await db.rpc("create_portpass_invoice", { p_organization_id: org.id, p_kind: "subscription", p_period_start: dayFromNow(-13), p_period_end: dayFromNow(16), p_issued_on: dayFromNow(0), p_due_on: dayFromNow(14), p_lines: planLine("TEST second month") });
   if (overdue.error || draft.error || !draft.data) throw new Error(`Could not seed the invoices: ${overdue.error?.message ?? draft.error?.message ?? "no draft"}`);
 
-  writeFileSync(out, JSON.stringify({ billingOrgId: org.id, billingDraftId: Number(draft.data),  programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date, adminEmail, leadId, registrationId }, null, 2));
+  // Brief 11: one of the five draft guides the migration adds, for its editor.
+  const { data: guide, error: guideError } = await db.from("guides").select("id").eq("slug", "things-to-do-in-nassau-with-kids").single();
+  if (guideError || !guide) throw new Error(`Could not find the seeded guide: ${guideError?.message ?? "none"}`);
+
+  writeFileSync(out, JSON.stringify({ guideId: guide.id, billingOrgId: org.id, billingDraftId: Number(draft.data),  programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date, adminEmail, leadId, registrationId }, null, 2));
   console.log(`Seeded TEST staff fixture: program ${program.id}, term ${term.id}, session ${session.id} on ${session.session_date}.`);
 }
 
