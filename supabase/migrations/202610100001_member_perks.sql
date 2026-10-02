@@ -78,6 +78,18 @@ create unique index if not exists profiles_member_number_idx on public.profiles 
 alter table public.profiles drop constraint if exists profiles_member_number_format;
 alter table public.profiles add constraint profiles_member_number_format check (member_number ~ '^PP-[2-9A-HJKMNP-Z]{4,6}$');
 
+-- 1b. A name that was never typed. An account made before sign-up asked
+--     for a name was given the first half of its email address as one.
+--     That is never shown to a business, or on the pass: "Member" is,
+--     until the person gives their name. Nobody's stored name is changed.
+alter table public.profiles add column if not exists name_from_email boolean not null default false;
+update public.profiles p
+   set name_from_email = true
+  from auth.users u
+ where u.id = p.user_id
+   and u.email is not null
+   and lower(btrim(p.full_name)) = lower(split_part(u.email, '@', 1));
+
 -- 2. The perks.
 create table if not exists public.member_perks (
   id bigint generated always as identity primary key,

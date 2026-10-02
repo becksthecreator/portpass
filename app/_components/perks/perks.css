@@ -130,3 +130,6 @@
 .admin-plain-list{line-height:1.7;margin:0;padding-left:22px}
 .admin-perk-end{display:grid;gap:8px;max-width:420px}
 .admin-perk-end input{background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:.9rem;min-height:44px;padding:9px 12px;width:100%}
+
+/* Inside the seller lists every span is greyed (shop.css): the chip keeps its own ink. */
+.seller-row .perk-chip,.pass-result .perk-chip{color:var(--perk-gold-ink)}

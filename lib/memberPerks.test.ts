@@ -168,6 +168,9 @@ describe("where a sign-up came from", () => {
     expect(memberFirstName("jane@example.com")).toBe("Member");
     expect(memberFirstName("")).toBe("Member");
     expect(memberFirstName(null)).toBe("Member");
+    // A name made from the email address because none was typed.
+    expect(memberFirstName("test-delete-admin", true)).toBe("Member");
+    expect(memberFirstName("Jane Doe", false)).toBe("Jane");
   });
 
   it("sends a visitor back to the page they were on after signing up", () => {

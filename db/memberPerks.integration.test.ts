@@ -217,7 +217,12 @@ describe("checking a Member Pass", () => {
     const result = await checkMemberPass(liveOrg, secondNumber, codeNow(secondNumber));
     expect(result.valid && result.firstName).toBe("Member");
     expect(JSON.stringify(result)).not.toContain("jane.doe1985");
-    await admin.from("profiles").update({ full_name: "TEST deletesecond" }).eq("user_id", second);
+    // A stand-in name made at sign-up, however it looks, is never shown either.
+    await admin.from("profiles").update({ full_name: "jane-doe", name_from_email: true }).eq("user_id", second);
+    const flagged = await checkMemberPass(liveOrg, secondNumber, codeNow(secondNumber));
+    expect(flagged.valid && flagged.firstName).toBe("Member");
+    expect((await getMemberCard(second))!.firstName).toBe("Member");
+    await admin.from("profiles").update({ full_name: "TEST deletesecond", name_from_email: false }).eq("user_id", second);
   });
 
   it("stops a business that keeps getting it wrong, without touching another business", async () => {

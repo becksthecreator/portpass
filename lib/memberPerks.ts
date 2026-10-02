@@ -235,7 +235,8 @@ export function cleanSignupSource(value: unknown): string | null {
 // The name a business sees: the first word of the member's name, never
 // anything that looks like an email address or a username (an account
 // made before names were asked for can hold its email's first half).
-export function memberFirstName(fullName: unknown): string {
+export function memberFirstName(fullName: unknown, nameFromEmail = false): string {
+  if (nameFromEmail) return "Member";
   const first = typeof fullName === "string" ? fullName.trim().split(/\s+/)[0] ?? "" : "";
   if (!first || /[@._\d]/.test(first) || first.length > 30) return "Member";
   return first;

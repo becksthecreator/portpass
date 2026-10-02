@@ -175,12 +175,12 @@ export async function livePerksBySlug(): Promise<Map<string, PublicPerk[]>> {
 
 export type MemberCard = { userId: string; firstName: string; memberNumber: string; memberSince: string };
 
-const firstNameOf = memberFirstName;
+const firstNameOf = (fullName: unknown, nameFromEmail?: unknown): string => memberFirstName(fullName, nameFromEmail === true);
 
 export async function getMemberCard(userId: string): Promise<MemberCard | null> {
-  const { data, error } = await getSupabaseAdmin().from("profiles").select("user_id,full_name,member_number,created_at").eq("user_id", userId).maybeSingle();
+  const { data, error } = await getSupabaseAdmin().from("profiles").select("user_id,full_name,name_from_email,member_number,created_at").eq("user_id", userId).maybeSingle();
   throwIfSupabaseError(error, "Could not load the member");
-  return data ? { userId: String(data.user_id), firstName: firstNameOf(data.full_name), memberNumber: String(data.member_number), memberSince: String(data.created_at) } : null;
+  return data ? { userId: String(data.user_id), firstName: firstNameOf(data.full_name, data.name_from_email), memberNumber: String(data.member_number), memberSince: String(data.created_at) } : null;
 }
 
 export type MemberRedemption = { id: number; businessName: string; perkTitle: string; redeemedAt: string; discountCents: number | null };
@@ -223,13 +223,13 @@ export async function checkMemberPass(organizationId: number, typedNumber: strin
   if (!memberNumber) return { valid: false };
   // The code is checked whether or not the number exists, so both take as long.
   const codeOk = checkPassCode(passSecret(), memberNumber, typedCode, now);
-  const { data, error } = await getSupabaseAdmin().from("profiles").select("user_id,full_name,member_number").eq("member_number", memberNumber).maybeSingle();
+  const { data, error } = await getSupabaseAdmin().from("profiles").select("user_id,full_name,name_from_email,member_number").eq("member_number", memberNumber).maybeSingle();
   throwIfSupabaseError(error, "Could not check the pass");
   if (!data || !codeOk) return { valid: false };
   const today = nassauToday();
   const live = (await listBusinessPerks(organizationId)).filter((perk) => isPerkLive(perk, today));
   const perks = await Promise.all(live.map(async (perk) => ({ perk, eligibility: eligibility(perk, today, await usage(perk.id, String(data.user_id))) })));
-  return { valid: true, firstName: firstNameOf(data.full_name), memberNumber, perks };
+  return { valid: true, firstName: firstNameOf(data.full_name, data.name_from_email), memberNumber, perks };
 }
 
 export type RedemptionInput = { method: "online" | "pass_scan"; bookingRef: string | null; priceCents: number | null; recordedBy: string | null };
@@ -265,12 +265,12 @@ export type BusinessRedemption = { id: number; perkTitle: string; firstName: str
 // A business's redemptions: the member's first name and member number,
 // never their email, phone or surname.
 export async function listBusinessRedemptions(organizationId: number): Promise<BusinessRedemption[]> {
-  const { data, error } = await getSupabaseAdmin().from("perk_redemptions").select("id,redeemed_at,method,booking_ref,discount_cents,member_perks(title),profiles(full_name,member_number)").eq("organization_id", organizationId).order("redeemed_at", { ascending: false }).limit(200);
+  const { data, error } = await getSupabaseAdmin().from("perk_redemptions").select("id,redeemed_at,method,booking_ref,discount_cents,member_perks(title),profiles(full_name,name_from_email,member_number)").eq("organization_id", organizationId).order("redeemed_at", { ascending: false }).limit(200);
   throwIfSupabaseError(error, "Could not load the redemptions");
   return ((data ?? []) as unknown as Row[]).map((row) => {
     const perk = (Array.isArray(row.member_perks) ? row.member_perks[0] : row.member_perks) as { title: string } | null;
-    const profile = (Array.isArray(row.profiles) ? row.profiles[0] : row.profiles) as { full_name: string; member_number: string } | null;
-    return { id: Number(row.id), perkTitle: perk?.title ?? "", firstName: profile ? firstNameOf(profile.full_name) : "A former member", memberNumber: profile?.member_number ?? null, redeemedAt: String(row.redeemed_at), method: String(row.method), bookingRef: textOrNull(row.booking_ref), discountCents: numberOrNull(row.discount_cents) };
+    const profile = (Array.isArray(row.profiles) ? row.profiles[0] : row.profiles) as { full_name: string; name_from_email: boolean; member_number: string } | null;
+    return { id: Number(row.id), perkTitle: perk?.title ?? "", firstName: profile ? firstNameOf(profile.full_name, profile.name_from_email) : "A former member", memberNumber: profile?.member_number ?? null, redeemedAt: String(row.redeemed_at), method: String(row.method), bookingRef: textOrNull(row.booking_ref), discountCents: numberOrNull(row.discount_cents) };
   });
 }
 

@@ -48,7 +48,11 @@ export async function bootstrapUser(user: AuthUser, options: { signupSource?: st
   const meta = user.user_metadata ?? null;
   const existing = await getProfile(user.id);
 
-  const fullName = metaString(meta, "full_name") ?? existing?.fullName ?? (email ? email.split("@")[0] : "PortPass member");
+  const typedName = metaString(meta, "full_name");
+  const fullName = typedName ?? existing?.fullName ?? (email ? email.split("@")[0] : "PortPass member");
+  // A new account with no name typed: the name above is only a stand-in,
+  // never shown to a business. A name typed at sign-up replaces it.
+  const nameFromEmail = typedName ? false : existing ? undefined : true;
   const phoneFromSignup = metaString(meta, "phone_e164");
   const isFounder = email !== null && platformOwnerEmails().includes(email);
   const platformRole = existing?.platformRole ?? (isFounder ? "platform_owner" : null);
@@ -56,6 +60,7 @@ export async function bootstrapUser(user: AuthUser, options: { signupSource?: st
   await upsertProfile({
     userId: user.id,
     fullName,
+    nameFromEmail,
     phoneE164: phoneFromSignup ?? existing?.phoneE164 ?? user.phone ?? null,
     platformRole,
   });
