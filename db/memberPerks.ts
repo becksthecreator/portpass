@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { nassauToday } from "@/lib/futprepTerms";
 import { checkPassCode, passSecret } from "@/lib/memberPass";
-import { eligibility, isPerkLive, memberPriceCents, normalizeMemberNumber, type Eligibility, type MemberPerk, type PerkInput, type PerkKind, type PerkStatus } from "@/lib/memberPerks";
+import { eligibility, isPerkLive, memberFirstName, memberPriceCents, normalizeMemberNumber, type Eligibility, type MemberPerk, type PerkInput, type PerkKind, type PerkStatus } from "@/lib/memberPerks";
 import { logAudit } from "./audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -175,7 +175,7 @@ export async function livePerksBySlug(): Promise<Map<string, PublicPerk[]>> {
 
 export type MemberCard = { userId: string; firstName: string; memberNumber: string; memberSince: string };
 
-const firstNameOf = (fullName: unknown): string => (typeof fullName === "string" ? fullName.trim().split(/\s+/)[0] ?? "" : "") || "Member";
+const firstNameOf = memberFirstName;
 
 export async function getMemberCard(userId: string): Promise<MemberCard | null> {
   const { data, error } = await getSupabaseAdmin().from("profiles").select("user_id,full_name,member_number,created_at").eq("user_id", userId).maybeSingle();
@@ -274,6 +274,17 @@ export async function listBusinessRedemptions(organizationId: number): Promise<B
   });
 }
 
+// Whether this business may check passes and record perks at all: it is
+// public (published, not suspended) and has a perk running today. A draft
+// business made by anyone can't be used to guess codes.
+export async function canUsePerks(organizationId: number): Promise<boolean> {
+  const { data, error } = await getSupabaseAdmin().from("organizations").select("status,is_published").eq("id", organizationId).maybeSingle();
+  throwIfSupabaseError(error, "Could not load the business");
+  if (!data || data.status === "suspended" || !data.is_published) return false;
+  const today = nassauToday();
+  return (await listBusinessPerks(organizationId)).some((perk) => isPerkLive(perk, today));
+}
+
 // ---- Platform staff -------------------------------------------------------------------
 
 export type AdminPerk = MemberPerk & { businessName: string; redemptions: number };
@@ -313,6 +324,20 @@ export async function passChecksBlocked(organizationId: number, now: number = Da
     .gte("checked_at", new Date(now - PASS_CHECK_WINDOW_MS).toISOString());
   throwIfSupabaseError(error, "Could not count pass checks");
   return (count ?? 0) >= PASS_CHECK_FAILURES_ALLOWED;
+}
+
+// Claims a check before it is made (claim_member_pass_check): null when
+// the business or the person checking has to wait. The check is written as
+// not valid, and marked valid by markPassCheckValid when it was.
+export async function claimPassCheck(organizationId: number, checkedBy: string): Promise<number | null> {
+  const { data, error } = await getSupabaseAdmin().rpc("claim_member_pass_check", { p_organization_id: organizationId, p_checked_by: checkedBy });
+  throwIfSupabaseError(error, "Could not record the pass check");
+  return data === null || data === undefined ? null : Number(data);
+}
+
+export async function markPassCheckValid(checkId: number): Promise<void> {
+  const { error } = await getSupabaseAdmin().from("member_pass_checks").update({ ok: true }).eq("id", checkId);
+  throwIfSupabaseError(error, "Could not record the pass check");
 }
 
 export async function logPassCheck(organizationId: number, checkedBy: string, ok: boolean): Promise<void> {

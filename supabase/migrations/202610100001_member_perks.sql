@@ -158,10 +158,11 @@ comment on table public.perk_redemptions is
 alter table public.organizations add column if not exists member_commission_free_until date;
 
 -- 5. Where a new account came from (utm_source on the sign-up link: "perk",
---    "own", a counter QR). A short tag, never an identifier.
+--    "own", a counter QR). One of a short list of tags, never an identifier:
+--    any other value is kept as "other".
 alter table public.profiles add column if not exists signup_source text;
 alter table public.profiles drop constraint if exists profiles_signup_source_format;
-alter table public.profiles add constraint profiles_signup_source_format check (signup_source is null or signup_source ~ '^[a-z0-9_-]{1,40}$');
+alter table public.profiles add constraint profiles_signup_source_format check (signup_source is null or signup_source in ('perk', 'own', 'counter_qr', 'instagram', 'pass', 'other'));
 
 -- 6. Every Member Pass check a business makes, so guessing codes can be
 --    stopped whichever server answers. No member is named on a failed check.
@@ -178,5 +179,37 @@ create index if not exists member_pass_checks_org_idx on public.member_pass_chec
 alter table public.member_pass_checks enable row level security;
 revoke all on public.member_pass_checks from anon, authenticated;
 
+create index if not exists member_pass_checks_by_idx on public.member_pass_checks (checked_by, checked_at desc);
+
 comment on table public.member_pass_checks is
   'One row per Member Pass check by a business: when, and whether it was valid. Used to limit guessing; kept 30 days.';
+
+-- 7. Claiming a check before it is made: counted and written in one step,
+--    under a lock per business, so checks sent all at once can't slip past
+--    the limit. A check starts as not valid and is marked valid afterwards.
+--    Returns the check's id, or null when the business (8 wrong in 10
+--    minutes) or the person checking (20 wrong in 10 minutes, across every
+--    business they work for) has to wait.
+create or replace function public.claim_member_pass_check(p_organization_id bigint, p_checked_by uuid)
+returns bigint
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_id bigint;
+begin
+  perform pg_advisory_xact_lock(hashtext('member_pass_checks'), p_organization_id::integer);
+  perform pg_advisory_xact_lock(hashtext('member_pass_checks_by'), hashtext(p_checked_by::text));
+  if (select count(*) from public.member_pass_checks where organization_id = p_organization_id and not ok and checked_at > now() - interval '10 minutes') >= 8 then
+    return null;
+  end if;
+  if (select count(*) from public.member_pass_checks where checked_by = p_checked_by and not ok and checked_at > now() - interval '10 minutes') >= 20 then
+    return null;
+  end if;
+  insert into public.member_pass_checks (organization_id, checked_by, ok) values (p_organization_id, p_checked_by, false) returning id into v_id;
+  return v_id;
+end;
+$$;
+
+revoke all on function public.claim_member_pass_check(bigint, uuid) from public, anon, authenticated;

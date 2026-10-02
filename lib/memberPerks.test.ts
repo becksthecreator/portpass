@@ -8,6 +8,7 @@ import {
   isMemberNumber,
   isPerkLive,
   memberEarlyAccessOpen,
+  memberFirstName,
   memberPriceCents,
   normalizeMemberNumber,
   perkChip,
@@ -147,14 +148,26 @@ describe("where a sign-up came from", () => {
     expect(cleanSignupSource("Perk")).toBe("perk");
     expect(cleanSignupSource(" own ")).toBe("own");
     expect(cleanSignupSource("counter_qr")).toBe("counter_qr");
-    expect(cleanSignupSource("two words")).toBeNull();
-    expect(cleanSignupSource("someone@example.com")).toBeNull();
-    expect(cleanSignupSource("x".repeat(41))).toBeNull();
+    // Anything else is "other": a link can't put its own identifier on an account.
+    expect(cleanSignupSource("jane-doe-2425550100")).toBe("other");
+    expect(cleanSignupSource("someone@example.com")).toBe("other");
+    expect(cleanSignupSource("constructor")).toBe("other");
+    expect(cleanSignupSource("")).toBeNull();
     expect(cleanSignupSource(undefined)).toBeNull();
     expect(cleanSignupSource(42)).toBeNull();
     expect(signupSourceLabel("perk")).toBe("A member perk");
-    expect(signupSourceLabel("flyer_oct")).toBe("flyer_oct");
+    expect(signupSourceLabel("other")).toBe("Another tagged link");
     expect(signupSourceLabel(null)).toBe("No source recorded");
+  });
+
+  it("shows a business a first name, never something that looks like an email or a username", () => {
+    expect(memberFirstName("Jane Doe")).toBe("Jane");
+    expect(memberFirstName("  Jean-Luc  Picard ")).toBe("Jean-Luc");
+    expect(memberFirstName("jane.doe1985")).toBe("Member");
+    expect(memberFirstName("jdoe_42")).toBe("Member");
+    expect(memberFirstName("jane@example.com")).toBe("Member");
+    expect(memberFirstName("")).toBe("Member");
+    expect(memberFirstName(null)).toBe("Member");
   });
 
   it("sends a visitor back to the page they were on after signing up", () => {

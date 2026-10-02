@@ -14,6 +14,8 @@ import {
   listBusinessRedemptions,
   listLivePerks,
   listMemberRedemptions,
+  canUsePerks,
+  claimPassCheck,
   logPassCheck,
   memberEarlyAccess,
   PASS_CHECK_FAILURES_ALLOWED,
@@ -197,6 +199,27 @@ describe("checking a Member Pass", () => {
     });
   });
 
+  it("checks passes only for a business that is public and has a perk running", async () => {
+    expect(await canUsePerks(liveOrg)).toBe(true);
+    // The draft business has a live perk, but its page isn't public.
+    expect(await canUsePerks(draftOrg)).toBe(false);
+  });
+
+  it("claims each check before it is made, so checks sent all at once can't pass the limit", async () => {
+    const claims = await Promise.all(Array.from({ length: 12 }, () => claimPassCheck(draftOrg, second)));
+    expect(claims.filter((id) => id !== null)).toHaveLength(PASS_CHECK_FAILURES_ALLOWED);
+    expect(await claimPassCheck(draftOrg, founder)).toBeNull();
+    await admin.from("member_pass_checks").delete().eq("organization_id", draftOrg);
+  });
+
+  it("shows a business 'Member' rather than a name that came from an email address", async () => {
+    await admin.from("profiles").update({ full_name: "jane.doe1985" }).eq("user_id", second);
+    const result = await checkMemberPass(liveOrg, secondNumber, codeNow(secondNumber));
+    expect(result.valid && result.firstName).toBe("Member");
+    expect(JSON.stringify(result)).not.toContain("jane.doe1985");
+    await admin.from("profiles").update({ full_name: "TEST deletesecond" }).eq("user_id", second);
+  });
+
   it("stops a business that keeps getting it wrong, without touching another business", async () => {
     expect(await passChecksBlocked(liveOrg)).toBe(false);
     for (let i = 0; i < PASS_CHECK_FAILURES_ALLOWED; i += 1) await logPassCheck(liveOrg, founder, false);
@@ -288,7 +311,8 @@ describe("sign-ups by source", () => {
     await setSignupSource(member, "perk");
     await setSignupSource(member, "own");
     expect((await admin.from("profiles").select("signup_source").eq("user_id", member).single()).data!.signup_source).toBe("perk");
-    expect((await admin.from("profiles").update({ signup_source: "someone@example.com" }).eq("user_id", second)).error?.code).toBe("23514");
+    // Only a known tag is stored.
+    expect((await admin.from("profiles").update({ signup_source: "jane-doe-2425550100" }).eq("user_id", second)).error?.code).toBe("23514");
     const stats = await getPerkStats(new Date(Date.now() - 60 * 60_000).toISOString());
     expect(stats.signUps).toBeGreaterThanOrEqual(3);
     expect(stats.bySource.find((entry) => entry.source === "perk")!.count).toBeGreaterThanOrEqual(1);

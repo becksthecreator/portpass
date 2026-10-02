@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkMemberPass, logPassCheck, passChecksBlocked } from "@/db/memberPerks";
+import { canUsePerks, checkMemberPass, claimPassCheck, markPassCheckValid } from "@/db/memberPerks";
 import { requireOrgRoleApi } from "@/lib/auth/guards";
 import { createRateLimiter } from "@/lib/auth/rateLimit";
 import { checkTicket, passSecret } from "@/lib/memberPass";
@@ -8,7 +8,8 @@ import { orgIdParam } from "@/lib/shop/server";
 type Ctx = { params: Promise<{ id: string }> };
 
 // A first, in-memory brake per staff member; the count that matters is in
-// the database (passChecksBlocked), so it holds across servers.
+// the database (claimPassCheck), claimed before each check under a lock,
+// so it holds across servers and against checks sent all at once.
 const limited = createRateLimiter(40, 10 * 60_000);
 
 const WAIT = "Too many checks that weren't valid. Wait ten minutes, then try again.";
@@ -28,10 +29,12 @@ export async function POST(request: Request, ctx: Ctx) {
   const code = typeof body?.code === "string" ? body.code.slice(0, 12) : "";
   if (!memberNumber || !code) return NextResponse.json({ error: "Enter the member number and the six-digit code." }, { status: 400 });
   try {
-    if (await passChecksBlocked(id)) return NextResponse.json({ error: WAIT }, { status: 429 });
+    if (!(await canUsePerks(id))) return NextResponse.json({ error: "Passes can be checked once your page is live and you have a perk running." }, { status: 409 });
+    const checkId = await claimPassCheck(id, auth.session.userId);
+    if (checkId === null) return NextResponse.json({ error: WAIT }, { status: 429 });
     const result = await checkMemberPass(id, memberNumber, code);
-    await logPassCheck(id, auth.session.userId, result.valid);
     if (!result.valid) return NextResponse.json({ valid: false });
+    await markPassCheckValid(checkId);
     return NextResponse.json({ ...result, ticket: checkTicket(passSecret(), id, result.memberNumber) }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     console.error("pass check", error instanceof Error ? error.message : "");

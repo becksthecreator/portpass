@@ -214,21 +214,32 @@ export function memberEarlyAccessOpen(publicOpensAt: string | null, hours: numbe
 
 // ---- Where a sign-up came from --------------------------------------------------------
 
-// The utm_source on a sign-up link, kept as a short tag ("perk", "own",
-// "counter_qr"). Anything else is dropped rather than stored.
-export function cleanSignupSource(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const tag = value.trim().toLowerCase();
-  return /^[a-z0-9_-]{1,40}$/.test(tag) ? tag : null;
-}
-
 export const SIGNUP_SOURCE_LABEL: Record<string, string> = {
   perk: "A member perk",
   own: "OWN Conference",
   counter_qr: "A counter sign",
   instagram: "Instagram",
   pass: "The Member Pass page",
+  other: "Another tagged link",
 };
+
+// The utm_source on a sign-up link, kept as one of a short list of tags.
+// Any other value is kept as "other": a link can't put an identifier of
+// its own on an account. Nothing at all when there is no tag.
+export function cleanSignupSource(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const tag = value.trim().toLowerCase();
+  return Object.prototype.hasOwnProperty.call(SIGNUP_SOURCE_LABEL, tag) ? tag : "other";
+}
+
+// The name a business sees: the first word of the member's name, never
+// anything that looks like an email address or a username (an account
+// made before names were asked for can hold its email's first half).
+export function memberFirstName(fullName: unknown): string {
+  const first = typeof fullName === "string" ? fullName.trim().split(/\s+/)[0] ?? "" : "";
+  if (!first || /[@._\d]/.test(first) || first.length > 30) return "Member";
+  return first;
+}
 
 export function signupSourceLabel(tag: string | null): string {
   return tag ? SIGNUP_SOURCE_LABEL[tag] ?? tag : "No source recorded";

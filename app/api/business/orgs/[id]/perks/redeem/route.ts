@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { recordRedemption } from "@/db/memberPerks";
+import { canUsePerks, recordRedemption } from "@/db/memberPerks";
 import { requireOrgRoleApi } from "@/lib/auth/guards";
 import { createRateLimiter } from "@/lib/auth/rateLimit";
 import { passSecret, ticketValid } from "@/lib/memberPass";
@@ -33,6 +33,7 @@ export async function POST(request: Request, ctx: Ctx) {
   const bookingRef = typeof body?.bookingRef === "string" ? body.bookingRef.replace(/\s+/g, " ").trim().slice(0, 80) || null : null;
   const who = auth.session.profile?.fullName?.trim().split(/\s+/)[0] || "Staff";
   try {
+    if (!(await canUsePerks(id))) return NextResponse.json({ error: "Perks can be recorded once your page is live and you have a perk running." }, { status: 409 });
     const redemption = await recordRedemption(id, perkId, memberNumber, { method: "pass_scan", bookingRef, priceCents, recordedBy: who });
     return NextResponse.json({ redemption }, { status: 201 });
   } catch (error) {
