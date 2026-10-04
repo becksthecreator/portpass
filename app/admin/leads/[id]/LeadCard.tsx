@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import type { Lead } from "@/db/leads";
+import { eventName } from "@/lib/eventSignup";
 import { BOOKING_METHOD_LABEL, BOOKING_METHODS, LEAD_PIPELINE, LEAD_SOURCE_LABEL, LEAD_STATUS_LABEL, leadWhatsappLink, SCORE_ACTION_LABEL, scoreAction, type LeadStatus } from "@/lib/scout/leads";
 
 type SectionOption = { slug: string; name: string; subcategories: Array<{ slug: string; name: string }> };
@@ -186,6 +187,13 @@ export function LeadCard({ lead: initial, sections, aiReady }: { lead: Lead; sec
           <div><dt>Prices mentioned</dt><dd>{lead.pricesText ?? "—"}</dd></div>
           {lead.googleRating !== null && <div><dt>Google rating</dt><dd>{lead.googleRating} ({lead.googleRatingCount ?? 0} reviews)</dd></div>}
           <div><dt>Source</dt><dd>{LEAD_SOURCE_LABEL[lead.source]}{lead.referralCode ? ` · ${lead.referralCode}` : ""}</dd></div>
+          {lead.eventCode && <div><dt>Signed up at</dt><dd>{eventName(lead.eventCode)}{lead.contactName ? ` · ${lead.contactName}` : ""}</dd></div>}
+          {lead.eventCode && (
+            <div>
+              <dt>WhatsApp messages</dt>
+              <dd>{lead.whatsappConsent ? `They ticked “PortPass can message me on WhatsApp about my page”${lead.whatsappConsentAt ? ` on ${new Date(lead.whatsappConsentAt).toLocaleDateString("en-BS", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Nassau" })}` : ""}.` : "They did not tick the WhatsApp box. Call, or ask in person, before messaging."}</dd>
+            </div>
+          )}
           {lead.whyFit && <div><dt>Why a good fit</dt><dd>{lead.whyFit}</dd></div>}
         </dl>
         {lead.sourceUrls.length > 0 && (

@@ -1,0 +1,34 @@
+/* The event sign-up form and its printable kit (brief 18, part C). Base
+   tokens only; its own file. */
+.join-page .join-consent{align-items:flex-start;display:flex!important;flex-direction:row!important;gap:12px!important;line-height:1.45}
+.join-page .join-consent input{flex:none;height:24px;margin:1px 0 0;min-height:0;width:24px}
+.join-page .join-consent span{font-size:.95rem!important;font-weight:600!important;letter-spacing:0!important;text-transform:none!important}
+.join-waiting{background:#fff4d6;border:1px solid #c9922b;border-radius:12px;color:#4a3305;font-size:.9rem;line-height:1.5;margin:0 0 18px;padding:10px 14px}
+.join-more{color:var(--muted);font-size:.92rem;margin:0 auto 60px;max-width:880px;padding:0 5vw;text-align:center}
+.join-more a{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+
+/* /own/kit: one A4 sheet. */
+.kit-page{background:#fff;color:#0D1B3D;margin:0 auto;max-width:210mm;padding:14mm 14mm 10mm}
+.kit-tools{align-items:center;display:flex;flex-wrap:wrap;gap:12px 18px;margin:0 0 18px}
+.kit-tools form{align-items:center;display:flex;flex-wrap:wrap;gap:8px}
+.kit-tools select{border:1px solid #9aa3b5;border-radius:8px;font:inherit;min-height:44px;padding:0 10px}
+.kit-sheet h1{font-family:var(--font-pp-display),Archivo,sans-serif;font-size:26pt;font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0 0 4mm}
+.kit-sheet>p{font-size:11pt;line-height:1.45;margin:0 0 8mm}
+.kit-grid{display:grid;gap:8mm;grid-template-columns:1fr 1fr 1fr}
+.kit-card{border:1.5pt solid #0D1B3D;border-radius:5mm;display:grid;gap:3mm;justify-items:center;padding:6mm 4mm;text-align:center}
+.kit-card svg{height:auto;max-width:100%;width:48mm}
+.kit-card h2{font-size:13pt;line-height:1.2;margin:0}
+.kit-card p{font-size:9.5pt;line-height:1.35;margin:0}
+.kit-card code{font-family:inherit;font-size:9pt;font-weight:700;overflow-wrap:anywhere}
+.kit-foot{border-top:1pt solid #c9cfda;font-size:9pt;margin-top:8mm;padding-top:4mm}
+@media(max-width:700px){.kit-grid{grid-template-columns:1fr}}
+@media print{
+  @page{size:A4;margin:0}
+  .kit-tools,.site-shell-header,.site-shell-footer,.pwa-banner{display:none!important}
+  .kit-page{max-width:none;padding:14mm}
+  .kit-grid{grid-template-columns:1fr 1fr 1fr}
+}
+.kit-blank{align-items:center;aspect-ratio:1;border:1.5pt dashed #9aa3b5;border-radius:3mm;color:#5b667c;display:flex;font-size:9.5pt;justify-content:center;padding:4mm;width:48mm}
+.kit-qr{line-height:0}
+.kit-tools button[type=submit]{background:#fff;border:1px solid #0D1B3D;border-radius:8px;cursor:pointer;font:inherit;font-weight:700;min-height:44px;padding:0 16px}
+.kit-tools label{font-size:.9rem;font-weight:700}

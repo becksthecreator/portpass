@@ -287,6 +287,15 @@ async function main() {
   if (leadError || !seededLeads) throw new Error(`Could not seed leads: ${leadError?.message}`);
   const leadId = seededLeads.find((l) => l.business_name.startsWith("TEST Party Rentals"))!.id;
 
+  // Brief 18, part C: two TEST businesses that signed up on the event form
+  // (one ticked the WhatsApp box, one did not).
+  const signups = [
+    { business_name: "TEST Cake Studio (delete)", section: "entertainment", whatsapp_e164: "+12425550111", instagram_handle: "test_cake_studio", contact_name: "Test Owner", whatsapp_consent: true, whatsapp_consent_at: new Date().toISOString() },
+    { business_name: "TEST Kayak Hire (delete)", section: "tours", whatsapp_e164: "+12425550112", instagram_handle: null, contact_name: "Test Person", whatsapp_consent: false, whatsapp_consent_at: null },
+  ].map((lead) => ({ ...lead, status: "new", source: "event", event_code: "own2026", booking_method: "unknown", warm_connection: false, source_urls: [] as string[], dedupe_key: lead.business_name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() }));
+  const { error: signupError } = await db.from("leads").insert(signups);
+  if (signupError) throw new Error(`Could not seed event sign-ups: ${signupError.message}`);
+
   // Brief 08, build C: a few lines in the Messages log (test addresses,
   // never emailed), one server error and a backup that reported in.
   const { error: messageError } = await db.from("message_log").insert([

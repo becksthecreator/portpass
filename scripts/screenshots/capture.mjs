@@ -88,6 +88,13 @@ const SHOTS = [
   // form (no child or health steps).
   ["brief18-register-themed-375", "anon", "/entertainment/test-delete-photo-booth/register", ".class-choice-grid"],
   ["brief18-register-adult-375", "anon", "/entertainment/test-delete-photo-booth/register?program=test-delete-adult-fitness", ".registration-progress"],
+  // Brief 18, part C: the 30-second sign-up form, the printable kit, and
+  // the sign-ups in Admin -> Leads and on the Overview.
+  ["brief18-own-375", "anon", "/own", ".application-form"],
+  ["brief18-join-event-375", "anon", "/join/school-fair-nov", null],
+  ["brief18-own-kit-375", "admin", "/own/kit", ".kit-grid"],
+  ["brief18-leads-event-375", "admin", "/admin/leads?event=own2026", ".leads-events"],
+  ["brief18-overview-signed-up-375", "admin", "/admin", "#needs"],
   ["brief11-search-375", "admin", "/search?q=kids+football", ".search-results"],
 ];
 
