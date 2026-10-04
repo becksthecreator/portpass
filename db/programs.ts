@@ -63,6 +63,8 @@ export type FutprepProgramSummary = {
   endTime: string | null;
   capacity: number;
   active: boolean;
+  // Who it is for (brief 18, D3).
+  audience: "children" | "adults" | "mixed";
   // Brief 13: the kind of program, its site, and a school contract's terms.
   programType: "term" | "camp" | "contract";
   siteName: string | null;
@@ -127,13 +129,15 @@ export async function futprepOrganizationId(): Promise<number> {
   return Number(data.id);
 }
 
-export async function listFutprepPrograms(): Promise<FutprepProgramSummary[]> {
+// `forOrganizationId` (brief 18, D4): any business's programmes; without
+// it, Futprep's, as before.
+export async function listFutprepPrograms(forOrganizationId?: number): Promise<FutprepProgramSummary[]> {
   const db = getSupabaseAdmin();
-  const organizationId = await futprepOrganizationId();
+  const organizationId = forOrganizationId ?? (await futprepOrganizationId());
 
   const { data: programs, error: programsError } = await db
     .from("programs")
-    .select("id,slug,name,age_min,age_max,age_min_months,age_max_months,coed,location,day_of_week,start_time,end_time,capacity,active,program_type,location_id,contract_client,contract_fee_cents,contract_billing,locations(name)")
+    .select("id,slug,name,age_min,age_max,age_min_months,age_max_months,coed,location,day_of_week,start_time,end_time,capacity,active,audience,program_type,location_id,contract_client,contract_fee_cents,contract_billing,locations(name)")
     .eq("organization_id", organizationId)
     .order("id", { ascending: true });
   throwIfSupabaseError(programsError, "Could not load Futprep programs");
@@ -192,6 +196,7 @@ export async function listFutprepPrograms(): Promise<FutprepProgramSummary[]> {
       endTime: program.end_time ?? null,
       capacity: Number(program.capacity),
       active: Boolean(program.active),
+      audience: program.audience === "adults" || program.audience === "mixed" ? program.audience : "children",
       programType: program.program_type === "camp" ? "camp" : program.program_type === "contract" ? "contract" : "term",
       siteName: (program.locations as unknown as { name: string } | null)?.name ?? null,
       contractClient: program.contract_client ?? null,
@@ -223,10 +228,12 @@ export async function setFutprepProgramActive(id: number, active: boolean) {
   throwIfSupabaseError(error, "Could not update the program.");
 }
 
-export async function createFutprepProgram(input: FutprepProgramInput) {
+// `scope` (brief 18, D4): the business the programme is for and who it is
+// for; without it, a Futprep children's programme, as before.
+export async function createFutprepProgram(input: FutprepProgramInput, scope?: { organizationId: number; audience: "children" | "adults" | "mixed" }) {
   const db = getSupabaseAdmin();
   const now = new Date().toISOString();
-  const organizationId = await futprepOrganizationId();
+  const organizationId = scope?.organizationId ?? (await futprepOrganizationId());
 
   if (input.ageMin < 0 || input.ageMax < input.ageMin) throw new Error("INVALID_AGE_RANGE");
   if (input.capacity <= 0) throw new Error("INVALID_CAPACITY");
@@ -284,6 +291,7 @@ export async function createFutprepProgram(input: FutprepProgramInput) {
       end_time: input.endTime || null,
       capacity: input.capacity,
       program_type: isCamp ? "camp" : isContract ? "contract" : "term",
+      audience: scope?.audience ?? "children",
       // A school contract is never public or registrable (the database
       // forces this too).
       is_public: !isContract,

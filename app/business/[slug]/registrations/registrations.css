@@ -1,0 +1,29 @@
+/* A business's Registrations screen (brief 18, D4). Base tokens only;
+   its own file, imported by these pages. */
+.reg-share{font-size:.92rem;margin:0 0 6px;overflow-wrap:anywhere}
+.reg-share a{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.reg-list{display:grid;gap:10px;list-style:none;margin:0 0 16px;padding:0}
+.reg-list li{align-items:flex-start;border:1px solid var(--line);border-radius:14px;display:flex;gap:14px;justify-content:space-between;padding:14px 16px}
+.reg-list li.is-cancelled{opacity:.62}
+.reg-list li>div:first-child{display:grid;gap:4px;min-width:0}
+.reg-list li>div:first-child span{color:var(--muted);font-size:.84rem;line-height:1.45}
+.reg-list strong a{color:var(--harbour);text-decoration:underline;text-underline-offset:3px}
+.reg-list-state{display:grid;flex:0 0 auto;gap:4px;justify-items:end;text-align:right}
+.reg-list-state b{font-size:.76rem;letter-spacing:.05em;text-transform:uppercase}
+.reg-list-state span{color:var(--muted);font-size:.82rem}
+.reg-list-state a{color:var(--harbour);font-size:.86rem;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.reg-add{margin-top:4px}
+.reg-form{border:1px solid var(--line);border-radius:14px;display:grid;gap:14px;margin-top:8px;padding:16px}
+.reg-form h3{font-size:1rem;margin:0}
+.reg-form label{display:grid;gap:6px;min-width:0}
+.reg-form label>span{font-size:.8rem;font-weight:800}
+.reg-form label>small{color:var(--muted);font-size:.78rem}
+.reg-form input,.reg-form select{background:var(--deck);border:1px solid var(--muted);border-radius:10px;color:var(--ink);font:inherit;min-height:46px;padding:8px 12px;width:100%}
+.reg-two{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+.reg-actions{align-items:center;display:flex;flex-wrap:wrap;gap:12px 18px}
+.reg-next{margin:16px 0 0}
+@media(max-width:560px){
+  .reg-list li{flex-direction:column}
+  .reg-list-state{justify-items:start;text-align:left}
+  .reg-two{grid-template-columns:1fr}
+}
