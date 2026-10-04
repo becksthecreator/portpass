@@ -1,0 +1,43 @@
+/* Registration in a business's own colours (brief 18, D2). The variables
+   come from lib/businessTheme.ts, set inline on the page's own <main>:
+   --hdr-bg / --hdr-ink / --hdr-accent for the header and the dark bars,
+   --brand-fill / --brand-on-fill for buttons and marks, --brand-text for
+   the brand colour as text on paper. Every pair that carries text is
+   checked there, so a bright brand colour (lime) gets navy text on it and
+   sits as an accent on navy. The page itself stays on PortPass's paper,
+   so body text always reads. Futprep's form (.futprep-theme) is separate
+   and untouched. */
+.biz-reg .biz-reg-header{align-items:center;background:var(--hdr-bg);border-bottom:4px solid var(--hdr-accent);color:var(--hdr-ink);display:flex;flex-wrap:wrap;gap:14px 22px;justify-content:space-between;padding:14px 24px}
+.biz-reg .biz-reg-portpass{background:#fff;border-radius:10px;display:inline-flex;padding:6px 10px}
+.biz-reg .biz-reg-portpass .brand-logo{height:26px;width:auto}
+.biz-reg .biz-reg-business{align-items:center;color:inherit;display:flex;gap:12px;min-width:0;text-decoration:none}
+.biz-reg .biz-reg-business img{background:#fff;border-radius:10px;height:44px;object-fit:contain;padding:4px;width:44px}
+.biz-reg .biz-reg-business span{display:grid;gap:1px;min-width:0}
+.biz-reg .biz-reg-business b{font-size:1rem;line-height:1.2}
+.biz-reg .biz-reg-business small{font-size:.74rem;opacity:.86}
+
+.biz-reg .primary-button{background:var(--brand-fill);border-color:var(--brand-fill);color:var(--brand-on-fill)}
+.biz-reg .secondary-button{border-color:var(--brand-text);color:var(--brand-text)}
+.biz-reg .eyebrow-dot{background:var(--brand-text);border-color:var(--brand-text)}
+.biz-reg .registration-progress .is-current{border-color:var(--brand-text);color:var(--ink)}
+.biz-reg .registration-progress .is-current span,
+.biz-reg .registration-progress .is-complete span,
+.biz-reg .registration-form legend>span,
+.biz-reg .confirmation-mark{background:var(--brand-fill);border-color:var(--brand-fill);color:var(--brand-on-fill)}
+.biz-reg .choice-card.is-selected{background:#f3f5f9;border-color:var(--brand-text)}
+.biz-reg .choice-card.is-selected .choice-check{background:var(--brand-text);box-shadow:inset 0 0 0 4px #f3f5f9}
+.biz-reg .registration-total,
+.biz-reg .confirmation-reference{background:var(--hdr-bg);color:var(--hdr-ink)}
+.biz-reg .confirmation-reference span{color:inherit;opacity:.82}
+.biz-reg .payment-instruction{background:#f3f5f9}
+.biz-reg .registration-intro h1,.biz-reg .registration-confirmation h1{font-family:var(--font-pp-display),Archivo,sans-serif;font-size:clamp(2.2rem,6vw,3.6rem);font-weight:800;letter-spacing:-.02em;line-height:1.05}
+.biz-reg .registration-form legend,.biz-reg .choice-card strong,.biz-reg .registration-total strong{font-family:var(--font-pp-display),Archivo,sans-serif;font-weight:800}
+.biz-reg .single-consent a,.biz-reg .signature-field a{color:var(--brand-text)}
+@media(max-width:640px){
+  .biz-reg .biz-reg-header{padding:12px 16px}
+  .biz-reg .registration-shell,.biz-reg .registration-confirmation{padding:36px 16px 0}
+  .biz-reg .registration-intro{gap:22px;grid-template-columns:1fr;margin-bottom:26px}
+  .biz-reg .registration-form{padding:22px 16px}
+  .biz-reg .class-choice-grid,.biz-reg .payment-method-grid,.biz-reg .bank-panel,.biz-reg .registration-review{grid-template-columns:1fr}
+  .biz-reg .confirmation-grid{grid-template-columns:1fr}
+}

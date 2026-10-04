@@ -54,6 +54,9 @@ export type FutprepRegistrationInput = {
   authorizedPickup: string;
   additionalNotes: string;
   programSlug: string;
+  // Brief 18, D3: on a "mixed" programme, the person registering says
+  // they are the adult taking part. An adults' programme never asks.
+  participantIsAdult?: boolean;
   // The term being registered for (brief 06 v2, A1.4). Optional only for
   // callers that predate it: a program with exactly one open term uses that.
   termId?: number | null;
@@ -93,12 +96,19 @@ export type FutprepRegistrationInput = {
 
 // One registrable thing: a program in one open term (brief 06 v2, Part A).
 // A class with Term 1 and Term 2 both open is two offers; a camp is one.
+export type ProgramAudience = "children" | "adults" | "mixed";
+
+const audienceOf = (value: unknown): ProgramAudience => (value === "adults" || value === "mixed" ? value : "children");
+
 export type FutprepAvailability = {
   programId: number;
   termId: number;
   slug: string;
   name: string;
   programType: ProgramType;
+  // Who it is for (brief 18, D3): an adults' programme asks for no
+  // guardian, emergency or health details.
+  audience: ProgramAudience;
   isPublic: boolean;
   ageMin: number;
   ageMax: number;
@@ -282,11 +292,11 @@ async function seedFutprepPilot() {
   }
 }
 
-const PROGRAM_OFFER_COLUMNS = "id,slug,name,program_type,is_public,age_min,age_max,age_min_months,age_max_months,location,location_note,day_of_week,start_time,end_time,capacity,children_per_coach,default_coaches,organization_id";
+const PROGRAM_OFFER_COLUMNS = "id,slug,name,program_type,audience,is_public,age_min,age_max,age_min_months,age_max_months,location,location_note,day_of_week,start_time,end_time,capacity,children_per_coach,default_coaches,organization_id";
 const TERM_OFFER_COLUMNS = "id,program_id,name,start_date,end_date,break_dates,weekly_fee_cents,term_fee_cents,active,registration_opens_at,registration_closes_at,daily_start_time,daily_end_time,what_to_bring,early_access_until,trial_dates,trial_spots_per_session,taster_date";
 
 type ProgramOfferRow = {
-  id: number; slug: string; name: string; program_type: string; is_public: boolean; age_min: number; age_max: number;
+  id: number; slug: string; name: string; program_type: string; audience?: string | null; is_public: boolean; age_min: number; age_max: number;
   location: string; day_of_week: string; start_time: string; end_time: string | null; capacity: number; organization_id: number | null;
   age_min_months: number | null; age_max_months: number | null; location_note: string | null;
   children_per_coach: number | null; default_coaches: number | null;
@@ -346,13 +356,15 @@ function termWindow(term: TermOfferRow): TermWindow {
   return { active: Boolean(term.active), endDate: term.end_date, registrationOpensAt: term.registration_opens_at, registrationClosesAt: term.registration_closes_at };
 }
 
-// Every open offer for Futprep: each active program (public ones only,
+// Every open offer for a business: each active program (public ones only,
 // unless asked) with each of its active terms whose registration window
 // is open. Three queries however many programs and terms there are.
-export async function listFutprepOffers(options: { publicOnly?: boolean; now?: Date; earlyAccess?: boolean; memberEarlyHours?: number | null } = {}): Promise<FutprepAvailability[]> {
-  await ensureFutprepPilotData();
+// `organizationId` (brief 18, D1): any business's offers; without it,
+// Futprep's, exactly as before.
+export async function listFutprepOffers(options: { publicOnly?: boolean; now?: Date; earlyAccess?: boolean; memberEarlyHours?: number | null; organizationId?: number } = {}): Promise<FutprepAvailability[]> {
+  if (options.organizationId === undefined) await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
-  const organizationId = await futprepOrganizationId();
+  const organizationId = options.organizationId ?? (await futprepOrganizationId());
   const now = options.now ?? new Date();
 
   let programQuery = db
@@ -406,6 +418,7 @@ export async function listFutprepOffers(options: { publicOnly?: boolean; now?: D
       slug: program.slug,
       name: program.name,
       programType: program.program_type === "camp" ? "camp" : "term",
+      audience: audienceOf(program.audience),
       isPublic: Boolean(program.is_public),
       ageMin: Number(program.age_min),
       ageMax: Number(program.age_max),
@@ -455,8 +468,8 @@ export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
 // One offer by program slug (and term, when given), including unlisted
 // programs -- a direct /futprep/register?program=&term= link works for a
 // program that is not on the public list.
-export async function getFutprepOffer(programSlug: string, termId?: number | null, options: { earlyAccess?: boolean; memberEarlyHours?: number | null } = {}): Promise<FutprepAvailability | null> {
-  const offers = (await listFutprepOffers({ earlyAccess: options.earlyAccess, memberEarlyHours: options.memberEarlyHours })).filter((offer) => offer.slug === programSlug);
+export async function getFutprepOffer(programSlug: string, termId?: number | null, options: { earlyAccess?: boolean; memberEarlyHours?: number | null; organizationId?: number } = {}): Promise<FutprepAvailability | null> {
+  const offers = (await listFutprepOffers({ earlyAccess: options.earlyAccess, memberEarlyHours: options.memberEarlyHours, organizationId: options.organizationId })).filter((offer) => offer.slug === programSlug);
   if (termId) return offers.find((offer) => offer.termId === termId) ?? null;
   return offers.length === 1 ? offers[0] : null;
 }
@@ -548,20 +561,35 @@ export async function getFutprepRegistrationStatus(
   };
 }
 
+// The same rules for every business (brief 18, D1): capacity, waitlist,
+// ages in months, duplicates, what is owed. `scope` names the business a
+// generic registration is for (the programme must be its own), the two
+// letters its reference codes start with and the consent wording it was
+// given under. Without a scope it is Futprep's, exactly as before.
+export type RegistrationScope = { organizationId: number; referencePrefix: string; consentVersion: string };
+
 export async function createFutprepRegistration(
   input: FutprepRegistrationInput,
+  scope?: RegistrationScope,
 ) {
-  await ensureFutprepPilotData();
+  if (!scope) await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
 
-  const { data: program, error: programError } = await db
+  let programQuery = db
     .from("programs")
-    .select("id,organization_id,capacity,name,age_min,age_max,age_min_months,age_max_months,children_per_coach,default_coaches,location,day_of_week,start_time,end_time,program_type")
+    .select("id,organization_id,capacity,name,age_min,age_max,age_min_months,age_max_months,children_per_coach,default_coaches,location,day_of_week,start_time,end_time,program_type,audience")
     .eq("slug", input.programSlug)
-    .eq("active", true)
-    .maybeSingle();
+    .eq("active", true);
+  // A programme is only ever registered for through its own business.
+  if (scope) programQuery = programQuery.eq("organization_id", scope.organizationId);
+  const { data: program, error: programError } = await programQuery.maybeSingle();
   throwIfSupabaseError(programError, "Could not load selected program");
   if (!program) throw new Error("INVALID_PROGRAM");
+  // An adults' programme, or an adult on a mixed one: the person
+  // registering is the participant. No date of birth, guardian,
+  // emergency, health or pickup detail is asked for or stored.
+  const audience = audienceOf(program.audience);
+  const adult = audience === "adults" || (audience === "mixed" && input.participantIsAdult === true);
   // Brief 13: the school holds a contract child's details; there is no
   // registration for one.
   if (program.program_type === "contract") throw new Error("INVALID_PROGRAM");
@@ -601,13 +629,16 @@ export async function createFutprepRegistration(
   }
 
   // Brief 12: in months at the term's start (Lil Kickers from 18 months).
-  if (!fitsAgeRule(input.childDob, term.start_date, ageRuleOf(program))) {
+  // An adult gives no date of birth, so there is nothing to check.
+  if (!adult && !fitsAgeRule(input.childDob, term.start_date, ageRuleOf(program))) {
     if (!input.enteredByStaff || !input.ageOverrideConfirmed) {
       throw new Error("AGE_MISMATCH");
     }
   }
 
   const mode = input.mode ?? "standard";
+  // The free taster is matched to a child by date of birth.
+  if (adult && mode === "trial") throw new Error("TRIAL_NOT_AVAILABLE");
   let registrationStatus: RegistrationStatus = "pending";
   let trialSessionId: number | null = null;
   let joinedFrom: { id: number; amountCents: number } | null = null;
@@ -668,12 +699,8 @@ export async function createFutprepRegistration(
   }
 
   const normalizedEmail = input.parentEmail.trim().toLowerCase();
-  const { data: duplicate, error: duplicateError } = await db
-    .from("registrations")
-    .select("reference_code")
-    .eq("term_id", term.id)
-    .eq("parent_email", normalizedEmail)
-    .eq("child_dob", input.childDob)
+  const sameTermAndEmail = db.from("registrations").select("reference_code").eq("term_id", term.id).eq("parent_email", normalizedEmail);
+  const { data: duplicate, error: duplicateError } = await (adult ? sameTermAndEmail.is("child_dob", null) : sameTermAndEmail.eq("child_dob", input.childDob))
     .ilike("child_name", escapeLikePattern(input.childName.trim()))
     .in("registration_status", mode === "waitlist" ? [...ACTIVE_REGISTRATION_STATUSES, "waitlist"] : ACTIVE_REGISTRATION_STATUSES)
     .limit(1)
@@ -712,7 +739,7 @@ export async function createFutprepRegistration(
       : resolveAttribution({ heard: input.heardAboutUs ?? null, referralCode: input.referralCode ?? null, attribution, isNewFamily });
 
   const now = new Date().toISOString();
-  const referenceCode = `FP-${new Date().getUTCFullYear()}-${crypto
+  const referenceCode = `${scope?.referencePrefix ?? "FP"}-${new Date().getUTCFullYear()}-${crypto
     .randomUUID()
     .replaceAll("-", "")
     .slice(0, 8)
@@ -726,17 +753,20 @@ export async function createFutprepRegistration(
     parent_name: input.parentName.trim(),
     parent_email: normalizedEmail,
     parent_phone: parentPhone,
-    relationship: input.relationship.trim(),
+    relationship: adult ? "Self" : input.relationship.trim(),
+    // For an adult the participant's name is their own; nothing about
+    // health, an emergency contact or pickup is kept, whatever was sent.
     child_name: input.childName.trim(),
-    child_dob: input.childDob,
-    gender: input.gender,
-    emergency_contact_name: input.emergencyContactName.trim(),
-    emergency_contact_phone: input.emergencyContactPhone.trim(),
-    allergies: input.allergies.trim(),
-    medical_conditions: input.medicalConditions.trim(),
-    medications: input.medications.trim(),
-    special_needs: input.specialNeeds.trim(),
-    authorized_pickup: input.authorizedPickup.trim(),
+    participant_is_adult: adult,
+    child_dob: adult ? null : input.childDob,
+    gender: adult ? null : input.gender,
+    emergency_contact_name: adult ? null : input.emergencyContactName.trim(),
+    emergency_contact_phone: adult ? null : input.emergencyContactPhone.trim(),
+    allergies: adult ? null : input.allergies.trim(),
+    medical_conditions: adult ? null : input.medicalConditions.trim(),
+    medications: adult ? null : input.medications.trim(),
+    special_needs: adult ? null : input.specialNeeds.trim(),
+    authorized_pickup: adult ? null : input.authorizedPickup.trim(),
     additional_notes: input.additionalNotes.trim(),
     photo_consent: input.photoConsent,
     payment_frequency: paymentFrequency,
@@ -746,7 +776,7 @@ export async function createFutprepRegistration(
     payment_status: registrationStatus === "trial" ? "waived" : "pending",
     trial_session_id: trialSessionId,
     joined_from_registration_id: joinedFrom?.id ?? null,
-    consent_version: CONSENT_VERSION,
+    consent_version: scope?.consentVersion ?? CONSENT_VERSION,
     consent_accepted: true,
     consent_at: now,
     signature_name: input.signatureName.trim(),
@@ -797,6 +827,8 @@ export async function createFutprepRegistration(
     registrationStatus,
     // True when the place was booked in the members-only early window.
     memberEarlyAccess: memberEarlyTerms.has(Number(term.id)),
+    organizationId: Number(program.organization_id),
+    participantIsAdult: adult,
   };
 }
 

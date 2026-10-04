@@ -15,6 +15,7 @@ import { SiteHeader } from "@/app/_components/SiteHeader";
 import { bizDisplay, ppSans } from "@/app/fonts";
 import { listSections } from "@/db/categories";
 import { getOrganizationListingBySlug } from "@/db/organizations";
+import { listFutprepOffers } from "@/db/registrations";
 
 // /{section}/{slug} is a subcategory first, then a live business in that
 // section -- the convention directoryHref() has pointed at all along.
@@ -80,6 +81,16 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
+// Whether the business has a class or camp open for registration today.
+// Decoration on the page: a failed read just leaves the usual button.
+async function hasOpenRegistration(organizationId: number): Promise<boolean> {
+  try {
+    return (await listFutprepOffers({ publicOnly: true, organizationId })).length > 0;
+  } catch {
+    return false;
+  }
+}
+
 export default async function SectionSlugPage({ params }: { params: Params }) {
   const { category, slug } = await params;
   const resolved = await resolve(category, slug);
@@ -91,7 +102,7 @@ export default async function SectionSlugPage({ params }: { params: Params }) {
     <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
       <JsonLd data={listingJsonLd(listing, directoryHref(listing.organization.slug, listing.organization.primaryCategory))} />
       <SiteHeader breadcrumb={[{ label: resolved.section.name, href: `/${category}` }, { label: listing.organization.name, href: `/${category}/${slug}` }]} />
-      <OrganizationTemplate listing={listing} />
+      <OrganizationTemplate listing={listing} registerHref={(await hasOpenRegistration(listing.organization.id)) ? `/${category}/${slug}/register` : null} />
       <RelatedInSection section={category} sectionName={resolved.section.name} exceptSlug={slug} />
       <InOurGuides organizationSlug={slug} />
       <SiteFooter orgLine={`${listing.organization.name} · Booking and payments powered by PortPass`} />
