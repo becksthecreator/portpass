@@ -26,7 +26,7 @@
 }
 
 /* A4: a section with nothing to book yet is one panel. */
-.soon-panel{background:var(--card);border:1px solid var(--line);border-radius:20px;display:grid;gap:26px;margin:0 auto 56px;max-width:760px;padding:28px 26px;width:calc(100% - 10vw)}
+.soon-panel{background:var(--card);border:1px solid var(--line);border-radius:20px;display:grid;gap:26px;margin:28px auto 56px;max-width:760px;padding:28px 26px;width:calc(100% - 10vw)}
 .soon-panel h2{font-size:1.2rem;margin:0 0 10px}
 .soon-panel p{color:var(--muted);line-height:1.6;margin:0}
 .soon-panel-list{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
