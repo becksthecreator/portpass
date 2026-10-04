@@ -189,3 +189,6 @@
 .preq-test .preq-btn{justify-self:start}
 .preq-test-steps{display:grid;gap:10px;line-height:1.55;margin:0;padding-left:20px}
 .wiz-getpaid{display:grid;gap:18px}
+/* In the setup wizard, whose form stacks every label: keep the tick beside its words. */
+.auth-form .preq-method{display:flex;flex-direction:row}
+.auth-form .preq-method input{min-height:0;width:22px}
