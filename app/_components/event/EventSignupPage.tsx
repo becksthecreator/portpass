@@ -20,7 +20,7 @@ export async function EventSignupPage({ event, path }: { event: string; path: st
         <p>Your prices, your photos and a booking button in one link. Tell us who you are and we&rsquo;ll build the page with you. Customers pay you directly.</p>
       </section>
       <EventSignupForm event={event} sections={sections} />
-      <p className="join-more">Want to look first? <Link href="/business">What a business gets →</Link> · <Link href="/pricing">Pricing</Link></p>
+      <p className="join-more">Want to look first? <Link href="/demo">Try a demo business →</Link> · <Link href="/pricing">Pricing</Link></p>
       <SiteFooter />
     </main>
   );

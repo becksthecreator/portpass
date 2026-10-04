@@ -65,6 +65,13 @@ on:
       - "lib/scout/**"
       - "db/staff.ts"
       - "db/coachPay.ts"
+      - "app/demo/**"
+      - "app/api/demo/**"
+      - "db/demo.ts"
+      - "app/_components/attendance/**"
+      - "app/_components/registrations/**"
+      - "app/_components/payments/**"
+      - "app/pay/**"
       - "scripts/screenshots/**"
       - ".github/workflows/staff-screenshots.yml"
 

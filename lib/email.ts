@@ -7,6 +7,7 @@ const RESEND_API_URL = "https://api.resend.com/emails";
 // accidentally emailed - a real address that happens to end in this domain
 // isn't a thing, so refusing it outright has no legitimate downside.
 const TEST_EMAIL_DOMAIN = "@test.portpass.local";
+const EXAMPLE_DOMAINS = /@example\.(com|org|net)$/i;
 
 type SendEmailInput = {
   to: string;
@@ -47,6 +48,13 @@ export async function sendEmail(input: SendEmailInput): Promise<EmailOutcome> {
   if (to.trim().toLowerCase().endsWith(TEST_EMAIL_DOMAIN)) {
     console.warn("[email] Refusing to send to the reserved test domain.");
     await record(input, "skipped", "A test address: never emailed.");
+    return "skipped";
+  }
+  // example.com, .org and .net are reserved for examples (RFC 2606): nobody
+  // has an inbox there. The demo business's invented people all use them,
+  // so whatever is pressed in the demo, no email leaves.
+  if (EXAMPLE_DOMAINS.test(to.trim())) {
+    console.warn("[email] Refusing to send to an example address.");
     return "skipped";
   }
 

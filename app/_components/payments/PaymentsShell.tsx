@@ -29,7 +29,8 @@ export function PaymentsShell({ access, tab, title, lede, chaseCount, children }
         <span className="preq-kicker">Payments · {access.orgName}</span>
         <h1>{title}</h1>
         {lede && <p>{lede}</p>}
-        {tab !== "new" && <Link className="preq-btn is-primary preq-new" href={`${base}/new`}>New request</Link>}
+        {/* In the demo a request starts from a registration, with nothing typed. */}
+        {access.door === "demo" ? <Link className="preq-btn is-primary preq-new" href="/demo/registrations">Request payment from a registration</Link> : tab !== "new" && <Link className="preq-btn is-primary preq-new" href={`${base}/new`}>New request</Link>}
       </header>
       {nav}
       {children}
@@ -51,6 +52,16 @@ export function PaymentsShell({ access, tab, title, lede, chaseCount, children }
           </nav>
         </header>
         <section className="staff-workspace-content">{body}</section>
+      </main>
+    );
+  }
+
+  if (access.door === "demo") {
+    return (
+      <main className="form-page auth-page theme-night">
+        <SiteHeader breadcrumb={[{ label: "Demo business", href: "/demo/home" }, { label: "Payments", href: base }]} />
+        {body}
+        <SiteFooter />
       </main>
     );
   }

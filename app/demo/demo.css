@@ -1,0 +1,17 @@
+/* The demo business (brief 18, part B). Base tokens only; its own file. */
+.demo-banner{background:#FFD23F;border-bottom:2px solid #0D1B3D;color:#0D1B3D;font-size:.9rem;font-weight:800;line-height:1.35;padding:9px 16px;position:sticky;text-align:center;top:0;z-index:40}
+.demo-start{margin:22px 0 6px}
+.demo-start .primary-button{min-height:54px;width:100%}
+.demo-inside{display:grid;gap:10px;list-style:none;margin:18px 0 0;padding:0}
+.demo-inside li{border:1px solid var(--line);border-radius:14px;display:grid;gap:3px;padding:12px 14px}
+.demo-inside li span{color:var(--muted);font-size:.9rem;line-height:1.45}
+.demo-try{display:grid;gap:8px;list-style:decimal;margin:14px 0 0;padding-left:22px}
+.demo-try li{line-height:1.5}
+.demo-reset{align-items:center;border:1px dashed var(--line);border-radius:14px;display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:22px;padding:14px 16px}
+.demo-reset p{flex:1 1 220px;font-size:.9rem;margin:0}
+.demo-leave{margin-top:22px}
+.demo-leave button{background:none;border:0;color:var(--harbour);cursor:pointer;font:inherit;font-weight:700;padding:0;text-decoration:underline;text-underline-offset:3px}
+.demo-note{background:var(--card);border:1px solid var(--line);border-radius:14px;font-size:.95rem;line-height:1.5;margin:0 auto 28px;max-width:880px;padding:14px 18px}
+.demo-note-wrap{padding:0 5vw}
+.demo-request{background:none;border:0;color:var(--harbour);cursor:pointer;font:inherit;font-size:.86rem;font-weight:700;padding:0;text-align:inherit;text-decoration:underline;text-underline-offset:3px}
+.demo-request:disabled{opacity:.6}

@@ -73,7 +73,7 @@ export async function RequestsView({ access, filter }: { access: PaymentsAccess;
           <Link href={`${access.basePath}?filter=check`}>Check and confirm →</Link>
         </p>
       )}
-      <RequestsBoard rows={requests} basePath={access.basePath} apiBase={apiBase(access)} today={today} initialFilter={initialFilter} />
+      <RequestsBoard rows={requests} basePath={access.basePath} apiBase={apiBase(access)} today={today} initialFilter={initialFilter} demo={access.door === "demo"} />
     </PaymentsShell>
   );
 }
@@ -183,7 +183,7 @@ export async function RequestDetailView({ access, requestId, created }: { access
   const { request, payments } = found;
   return (
     <PaymentsShell access={access} tab="detail" title={request.referenceCode} lede={`${request.customerName} · created by ${request.createdByName || "the team"}`}>
-      <RequestDetail request={request} payments={payments} businessName={access.orgName} basePath={access.basePath} apiBase={apiBase(access)} origin={origin} today={nassauToday()} created={created} />
+      <RequestDetail request={request} payments={payments} businessName={access.orgName} basePath={access.basePath} apiBase={apiBase(access)} origin={origin} today={nassauToday()} created={created} demo={access.door === "demo"} />
     </PaymentsShell>
   );
 }
@@ -196,7 +196,7 @@ export async function ChaseView({ access }: { access: PaymentsAccess }) {
   const overdue = chaseList(requests, today);
   return (
     <PaymentsShell access={access} tab="chase" title="Chase list" lede="Overdue requests, oldest first. A reminder goes only when you press the button, to one customer at a time." chaseCount={overdue.length}>
-      <ChaseList rows={overdue} businessName={access.orgName} basePath={access.basePath} apiBase={apiBase(access)} origin={origin} today={today} />
+      <ChaseList rows={overdue} businessName={access.orgName} basePath={access.basePath} apiBase={apiBase(access)} origin={origin} today={today} demo={access.door === "demo"} />
     </PaymentsShell>
   );
 }
@@ -207,6 +207,7 @@ export async function SettingsView({ access }: { access: PaymentsAccess }) {
   const [settings, team] = await Promise.all([getPaymentSettings(access.orgId), access.door === "business" ? listPaymentTeam(access.orgId) : Promise.resolve([])]);
   return (
     <PaymentsShell access={access} tab="settings" title="How customers pay you" lede="Shown on every request's page. Customers pay you directly; PortPass never holds the money.">
+      {access.door === "demo" && <p className="preq-notice">In the demo this can&rsquo;t be changed. A real business picks cash, bank transfer or a Kanoo wallet transfer here, and adds the details its customers need.</p>}
       <PaymentSettingsForm apiBase={apiBase(access)} initial={settings} suggestedPrefix={settings?.referencePrefix ?? defaultPrefix(access.orgName)} canEdit={access.canEditSettings} />
       {/* A test request goes to the signed-in person's own email, so it is
           offered through the PortPass-account door only. */}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { pruneHealthRecords } from "@/db/adminHealth";
 import { prunePassChecks } from "@/db/memberPerks";
 import { listOwnerEmails } from "@/db/business";
+import { resetDemoBusiness } from "@/db/demo";
 import { getSiteContent } from "@/db/siteContent";
 import { bumpListings } from "@/lib/revalidate";
 import { claimJobRun, futprepOrganization, getGrowthReport, logMessage, prunePageEvents, releaseJobRun, reportRecipients, syncCommissionEvents } from "@/db/growth";
@@ -28,6 +29,9 @@ export const dynamic = "force-dynamic";
 //    nothing could be delivered the month is released, and the runs on the
 //    next few days try again. Nothing is ever sent to a parent.
 //
+// 4. Puts the demo business (/demo) back to its starting point, with its
+//    dates worked out from today.
+//
 // The answer says only that the job ran: what it did is in the audit trail
 // (billing_events, message_log), not in a response anyone could read.
 export async function GET(request: Request) {
@@ -45,6 +49,12 @@ export async function GET(request: Request) {
     } catch (error) {
       console.error("daily job: commission events", error instanceof Error ? error.message : "");
     }
+  }
+  // The demo business: whatever visitors pressed yesterday is gone.
+  try {
+    await resetDemoBusiness();
+  } catch (error) {
+    console.error("daily job: demo reset", error instanceof Error ? error.message : "");
   }
   // PortPass's own billing: drafts, overdue marks and reminder emails.
   try {

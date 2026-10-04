@@ -71,6 +71,7 @@ export default async function BusinessPage() {
           <Link className="home-button" href="/apply">Get listed →</Link>
           <a className="home-button home-button-light" href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a>
         </div>
+        <p className="auth-alt">Want to see it first? <Link href="/demo">Try a demo business →</Link></p>
         <p className="auth-alt">Already on PortPass? <Link href="/login?next=%2Fbusiness%2Fsetup">Sign in to manage your listing.</Link></p>
       </section>
 
@@ -114,7 +115,7 @@ export default async function BusinessPage() {
             </figure>
           ))}
         </div>
-        <p className="biz-shots-note">Screens from a test business. Every name on them is made up.</p>
+        <p className="biz-shots-note">Screens from the demo business. Every name on them is made up. <Link href="/demo">Try it yourself →</Link></p>
       </section>
 
       <section className="biz-pricing" id="pricing">

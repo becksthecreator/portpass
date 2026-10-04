@@ -1,6 +1,7 @@
 import { bookingsCsv, canOwe, HEALTH_FIELDS, owingCents, PURGED_HEALTH_COLUMNS, REVEAL_REASON_MAX, REVEAL_REASON_MIN, REVEALS_PER_HOUR, weeklyDueCents, type AdminBooking, type BookingKind, type HeldSession } from "@/lib/adminBookings";
 import { nassauToday } from "@/lib/futprepTerms";
 import { logAudit } from "./audit";
+import { demoOrganizationIdOrNull } from "./demo";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // Admin -> Bookings, registrations and leads across every business
@@ -129,11 +130,14 @@ export async function listAdminBookings(filter: BookingFilter = {}): Promise<Adm
   const orgNames = await namesOf("organizations", "name");
   const orgName = (id: number | null) => (id === null ? "" : orgNames.get(id) ?? `Business ${id}`);
   const bookings: AdminBooking[] = [];
+  // The demo business's example registrations are not bookings.
+  const demoId = await demoOrganizationIdOrNull();
 
   if (wants("registration")) {
     const rows = await readAll((from, to) => {
       let query = db.from("registrations").select(`${REGISTRATION_MONEY_COLUMNS},reference_code,organization_id,parent_name,parent_email,parent_phone,child_name`).order("created_at", { ascending: false }).order("id", { ascending: false });
       if (orgId) query = query.eq("organization_id", orgId);
+      else if (demoId !== null) query = query.or(`organization_id.is.null,organization_id.neq.${demoId}`);
       return query.range(from, to);
     }, read, "Could not load registrations");
     const [dues, paid] = await Promise.all([registrationDues(rows), receivedBy("registration_id", rows.map((row) => Number(row.id)))]);

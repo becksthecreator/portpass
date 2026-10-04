@@ -21,6 +21,8 @@ export async function listAdminBusinesses(filter: { status?: string | null; sect
   let query = supabase
     .from("organizations")
     .select("id,slug,name,primary_category,subcategory,status,is_published,created_by_admin,claimed_at,created_at,submitted_at,approved_at")
+    // The demo business is not a business to approve, publish or bill.
+    .eq("is_demo", false)
     .order("created_at", { ascending: false });
   if (filter.status) query = query.eq("status", filter.status);
   if (filter.section) query = query.eq("primary_category", filter.section);

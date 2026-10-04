@@ -1,6 +1,7 @@
 import { countMessageProblems, countSiteErrors, databaseChecks, getBackupHeartbeat, type BackupHeartbeat, type DatabaseCheck } from "./adminHealth";
 import { getBillingOverview } from "./billing";
 import { listSections } from "./categories";
+import { demoRecords, isDemoPayment } from "./demo";
 import { listUnmarkedAttendance, type UnmarkedSession } from "./growth";
 import { liveCountsByCategory } from "./organizations";
 import { getSupabaseAdmin } from "./supabase";
@@ -75,13 +76,23 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   const supabase = getSupabaseAdmin();
 
   const day = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  // The demo business (brief 18, part B) is example data: never in a number
+  // on this screen.
+  const demo = await demoRecords();
+  const count = (result: { count: number | null; error: { message?: string; code?: string } | null }): number => {
+    if (result.error) throw Object.assign(new Error(result.error.message || "count failed"), { code: result.error.code });
+    return result.count ?? 0;
+  };
   const [businessesAwaiting, newApplications, unansweredLeads, signUps, businesses, registrations, leads, totalListings, liveListings, accounts, sections, live, payments, attendance, emailProblems, siteErrors, backup, checks, billing] = await Promise.all([
     tile("businesses awaiting approval", () => countRows("organizations", { eq: ["status", "submitted"] })),
     tile("new applications", () => countRows("applications", { eq: ["status", "submitted"] })),
     tile("unanswered wedding leads", () => countRows("wedding_leads", { eq: ["status", "new"] })),
     tile("new sign-ups", () => countRows("profiles", { gte: ["created_at", since] })),
-    tile("new businesses", () => countRows("organizations", { gte: ["created_at", since] })),
-    tile("registrations", () => countRows("registrations", { gte: ["created_at", since] })),
+    tile("new businesses", async () => count(await supabase.from("organizations").select("*", { count: "exact", head: true }).gte("created_at", since).eq("is_demo", false))),
+    tile("registrations", async () => {
+      const query = supabase.from("registrations").select("*", { count: "exact", head: true }).gte("created_at", since);
+      return count(await (demo ? query.or(`organization_id.is.null,organization_id.neq.${demo.organizationId}`) : query));
+    }),
     tile("wedding leads", () => countRows("wedding_leads", { gte: ["created_at", since] })),
     tile("listings", () => countRows("organizations", { in: ["status", ["approved", "live"]] })),
     tile("live listings", () => countRows("organizations", { eq: ["is_published", true] })),
@@ -89,9 +100,9 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     tile("sections", () => listSections()),
     tile("live counts", () => liveCountsByCategory({ maxAgeMs: 0 })),
     tile("payments", async () => {
-      const { data, error } = await supabase.from("payments").select("amount_cents").eq("status", "received").gte("created_at", since);
+      const { data, error } = await supabase.from("payments").select("amount_cents,registration_id,payment_request_id").eq("status", "received").gte("created_at", since);
       if (error) throw Object.assign(new Error(error.message || "payments failed"), { code: error.code });
-      return (data ?? []) as { amount_cents: number }[];
+      return ((data ?? []) as { amount_cents: number; registration_id: number | null; payment_request_id: number | null }[]).filter((row) => !isDemoPayment(demo, row));
     }),
     tile("attendance not marked", () => listUnmarkedAttendance()),
     tile("email problems", () => countMessageProblems(since)),

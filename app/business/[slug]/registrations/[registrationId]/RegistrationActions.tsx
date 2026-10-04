@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 // Confirm a place, re-open it, or cancel it. Each press is logged.
-export function RegistrationActions({ organizationId, registrationId, status }: { organizationId: number; registrationId: number; status: string }) {
+// `endpoint` is where the change is sent: the business's own route, or the
+// demo's.
+export function RegistrationActions({ endpoint, status }: { endpoint: string; status: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -13,7 +15,7 @@ export function RegistrationActions({ organizationId, registrationId, status }: 
     if (next === "cancelled" && !confirm("Cancel this registration? The place opens up for someone else.")) return;
     setBusy(next);
     setError("");
-    const response = await fetch(`/api/business/orgs/${organizationId}/registrations/${registrationId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: next }) });
+    const response = await fetch(endpoint, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: next }) });
     const data = (await response.json().catch(() => ({}))) as { error?: string };
     setBusy("");
     if (!response.ok) return setError(data.error ?? "Could not change it.");

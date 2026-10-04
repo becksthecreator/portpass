@@ -35,6 +35,10 @@ const NEVER_REWRITE_PREFIXES = [
   // A customer's payment request page is PortPass's, whichever host the
   // link was opened on (brief 17).
   "/pay",
+  // The demo business and the event sign-up form are PortPass's own.
+  "/demo",
+  "/own",
+  "/join",
 ];
 
 let domainCache: { map: Map<string, string>; fetchedAt: number } | null = null;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import type { PaymentRequest, RequestPayment } from "@/db/paymentRequests";
+import { DEMO_NOTHING_SENT } from "@/lib/demoText";
 import { formatPhoneDisplay } from "@/lib/phone";
 import {
   balanceCents,
@@ -41,6 +42,9 @@ type Props = {
   origin: string;
   today: string;
   created: boolean;
+  // The demo business (brief 18, part B): every send button changes the
+  // request and says "Demo: nothing was sent"; nothing typed is kept.
+  demo?: boolean;
 };
 
 async function copy(text: string): Promise<boolean> {
@@ -55,7 +59,7 @@ async function copy(text: string): Promise<boolean> {
 // One request, phone first: send it, see what the customer said, mark it
 // paid, send the receipt, chase it, refund or void it. Every message is a
 // person pressing a button.
-export function RequestDetail({ request: r, payments, businessName, basePath, apiBase, origin, today, created }: Props) {
+export function RequestDetail({ request: r, payments, businessName, basePath, apiBase, origin, today, created, demo = false }: Props) {
   const router = useRouter();
   const status = displayStatus(r, today);
   const balance = balanceCents(r);
@@ -64,7 +68,8 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
   const received = payments.filter((p) => p.status === "received");
   const latestReceipt = [...received].reverse().find((p) => p.receiptNumber);
 
-  const [notice, setNotice] = useState(created ? "Request created. Now send it: nothing has gone to the customer yet." : "");
+  const [notice, setNotice] = useState(created ? (demo ? "Request created from the registration. Now press a send button: in the demo, nothing is sent." : "Request created. Now send it: nothing has gone to the customer yet.") : "");
+  const demoSent = (what: string) => `${DEMO_NOTHING_SENT}. ${what}`;
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmRemind, setConfirmRemind] = useState(false);
@@ -176,7 +181,7 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
           {r.status !== "void" && <div><dt>Balance</dt><dd>{money(balance)}</dd></div>}
           <div><dt>Due</dt><dd>{formatDay(r.dueDate, today)}{isOverdue(r, today) ? ` · ${daysOverdue(r.dueDate, today)} days overdue` : ""}</dd></div>
           <div><dt>They can pay by</dt><dd>{r.methods.map(methodLabel).join(", ")}{r.allowPartPayment ? " · part payments allowed" : ""}</dd></div>
-          {r.customerPhone && <div><dt>Phone</dt><dd><a className="preq-link" href={`tel:${r.customerPhone}`}>{formatPhoneDisplay(r.customerPhone)}</a></dd></div>}
+          {r.customerPhone && <div><dt>Phone</dt><dd>{demo ? formatPhoneDisplay(r.customerPhone) : <a className="preq-link" href={`tel:${r.customerPhone}`}>{formatPhoneDisplay(r.customerPhone)}</a>}</dd></div>}
           {r.customerEmail && <div><dt>Email</dt><dd>{r.customerEmail}</dd></div>}
           <div><dt>Sent</dt><dd>{r.sentAt ? `${formatDay(nassauDate(r.sentAt), today)} by ${sentViaLabel(r.sentVia)}` : "Not yet"}</dd></div>
           {r.lastRemindedAt && <div><dt>Last reminded</dt><dd>{sinceLabel(r.lastRemindedAt)} ({r.reminderCount})</dd></div>}
@@ -211,11 +216,15 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
           <h2 id="preq-send">{r.sentAt ? "Send it again" : "Send it"}</h2>
           {!r.sentAt && <p className="preq-last">Nothing goes to the customer until you press one of these.</p>}
           <div className="preq-btns">
-            <a className="preq-btn is-wa" href={whatsappLink(r.customerPhone, requestMessage(messageInput, today))} target="_blank" rel="noopener noreferrer" onClick={() => recordWhatsApp({ action: "send", via: "whatsapp_link" }, "WhatsApp opened with the message. Press send there.")}>
-              {r.customerPhone ? "WhatsApp" : "WhatsApp (pick the contact)"}
-            </a>
+            {demo ? (
+              <button type="button" className="preq-btn is-wa" onClick={() => act({ action: "send", via: "whatsapp_link" }, "whatsapp", demoSent("For a real business, WhatsApp opens here with the message written."))} disabled={busy !== null}>WhatsApp</button>
+            ) : (
+              <a className="preq-btn is-wa" href={whatsappLink(r.customerPhone, requestMessage(messageInput, today))} target="_blank" rel="noopener noreferrer" onClick={() => recordWhatsApp({ action: "send", via: "whatsapp_link" }, "WhatsApp opened with the message. Press send there.")}>
+                {r.customerPhone ? "WhatsApp" : "WhatsApp (pick the contact)"}
+              </a>
+            )}
             {r.customerEmail && (
-              <button type="button" className="preq-btn" onClick={() => act({ action: "send", via: "email" }, "email", `Emailed to ${r.customerEmail}.`)} disabled={busy !== null}>
+              <button type="button" className="preq-btn" onClick={() => act({ action: "send", via: "email" }, "email", demo ? demoSent("For a real business, the customer gets this request by email.") : `Emailed to ${r.customerEmail}.`)} disabled={busy !== null}>
                 {busy === "email" ? "Sending…" : "Send by email"}
               </button>
             )}
@@ -249,15 +258,19 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
                 <span>Day received</span>
                 <input type="date" value={receivedOn} max={today} onChange={(e) => setReceivedOn(e.target.value)} />
               </label>
-              <label className="preq-field">
-                <span>Reference (optional)</span>
-                <input value={reference} onChange={(e) => setReference(e.target.value)} maxLength={120} placeholder="Transfer reference" />
-              </label>
+              {!demo && (
+                <label className="preq-field">
+                  <span>Reference (optional)</span>
+                  <input value={reference} onChange={(e) => setReference(e.target.value)} maxLength={120} placeholder="Transfer reference" />
+                </label>
+              )}
             </div>
-            <label className="preq-field">
-              <span>Note (optional)</span>
-              <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} />
-            </label>
+            {!demo && (
+              <label className="preq-field">
+                <span>Note (optional)</span>
+                <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} />
+              </label>
+            )}
             <button type="submit" className="preq-btn is-primary" disabled={busy !== null}>{busy === "paid" ? "Recording…" : "Record payment"}</button>
           </form>
         </section>
@@ -268,9 +281,13 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
           <h2 id="preq-receipt">Receipt {shareReceipt.receiptNumber}</h2>
           <p className="preq-last">Send the customer their receipt.</p>
           <div className="preq-btns">
-            <a className="preq-btn is-wa" href={whatsappLink(r.customerPhone, receiptFor(shareReceipt).text)} target="_blank" rel="noopener noreferrer">WhatsApp the receipt</a>
+            {demo ? (
+              <button type="button" className="preq-btn is-wa" onClick={() => setNotice(demoSent("For a real business, WhatsApp opens here with the receipt."))}>WhatsApp the receipt</button>
+            ) : (
+              <a className="preq-btn is-wa" href={whatsappLink(r.customerPhone, receiptFor(shareReceipt).text)} target="_blank" rel="noopener noreferrer">WhatsApp the receipt</a>
+            )}
             {r.customerEmail && (
-              <button type="button" className="preq-btn" onClick={() => act({ action: "email_receipt", paymentId: shareReceipt.paymentId }, "receipt", `Receipt emailed to ${r.customerEmail}.`)} disabled={busy !== null}>
+              <button type="button" className="preq-btn" onClick={() => act({ action: "email_receipt", paymentId: shareReceipt.paymentId }, "receipt", demo ? demoSent("For a real business, the customer gets the receipt by email.") : `Receipt emailed to ${r.customerEmail}.`)} disabled={busy !== null}>
                 {busy === "receipt" ? "Sending…" : "Email the receipt"}
               </button>
             )}
@@ -289,11 +306,15 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
             <button type="button" className="preq-btn is-small" onClick={() => setConfirmRemind(true)}>Remind again today?</button>
           ) : (
             <div className="preq-btns">
-              <a className="preq-btn is-wa is-small" href={whatsappLink(r.customerPhone, reminderMessage(messageInput, today))} target="_blank" rel="noopener noreferrer" onClick={() => { setConfirmRemind(false); recordWhatsApp({ action: "remind", via: "whatsapp_link" }, "Reminder opened in WhatsApp. Press send there."); }}>
-                Remind on WhatsApp
-              </a>
+              {demo ? (
+                <button type="button" className="preq-btn is-wa is-small" onClick={() => { setConfirmRemind(false); void act({ action: "remind", via: "whatsapp_link" }, "whatsapp", demoSent("For a real business, WhatsApp opens here with the reminder written.")); }} disabled={busy !== null}>Remind on WhatsApp</button>
+              ) : (
+                <a className="preq-btn is-wa is-small" href={whatsappLink(r.customerPhone, reminderMessage(messageInput, today))} target="_blank" rel="noopener noreferrer" onClick={() => { setConfirmRemind(false); recordWhatsApp({ action: "remind", via: "whatsapp_link" }, "Reminder opened in WhatsApp. Press send there."); }}>
+                  Remind on WhatsApp
+                </a>
+              )}
               {r.customerEmail && (
-                <button type="button" className="preq-btn is-small" onClick={() => { setConfirmRemind(false); void act({ action: "remind", via: "email" }, "remind-email", `Reminder emailed to ${r.customerEmail}.`); }} disabled={busy !== null}>
+                <button type="button" className="preq-btn is-small" onClick={() => { setConfirmRemind(false); void act({ action: "remind", via: "email" }, "remind-email", demo ? demoSent("For a real business, the customer gets the reminder by email.") : `Reminder emailed to ${r.customerEmail}.`); }} disabled={busy !== null}>
                   {busy === "remind-email" ? "Sending…" : "Remind by email"}
                 </button>
               )}
@@ -313,7 +334,7 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
                 {p.note && <span>{p.note}</span>}
                 {p.status === "refunded" && <span>Refunded {p.refundedAt ? nassauDate(p.refundedAt) : ""}: {p.refundNote}</span>}
                 {p.status === "received" && p.receiptNumber && <a className="preq-link" href={receiptPath(r.publicToken, p.receiptNumber)} target="_blank" rel="noopener noreferrer">Receipt ↗</a>}
-                {p.status === "received" && (
+                {p.status === "received" && !demo && (
                   <details>
                     <summary>Record a refund</summary>
                     <div className="preq-form">
@@ -331,11 +352,20 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
         </section>
       )}
 
-      {canEditRequest(r) && (
+      {canEditRequest(r) && !demo && (
         <p className="preq-last"><Link className="preq-link" href={`${basePath}/${r.id}/edit`}>Change this request</Link></p>
       )}
 
-      {canVoidRequest(r) && (
+      {canVoidRequest(r) && demo && (
+        <details className="preq-card preq-danger">
+          <summary>Void this request</summary>
+          <div className="preq-form">
+            <p className="preq-last">It stays in the history, marked void, and the customer&rsquo;s page says it was cancelled.</p>
+            <button type="button" className="preq-btn is-danger" disabled={busy !== null} onClick={() => act({ action: "void", reason: "demo" }, "void", "Request voided.")}>Void request</button>
+          </div>
+        </details>
+      )}
+      {canVoidRequest(r) && !demo && (
         <details className="preq-card preq-danger">
           <summary>Void this request</summary>
           <div className="preq-form">
@@ -349,7 +379,7 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
         </details>
       )}
       {!canVoidRequest(r) && r.status !== "void" && (
-        <p className="preq-last">Money has been recorded against this request, so it can&rsquo;t be voided. Record a refund on the payment instead.</p>
+        <p className="preq-last">Money has been recorded against this request, so it can&rsquo;t be voided.{demo ? "" : " Record a refund on the payment instead."}</p>
       )}
     </>
   );

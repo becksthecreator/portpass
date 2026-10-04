@@ -14,6 +14,7 @@ import { paymentRouteError, paymentsApiAccess, positiveId } from "@/lib/paymentR
 import type { PaymentEmailKind } from "@/lib/paymentRequests/email";
 import { sendPaymentEmail } from "@/lib/paymentRequests/send";
 import { paymentErrorMessage, parseReminderVia, parseRequestInput, parseSentVia } from "@/lib/paymentRequests/input";
+import { DEMO_NOTHING_SENT } from "@/lib/demoText";
 import { balanceCents, methodsSetUp, payPath, receiptPath } from "@/lib/paymentRequests/rules";
 
 type Ctx = { params: Promise<{ id: string; requestId: string }> };
@@ -71,12 +72,15 @@ function emailFor(kind: PaymentEmailKind, req: PaymentRequest, businessName: str
 export async function POST(request: Request, ctx: Ctx) {
   const { orgId, requestId } = await ids(ctx);
   if (!orgId || !requestId) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  const auth = await paymentsApiAccess(orgId);
+  const auth = await paymentsApiAccess(orgId, { demo: true });
   if (!auth.ok) return auth.response;
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   const { actor, orgName } = auth.access;
   const origin = new URL(request.url).origin;
+  // In the demo the request moves on (sent, reminded) so the screens behave
+  // as they would, but no email is ever sent, and nothing typed is kept.
+  const demo = auth.access.door === "demo";
 
   try {
     const found = await getPaymentRequest(orgId, requestId);
@@ -88,29 +92,30 @@ export async function POST(request: Request, ctx: Ctx) {
         const via = parseSentVia(body.via);
         if (!via) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
         if (req.status === "void") return refuse("VOID", 409);
-        if (via === "email") {
+        if (via === "email" && !demo) {
           if (!req.customerEmail) return refuse("NO_EMAIL");
           const outcome = await sendPaymentEmail(orgId, req.customerEmail, emailFor("request", req, orgName, origin));
           if (outcome !== "sent") return refuse("EMAIL_FAILED", 502);
         }
         const sent = await markPaymentRequestSent(orgId, requestId, via, actor);
-        return NextResponse.json({ ok: true, status: sent.status });
+        return NextResponse.json({ ok: true, status: sent.status, ...(demo ? { demo: DEMO_NOTHING_SENT } : {}) });
       }
       case "remind": {
         const via = parseReminderVia(body.via);
         if (!via) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
         if (req.status !== "sent" && req.status !== "part_paid") return refuse(req.status === "paid" ? "ALREADY_PAID" : req.status === "void" ? "VOID" : "NOT_SENT_YET", 409);
-        if (via === "email") {
+        if (via === "email" && !demo) {
           if (!req.customerEmail) return refuse("NO_EMAIL");
           const outcome = await sendPaymentEmail(orgId, req.customerEmail, emailFor("reminder", req, orgName, origin));
           if (outcome !== "sent") return refuse("EMAIL_FAILED", 502);
         }
         const reminded = await recordReminder(orgId, requestId, via, actor);
-        return NextResponse.json({ ok: true, lastRemindedAt: reminded.lastRemindedAt });
+        return NextResponse.json({ ok: true, lastRemindedAt: reminded.lastRemindedAt, ...(demo ? { demo: DEMO_NOTHING_SENT } : {}) });
       }
       case "email_receipt": {
         const payment = found.payments.find((p) => p.id === Number(body.paymentId) && p.status === "received" && p.receiptNumber);
         if (!payment) return refuse("NOT_FOUND", 404);
+        if (demo) return NextResponse.json({ ok: true, demo: DEMO_NOTHING_SENT });
         if (!req.customerEmail) return refuse("NO_EMAIL");
         const outcome = await sendPaymentEmail(orgId, req.customerEmail, emailFor("receipt", req, orgName, origin, { number: payment.receiptNumber!, amountCents: payment.amountCents }));
         if (outcome !== "sent") return refuse("EMAIL_FAILED", 502);
@@ -118,7 +123,7 @@ export async function POST(request: Request, ctx: Ctx) {
         return NextResponse.json({ ok: true });
       }
       case "void": {
-        const reason = typeof body.reason === "string" ? body.reason : "";
+        const reason = demo ? "Voided in the demo" : typeof body.reason === "string" ? body.reason : "";
         const voided = await voidPaymentRequest(orgId, requestId, reason, actor);
         return NextResponse.json({ ok: true, status: voided.status });
       }

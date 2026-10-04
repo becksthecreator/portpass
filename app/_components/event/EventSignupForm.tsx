@@ -123,7 +123,7 @@ export function EventSignupForm({ event, sections }: { event: string; sections: 
         <p>{state === "sent" ? "One of us will message you about your page. Nothing is sent automatically, and there is nothing to pay to talk to us." : "There is no signal right now. Your details are kept on this phone only and are sent the moment it is back online. Keep this page open, or open it again later."}</p>
         <div className="form-submit">
           <button className="primary-button" type="button" onClick={() => setState("form")}>Sign up another business</button>
-          <Link href="/business">What a business gets →</Link>
+          <Link href="/demo">Try a demo business →</Link>
         </div>
       </section>
     );

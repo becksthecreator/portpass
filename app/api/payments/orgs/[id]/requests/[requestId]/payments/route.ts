@@ -19,13 +19,15 @@ const refuse = (code: string, status = 400) => NextResponse.json({ error: paymen
 export async function POST(request: Request, ctx: Ctx) {
   const { orgId, requestId } = await ids(ctx);
   if (!orgId || !requestId) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  const auth = await paymentsApiAccess(orgId);
+  const auth = await paymentsApiAccess(orgId, { demo: true });
   if (!auth.ok) return auth.response;
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
 
   const parsed = parseMarkPaidInput(body);
   if (!parsed.ok) return refuse(parsed.error);
+  // The demo keeps the amount, the method and the day; never typed words.
+  if (auth.access.door === "demo") Object.assign(parsed.value, { reference: "", note: "" });
   try {
     const found = await getPaymentRequest(orgId, requestId);
     if (!found) return refuse("NOT_FOUND", 404);
@@ -51,13 +53,14 @@ export async function POST(request: Request, ctx: Ctx) {
 export async function PATCH(request: Request, ctx: Ctx) {
   const { orgId, requestId } = await ids(ctx);
   if (!orgId || !requestId) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  const auth = await paymentsApiAccess(orgId);
+  const auth = await paymentsApiAccess(orgId, { demo: true });
   if (!auth.ok) return auth.response;
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const paymentId = Number(body?.paymentId);
   if (!body || !Number.isInteger(paymentId) || paymentId <= 0) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   try {
-    const updated = await refundRequestPayment(orgId, requestId, paymentId, typeof body.note === "string" ? body.note : "", auth.access.actor);
+    const note = auth.access.door === "demo" ? "Refunded in the demo" : typeof body.note === "string" ? body.note : "";
+    const updated = await refundRequestPayment(orgId, requestId, paymentId, note, auth.access.actor);
     return NextResponse.json({ ok: true, status: updated.status });
   } catch (error) {
     return paymentRouteError(error, "payment request refund");

@@ -31,6 +31,7 @@ import { nassauToday } from "@/lib/futprepTerms";
 import type { PaymentFrequency } from "./registrations";
 import { logAudit } from "./audit";
 import { findPersonByEmail } from "./accounts";
+import { demoOrganizationIdOrNull } from "./demo";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // Payment requests (brief 17, Payments Phase 1). Every function that takes
@@ -398,6 +399,13 @@ export async function listPaymentRequests(orgId: number): Promise<PaymentRequest
   return rows.map(toRequest);
 }
 
+// How many requests a business has (the demo's are capped).
+export async function countPaymentRequests(orgId: number): Promise<number> {
+  const { count, error } = await getSupabaseAdmin().from("payment_requests").select("id", { count: "exact", head: true }).eq("organization_id", orgId);
+  throwIfSupabaseError(error, "Could not count payment requests");
+  return count ?? 0;
+}
+
 export type OrgRequestPayment = RequestPayment & { requestId: number; referenceCode: string; customerName: string };
 
 // Payments recorded against this business's requests, optionally received
@@ -596,6 +604,8 @@ export type PublicBusiness = {
   whatsappE164: string | null;
   phoneE164: string | null;
   publicEmail: string | null;
+  // The demo business (brief 18, part B): the page says nothing is owed.
+  isDemo: boolean;
 };
 
 export type PublicPayment = { receiptNumber: string | null; amountCents: number; method: string; receivedAt: string; status: RequestPayment["status"] };
@@ -635,7 +645,7 @@ export async function getPublicPaymentRequest(token: string, now: Date = new Dat
   if (!data) return null;
   const request = toRequest(data);
   const [{ data: org, error: orgError }, settings, { data: payments, error: paymentsError }] = await Promise.all([
-    db.from("organizations").select("id,name,slug,logo_url,brand_color,whatsapp_e164,phone_e164,public_email").eq("id", request.organizationId).single(),
+    db.from("organizations").select("id,name,slug,logo_url,brand_color,whatsapp_e164,phone_e164,public_email,is_demo").eq("id", request.organizationId).single(),
     getPaymentSettings(request.organizationId),
     db.from("payments").select(PAYMENT_COLUMNS).eq("payment_request_id", request.id).in("status", ["received", "refunded"]).order("received_at", { ascending: true }),
   ]);
@@ -667,6 +677,7 @@ export async function getPublicPaymentRequest(token: string, now: Date = new Dat
       whatsappE164: (org!.whatsapp_e164 as string | null) ?? null,
       phoneE164: (org!.phone_e164 as string | null) ?? null,
       publicEmail: (org!.public_email as string | null) ?? null,
+      isDemo: Boolean(org!.is_demo),
     },
     howToPay: settings ?? { bankName: "", accountName: "", accountNumberLast4: null, transferInstructions: "", kanooHandleOrPhone: "", cashNote: "", acceptedMethods: [] },
     payments: (payments ?? []).map((row) => {
@@ -686,7 +697,9 @@ export async function customerSaysPaid(token: string, note: string): Promise<"fl
   if (!data) return "not_found";
   const request = toRequest(data);
   if ((request.status !== "sent" && request.status !== "part_paid") || linkExpired(request)) return "closed";
-  const clean = note.replace(/\s+/g, " ").trim().slice(0, 300);
+  // The demo keeps the tap, never the words: nothing a visitor types is
+  // shown to the next visitor.
+  const clean = request.organizationId === (await demoOrganizationIdOrNull()) ? "" : note.replace(/\s+/g, " ").trim().slice(0, 300);
   const { error: updateError } = await db
     .from("payment_requests")
     .update({ customer_says_paid_at: new Date().toISOString(), customer_says_paid_note: clean || null })
@@ -891,10 +904,12 @@ export async function paymentVolumeReport(): Promise<VolumeReport> {
     pageAll<Record<string, unknown>>((from, to) => db.from("private_session_requests").select("id,organization_id").order("id").range(from, to), "Could not load private sessions"),
     pageAll<Record<string, unknown>>((from, to) => db.from("organizations").select("id,name,slug").order("id").range(from, to), "Could not load businesses"),
   ]);
+  // The demo business's example requests and payments are not volume.
+  const demoId = await demoOrganizationIdOrNull();
   const requestOrg = new Map(requests.map((r): [number, number] => [Number(r.id), Number(r.organization_id)]));
   const registrationOrg = new Map(registrations.map((r): [number, number | null] => [Number(r.id), r.organization_id === null ? null : Number(r.organization_id)]));
   const sessionOrg = new Map(sessions.map((r): [number, number] => [Number(r.id), Number(r.organization_id)]));
-  const volumeRequests: VolumeRequest[] = requests.map((r) => ({ organizationId: Number(r.organization_id), sentAt: (r.sent_at as string | null) ?? null, totalCents: Number(r.total_cents), paidCents: Number(r.paid_cents), status: r.status as RequestStatus }));
+  const volumeRequests: VolumeRequest[] = requests.filter((r) => Number(r.organization_id) !== demoId).map((r) => ({ organizationId: Number(r.organization_id), sentAt: (r.sent_at as string | null) ?? null, totalCents: Number(r.total_cents), paidCents: Number(r.paid_cents), status: r.status as RequestStatus }));
   const volumePayments: VolumePayment[] = [];
   for (const p of payments) {
     const viaRequest = p.payment_request_id !== null;
@@ -905,7 +920,7 @@ export async function paymentVolumeReport(): Promise<VolumeReport> {
         : p.private_session_request_id !== null
           ? sessionOrg.get(Number(p.private_session_request_id))
           : null;
-    if (org === null || org === undefined) continue;
+    if (org === null || org === undefined || org === demoId) continue;
     volumePayments.push({ organizationId: org, receivedAt: (p.received_at as string | null) ?? (p.created_at as string), amountCents: Number(p.amount_cents), viaRequest });
   }
   return {
@@ -970,7 +985,7 @@ export type PaymentSetupRow = { organizationId: number; name: string; slug: stri
 export async function listPaymentSetup(): Promise<PaymentSetupRow[]> {
   const db = getSupabaseAdmin();
   const [orgs, settings] = await Promise.all([
-    pageAll<Record<string, unknown>>((from, to) => db.from("organizations").select("id,name,slug,status,is_published").order("name").range(from, to), "Could not load businesses"),
+    pageAll<Record<string, unknown>>((from, to) => db.from("organizations").select("id,name,slug,status,is_published").eq("is_demo", false).order("name").range(from, to), "Could not load businesses"),
     pageAll<Record<string, unknown>>((from, to) => db.from("organization_payment_settings").select(SETTINGS_COLUMNS).order("organization_id").range(from, to), "Could not load payment settings"),
   ]);
   const byOrg = new Map(settings.map((row) => [Number(row.organization_id), toSettings(row)]));

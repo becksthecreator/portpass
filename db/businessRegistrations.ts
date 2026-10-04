@@ -145,7 +145,7 @@ export const REGISTRATION_STATUS_CHANGES = ["confirmed", "pending", "cancelled"]
 export type RegistrationStatusChange = (typeof REGISTRATION_STATUS_CHANGES)[number];
 
 // Confirm a place, put it back to pending, or cancel it. Logged.
-export async function setBusinessRegistrationStatus(organizationId: number, id: number, status: RegistrationStatusChange, actorUserId: string): Promise<BusinessRegistration> {
+export async function setBusinessRegistrationStatus(organizationId: number, id: number, status: RegistrationStatusChange, actorUserId: string | null): Promise<BusinessRegistration> {
   const db = getSupabaseAdmin();
   const { data: before, error: beforeError } = await db.from("registrations").select("id,registration_status").eq("organization_id", organizationId).eq("id", id).maybeSingle();
   throwIfSupabaseError(beforeError, "Could not load the registration");
