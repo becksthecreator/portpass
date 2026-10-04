@@ -22,7 +22,7 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
       <div className="auth-card auth-card-wide">
         <div className="eyebrow"><span className="eyebrow-dot" />Demo</div>
         <h1>See what a business sees.</h1>
-        <p className="auth-lead">Harbour Kids Club is a made-up business. Open it and press anything: take a registration, send a payment request, mark it paid, mark who came. Nothing is real, and nothing is sent to anyone.</p>
+        <p className="auth-lead">Harbour Kids Club is a made-up business. Open it and press anything: confirm a registration, send a payment request, mark it paid, mark who came. Nothing is real, and nothing is sent to anyone.</p>
         {error && <p className="form-error" role="alert">{error === "busy" ? "Too many tries in a short time. Wait a few minutes." : "The demo couldn't be opened just now. Try again in a moment."}</p>}
         <form className="demo-start" method="post" action="/demo/start">
           <button className="primary-button" type="submit">Open the demo →</button>
