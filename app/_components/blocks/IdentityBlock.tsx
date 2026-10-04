@@ -14,6 +14,8 @@ export function IdentityBlock({
   isOpen,
   heroImageUrl,
   layout = "overlay",
+  logoUrl = null,
+  brandHeader = false,
 }: {
   name: string;
   category: string | null;
@@ -21,6 +23,11 @@ export function IdentityBlock({
   isOpen?: boolean;
   heroImageUrl?: string | null;
   layout?: "overlay" | "split";
+  logoUrl?: string | null;
+  // With no photo yet: a header in the business's own colour with its logo
+  // (brief 18, G2), instead of a plain card. The colours come from the
+  // page's theme variables, which keep the text readable.
+  brandHeader?: boolean;
 }) {
   const meta = [category, location].filter(Boolean).join(" · ");
   const badge = isOpen !== undefined && (
@@ -32,6 +39,20 @@ export function IdentityBlock({
       <section className="tpl-identity tpl-identity-split">
         <div className="tpl-identity-split-image" style={{ backgroundImage: `url(${heroImageUrl})` }} />
         <div className="tpl-identity-split-text">
+          {badge}
+          <h1>{name}</h1>
+          {meta && <p className="tpl-identity-meta">{meta}</p>}
+        </div>
+      </section>
+    );
+  }
+
+  if (!heroImageUrl && brandHeader) {
+    return (
+      <section className="tpl-identity tpl-identity-brand">
+        <div className="tpl-identity-inner">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a business's own logo, any size or host */}
+          {logoUrl && <img className="tpl-identity-logo" src={logoUrl} alt={`${name} logo`} />}
           {badge}
           <h1>{name}</h1>
           {meta && <p className="tpl-identity-meta">{meta}</p>}

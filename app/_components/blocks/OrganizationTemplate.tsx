@@ -11,8 +11,11 @@ import { MessageOnWhatsApp, ShareOnWhatsApp } from "./WhatsAppActions";
 import { categoryLabel } from "./categoryLabel";
 import { directoryHref } from "./directoryHref";
 import { formatAgeRange } from "./format";
-import { computeBrandTokens } from "./brand";
 import { MemberPerkStrip } from "../perks/MemberPerkStrip";
+import { InterestForm } from "../InterestForm";
+import { businessTheme, themeVars } from "@/lib/businessTheme";
+import { isInterestCategory, type InterestCategory } from "@/lib/interestCategories";
+import "./brand-theme.css";
 
 // Renders any Organization page -- Futprep today, any future business
 // tomorrow -- from the same eight blocks in the same fixed order: proof,
@@ -20,7 +23,14 @@ import { MemberPerkStrip } from "../perks/MemberPerkStrip";
 // then questions, then the action. A block with no data simply isn't
 // rendered (each block enforces this itself); this template never fills a
 // gap with placeholder copy.
-export function OrganizationTemplate({ listing }: { listing: OrganizationListing }) {
+//
+// The page takes the business's own colours (lib/businessTheme.ts): its
+// brand colour for buttons and badges, with text on them that always
+// reads, and a brand-colour header with its logo while it has no photo.
+// `enquiryForm`: a business with no WhatsApp number gets an "Enquire"
+// button that opens a short form; a page with its own way to register
+// (Futprep) turns it off.
+export function OrganizationTemplate({ listing, enquiryForm = true }: { listing: OrganizationListing; enquiryForm?: boolean }) {
   const { organization: org, offerings, images, faqs } = listing;
 
   const practicalFacts = offerings
@@ -31,10 +41,11 @@ export function OrganizationTemplate({ listing }: { listing: OrganizationListing
     }));
 
   const hasPricedOffering = offerings.some((offering) => offering.priceCents !== null);
-  const { brand, brandText } = computeBrandTokens(org.brandColor);
+  const enquire = enquiryForm && !org.whatsappE164;
+  const enquiryCategory: InterestCategory = org.subcategory && isInterestCategory(org.subcategory) ? org.subcategory : org.primaryCategory && isInterestCategory(org.primaryCategory) ? org.primaryCategory : "entertainment";
 
   return (
-    <main className="tpl-page" style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}>
+    <main className="tpl-page tpl-themed" style={themeVars(businessTheme(org.brandColor, org.theme)) as React.CSSProperties}>
       <IdentityBlock
         name={org.name}
         category={categoryLabel(org.primaryCategory)}
@@ -42,6 +53,8 @@ export function OrganizationTemplate({ listing }: { listing: OrganizationListing
         isOpen
         heroImageUrl={org.heroImageUrl}
         layout={org.identityLayout ?? "overlay"}
+        logoUrl={org.logoUrl}
+        brandHeader
       />
       <ProofBlock
         yearsInBusiness={org.yearsInBusiness}
@@ -59,9 +72,26 @@ export function OrganizationTemplate({ listing }: { listing: OrganizationListing
       <PeopleBlock name={org.ownerName} bio={org.ownerBio} imageUrl={org.ownerImageUrl} />
       <QuestionsBlock faqs={faqs} />
       <div className="tpl-whatsapp">
-        {org.whatsappE164 && <MessageOnWhatsApp e164={org.whatsappE164} businessName={org.name} org={org.slug} />}
+        {/* "Book on WhatsApp" only where the business has given a number;
+            otherwise "Enquire" opens the form below (brief 18, G3). */}
+        {org.whatsappE164 && <MessageOnWhatsApp e164={org.whatsappE164} businessName={org.name} org={org.slug} label="Book on WhatsApp" />}
+        {enquire && <a className="tpl-button tpl-button-secondary" href="#enquire">Enquire <span aria-hidden="true">↓</span></a>}
         <ShareOnWhatsApp url={`https://portpassbahamas.com${directoryHref(org.slug, org.primaryCategory)}`} text={`${org.name} on PortPass:`} org={org.slug} />
       </div>
+      {enquire && (
+        <section className="tpl-enquire" id="enquire" aria-labelledby="tpl-enquire-title">
+          <h2 id="tpl-enquire-title">Enquire with {org.name}</h2>
+          <p>Leave your name and how to reach you. PortPass passes your enquiry to {org.name}.</p>
+          <InterestForm
+            category={enquiryCategory}
+            placeholder="What would you like to book or ask?"
+            defaultNote={`Enquiry for ${org.name}: `}
+            submitLabel="Send enquiry →"
+            doneTitle="Enquiry sent."
+            doneText={`PortPass will pass it to ${org.name}, and you'll hear back by phone or email.`}
+          />
+        </section>
+      )}
       {hasPricedOffering && <ActionBlock label="See prices & get started" href="#offerings" />}
     </main>
   );

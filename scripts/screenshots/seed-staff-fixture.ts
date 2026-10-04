@@ -215,6 +215,19 @@ async function main() {
   ].map((perk) => ({ percent: null, amount_cents: null, addon_text: null, early_access_hours: null, first_booking_only: false, ends_on: null, ...perk })));
   if (perkError) throw new Error(`Could not seed member perks: ${perkError.message}`);
 
+  // Brief 18, part G: a TEST business as Carv is today: approved, priced,
+  // not public, a bright lime brand colour, no photo and no WhatsApp
+  // number. Its preview shows the brand header and the Enquire form, and
+  // Admin -> Businesses shows its Publish button.
+  const { data: lime, error: limeError } = await db
+    .from("organizations")
+    .insert({ name: "TEST Lime Gym (delete)", slug: "test-delete-lime-gym", primary_category: "sports-fitness", status: "approved", one_liner: "TEST — delete. A gym with a lime brand colour, for screenshots only.", brand_color: "#E4FB3E", payment_methods: ["cash"], created_by_admin: true, created_at: stamp })
+    .select("id")
+    .single();
+  if (limeError || !lime) throw new Error(`Could not seed the TEST lime business: ${limeError?.message}`);
+  const { error: limeOfferingError } = await db.from("offerings").insert({ organization_id: lime.id, type: "service", slug: "test-speed-session", name: "TEST speed session", summary: "TEST — delete.", price_cents: 6000, price_unit: "per_session", is_published: true });
+  if (limeOfferingError) throw new Error(`Could not seed the TEST lime offering: ${limeOfferingError.message}`);
+
   // Brief 14: a TEST platform owner (the workflow puts this address in
   // PLATFORM_OWNER_EMAILS for the run) and five TEST leads for Admin -> Leads.
   const adminEmail = "test-delete-admin@test.portpass.local";

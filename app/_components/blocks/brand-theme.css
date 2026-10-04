@@ -1,0 +1,21 @@
+/* A business's own colours on its page (brief 18, D2 and G2). The values
+   come from lib/businessTheme.ts, set inline on the page's own <main>
+   (.tpl-themed): the fill for buttons and badges with text that always
+   reads on it (navy on a bright colour, never white on lime), and a
+   header in the business's colour while it has no photo. A dark brand
+   colour looks exactly as it did before. */
+.tpl-themed .tpl-button:not(.tpl-button-secondary),
+.tpl-themed .tpl-offering-cta,
+.tpl-themed .tpl-action-sticky,
+.tpl-themed .tpl-badge:not(.tpl-badge-closed),
+.tpl-themed .tpl-offering-badge{background:var(--brand-fill,var(--brand-text,var(--harbour)));color:var(--brand-on-fill,#fff)}
+
+.tpl-identity.tpl-identity-brand{background:var(--hdr-bg,var(--ink));border-bottom:4px solid var(--hdr-accent,var(--harbour));color:var(--hdr-ink,#fff);padding:64px 5vw 52px}
+.tpl-identity-brand .tpl-identity-meta{opacity:.9}
+.tpl-identity-logo{background:#fff;border-radius:16px;display:block;height:84px;margin:0 0 20px;object-fit:contain;padding:8px;width:84px}
+
+/* "Enquire": the form a business with no WhatsApp number gets. */
+.tpl-enquire{border-top:1px solid var(--line);margin:40px auto 0;max-width:760px;padding:36px 5vw 10px;scroll-margin-top:16px}
+.tpl-enquire h2{font-size:1.4rem;margin:0 0 8px}
+.tpl-enquire>p{color:var(--muted);line-height:1.6;margin:0 0 18px}
+.tpl-enquire .application-form{margin:0;max-width:none;padding:0}

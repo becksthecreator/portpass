@@ -32,6 +32,7 @@ on:
       - "app/admin/guides/**"
       - "app/business/page.tsx"
       - "app/tell-us/**"
+      - "lib/businessTheme.ts"
       - "app/signup/**"
       - "app/_components/auth/**"
       - "app/_components/HeaderAccount.tsx"
