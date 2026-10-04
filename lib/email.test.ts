@@ -37,12 +37,12 @@ describe("escapeHtml", () => {
 describe("Futprep registration emails", () => {
   it("never let a typed name become markup", async () => {
     await sendFutprepRegistrationReceivedEmail({
-      parentEmail: "parent@example.com", parentName: HOSTILE, childName: HOSTILE, programName: HOSTILE,
+      parentEmail: "parent@family.test", parentName: HOSTILE, childName: HOSTILE, programName: HOSTILE,
       day: "Saturday", time: "9:00 AM", endTime: "9:45 AM", location: HOSTILE, amountDueCents: 30000,
       referenceCode: "FP-2026-AB12CD34", statusUrl: "https://portpassbahamas.com/futprep/my/FP-2026-AB12CD34",
     });
-    await sendFutprepPaymentRecordedEmail({ parentEmail: "parent@example.com", parentName: HOSTILE, childName: HOSTILE, amountRecordedCents: 3500, balanceCents: 0, paymentStatus: "paid", statusUrl: "https://portpassbahamas.com/futprep/my" });
-    await sendFutprepRegistrationConfirmedEmail({ parentEmail: "parent@example.com", parentName: HOSTILE, childName: HOSTILE, programName: HOSTILE, statusUrl: "https://portpassbahamas.com/futprep/my" });
+    await sendFutprepPaymentRecordedEmail({ parentEmail: "parent@family.test", parentName: HOSTILE, childName: HOSTILE, amountRecordedCents: 3500, balanceCents: 0, paymentStatus: "paid", statusUrl: "https://portpassbahamas.com/futprep/my" });
+    await sendFutprepRegistrationConfirmedEmail({ parentEmail: "parent@family.test", parentName: HOSTILE, childName: HOSTILE, programName: HOSTILE, statusUrl: "https://portpassbahamas.com/futprep/my" });
 
     expect(sent).toHaveLength(3);
     for (const email of sent) {
@@ -55,10 +55,10 @@ describe("Futprep registration emails", () => {
 
   it("says nothing about the recipient in the logs when email isn't configured", async () => {
     delete process.env.RESEND_API_KEY;
-    await sendFutprepRegistrationConfirmedEmail({ parentEmail: "parent@example.com", parentName: "Jane Parent", childName: "Ava Child", programName: "Kickers", statusUrl: "https://portpassbahamas.com/futprep/my" });
+    await sendFutprepRegistrationConfirmedEmail({ parentEmail: "parent@family.test", parentName: "Jane Parent", childName: "Ava Child", programName: "Kickers", statusUrl: "https://portpassbahamas.com/futprep/my" });
     expect(sent).toHaveLength(0);
     const logged = JSON.stringify([...warn.mock.calls, ...error.mock.calls]);
-    expect(logged).not.toContain("parent@example.com");
+    expect(logged).not.toContain("parent@family.test");
     expect(logged).not.toContain("Ava Child");
   });
 });
