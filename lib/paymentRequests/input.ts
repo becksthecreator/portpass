@@ -1,6 +1,6 @@
 import { nassauLocalToIso, nassauToday } from "@/lib/futprepTerms";
 import { normalizePhoneE164 } from "@/lib/phone";
-import { addDays, isIsoDate, isRequestMethod, isValidPrefix, linesTotal, type LineItem, type ReminderVia, type RequestMethod, type SentVia } from "./rules";
+import { addDays, isIsoDate, isRequestMethod, isValidPrefix, linesTotal, methodMissing, REQUEST_METHODS, type LineItem, type ReminderVia, type RequestMethod, type SentVia } from "./rules";
 
 // Payment requests (brief 17): what the business screens may send, checked
 // on the server. Each parser returns the clean value or an error code;
@@ -144,6 +144,7 @@ export type SettingsInput = {
   kanooHandleOrPhone: string;
   cashNote: string;
   defaultDueDays: number;
+  acceptedMethods: RequestMethod[];
 };
 
 // How customers pay the business. Only the last four digits of an account
@@ -157,19 +158,23 @@ export function parseSettingsInput(body: Record<string, unknown>): Parsed<Settin
   if (last4Text && !/^\d{4}$/.test(last4Text)) return fail("LAST4_ONLY");
   const defaultDueDays = Number(body.defaultDueDays ?? 7);
   if (!Number.isInteger(defaultDueDays) || defaultDueDays < 0 || defaultDueDays > 90) return fail("BAD_DUE_DAYS");
-  return {
-    ok: true,
-    value: {
-      referencePrefix,
-      bankName: text(body.bankName, 120),
-      accountName: text(body.accountName, 120),
-      accountNumberLast4: last4Text || null,
-      transferInstructions: text(body.transferInstructions, 1000),
-      kanooHandleOrPhone: text(body.kanooHandleOrPhone, 80),
-      cashNote: text(body.cashNote, 300),
-      defaultDueDays,
-    },
+  const details = {
+    bankName: text(body.bankName, 120),
+    accountName: text(body.accountName, 120),
+    accountNumberLast4: last4Text || null,
+    transferInstructions: text(body.transferInstructions, 1000),
+    kanooHandleOrPhone: text(body.kanooHandleOrPhone, 80),
+    cashNote: text(body.cashNote, 300),
   };
+  // The methods the business picked (brief 18, E1): at least one, each a
+  // real method (never a card), each with its details.
+  if (!Array.isArray(body.acceptedMethods)) return fail("NEEDS_GET_PAID_METHOD");
+  const acceptedMethods = REQUEST_METHODS.filter((method) => (body.acceptedMethods as unknown[]).includes(method));
+  if ((body.acceptedMethods as unknown[]).some((method) => !isRequestMethod(method))) return fail("METHOD_NOT_AVAILABLE");
+  if (acceptedMethods.length === 0) return fail("NEEDS_GET_PAID_METHOD");
+  if (acceptedMethods.includes("bank_transfer") && methodMissing(details, "bank_transfer")) return fail("BANK_NEEDS_DETAILS");
+  if (acceptedMethods.includes("kanoo_wallet_manual") && methodMissing(details, "kanoo_wallet_manual")) return fail("KANOO_NEEDS_HANDLE");
+  return { ok: true, value: { referencePrefix, ...details, defaultDueDays, acceptedMethods } };
 }
 
 const MESSAGES: Record<string, string> = {
@@ -187,6 +192,14 @@ const MESSAGES: Record<string, string> = {
   BAD_DUE_DATE: "Pick a due date within the next year.",
   DUE_DATE_PAST: "The due date can't be in the past.",
   NEEDS_METHOD: "Pick at least one way the customer can pay.",
+  NEEDS_GET_PAID: "Add how you get paid first: Payments → Settings.",
+  NEEDS_GET_PAID_METHOD: "Pick at least one way customers can pay you: cash, bank transfer or a Kanoo wallet transfer.",
+  METHOD_NOT_AVAILABLE: "That way of paying isn't available. Card payments are coming with a licensed partner.",
+  BANK_NEEDS_DETAILS: "Bank transfer needs the bank, the account name, and the last four digits of the account or your transfer instructions.",
+  KANOO_NEEDS_HANDLE: "A Kanoo wallet transfer needs your Kanoo handle or number.",
+  NOT_A_TEST: "That isn't a test request.",
+  TEST_REQUEST: "A test request can't take a real payment.",
+  NO_OWN_EMAIL: "A test request goes to your own PortPass account's email. Sign in with your PortPass account to send one.",
   METHOD_NOT_SET_UP: "Add how customers pay you in Payments → Settings before offering that method.",
   ONE_LINK: "A request can come from one record at most.",
   BAD_AMOUNT: "Enter the amount received.",

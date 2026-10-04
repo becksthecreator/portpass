@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { paymentVolumeReport } from "@/db/paymentRequests";
+import { listPaymentSetup, paymentVolumeReport, type PaymentSetupRow } from "@/db/paymentRequests";
 import { requireAdmin } from "@/lib/auth/admin";
 import { nassauToday } from "@/lib/futprepTerms";
-import { money, monthLabel, type VolumeRow } from "@/lib/paymentRequests/rules";
+import { methodLabel, money, monthLabel, type VolumeRow } from "@/lib/paymentRequests/rules";
 import { AdminShell } from "../_components/AdminShell";
 import "@/app/_components/payments/payments.css";
 
@@ -24,7 +24,16 @@ function sum(rows: VolumeRow[], key: keyof Omit<VolumeRow, "month" | "organizati
 // their bank details.
 export default async function AdminPaymentsPage() {
   const session = await requireAdmin("/admin/payments");
-  const { rows, businesses } = await paymentVolumeReport();
+  const [{ rows, businesses }, setup] = await Promise.all([
+    paymentVolumeReport(),
+    // Decoration on this page: a failed read hides the list, not the page.
+    listPaymentSetup().catch((error): PaymentSetupRow[] => {
+      console.error("admin payments: setup list failed", error instanceof Error ? error.message : "");
+      return [];
+    }),
+  ]);
+  const notReady = setup.filter((row) => row.problem !== null);
+  const ready = setup.filter((row) => row.problem === null);
   const thisMonth = nassauToday().slice(0, 7);
   const current = rows.filter((r) => r.month === thisMonth);
   const months = [...new Set(rows.map((r) => r.month))];
@@ -43,6 +52,29 @@ export default async function AdminPaymentsPage() {
       <p className="admin-preq-note">
         Requests and the amount requested count in the month a request was first sent; recorded payments in the month the business says the money came in; outstanding is what is still unpaid today on that month&rsquo;s requests. &ldquo;Outside requests&rdquo; is money recorded straight on a business&rsquo;s own desk (Futprep&rsquo;s registrations and private sessions).
       </p>
+
+      {setup.length > 0 && (
+        <section className="admin-preq-month" aria-labelledby="preq-setup">
+          <h2 id="preq-setup">Who can be paid</h2>
+          <p className="admin-preq-note">A business must say how it gets paid before it can send a payment request. {notReady.length === 0 ? "Every business has." : `${notReady.length} ${notReady.length === 1 ? "hasn't" : "haven't"} yet.`}</p>
+          <div className="admin-preq-scroll">
+            <table className="admin-preq-table">
+              <thead>
+                <tr><th scope="col">Business</th><th scope="col">Status</th><th scope="col">Payment details</th></tr>
+              </thead>
+              <tbody>
+                {[...notReady, ...ready].map((row) => (
+                  <tr key={row.organizationId}>
+                    <th scope="row">{row.slug ? <Link href={`/business/${row.slug}/payments/settings`}>{row.name}</Link> : row.name}</th>
+                    <td>{row.isPublished ? "Live" : row.status || "—"}</td>
+                    <td>{row.problem === null ? `Set: ${row.methods.map(methodLabel).join(", ")}` : <strong>Not set</strong>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {months.length === 0 ? (
         <p className="admin-empty">No payment requests or recorded payments yet.</p>

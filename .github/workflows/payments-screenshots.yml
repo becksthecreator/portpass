@@ -16,6 +16,7 @@ on:
       - "app/pay/**"
       - "app/_components/payments/**"
       - "app/business/**/payments/**"
+      - "app/business/setup/**"
       - "db/paymentRequests.ts"
       - "lib/paymentRequests/**"
       - "scripts/screenshots/seed-payments-fixture.ts"

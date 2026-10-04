@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createPaymentRequest, getPaymentSettings } from "@/db/paymentRequests";
 import { orgIdFrom, paymentRouteError, paymentsApiAccess } from "@/lib/paymentRequests/access";
 import { paymentErrorMessage, parseRequestInput } from "@/lib/paymentRequests/input";
-import { defaultPrefix, methodsSetUp } from "@/lib/paymentRequests/rules";
+import { defaultPrefix, getPaidProblem, methodsSetUp } from "@/lib/paymentRequests/rules";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -20,6 +20,8 @@ export async function POST(request: Request, ctx: Ctx) {
 
   try {
     const settings = await getPaymentSettings(orgId);
+    // Not until the business has said how it gets paid (brief 18, E2).
+    if (getPaidProblem(settings)) return NextResponse.json({ error: paymentErrorMessage("NEEDS_GET_PAID"), code: "NEEDS_GET_PAID" }, { status: 409 });
     const parsed = parseRequestInput(body, { methodsAvailable: methodsSetUp(settings) });
     if (!parsed.ok) return NextResponse.json({ error: paymentErrorMessage(parsed.error), code: parsed.error }, { status: 400 });
     const created = await createPaymentRequest(orgId, parsed.value, auth.access.actor, settings?.referencePrefix ?? defaultPrefix(auth.access.orgName));

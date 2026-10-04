@@ -65,17 +65,40 @@ export type HowToPay = {
   transferInstructions: string;
   kanooHandleOrPhone: string;
   cashNote: string;
+  // The methods the business chose in its Get paid step (brief 18, E1).
+  acceptedMethods?: RequestMethod[] | null;
 };
 
-// The methods a business can offer on a request: cash always (arranged with
-// the business), bank transfer once it has said where to send it, a Kanoo
-// wallet transfer once it has given its handle or number.
+// What each chosen method still needs before a customer can be asked to
+// use it. Cash needs nothing more (where and when is optional).
+export function methodMissing(s: HowToPay, method: RequestMethod): string | null {
+  if (method === "bank_transfer") {
+    if (!s.bankName.trim() || !s.accountName.trim()) return "Bank transfer needs the bank and the account name.";
+    if (!s.accountNumberLast4 && !s.transferInstructions.trim()) return "Bank transfer needs the last four digits of the account, or your transfer instructions.";
+  }
+  if (method === "kanoo_wallet_manual" && !s.kanooHandleOrPhone.trim()) return "A Kanoo wallet transfer needs your Kanoo handle or number.";
+  return null;
+}
+
+// The methods a business can offer on a request: the ones it chose in its
+// Get paid step, each with its details in place. Nothing until it has
+// said how it gets paid.
 export function methodsSetUp(s: HowToPay | null): RequestMethod[] {
-  const out: RequestMethod[] = [];
-  if (s && (s.bankName.trim() || s.transferInstructions.trim())) out.push("bank_transfer");
-  out.push("cash");
-  if (s && s.kanooHandleOrPhone.trim()) out.push("kanoo_wallet_manual");
-  return out;
+  if (!s) return [];
+  const chosen = s.acceptedMethods ?? [];
+  return (["bank_transfer", "cash", "kanoo_wallet_manual"] as RequestMethod[]).filter((method) => chosen.includes(method) && methodMissing(s, method) === null);
+}
+
+// Why a business can't send a payment request yet, in words; null once its
+// Get paid step is done (brief 18, E2).
+export function getPaidProblem(s: HowToPay | null): string | null {
+  const chosen = s?.acceptedMethods ?? [];
+  if (!s || chosen.length === 0) return "Add how you get paid first.";
+  for (const method of chosen) {
+    const missing = methodMissing(s, method);
+    if (missing) return missing;
+  }
+  return null;
 }
 
 // ---- money ------------------------------------------------------------------
@@ -267,6 +290,8 @@ export function monthLabel(month: string): string {
 // ---- the business's list -----------------------------------------------------------
 
 export type ListedRequest = RequestState & {
+  // A TEST request (brief 18, E3): never money, left out of every total.
+  isTest?: boolean;
   id: number;
   referenceCode: string;
   customerName: string;
@@ -306,6 +331,7 @@ export function needsChecking(r: Pick<ListedRequest, "customerSaysPaidAt" | "sta
 
 // Overdue requests, oldest due date first: the chase list.
 export function chaseList<T extends ListedRequest>(rows: T[], today: string = nassauToday()): T[] {
+  rows = rows.filter((r) => !r.isTest);
   return rows.filter((r) => isOverdue(r, today)).sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.id - b.id);
 }
 
@@ -334,6 +360,7 @@ export function requestTotals(rows: ListedRequest[], payments: RecordedPayment[]
     if (p.status === "received" && nassauMonth(p.receivedAt) === month) totals.collectedThisMonthCents += p.amountCents;
   }
   for (const r of rows) {
+    if (r.isTest) continue;
     if (needsChecking(r)) totals.toCheckCount += 1;
     if (r.status !== "sent" && r.status !== "part_paid") continue;
     const balance = balanceCents(r);

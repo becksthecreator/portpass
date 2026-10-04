@@ -40,6 +40,7 @@ export default async function PayPage({ params }: { params: Params }) {
   return (
     <PayFrame view={view}>
       <div>
+        {r.isTest && <p className="paypage-test" role="note"><strong>This is a TEST request.</strong> Nothing is owed. It shows what your customers will see.</p>}
         <p className="paypage-eyebrow">Payment request for {r.customerName}</p>
         <h1><span className="paypage-ref">{r.referenceCode}</span></h1>
       </div>

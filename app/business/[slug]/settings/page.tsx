@@ -4,6 +4,7 @@ import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { getBusinessBySlug, listBusinessImages, listBusinessOfferings, listInvites, listTeam } from "@/db/business";
 import { getSectionWithSubcategories } from "@/db/categories";
+import { getPaymentSettings } from "@/db/paymentRequests";
 import { requireOrgRole } from "@/lib/auth/guards";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,8 @@ export default async function BusinessSettingsPage({ params, searchParams }: { p
   const access = await requireOrgRole({ slug }, "org_admin", `/business/${slug}/settings`);
   const business = await getBusinessBySlug(slug);
   if (!business) notFound();
-  const [images, offerings, invites, team, section] = await Promise.all([
+  const [paymentSettings, images, offerings, invites, team, section] = await Promise.all([
+    getPaymentSettings(business.id).catch(() => null),
     listBusinessImages(business.id),
     listBusinessOfferings(business.id),
     listInvites(business.id),
@@ -44,6 +46,7 @@ export default async function BusinessSettingsPage({ params, searchParams }: { p
         section={section}
         role={access.membership?.role ?? (access.session.platformRole ? "org_owner" : "org_viewer")}
         initialStep={initialStep}
+        paymentSettings={paymentSettings}
       />
       <SiteFooter />
     </main>

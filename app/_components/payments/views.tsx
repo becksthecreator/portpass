@@ -15,9 +15,9 @@ import {
 } from "@/db/paymentRequests";
 import { nassauToday, nassauLocalToIso } from "@/lib/futprepTerms";
 import type { PaymentsAccess } from "@/lib/paymentRequests/access";
-import { addDays, chaseList, defaultPrefix, methodsSetUp, money, requestTotals } from "@/lib/paymentRequests/rules";
+import { addDays, chaseList, defaultPrefix, getPaidProblem, methodsSetUp, money, requestTotals, type HowToPay } from "@/lib/paymentRequests/rules";
 import { ChaseList } from "./ChaseList";
-import { PaymentSettingsForm } from "./PaymentSettingsForm";
+import { PaymentSettingsForm, TestRequest } from "./PaymentSettingsForm";
 import { PaymentTeam } from "./PaymentTeam";
 import { PaymentsShell } from "./PaymentsShell";
 import { RequestDetail } from "./RequestDetail";
@@ -36,12 +36,15 @@ async function siteOrigin(): Promise<string> {
 
 const apiBase = (access: PaymentsAccess) => `/api/payments/orgs/${access.orgId}`;
 
-function needsHowToPay(access: PaymentsAccess, configured: boolean) {
-  if (configured) return null;
+// A business says how it gets paid before it can ask anyone to pay
+// (brief 18, E2).
+function needsHowToPay(access: PaymentsAccess, settings: HowToPay | null) {
+  const problem = getPaidProblem(settings);
+  if (!problem) return null;
   return (
     <p className="preq-notice is-warn">
-      Tell customers how to pay you before sending requests: your bank details, where to bring cash, your Kanoo wallet.{" "}
-      <Link href={`${access.basePath}/settings`}>Add how customers pay →</Link>
+      <strong>Add how you get paid first.</strong> {problem === "Add how you get paid first." ? "Pick cash, bank transfer or a Kanoo wallet transfer and add the details customers need." : problem}{" "}
+      <Link href={`${access.basePath}/settings`}>Add how you get paid →</Link>
     </p>
   );
 }
@@ -58,7 +61,7 @@ export async function RequestsView({ access, filter }: { access: PaymentsAccess;
 
   return (
     <PaymentsShell access={access} tab="requests" title="Payment requests" lede="Send a request, the customer pays you directly, you mark it paid. PortPass never holds the money." chaseCount={chase.length}>
-      {needsHowToPay(access, settings !== null && (settings.bankName !== "" || settings.transferInstructions !== "" || settings.cashNote !== "" || settings.kanooHandleOrPhone !== ""))}
+      {needsHowToPay(access, settings)}
       <dl className="preq-totals" aria-label="Totals">
         <div><dt>Collected this month</dt><dd>{money(totals.collectedThisMonthCents)}</dd></div>
         <div><dt>Outstanding</dt><dd>{money(totals.outstandingCents)}<small>{totals.outstandingCount} {totals.outstandingCount === 1 ? "request" : "requests"}</small></dd></div>
@@ -115,9 +118,16 @@ export async function NewRequestView({ access, params }: { access: PaymentsAcces
     offeringId: null,
     link: prefill?.link ?? {},
   };
+  // No request until the business has said how it gets paid.
+  if (getPaidProblem(settings)) {
+    return (
+      <PaymentsShell access={access} tab="new" title="New request" lede="Who it's for, what it's for, when it's due. Preview it, then send it.">
+        {needsHowToPay(access, settings)}
+      </PaymentsShell>
+    );
+  }
   return (
     <PaymentsShell access={access} tab="new" title="New request" lede="Who it's for, what it's for, when it's due. Preview it, then send it.">
-      {needsHowToPay(access, methodsAvailable.length > 1 || (settings?.cashNote ?? "") !== "")}
       {prefill && (
         <p className="preq-notice">
           From {prefill.source}.{" "}
@@ -198,6 +208,9 @@ export async function SettingsView({ access }: { access: PaymentsAccess }) {
   return (
     <PaymentsShell access={access} tab="settings" title="How customers pay you" lede="Shown on every request's page. Customers pay you directly; PortPass never holds the money.">
       <PaymentSettingsForm apiBase={apiBase(access)} initial={settings} suggestedPrefix={settings?.referencePrefix ?? defaultPrefix(access.orgName)} canEdit={access.canEditSettings} />
+      {/* A test request goes to the signed-in person's own email, so it is
+          offered through the PortPass-account door only. */}
+      {access.door === "business" && <TestRequest apiBase={apiBase(access)} basePath={access.basePath} ready={getPaidProblem(settings) === null} />}
       {access.door === "business" && <PaymentTeam apiBase={apiBase(access)} members={team} canManage={access.canManageTeam} />}
     </PaymentsShell>
   );

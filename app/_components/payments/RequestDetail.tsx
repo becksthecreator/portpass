@@ -120,8 +120,14 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ amountCents: cents, method, receivedOn, reference, note }),
     });
-    const data = (await response.json().catch(() => ({}))) as { error?: string; receiptNumber?: string; paymentId?: number; status?: string };
+    const data = (await response.json().catch(() => ({}))) as { error?: string; receiptNumber?: string; paymentId?: number; status?: string; test?: boolean };
     setBusy(null);
+    // A TEST request shows as paid; no payment or receipt exists for it.
+    if (response.ok && data.test) {
+      setNotice("Test marked paid. That's the whole loop: request, the customer's page, mark paid. Nothing was recorded as money.");
+      router.refresh();
+      return;
+    }
     if (!response.ok || !data.receiptNumber) return setError(data.error ?? "Could not record the payment.");
     setJustPaid({ receiptNumber: data.receiptNumber, paymentId: data.paymentId!, amountCents: cents });
     setNotice(data.status === "paid" ? `Paid in full. Receipt ${data.receiptNumber}.` : `Payment recorded. Receipt ${data.receiptNumber}.`);
@@ -155,6 +161,7 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
 
   return (
     <>
+      {r.isTest && <p className="preq-notice is-check"><strong>TEST request.</strong> It went to your own email so you can see what a customer sees. It never counts as money and no payment is recorded for it.</p>}
       {notice && <p className="preq-notice" role="status">{notice}</p>}
       {error && <p className="preq-notice is-warn" role="alert">{error}</p>}
 
