@@ -94,7 +94,6 @@ const SHOTS = [
   ["brief18-join-event-375", "anon", "/join/school-fair-nov", null],
   ["brief18-own-kit-375", "admin", "/own/kit", ".kit-grid"],
   ["brief18-leads-event-375", "admin", "/admin/leads?event=own2026", ".leads-events"],
-  ["brief18-overview-signed-up-375", "admin", "/admin", "#needs"],
   ["brief11-search-375", "admin", "/search?q=kids+football", ".search-results"],
 ];
 
@@ -159,17 +158,32 @@ async function pageFor(account) {
   return contexts.get(account).page;
 }
 
+// One slow or broken page must not lose every shot after it: a failed shot
+// is reported, the rest are still taken, and the job fails at the end.
+const failed = [];
 try {
   for (const [name, account, path, focus] of SHOTS) {
-    const page = await pageFor(account);
-    await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
-    await page.screenshot({ path: `screenshots/${name}.png`, fullPage: true });
-    if (focus) {
-      const element = page.locator(focus).first();
-      await element.scrollIntoViewIfNeeded();
-      await page.screenshot({ path: `screenshots/${name}-viewport.png` });
+    const started = Date.now();
+    let loaded = started;
+    try {
+      const page = await pageFor(account);
+      await page.goto(`${BASE}${path}`, { waitUntil: "networkidle", timeout: 60_000 });
+      loaded = Date.now();
+      await page.screenshot({ path: `screenshots/${name}.png`, fullPage: true });
+      if (focus) {
+        const element = page.locator(focus).first();
+        await element.scrollIntoViewIfNeeded();
+        await page.screenshot({ path: `screenshots/${name}-viewport.png` });
+      }
+      console.log(`captured ${name} (loaded in ${loaded - started} ms, shot in ${Date.now() - loaded} ms)`);
+    } catch (error) {
+      failed.push(name);
+      console.error(`FAILED ${name} after ${Date.now() - started} ms: ${error instanceof Error ? error.message.split("\n")[0] : error}`);
     }
-    console.log(`captured ${name}`);
+  }
+  if (failed.length) {
+    console.error(`${failed.length} shot(s) failed: ${failed.join(", ")}`);
+    process.exitCode = 1;
   }
 } finally {
   for (const { context } of contexts.values()) await context.close();

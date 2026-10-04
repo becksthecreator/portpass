@@ -34,6 +34,7 @@ const NEVER_CACHE = [
   /\/plan(\/|$)/,
   /^\/sports-fitness\/notify/,
   /^\/apply/,
+  /^\/own\/kit/,
   /^\/_vercel\//,
   /^\/sw\.js$/,
 ];
