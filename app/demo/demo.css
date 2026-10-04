@@ -5,7 +5,7 @@
 .demo-inside{display:grid;gap:10px;list-style:none;margin:18px 0 0;padding:0}
 .demo-inside li{border:1px solid var(--line);border-radius:14px;display:grid;gap:3px;padding:12px 14px}
 .demo-inside li span{color:var(--muted);font-size:.9rem;line-height:1.45}
-.demo-try{display:grid;gap:8px;margin:14px 0 0;padding-left:20px}
+.demo-try{display:grid;gap:8px;list-style:decimal;margin:14px 0 0;padding-left:22px}
 .demo-try li{line-height:1.5}
 .demo-reset{align-items:center;border:1px dashed var(--line);border-radius:14px;display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:22px;padding:14px 16px}
 .demo-reset p{flex:1 1 220px;font-size:.9rem;margin:0}

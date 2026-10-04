@@ -170,15 +170,28 @@ const browser = await chromium.launch();
 // One signed-in browser context per account, reused for all its shots: an
 // authenticator code can't be used twice, so the admin signs in once.
 const contexts = new Map();
+const reports = new Map();
 async function pageFor(account) {
   if (!contexts.has(account)) {
     const context = await browser.newContext({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     const page = await context.newPage();
-    // A request that takes seconds is worth knowing about: it is what
-    // keeps a page from settling.
-    page.on("requestfinished", (request) => {
-      const ms = request.timing().responseEnd;
-      if (ms > 3000) console.log(`  slow request (${Math.round(ms)} ms): ${request.method()} ${new URL(request.url()).pathname}`);
+    // What keeps a page from settling: every request this browser makes
+    // (the page's and the service worker's) is timed, and the ones that
+    // took seconds, failed or never finished are named after a slow shot.
+    const open = new Map();
+    const slow = [];
+    const where = (request) => `${request.method()} ${new URL(request.url()).pathname}${request.serviceWorker() ? " (service worker)" : ""}`;
+    context.on("request", (request) => open.set(request, Date.now()));
+    const closed = (how) => (request) => {
+      const ms = Date.now() - (open.get(request) ?? Date.now());
+      open.delete(request);
+      if (ms > 3000) slow.push(`${how} after ${ms} ms: ${where(request)}`);
+    };
+    context.on("requestfinished", closed("finished"));
+    context.on("requestfailed", closed("failed"));
+    reports.set(account, () => {
+      const lines = [...slow.splice(0), ...[...open.entries()].filter(([, at]) => Date.now() - at > 3000).map(([request, at]) => `still open after ${Date.now() - at} ms: ${where(request)}`)];
+      return lines;
     });
     // "anon" is a visitor who hasn't signed in.
     if (account === "admin") await adminSignIn(page);
@@ -203,8 +216,8 @@ try {
   const payPath = (reference) => `/pay/${(demoRequests ?? []).find((r) => r.reference_code === reference)?.public_token ?? "missing"}`;
   SHOTS.push(
     ["product-shot-requests", "demo", "/demo/payments?filter=all", ".preq-list"],
-    ["product-shot-pay", "anon", payPath("HKC-0013"), ".paypage-wrap"],
-    ["product-shot-paid", "anon", payPath("HKC-0001"), ".paypage-wrap"],
+    ["product-shot-pay", "anon", payPath("HKC-0013"), ".paypage-demo"],
+    ["product-shot-paid", "anon", payPath("HKC-0001"), ".paypage-demo"],
   );
 
   for (const [name, account, path, focus, press] of SHOTS) {
@@ -226,6 +239,8 @@ try {
         await page.screenshot({ path: `screenshots/${name}-viewport.png` });
       }
       console.log(`captured ${name} (loaded in ${loaded - started} ms, shot in ${Date.now() - loaded} ms)`);
+      const report = reports.get(account)?.() ?? [];
+      if (loaded - started > 10_000) for (const line of report) console.log(`  ${line}`);
     } catch (error) {
       failed.push(name);
       console.error(`FAILED ${name} after ${Date.now() - started} ms: ${error instanceof Error ? error.message.split("\n")[0] : error}`);

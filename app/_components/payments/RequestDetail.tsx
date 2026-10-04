@@ -181,7 +181,7 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
           {r.status !== "void" && <div><dt>Balance</dt><dd>{money(balance)}</dd></div>}
           <div><dt>Due</dt><dd>{formatDay(r.dueDate, today)}{isOverdue(r, today) ? ` · ${daysOverdue(r.dueDate, today)} days overdue` : ""}</dd></div>
           <div><dt>They can pay by</dt><dd>{r.methods.map(methodLabel).join(", ")}{r.allowPartPayment ? " · part payments allowed" : ""}</dd></div>
-          {r.customerPhone && <div><dt>Phone</dt><dd><a className="preq-link" href={`tel:${r.customerPhone}`}>{formatPhoneDisplay(r.customerPhone)}</a></dd></div>}
+          {r.customerPhone && <div><dt>Phone</dt><dd>{demo ? formatPhoneDisplay(r.customerPhone) : <a className="preq-link" href={`tel:${r.customerPhone}`}>{formatPhoneDisplay(r.customerPhone)}</a>}</dd></div>}
           {r.customerEmail && <div><dt>Email</dt><dd>{r.customerEmail}</dd></div>}
           <div><dt>Sent</dt><dd>{r.sentAt ? `${formatDay(nassauDate(r.sentAt), today)} by ${sentViaLabel(r.sentVia)}` : "Not yet"}</dd></div>
           {r.lastRemindedAt && <div><dt>Last reminded</dt><dd>{sinceLabel(r.lastRemindedAt)} ({r.reminderCount})</dd></div>}
@@ -379,7 +379,7 @@ export function RequestDetail({ request: r, payments, businessName, basePath, ap
         </details>
       )}
       {!canVoidRequest(r) && r.status !== "void" && (
-        <p className="preq-last">Money has been recorded against this request, so it can&rsquo;t be voided. Record a refund on the payment instead.</p>
+        <p className="preq-last">Money has been recorded against this request, so it can&rsquo;t be voided.{demo ? "" : " Record a refund on the payment instead."}</p>
       )}
     </>
   );
