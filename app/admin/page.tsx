@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { getAdminOverview } from "@/db/adminStats";
+import { eventSignupCounts, type EventSignupCount } from "@/db/leads";
 import { getPerkStats, type PerkStats } from "@/db/memberPerks";
 import { getSiteVisits, type SiteVisits } from "@/db/siteVisits";
 import { requireAdmin } from "@/lib/auth/admin";
 import { formatPriceCents } from "@/app/_components/blocks/format";
 import { backupState, deploymentInfo } from "@/lib/adminHealth";
+import { eventName, OWN_EVENT } from "@/lib/eventSignup";
 import { shortDate } from "@/lib/growth";
 import { signupSourceLabel } from "@/lib/memberPerks";
 import { AdminShell } from "./_components/AdminShell";
@@ -36,6 +38,13 @@ export default async function AdminOverviewPage() {
     console.error("admin overview tile failed: site visits", error instanceof Error ? error.message : error);
     return null;
   });
+  // Businesses that signed up on the event form (brief 18, C3): the newest
+  // event, or the OWN Conference before anyone has signed up.
+  const events = await eventSignupCounts().catch((error): EventSignupCount[] | null => {
+    console.error("admin overview tile failed: event sign-ups", error instanceof Error ? error.message : error);
+    return null;
+  });
+  const signedUp: EventSignupCount | null = events === null ? null : (events[0] ?? { event: OWN_EVENT, count: 0, fresh: 0, latest: "" });
   const deployment = deploymentInfo();
   const backup = backupState(o.health.backup, new Date());
   const checkProblems = o.health.databaseChecks === null ? null : o.health.databaseChecks.reduce((sum, check) => sum + check.problems, 0);
@@ -59,6 +68,11 @@ export default async function AdminOverviewPage() {
             <strong>{o.billing === null ? "—" : String(o.billing.drafts + o.billing.overdue)}</strong>
             <span>Invoices to send or chase</span>
             <small>{o.billing === null ? "Could not be read" : o.billing.morning}</small>
+          </Link>
+          <Link className={`admin-tile${signedUp && signedUp.fresh ? " is-alert" : ""}`} href={signedUp ? `/admin/leads?event=${signedUp.event}` : "/admin/leads"}>
+            <strong>{signedUp === null ? "—" : String(signedUp.count)}</strong>
+            <span>Signed up at {signedUp === null ? "an event" : eventName(signedUp.event)}</span>
+            <small>{signedUp === null ? "Could not be read" : signedUp.count === 0 ? "Nobody yet. The form is at /own" : signedUp.fresh === 0 ? "All of them have been contacted" : `${signedUp.fresh} still to message, by hand`}</small>
           </Link>
           <Link className={`admin-tile${o.health.emailProblems ? " is-alert" : ""}`} href="/admin/messages?status=problems"><strong>{show(o.health.emailProblems)}</strong><span>Emails that did not arrive</span><small>Failed, bounced or marked as spam, last 7 days</small></Link>
           <Link className={`admin-tile${o.health.siteErrors ? " is-alert" : ""}`} href="/admin/health"><strong>{show(o.health.siteErrors)}</strong><span>Site errors (24h)</span></Link>

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { listSections } from "@/db/categories";
-import { getLeadsFunnel, leadsDigest, listLeads, lookupUsage, PLACES_DAILY_CAP } from "@/db/leads";
+import { eventSignupCounts, getLeadsFunnel, leadsDigest, listLeads, lookupUsage, PLACES_DAILY_CAP, type EventSignupCount } from "@/db/leads";
 import { requireAdmin } from "@/lib/auth/admin";
+import { cleanEventCode, eventName } from "@/lib/eventSignup";
 import { enrichmentConfigured } from "@/lib/scout/enrich";
 import { instagramConfigured } from "@/lib/scout/instagram";
 import { isLeadSource, isLeadStatus, LEAD_BOARD, LEAD_SOURCE_LABEL, LEAD_SOURCES, LEAD_STATUS_LABEL, LEAD_STATUSES, SCORE_ACTION_LABEL, scoreAction, type LeadSource, type LeadStatus } from "@/lib/scout/leads";
@@ -33,20 +34,31 @@ function dollars(cents: number): string {
 // PortPass Scout (brief 14): the lead catalogue. Business-published details
 // only, from official sources and what the founders type. Messages are
 // always sent by a founder, by hand, one at a time.
-export default async function AdminLeadsPage({ searchParams }: { searchParams: Promise<{ section?: string; status?: string; source?: string; score?: string; area?: string; q?: string; view?: string }> }) {
+export default async function AdminLeadsPage({ searchParams }: { searchParams: Promise<{ section?: string; status?: string; source?: string; score?: string; area?: string; q?: string; view?: string; event?: string }> }) {
   const session = await requireAdmin("/admin/leads");
   const params = await searchParams;
   const status: LeadStatus | "all" | null = params.status === "all" ? "all" : isLeadStatus(params.status) && params.status !== "do_not_contact" ? params.status : null;
   const source: LeadSource | null = isLeadSource(params.source) ? params.source : null;
   const minScore = params.score && /^\d{1,3}$/.test(params.score) ? Number(params.score) : null;
+  // Sign-ups at one event (/own, /join/<event>): brief 18, C3.
+  const event = cleanEventCode(params.event);
   const board = params.view === "board";
-  const filtered = Boolean(params.section || status || source || minScore !== null || params.area || params.q);
+  const filtered = Boolean(params.section || status || source || minScore !== null || params.area || params.q || event);
   // The whole catalogue is read once: the digest and the funnel count it,
   // and with no filter it is also the list shown.
   const now = new Date();
-  const [sections, all, usage] = await Promise.all([listSections({ includeHidden: true }), listLeads(), lookupUsage()]);
+  const [sections, all, usage, events] = await Promise.all([
+    listSections({ includeHidden: true }),
+    listLeads(),
+    lookupUsage(),
+    // The chips are an extra: if the count fails, the catalogue still opens.
+    eventSignupCounts().catch((error): EventSignupCount[] => {
+      console.error("admin leads: event sign-ups", error instanceof Error ? error.message : error);
+      return [];
+    }),
+  ]);
   const [leads, digest, funnel] = await Promise.all([
-    filtered ? listLeads({ section: params.section || null, status, source, minScore, area: params.area ?? null, q: params.q ?? null }) : Promise.resolve(all),
+    filtered ? listLeads({ section: params.section || null, status, source, minScore, area: params.area ?? null, q: params.q ?? null, event }) : Promise.resolve(all),
     leadsDigest(now, all),
     getLeadsFunnel(now, all),
   ]);
@@ -54,6 +66,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
   const viewHref = (view: "table" | "board") => {
     const query = new URLSearchParams();
     for (const key of ["section", "status", "source", "score", "area", "q"] as const) if (params[key]) query.set(key, String(params[key]));
+    if (event) query.set("event", event);
     if (view === "board") query.set("view", "board");
     const text = query.toString();
     return text ? `/admin/leads?${text}` : "/admin/leads";
@@ -124,6 +137,18 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
         </p>
       )}
 
+      {(events.length > 0 || event) && (
+        <div className="admin-filters leads-events" aria-label="Signed up at an event">
+          <Link href={board ? "/admin/leads?view=board" : "/admin/leads"} aria-current={!event ? "true" : undefined}>Everyone</Link>
+          {events.map((entry) => (
+            <Link key={entry.event} href={`/admin/leads?event=${entry.event}${board ? "&view=board" : ""}`} aria-current={event === entry.event ? "true" : undefined}>
+              Signed up at {eventName(entry.event)} ({entry.count})
+            </Link>
+          ))}
+          {event && !events.some((entry) => entry.event === event) && <Link href={`/admin/leads?event=${event}`} aria-current="true">Signed up at {eventName(event)} (0)</Link>}
+        </div>
+      )}
+
       <form className="leads-filter" method="get" action="/admin/leads">
         <label><span>Section</span>
           <select name="section" defaultValue={params.section ?? ""}>
@@ -153,6 +178,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
         </label>
         <label><span>Search</span><input name="q" defaultValue={params.q ?? ""} placeholder="Business name" maxLength={60} /></label>
         {board && <input type="hidden" name="view" value="board" />}
+        {event && <input type="hidden" name="event" value={event} />}
         <div className="leads-filter-actions">
           <button className="primary-button" type="submit">Filter</button>
           {filtered && <Link href={board ? "/admin/leads?view=board" : "/admin/leads"}>Clear</Link>}
@@ -197,12 +223,12 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: P
           <tbody>
             {leads.map((lead) => (
               <tr key={lead.id}>
-                <td data-label="Business"><Link href={`/admin/leads/${lead.id}`}><strong>{lead.businessName}</strong></Link>{lead.whatTheyDo ? <><br /><small>{lead.whatTheyDo.slice(0, 90)}</small></> : null}</td>
+                <td data-label="Business"><Link href={`/admin/leads/${lead.id}`}><strong>{lead.businessName}</strong></Link>{lead.whatTheyDo ? <><br /><small>{lead.whatTheyDo.slice(0, 90)}</small></> : null}{lead.contactName ? <><br /><small>{lead.contactName}{lead.whatsappConsent ? " · WhatsApp OK" : " · no WhatsApp tick"}</small></> : null}</td>
                 <td data-label="Section">{sectionName(lead.section)}</td>
                 <td data-label="Area">{[lead.area, lead.island].filter(Boolean).join(", ") || "—"}</td>
                 <td data-label="Score">{lead.score === null ? "—" : <><span className={`lead-score lead-score-${scoreAction(lead.score)}`}>{lead.score}</span> <small>{SCORE_ACTION_LABEL[scoreAction(lead.score)]}</small></>}</td>
                 <td data-label="Status"><span className={`admin-pill lead-status-${lead.status}`}>{LEAD_STATUS_LABEL[lead.status]}</span></td>
-                <td data-label="Source">{LEAD_SOURCE_LABEL[lead.source]}</td>
+                <td data-label="Source">{lead.eventCode ? `Signed up at ${eventName(lead.eventCode)}` : LEAD_SOURCE_LABEL[lead.source]}</td>
                 <td data-label="Last contact">{when(lead.lastContactOn)}</td>
               </tr>
             ))}

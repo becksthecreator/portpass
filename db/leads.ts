@@ -7,6 +7,7 @@ import { PLACES_SEARCH_COST_MILLICENTS } from "@/lib/scout/places";
 import {
   cleanUrl,
   dedupeKey,
+  emptyLeadDraft,
   firstWhatsappNumber,
   isBookingMethod,
   isLeadStatus,
@@ -67,12 +68,18 @@ export type Lead = {
   enrichmentModel: string | null;
   organizationId: number | null;
   applicationId: number | null;
+  // An event sign-up (brief 18, C): the event, who signed up, and whether
+  // they said PortPass may message them on WhatsApp, and when.
+  eventCode: string | null;
+  contactName: string | null;
+  whatsappConsent: boolean;
+  whatsappConsentAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
 const LEAD_COLUMNS =
-  "id,business_name,section,subsection,island,area,what_they_do,booking_method,online_payment,prices_text,instagram_handle,phone,whatsapp_e164,email,website_url,address,google_place_id,google_maps_url,google_rating,google_rating_count,why_fit,warm_connection,priority,score,score_reasons,status,source,source_urls,referral_code,owner,next_step,last_contact_on,notes,draft_message,enriched_at,enrichment_model,organization_id,application_id,created_at,updated_at";
+  "id,business_name,section,subsection,island,area,what_they_do,booking_method,online_payment,prices_text,instagram_handle,phone,whatsapp_e164,email,website_url,address,google_place_id,google_maps_url,google_rating,google_rating_count,why_fit,warm_connection,priority,score,score_reasons,status,source,source_urls,referral_code,owner,next_step,last_contact_on,notes,draft_message,enriched_at,enrichment_model,organization_id,application_id,event_code,contact_name,whatsapp_consent,whatsapp_consent_at,created_at,updated_at";
 
 function toLead(row: Record<string, unknown>): Lead {
   const text = (key: string) => (row[key] as string | null) ?? null;
@@ -116,6 +123,10 @@ function toLead(row: Record<string, unknown>): Lead {
     enrichmentModel: text("enrichment_model"),
     organizationId: num("organization_id"),
     applicationId: num("application_id"),
+    eventCode: text("event_code"),
+    contactName: text("contact_name"),
+    whatsappConsent: Boolean(row.whatsapp_consent),
+    whatsappConsentAt: text("whatsapp_consent_at"),
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };
@@ -195,6 +206,10 @@ function rowFromDraft(draft: LeadDraft): Record<string, unknown> {
 // the Google place id), and nothing else.
 const DO_NOT_CONTACT_WIPE = {
   status: "do_not_contact",
+  // The person who signed up at an event, and the consent they gave.
+  contact_name: null,
+  whatsapp_consent: false,
+  whatsapp_consent_at: null,
   phone: null,
   whatsapp_e164: null,
   email: null,
@@ -229,7 +244,7 @@ const DO_NOT_CONTACT_WIPE = {
 const LIST_PAGE = 1000;
 const LIST_MAX = 5000;
 
-export type LeadFilters = { section?: string | null; area?: string | null; status?: LeadStatus | "all" | null; source?: LeadSource | null; minScore?: number | null; q?: string | null };
+export type LeadFilters = { section?: string | null; area?: string | null; status?: LeadStatus | "all" | null; source?: LeadSource | null; minScore?: number | null; q?: string | null; event?: string | null };
 
 // "Do not contact" is hidden from every list; it can only be found by
 // trying to add the same business again.
@@ -238,6 +253,7 @@ export async function listLeads(filters: LeadFilters = {}): Promise<Lead[]> {
   if (filters.section) query = query.eq("section", filters.section);
   if (filters.status && filters.status !== "all") query = query.eq("status", filters.status);
   if (filters.source) query = query.eq("source", filters.source);
+  if (filters.event) query = query.eq("event_code", filters.event);
   if (typeof filters.minScore === "number") query = query.gte("score", filters.minScore);
   // Read in pages: the API returns at most 1,000 rows at a time, and a
   // lead must never drop out of the table or the search because of that.
@@ -302,7 +318,7 @@ export type CreateLeadResult = { ok: true; lead: Lead } | { ok: false; reason: "
 
 export async function createLead(
   draft: LeadDraft,
-  extra: { actorUserId: string | null; googlePlaceId?: string | null; googleMapsUrl?: string | null; googleRating?: number | null; googleRatingCount?: number | null; applicationId?: number | null; warmConnection?: boolean },
+  extra: { actorUserId: string | null; googlePlaceId?: string | null; googleMapsUrl?: string | null; googleRating?: number | null; googleRatingCount?: number | null; applicationId?: number | null; warmConnection?: boolean; eventSignup?: { eventCode: string; contactName: string; whatsappConsent: boolean } },
 ): Promise<CreateLeadResult> {
   const key = dedupeKey(draft.businessName);
   if (!key) return { ok: false, reason: "no_name" };
@@ -321,6 +337,9 @@ export async function createLead(
     application_id: extra.applicationId ?? null,
     warm_connection: extra.warmConnection ?? draft.warmConnection ?? false,
     created_by: extra.actorUserId,
+    ...(extra.eventSignup
+      ? { event_code: extra.eventSignup.eventCode, contact_name: extra.eventSignup.contactName.slice(0, 120), whatsapp_consent: extra.eventSignup.whatsappConsent, whatsapp_consent_at: extra.eventSignup.whatsappConsent ? new Date().toISOString() : null }
+      : {}),
   };
   if (draft.status === "do_not_contact") Object.assign(row, DO_NOT_CONTACT_WIPE);
   const { data, error } = await getSupabaseAdmin().from("leads").insert(row).select(LEAD_COLUMNS).single();
@@ -737,4 +756,77 @@ export async function existingForPlaces(places: PlaceToCheck[]): Promise<Map<str
     if (match) found.set(place.placeId, answer(match));
   }
   return found;
+}
+
+// ---- event sign-ups (brief 18, part C) ---------------------------------------------------
+
+export type EventSignupOutcome = { outcome: "created" | "updated" | "do_not_contact"; leadId: number | null };
+
+// A business owner signed up at an event (/own, /join/<event>): a new lead
+// with status New, the event, and the consent they gave. A business that
+// is already a lead keeps its row and its status, and gains the event, the
+// name and the consent (consent given is never taken away by a second
+// form). A "do not contact" business stays that way: nothing is kept.
+// Nothing here sends anything to the person.
+export async function recordEventSignup(signup: { event: string; name: string; businessName: string; whatsappE164: string; section: string; instagramHandle: string | null; whatsappConsent: boolean }): Promise<EventSignupOutcome> {
+  const draft = emptyLeadDraft(signup.businessName, "event");
+  draft.section = signup.section;
+  draft.whatsappE164 = signup.whatsappE164;
+  draft.instagramHandle = signup.instagramHandle;
+  draft.status = "new";
+  const extra = { actorUserId: null, eventSignup: { eventCode: signup.event, contactName: signup.name, whatsappConsent: signup.whatsappConsent } };
+  let made = await createLead(draft, extra);
+  // Two forms for the same business at the same moment: the one that lost
+  // looks again, and finds the row the other one made.
+  if (!made.ok && made.reason === "duplicate" && !made.existingId) made = await createLead(draft, extra);
+  if (made.ok) {
+    await logAudit({ actorUserId: null, action: "lead.event_signup", targetTable: "leads", targetId: made.lead.id, after: { event: signup.event, consent: signup.whatsappConsent } });
+    return { outcome: "created", leadId: made.lead.id };
+  }
+  if (made.reason === "do_not_contact" || made.reason === "no_name" || !made.existingId) return { outcome: "do_not_contact", leadId: null };
+
+  const db = getSupabaseAdmin();
+  const { data: existing, error } = await db.from("leads").select("id,status,business_name,notes,section,whatsapp_e164,instagram_handle,whatsapp_consent").eq("id", made.existingId).maybeSingle();
+  throwIfSupabaseError(error, "Could not load the lead");
+  if (!existing || existing.status === "do_not_contact") return { outcome: "do_not_contact", leadId: null };
+  const patch: Record<string, unknown> = { event_code: signup.event, contact_name: signup.name.slice(0, 120), updated_at: new Date().toISOString() };
+  if (signup.whatsappConsent && !existing.whatsapp_consent) Object.assign(patch, { whatsapp_consent: true, whatsapp_consent_at: new Date().toISOString() });
+  // Only gaps are filled: what a founder already checked is not overwritten.
+  if (!existing.section) patch.section = signup.section;
+  if (!existing.whatsapp_e164) patch.whatsapp_e164 = signup.whatsappE164;
+  if (!existing.instagram_handle && signup.instagramHandle) patch.instagram_handle = signup.instagramHandle;
+  // Matched on its number or its Instagram under another name (one owner,
+  // two businesses): the name on the form is kept in the notes, not lost.
+  if (dedupeKey(String(existing.business_name)) !== dedupeKey(signup.businessName)) {
+    const line = `Signed up at ${signup.event} as "${signup.businessName}".`;
+    const notes = (existing.notes as string | null) ?? "";
+    if (!notes.includes(line)) patch.notes = [notes, line].filter(Boolean).join("\n").slice(0, 4000);
+  }
+  const { error: updateError } = await db.from("leads").update(patch).eq("id", existing.id).neq("status", "do_not_contact");
+  throwIfSupabaseError(updateError, "Could not update the lead");
+  await logAudit({ actorUserId: null, action: "lead.event_signup", targetTable: "leads", targetId: Number(existing.id), after: { event: signup.event, consent: signup.whatsappConsent, existing: true } });
+  return { outcome: "updated", leadId: Number(existing.id) };
+}
+
+// How many businesses signed up at each event, newest event first: the
+// chips on Admin -> Leads and the tile on the Overview.
+export type EventSignupCount = { event: string; count: number; fresh: number; latest: string };
+
+export async function eventSignupCounts(): Promise<EventSignupCount[]> {
+  type Row = { event_code: string | null; status: string; created_at: string };
+  const rows: Row[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await getSupabaseAdmin().from("leads").select("event_code,status,created_at").not("event_code", "is", null).neq("status", "do_not_contact").order("id", { ascending: true }).range(from, from + 999);
+    throwIfSupabaseError(error, "Could not count event sign-ups");
+    rows.push(...((data ?? []) as Row[]));
+    if ((data ?? []).length < 1000) break;
+  }
+  // `fresh`: still New, so nobody has messaged them yet.
+  const byEvent = new Map<string, { count: number; fresh: number; latest: string }>();
+  for (const row of rows) {
+    if (!row.event_code) continue;
+    const current = byEvent.get(row.event_code) ?? { count: 0, fresh: 0, latest: "" };
+    byEvent.set(row.event_code, { count: current.count + 1, fresh: current.fresh + (row.status === "new" ? 1 : 0), latest: row.created_at > current.latest ? row.created_at : current.latest });
+  }
+  return [...byEvent.entries()].map(([event, value]) => ({ event, ...value })).sort((a, b) => b.latest.localeCompare(a.latest));
 }

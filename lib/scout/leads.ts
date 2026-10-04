@@ -76,7 +76,7 @@ export function leadsFunnel(leads: FunnelLead[], changes: LeadStatusChange[], we
   };
 }
 
-export const LEAD_SOURCES = ["google_places", "instagram", "inbound_form", "referral", "founder", "tracker_import"] as const;
+export const LEAD_SOURCES = ["google_places", "instagram", "inbound_form", "referral", "founder", "tracker_import", "event"] as const;
 export type LeadSource = (typeof LEAD_SOURCES)[number];
 
 export const LEAD_SOURCE_LABEL: Record<LeadSource, string> = {
@@ -86,6 +86,7 @@ export const LEAD_SOURCE_LABEL: Record<LeadSource, string> = {
   referral: "Referral",
   founder: "Added by a founder",
   tracker_import: "Prospect Tracker import",
+  event: "Signed up at an event",
 };
 
 export const BOOKING_METHODS = ["whatsapp_dm", "phone", "instagram_dm", "website_booking", "unknown"] as const;

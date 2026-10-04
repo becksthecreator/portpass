@@ -10,12 +10,12 @@
      and admin areas, account pages, and every page that shows or collects
      personal data. Those requests are not intercepted at all. */
 
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 const SHELL_CACHE = `portpass-shell-${CACHE_VERSION}`;
 const PAGES_CACHE = `portpass-pages-${CACHE_VERSION}`;
 const ASSETS_CACHE = `portpass-assets-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline";
-const SHELL_URLS = ["/", "/app", "/pass", "/favicon.svg", "/brand/logo/portpass-logo-horizontal-light.svg", "/brand/logo/portpass-logo-horizontal-dark.svg", "/brand/icons/app-icon-192.png", "/brand/icons/app-icon-512.png", "/manifest.webmanifest"];
+const SHELL_URLS = ["/", "/app", "/pass", "/own", "/favicon.svg", "/brand/logo/portpass-logo-horizontal-light.svg", "/brand/logo/portpass-logo-horizontal-dark.svg", "/brand/icons/app-icon-192.png", "/brand/icons/app-icon-512.png", "/manifest.webmanifest"];
 const MAX_PAGES = 40;
 
 const NEVER_CACHE = [
@@ -34,6 +34,7 @@ const NEVER_CACHE = [
   /\/plan(\/|$)/,
   /^\/sports-fitness\/notify/,
   /^\/apply/,
+  /^\/own\/kit/,
   /^\/_vercel\//,
   /^\/sw\.js$/,
 ];

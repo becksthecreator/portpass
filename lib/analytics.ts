@@ -15,7 +15,9 @@ export type AnalyticsEvent =
   // Installable app (round 5, §6): the appinstalled event, and an open
   // from the home screen (start_url carries ?source=pwa).
   | "pwa_installed"
-  | "pwa_open";
+  | "pwa_open"
+  // A business signed up on the event form (/own, /join/<event>).
+  | "event_signup";
 
 export function track(name: AnalyticsEvent, data?: Record<string, string | number | boolean>) {
   if (typeof window === "undefined") return;
