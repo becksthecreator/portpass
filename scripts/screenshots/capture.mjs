@@ -83,6 +83,11 @@ const SHOTS = [
   // Brief 18, part G: a lime brand colour with no photo and no WhatsApp
   // number (as Carv is): the brand header, navy on lime, the Enquire form.
   ["brief18-lime-preview-375", "admin", "/business/test-delete-lime-gym/preview", ".tpl-enquire"],
+  // Brief 18, part D: registration for a TEST business in its own colour:
+  // the class step with a children's and an adults' class, and an adult's
+  // form (no child or health steps).
+  ["brief18-register-themed-375", "anon", "/entertainment/test-delete-photo-booth/register", ".class-choice-grid"],
+  ["brief18-register-adult-375", "anon", "/entertainment/test-delete-photo-booth/register?program=test-delete-adult-fitness", ".registration-progress"],
   ["brief11-search-375", "admin", "/search?q=kids+football", ".search-results"],
 ];
 

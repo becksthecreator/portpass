@@ -33,6 +33,8 @@ on:
       - "app/business/page.tsx"
       - "app/tell-us/**"
       - "lib/businessTheme.ts"
+      - "app/_components/registration/**"
+      - "app/[category]/[slug]/register/**"
       - "app/signup/**"
       - "app/_components/auth/**"
       - "app/_components/HeaderAccount.tsx"

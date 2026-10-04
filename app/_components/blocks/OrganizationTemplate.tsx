@@ -30,7 +30,9 @@ import "./brand-theme.css";
 // `enquiryForm`: a business with no WhatsApp number gets an "Enquire"
 // button that opens a short form; a page with its own way to register
 // (Futprep) turns it off.
-export function OrganizationTemplate({ listing, enquiryForm = true }: { listing: OrganizationListing; enquiryForm?: boolean }) {
+// `registerHref`: the business has a class or camp open for registration
+// (brief 18, D1), so the page's main button goes to its registration form.
+export function OrganizationTemplate({ listing, enquiryForm = true, registerHref = null }: { listing: OrganizationListing; enquiryForm?: boolean; registerHref?: string | null }) {
   const { organization: org, offerings, images, faqs } = listing;
 
   const practicalFacts = offerings
@@ -92,7 +94,7 @@ export function OrganizationTemplate({ listing, enquiryForm = true }: { listing:
           />
         </section>
       )}
-      {hasPricedOffering && <ActionBlock label="See prices & get started" href="#offerings" />}
+      {registerHref ? <ActionBlock label="Register for a class or camp" href={registerHref} /> : hasPricedOffering && <ActionBlock label="See prices & get started" href="#offerings" />}
     </main>
   );
 }

@@ -228,6 +228,23 @@ async function main() {
   const { error: limeOfferingError } = await db.from("offerings").insert({ organization_id: lime.id, type: "service", slug: "test-speed-session", name: "TEST speed session", summary: "TEST — delete.", price_cents: 6000, price_unit: "per_session", is_published: true });
   if (limeOfferingError) throw new Error(`Could not seed the TEST lime offering: ${limeOfferingError.message}`);
 
+  // Brief 18, part D: the live TEST business takes registrations for a
+  // children's class and an adults' class, with how it gets paid set, so
+  // its registration form (in its own purple) has something to show.
+  const regDay = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+  const { data: regPrograms, error: regProgramError } = await db
+    .from("programs")
+    .insert([
+      { organization_id: booth.id, slug: "test-delete-kids-dance", name: "TEST Kids Dance", program_type: "term", audience: "children", is_public: true, age_min: 4, age_max: 10, coed: true, location: "TEST studio, Nassau", day_of_week: "Saturday", start_time: "10:00 AM", end_time: "11:00 AM", capacity: 16, active: true },
+      { organization_id: booth.id, slug: "test-delete-adult-fitness", name: "TEST Adult Fitness", program_type: "term", audience: "adults", is_public: true, age_min: 18, age_max: 99, coed: true, location: "TEST studio, Nassau", day_of_week: "Tuesday", start_time: "6:30 PM", end_time: "7:30 PM", capacity: 20, active: true },
+    ])
+    .select("id,slug");
+  if (regProgramError || !regPrograms) throw new Error(`Could not seed the TEST registration programmes: ${regProgramError?.message}`);
+  const { error: regTermError } = await db.from("program_terms").insert(regPrograms.map((program) => ({ program_id: program.id, name: "TEST Autumn term", start_date: regDay(-7), end_date: regDay(49), weekly_fee_cents: 2500, term_fee_cents: 18000, active: true })));
+  if (regTermError) throw new Error(`Could not seed the TEST registration terms: ${regTermError.message}`);
+  const { error: regPayError } = await db.from("organization_payment_settings").upsert({ organization_id: booth.id, reference_prefix: "TPB", accepted_methods: ["cash", "bank_transfer"], bank_name: "TEST Bank of Nassau", account_name: "TEST Photo Booth", account_number_last4: "0042", transfer_instructions: "TEST — transit 00000." }, { onConflict: "organization_id" });
+  if (regPayError) throw new Error(`Could not seed the TEST payment settings: ${regPayError.message}`);
+
   // Brief 14: a TEST platform owner (the workflow puts this address in
   // PLATFORM_OWNER_EMAILS for the run) and five TEST leads for Admin -> Leads.
   const adminEmail = "test-delete-admin@test.portpass.local";
