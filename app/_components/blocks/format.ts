@@ -1,18 +1,20 @@
 import type { OfferingType } from "@/db/organizations";
 
 // Prices across this codebase are stored in cents. The Bahamian dollar is
-// pegged one-to-one to the US dollar and both circulate, so every public
-// price reads "$120 BSD (= USD)" (round 5, §7) -- a tourist knows at once
-// what they will pay, a local sees the currency they use. Intl's currency
+// pegged one-to-one to the US dollar and both circulate. A price reads
+// "$35 per session" and nothing more (brief 18, A6); the currency is said
+// once, in the footer of every page (PRICE_CURRENCY_LINE). Intl's currency
 // formatter doesn't carry a "$" glyph for every currency code in every
-// runtime (it can print "BSD 500"), so the symbol and the note are fixed
-// text rather than derived from a currency code.
-export const PRICE_CURRENCY_NOTE = "BSD (= USD)";
+// runtime (it can print "BSD 500"), so the symbol is fixed text rather
+// than derived from a currency code.
+export const PRICE_CURRENCY_LINE = "Prices in Bahamian dollars (BSD), equal to US dollars.";
 
+// `options` is kept for the callers that used to ask for the note to be
+// left off; no price carries one now.
 export function formatPriceCents(cents: number, options: { currency?: boolean } = {}): string {
+  void options;
   const whole = cents % 100 === 0;
-  const amount = `$${new Intl.NumberFormat("en-US", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 }).format(cents / 100)}`;
-  return options.currency === false ? amount : `${amount} ${PRICE_CURRENCY_NOTE}`;
+  return `$${new Intl.NumberFormat("en-US", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 }).format(cents / 100)}`;
 }
 
 const PRICE_UNIT_SUFFIX: Record<string, string> = {

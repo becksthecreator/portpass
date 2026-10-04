@@ -6,7 +6,7 @@ import Link from "next/link";
 // block; a conference crowd is mostly business owners and adults, so the
 // hero now just says what PortPass is and offers the two doors (round 4,
 // item 5). The featured businesses moved to the "Open now" cards below.
-export function HomeHero() {
+export function HomeHero({ openSentence = "" }: { openSentence?: string }) {
   return (
     <section className="pp-hero" data-world="portpass" aria-label="PortPass">
       {/* The photo is a real, preloaded image (next/image, priority) rather
@@ -20,10 +20,11 @@ export function HomeHero() {
       <div className="pp-hero-centre">
         <p className="pp-hero-kicker">The Bahamas, one pass at a time</p>
         <h1>Everything worth booking in The Bahamas.</h1>
-        <p className="pp-hero-lede">Sports sessions, weddings, venues and events — found and booked in one place. Two are open right now.</p>
+        <p className="pp-hero-lede">Sports sessions, weddings, venues and events — found and booked in one place.{openSentence ? ` ${openSentence}` : ""}</p>
         <div className="pp-hero-actions">
           <a className="home-button" href="#open-now">Browse what&rsquo;s on</a>
-          <Link className="home-button home-button-light" href="/business">List your business</Link>
+          {/* Solid deck-white with navy text: readable on any photo (A3). */}
+          <Link className="home-button home-button-deck" href="/business">List your business</Link>
         </div>
       </div>
     </section>

@@ -137,7 +137,7 @@ export function DropReserve(props: Props) {
                 )}
                 <div className="shop-card-body">
                   <h3>{product.title}</h3>
-                  <p className="shop-price">{money(product.priceCents)} <small>BSD (= USD)</small></p>
+                  <p className="shop-price">{money(product.priceCents)}</p>
                   <p className="shop-card-desc">{product.description}</p>
                   <fieldset className="shop-sizes-picker" disabled={!props.reservable && !props.waitlistOpen}>
                     <legend>Size</legend>

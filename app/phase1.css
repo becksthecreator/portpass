@@ -1,0 +1,64 @@
+/* Phase 1 finish (brief 18). Base tokens only. Kept out of globals.css,
+   which every branch appends to; imported by the pages that use it. */
+
+/* A3: the hero's second door, readable on any photo: solid deck-white
+   with navy text (14.6:1). */
+.home-button-deck{background:var(--deck);border:1px solid var(--deck);color:var(--ink)}
+.home-button-deck:hover{background:#fff;border-color:#fff}
+
+/* A2: an offer with a closing date. */
+.open-now-chip-closing{background:var(--signal)}
+.open-now-by{color:var(--muted);display:block;font-size:.78rem;font-weight:700;margin-top:3px}
+
+/* A1: live sections as full cards, the rest in one row. */
+.home-sections-grid.home-sections-live{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));max-width:900px}
+.home-sections-live .home-section-card{min-height:170px;padding:22px 20px}
+.home-sections-live .home-section-card h3{font-size:1.3rem}
+.home-sections-live .home-section-card p{font-size:.88rem}
+.home-sections-live .home-section-card b{font-size:.86rem}
+.home-coming-next{background:var(--card);border:1px solid var(--line);border-radius:16px;color:var(--muted);font-size:.92rem;line-height:1.9;margin:16px auto 0;max-width:900px;padding:14px 18px}
+.home-coming-next>b{color:var(--ink);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase}
+.home-coming-next a{color:var(--ink);font-weight:700;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:4px}
+.home-coming-next a.home-coming-next-ask{color:var(--harbour);display:inline-block;margin-left:14px;text-decoration-color:currentColor;white-space:nowrap}
+@media(max-width:600px){
+  .home-sections-grid.home-sections-live{grid-template-columns:1fr}
+  .home-coming-next a.home-coming-next-ask{display:block;margin:6px 0 0}
+}
+
+/* A4: a section with nothing to book yet is one panel. */
+.soon-panel{background:var(--card);border:1px solid var(--line);border-radius:20px;display:grid;gap:26px;margin:0 auto 56px;max-width:760px;padding:28px 26px;width:calc(100% - 10vw)}
+.soon-panel h2{font-size:1.2rem;margin:0 0 10px}
+.soon-panel p{color:var(--muted);line-height:1.6;margin:0}
+.soon-panel-list{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.soon-panel-list a{background:var(--deck);border:1px solid var(--line);border-radius:999px;color:var(--ink);display:inline-block;font-size:.88rem;font-weight:700;min-height:36px;padding:7px 14px;text-decoration:none}
+.soon-panel-list a:hover{border-color:var(--ink)}
+.soon-panel-names{margin-top:10px!important}
+.soon-panel-form{border-top:1px solid var(--line);padding-top:24px}
+.soon-panel-form>p{margin-bottom:14px}
+.soon-panel-form .application-form{margin:0;max-width:none;padding:0}
+.soon-panel-foot{border-top:1px solid var(--line);display:grid;gap:10px;padding-top:20px}
+.soon-panel-owner{color:var(--ink)!important;font-weight:700}
+.soon-panel-owner a{color:var(--harbour);font-weight:800;margin-left:4px;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:600px){.soon-panel{padding:22px 16px;width:calc(100% - 32px)}}
+
+/* A7: /business: the product, one proof line, questions. */
+.biz-proof{background:var(--ink);border-radius:16px;color:#fff;font-size:1.02rem;font-weight:700;line-height:1.5;margin:0 auto 56px;max-width:760px;padding:18px 22px;text-align:center;width:calc(100% - 10vw)}
+.biz-proof small{color:rgba(255,255,255,.72);display:block;font-size:.78rem;font-weight:600;margin-top:4px}
+.biz-shots{padding:0 5vw 70px}
+.biz-shots-grid{display:grid;gap:22px;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 auto;max-width:1000px}
+.biz-shot{margin:0}
+.biz-shot-frame{aspect-ratio:375/640;background:var(--deck);border:1px solid var(--line);border-radius:22px;box-shadow:0 10px 30px rgba(13,27,61,.10);overflow:hidden;position:relative}
+.biz-shot-frame img{object-fit:cover;object-position:top}
+.biz-shot figcaption{margin-top:12px}
+.biz-shot figcaption b{display:block;font-size:1rem}
+.biz-shot figcaption span{color:var(--muted);display:block;font-size:.88rem;line-height:1.5;margin-top:3px}
+.biz-shots-note{color:var(--muted);font-size:.8rem;margin:18px auto 0;max-width:1000px;text-align:center}
+.biz-faq{margin:0 auto;max-width:760px;padding:0 5vw 70px}
+.biz-faq details{border-bottom:1px solid var(--line);padding:16px 0}
+.biz-faq summary{cursor:pointer;font-size:1.02rem;font-weight:800;min-height:28px}
+.biz-faq details p{color:var(--muted);line-height:1.65;margin:10px 0 0}
+.biz-faq details a{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:760px){
+  .biz-shots-grid{grid-template-columns:1fr;max-width:340px}
+  .biz-proof{width:calc(100% - 32px)}
+}

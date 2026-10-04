@@ -5,7 +5,13 @@ import { PrivacyNote } from "@/app/_components/PrivacyNote";
 import type { InterestCategory } from "@/lib/interestCategories";
 import { PhoneInput } from "./PhoneInput";
 
-export function InterestForm({ category, placeholder, defaultNote }: { category: InterestCategory; placeholder: string; defaultNote?: string }) {
+// One section the form can be about: its label, the category it is filed
+// under, and the name written into the note (a section with no category
+// of its own is filed under the nearest one and named in the note).
+export type InterestChoice = { label: string; category: InterestCategory };
+
+export function InterestForm({ category, placeholder, defaultNote, choices, submitLabel }: { category: InterestCategory; placeholder: string; defaultNote?: string; choices?: InterestChoice[]; submitLabel?: string }) {
+  const [choice, setChoice] = useState(0);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -26,7 +32,7 @@ export function InterestForm({ category, placeholder, defaultNote }: { category:
       const response = await fetch("/api/interest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, name, email, phone, note }),
+        body: JSON.stringify(choices?.length ? { category: choices[choice].category, name, email, phone, note: `${choices[choice].label}: ${note}`.trim() } : { category, name, email, phone, note }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error ?? "Could not save this. Please try again.");
@@ -52,6 +58,14 @@ export function InterestForm({ category, placeholder, defaultNote }: { category:
   return (
     <form className="application-form" onSubmit={submit}>
       <div className="form-grid">
+        {choices && choices.length > 0 && (
+          <label className="full-field">
+            <span>I&rsquo;m looking for…</span>
+            <select value={choice} onChange={(e) => setChoice(Number(e.target.value))}>
+              {choices.map((option, index) => <option key={option.label} value={index}>{option.label}</option>)}
+            </select>
+          </label>
+        )}
         <label><span>Name</span><input value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label><span>Email</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
         <label><span>Phone</span><PhoneInput value={phone} onChange={setPhone} /></label>
@@ -60,7 +74,7 @@ export function InterestForm({ category, placeholder, defaultNote }: { category:
       {error && <p className="form-error">{error}</p>}
       <PrivacyNote />
       <div className="form-submit">
-        <button className="primary-button" disabled={busy} type="submit">{busy ? "Sending…" : "Keep me posted →"}</button>
+        <button className="primary-button" disabled={busy} type="submit">{busy ? "Sending…" : submitLabel ?? "Keep me posted →"}</button>
       </div>
     </form>
   );

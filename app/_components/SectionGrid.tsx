@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { getSectionTiles } from "@/lib/navSections";
 
-// "Where do you want to go?" as a compact grid: one tile per section from
-// the categories table (same fail-soft fallback as the nav), each with an
-// icon, the name and a Live / Coming soon chip. Two columns on a phone,
-// which is what brings the section from 1,263px down under 600px.
+// "Where do you want to go?" (brief 18, A1): the sections with something
+// to book as full cards, and every section that isn't open yet in one
+// "Coming next" row with a single "Tell us what you need" link. Sections
+// come from the categories table (same fail-soft fallback as the nav); a
+// section moves up to a card on its own when its first business goes live.
 function SectionIcon({ slug }: { slug: string }) {
   const common = { width: 28, height: 28, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
   switch (slug) {
@@ -71,20 +72,33 @@ function SectionIcon({ slug }: { slug: string }) {
 
 export async function SectionGrid({ liveSlugs }: { liveSlugs: Set<string> }) {
   const tiles = await getSectionTiles();
+  // No counts at all (a database hiccup): every section as a plain card,
+  // rather than calling the whole site "coming next".
+  const known = liveSlugs.size > 0;
+  const live = known ? tiles.filter((tile) => liveSlugs.has(tile.slug)) : tiles;
+  const next = known ? tiles.filter((tile) => !liveSlugs.has(tile.slug)) : [];
   return (
-    <div className="home-sections-grid">
-      {tiles.map((tile) => {
-        const live = liveSlugs.has(tile.slug);
-        return (
-          <Link className={`home-section-card${live ? " is-live" : ""}`} href={tile.href} key={tile.slug}>
+    <>
+      <div className={`home-sections-grid${known ? " home-sections-live" : ""}`}>
+        {live.map((tile) => (
+          <Link className={`home-section-card${known ? " is-live" : ""}`} href={tile.href} key={tile.slug}>
             <SectionIcon slug={tile.slug} />
-            <span className={`home-section-chip${live ? " is-live" : ""}`}>{live ? "Live" : "Coming soon"}</span>
+            {known && <span className="home-section-chip is-live">Open now</span>}
             <h3>{tile.name}</h3>
             {tile.line && <p>{tile.line}</p>}
-            <b>{live ? "Browse →" : "Tell us what you need →"}</b>
+            <b>Browse →</b>
           </Link>
-        );
-      })}
-    </div>
+        ))}
+      </div>
+      {next.length > 0 && (
+        <p className="home-coming-next">
+          <b>Coming next:</b>{" "}
+          {next.map((tile, index) => (
+            <span key={tile.slug}>{index > 0 ? " · " : ""}<Link href={tile.href}>{tile.name}</Link></span>
+          ))}
+          <Link className="home-coming-next-ask" href="/tell-us">Tell us what you need →</Link>
+        </p>
+      )}
+    </>
   );
 }

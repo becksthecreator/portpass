@@ -16,6 +16,8 @@ import { listPublishedOrganizations, liveCountsByCategory, type OrganizationDire
 import { withOneRetry } from "@/db/supabase";
 import { orderBySpotlight } from "@/lib/siteContent";
 import { programTimeRange } from "./futprep/config";
+import { closesInLabel, datedOfferLine, openCountSentence, orderOpenNow } from "@/lib/openNow";
+import "./phase1.css";
 import { SiteHeader } from "./_components/SiteHeader";
 import { SiteFooter } from "./_components/SiteFooter";
 import { JsonLd } from "./_components/seo/JsonLd";
@@ -99,8 +101,9 @@ export default async function Home() {
   // The two businesses that are live today get their real numbers; anyone
   // who joins later gets their one-liner and an "Explore" button until
   // their own live line exists.
-  const cards: OpenNowCard[] = directory.map((biz) => {
+  const businessCards: OpenNowCard[] = directory.map((biz) => {
     const base = {
+      key: biz.slug,
       slug: biz.slug,
       name: biz.name,
       logoUrl: biz.logoUrl,
@@ -108,13 +111,38 @@ export default async function Home() {
       href: directoryHref(biz.slug, biz.primaryCategory),
     };
     if (biz.slug === "futprep" && futprepProgram) {
-      return { ...base, line: `${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location} · ${spotsThisWeek} spots open`, cta: "Register a child" };
+      return { ...base, name: `${biz.name}: ${futprepProgram.day} sessions`, line: `${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location} · ${spotsThisWeek} spots open`, cta: "Register a child" };
     }
     if (biz.slug === "bahamas-weddings") {
       return { ...base, line: `${weddingSettings.yearsExperience} years · ${weddingSettings.reviewCount} five-star reviews · Nassau`, cta: "Plan a wedding" };
     }
     return { ...base, line: biz.oneLiner ?? (biz.primaryCategory ? categoryLabel(biz.primaryCategory) ?? "" : ""), cta: "Explore" };
   });
+
+  // Dated offers that are open for registration today (camps): each gets
+  // its own card with its dates, price and how long is left. From the
+  // data, so the next camp appears and the last one leaves on its own.
+  const futprep = directory.find((biz) => biz.slug === "futprep");
+  const datedCards: OpenNowCard[] = futprep
+    ? availability
+        .filter((offer) => offer.programType === "camp")
+        .map((camp) => ({
+          key: `futprep:${camp.slug}:${camp.termId}`,
+          slug: futprep.slug,
+          name: camp.name,
+          by: futprep.name,
+          logoUrl: futprep.logoUrl,
+          brand: futprep.brandColor ?? DEFAULT_BRAND,
+          href: "/futprep/camps",
+          line: `${datedOfferLine(camp)}${camp.spotsRemaining === 0 ? " · full, waitlist open" : ""}`,
+          cta: "See the camp",
+          chip: closesInLabel(camp.registrationClosesAt),
+          closesAt: camp.registrationClosesAt,
+        }))
+    : [];
+  // Soonest to close first, then the businesses in the founders' order.
+  const cards = orderOpenNow([...datedCards, ...businessCards]);
+  const carousel = directory.length >= CAROUSEL_FROM;
 
   return (
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`} data-world="portpass">
@@ -124,9 +152,11 @@ export default async function Home() {
       <a className="home-skip-link" href="#chooser">Skip to browse</a>
 
       <SiteHeader />
-      <HomeHero />
+      <HomeHero openSentence={openCountSentence(directory.length)} />
 
-      {directory.length >= CAROUSEL_FROM ? <BusinessCarousel businesses={directory} /> : <OpenNowCards cards={cards} />}
+      {/* With a carousel of businesses, the dated offers still get their cards. */}
+      <OpenNowCards cards={carousel ? orderOpenNow(datedCards) : cards} />
+      {carousel && <BusinessCarousel businesses={directory} />}
 
       {/* Member perks (brief 10): hidden until three are live. */}
       <HomePerksRow />

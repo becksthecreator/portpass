@@ -5020,6 +5020,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .site-shell-footer-contact a{color:var(--sky);text-decoration:underline;text-underline-offset:3px}
 .site-shell-footer-categories{display:flex;flex-wrap:wrap;gap:16px;font-size:.8rem;font-weight:600}
 .site-shell-footer-categories a{color:#fff}
+.site-shell-footer-prices{color:rgba(255,255,255,.74);font-size:.78rem;margin:0 0 16px}
 .site-shell-footer-legal{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-top:18px;border-top:1px solid rgba(255,255,255,.16);font-size:.75rem;color:rgba(255,255,255,.66)}
 .site-shell-footer-legal nav{display:flex;flex-wrap:wrap;gap:16px}
 .site-shell-footer-legal a{color:var(--sky);font-weight:600}

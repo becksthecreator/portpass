@@ -20,6 +20,7 @@ import { JsonLd } from "./seo/JsonLd";
 import { sectionJsonLd } from "@/lib/seo/jsonLd";
 import { sectionDescription } from "@/lib/seo/titles";
 import { ppDisplay, ppSans } from "@/app/fonts";
+import "@/app/phase1.css";
 
 // The data-driven section / subcategory page: whatever the categories
 // table says exists, rendered from the same cards the hand-built category
@@ -158,29 +159,47 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
           <p>
             {liveCount > 0
               ? `${liveCount} ${liveCount === 1 ? "business" : "businesses"} you can book right now.`
-              : `${current.name} is on its way to PortPass. Tell us what you're looking for and we'll reach out when it opens.`}
+              : `${current.name} is on its way to PortPass.`}
           </p>
         </div>
       </section>
 
-      <SubsectionChips section={section} current={subcategory?.slug ?? null} counts={counts} />
+      {liveCount > 0 && <SubsectionChips section={section} current={subcategory?.slug ?? null} counts={counts} />}
 
-      {/* With nothing live yet, the subsection cards are the page's body;
-          once there are listings, the chips above do the picking and the
-          listings are what people came for. */}
-      {!subcategory && liveCount === 0 && section.subcategories.length > 0 && (
-        <div className="subsection-grid">
-          {section.subcategories.map((sub) => (
-            <Link className="subsection-card" href={`/${section.slug}/${sub.slug}`} key={sub.slug}>
-              <span className="coming-soon-label">{(counts.get(sub.slug) ?? 0) > 0 ? "Open now" : "Coming soon"}</span>
-              <h2>{sub.name}</h2>
-              <b>Browse &rarr;</b>
-            </Link>
-          ))}
-        </div>
+      {/* With nothing to book yet (brief 18, A4) the page is one panel:
+          what's coming, the "I'm looking for…" form and the way in for a
+          business. No grid of empty cards. */}
+      {liveCount === 0 && (
+        <section className="soon-panel" id="notify" aria-label={`${current.name} is coming to PortPass`}>
+          <div className="soon-panel-coming">
+            <h2>What&rsquo;s coming</h2>
+            {!subcategory && section.subcategories.length > 0 ? (
+              <ul className="soon-panel-list">
+                {section.subcategories.map((sub) => <li key={sub.slug}><Link href={`/${section.slug}/${sub.slug}`}>{sub.name}</Link></li>)}
+              </ul>
+            ) : (
+              <p>{current.name}, bookable online with real prices{subcategory ? <>. See everything coming to <Link href={`/${section.slug}`}>{section.name}</Link></> : null}.</p>
+            )}
+            {comingSoon.length > 0 && <p className="soon-panel-names">Joining soon: {comingSoon.map((b) => b.name).join(", ")}.</p>}
+          </div>
+          <div className="soon-panel-form">
+            <h2>I&rsquo;m looking for…</h2>
+            <p>Tell us what you&rsquo;d book in {current.name.toLowerCase()} and we&rsquo;ll let you know when it opens. We&rsquo;ll only contact you about this.</p>
+            <InterestForm category={interestCategoryFor(section, subcategory)} placeholder="What are you looking for? (optional)" defaultNote={subcategory ? `Interested in ${subcategory.name}.` : ""} />
+          </div>
+          <div className="soon-panel-foot">
+            <p className="soon-panel-owner">Run a business like this? <Link href={`/apply?section=${encodeURIComponent(section.slug)}`}>Get listed &rarr;</Link></p>
+            {bookable.length > 0 && (
+              <p className="category-notify-bookable">
+                <span>Bookable now:</span>
+                {bookable.map((s) => <Link key={s.href} href={s.href}>{s.label}</Link>)}
+              </p>
+            )}
+          </div>
+        </section>
       )}
 
-      {cardCount > 0 && (
+      {liveCount > 0 && cardCount > 0 && (
         <div className={`feature-card-grid${cardCount === 1 ? " feature-card-grid-solo" : ""}`}>
           {listings.map(({ organization: org, offerings }) => {
             const cheapest = offerings
@@ -217,6 +236,7 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
         </div>
       )}
 
+      {liveCount > 0 && (
       <section className="category-notify" id="notify">
         <div className="form-intro">
           <div className="eyebrow"><span className="eyebrow-dot" />{liveCount > 0 ? "Want more here?" : "Be first to know"}</div>
@@ -238,6 +258,7 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
           </div>
         )}
       </section>
+      )}
 
       <SiteFooter />
     </main>
