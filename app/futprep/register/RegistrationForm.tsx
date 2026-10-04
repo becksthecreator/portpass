@@ -3,6 +3,7 @@
 import { ShareOnWhatsApp } from "@/app/_components/blocks/WhatsAppActions";
 import { formatPriceCents } from "@/app/_components/blocks/format";
 import { PhoneInput } from "@/app/_components/PhoneInput";
+import { InstallPrompt } from "@/app/_components/InstallPrompt";
 import { recordGrowthEvent } from "@/app/_components/GrowthBeacon";
 import { track } from "@/lib/analytics";
 import { EMPTY_ATTRIBUTION, HEARD_OPTIONS, type Attribution } from "@/lib/attribution";
@@ -280,6 +281,7 @@ export function RegistrationForm({
           <div><dt>Status</dt><dd><span className="status status-submitted">{trial ? "Free taster" : "Waitlist"}</span></dd></div>
         </dl>
         <a className="secondary-button" href={selectedProgram ? `/sports-fitness/futprep-athletics/${selectedProgram.slug}` : "/sports-fitness/futprep-athletics"}>Back to program details</a>
+        <InstallPrompt heading="Keep PortPass on your phone" lead="Add it to your home screen to come back to this in one tap. Nothing to download from a store." />
       </section>
     );
   }
@@ -328,6 +330,7 @@ export function RegistrationForm({
           <p><strong>Save this to a free PortPass account</strong>Keep {form.childName.split(" ")[0]}&rsquo;s registration, payments and next term in one place.</p>
           <a className="secondary-button" href={`/signup?as=customer&email=${encodeURIComponent(form.parentEmail.trim())}&name=${encodeURIComponent(form.parentName.trim())}&next=${encodeURIComponent("/account")}`}>Save to an account →</a>
         </div>
+        <InstallPrompt heading="Keep PortPass on your phone" lead="Add it to your home screen to check this registration and its payment in one tap. Nothing to download from a store." />
       </section>
     );
   }

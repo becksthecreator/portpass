@@ -56,7 +56,14 @@ export function HeaderAccount() {
     // The sign-in and sign-up pages are the door itself.
     if (pathname === "/login" || pathname === "/signup") return null;
     const next = pathname && pathname !== "/" ? `?next=${encodeURIComponent(pathname)}` : "";
-    return <Link className="hdr-signin" href={`/login${next}`}>Sign in</Link>;
+    // One "Sign up" button beside it, on every public page (brief 18, F1):
+    // it opens the two doors (I'm booking / I run a business).
+    return (
+      <>
+        <Link className="hdr-signin" href={`/login${next}`}>Sign in</Link>
+        <Link className="hdr-signup" href={`/signup${next}`}>Sign up</Link>
+      </>
+    );
   }
 
   async function signOut() {

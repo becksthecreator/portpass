@@ -1,0 +1,20 @@
+/* My account (brief 18, F2). Base tokens only. */
+.account-list{display:grid;gap:10px;list-style:none;margin:0;padding:0}
+.account-list li{align-items:flex-start;border:1px solid var(--line);border-radius:14px;display:flex;gap:14px;justify-content:space-between;padding:14px 16px}
+.account-list li>div:first-child{display:grid;gap:4px;min-width:0}
+.account-list li>div:first-child span{color:var(--muted);font-size:.84rem;line-height:1.45}
+.account-list-state{display:grid;flex:0 0 auto;gap:4px;justify-items:end;text-align:right}
+.account-list-state b{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase}
+.account-list-state span{color:var(--muted);font-size:.82rem}
+.account-list-state a{color:var(--harbour);font-size:.86rem;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.account-name{border:1px solid var(--line);border-radius:14px;display:grid;gap:10px;margin:14px 0 4px;padding:16px}
+.account-name label{display:grid;gap:6px}
+.account-name label span{font-size:.82rem;font-weight:800}
+.account-name input{background:var(--deck);border:1px solid var(--muted);border-radius:10px;color:var(--ink);font:inherit;min-height:46px;padding:8px 12px;width:100%}
+.account-name small{color:var(--muted);font-size:.82rem;line-height:1.5}
+.account-name .primary-button{justify-self:start}
+.account-name-change{margin-top:12px}
+@media(max-width:560px){
+  .account-list li{flex-direction:column}
+  .account-list-state{justify-items:start;text-align:left}
+}
