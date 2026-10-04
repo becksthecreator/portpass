@@ -68,6 +68,13 @@ const SHOTS = [
   // the site search.
   ["brief11-admin-guides-375", "admin", "/admin/guides", ".admin-table"],
   ["brief11-guide-editor-375", "admin", `/admin/guides/${fixture.guideId}`, ".guide-editor"],
+  // Brief 18, part A: the homepage (open now, live sections, one "Coming
+  // next" row), a section with nothing live yet, "Tell us what you need"
+  // and /business.
+  ["brief18-home-375", "admin", "/", ".home-coming-next"],
+  ["brief18-section-soon-375", "admin", "/venues", ".soon-panel"],
+  ["brief18-tell-us-375", "admin", "/tell-us", null],
+  ["brief18-business-375", "admin", "/business", ".biz-shots"],
   ["brief11-search-375", "admin", "/search?q=kids+football", ".search-results"],
 ];
 

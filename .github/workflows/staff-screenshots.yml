@@ -30,6 +30,8 @@ on:
       - "app/admin/page.tsx"
       - "app/admin/perks/**"
       - "app/admin/guides/**"
+      - "app/business/page.tsx"
+      - "app/tell-us/**"
       - "app/guides/**"
       - "app/search/**"
       - "app/business/*/perks/**"

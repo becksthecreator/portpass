@@ -90,7 +90,7 @@ export default async function ReservationPage({ params }: { params: Params }) {
               ))}
             </tbody>
             <tfoot>
-              <tr><th scope="row" colSpan={3}>Total (BSD = USD)</th><td className="shop-num"><strong>{money(r.totalCents)}</strong></td></tr>
+              <tr><th scope="row" colSpan={3}>Total</th><td className="shop-num"><strong>{money(r.totalCents)}</strong></td></tr>
             </tfoot>
           </table>
           <dl className="shop-receipt-facts">

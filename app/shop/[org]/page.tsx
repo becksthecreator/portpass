@@ -132,7 +132,7 @@ export default async function ShopPage({ params }: { params: Params }) {
                   </div>
                   <div className="shop-card-body">
                     <h3>{product.title}</h3>
-                    <p className="shop-price">{money(product.priceCents)} <small>BSD (= USD)</small></p>
+                    <p className="shop-price">{money(product.priceCents)}</p>
                     <p className="shop-card-desc">{product.description}</p>
                     <p className="shop-sizes">{product.variants.map((v) => v.label).join(" · ")}</p>
                     {open ? (
