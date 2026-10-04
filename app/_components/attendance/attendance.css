@@ -1,0 +1,13 @@
+/* The attendance register (brief 18, part B). Base tokens only. */
+.att-progress{color:var(--muted);font-size:.9rem;font-weight:700;margin:18px 0 8px}
+.att-register{display:grid;gap:10px;list-style:none;margin:0;padding:0}
+.att-register li{align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;display:grid;gap:10px;padding:12px 14px}
+.att-register strong{font-size:1rem}
+.att-choices{display:grid;gap:6px;grid-template-columns:repeat(4,1fr)}
+.att-choice{background:transparent;border:1px solid var(--line);border-radius:10px;color:var(--ink);cursor:pointer;font:inherit;font-size:.86rem;font-weight:700;min-height:44px;padding:0 4px}
+.att-choice:disabled{opacity:.6}
+.att-choice[aria-pressed="true"].is-present{background:#1F7A4D;border-color:#1F7A4D;color:#fff}
+.att-choice[aria-pressed="true"].is-late{background:#C9922B;border-color:#C9922B;color:#1a1304}
+.att-choice[aria-pressed="true"].is-absent{background:#B3261E;border-color:#B3261E;color:#fff}
+.att-choice[aria-pressed="true"].is-excused{background:#4A5A78;border-color:#4A5A78;color:#fff}
+@media(min-width:640px){.att-register li{grid-template-columns:1fr minmax(300px,360px)}}

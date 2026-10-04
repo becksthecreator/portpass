@@ -69,6 +69,7 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
             <Link className="chooser-card" href={`/business/${slug}/perks`}><strong>Member perks</strong><span>Offer a perk, check a Member Pass</span><b>Open →</b></Link>
           )}
           {(canEdit || access.membership?.role === "org_staff") && <Link className="chooser-card" href={`/business/${slug}/registrations`}><strong>Registrations</strong><span>Classes and camps, who has registered</span><b>Open →</b></Link>}
+          {(canEdit || access.membership?.role === "org_staff") && <Link className="chooser-card" href={`/business/${slug}/attendance`}><strong>Attendance</strong><span>Mark who came to each session</span><b>Open →</b></Link>}
           {payments && <Link className="chooser-card" href={`/business/${slug}/payments`}><strong>Payments</strong><span>Request payment, mark paid, chase</span><b>Open →</b></Link>}
           <Link className="chooser-card" href={`/business/${slug}/preview`}><strong>Preview page</strong><span>Exactly what customers will see</span><b>Open →</b></Link>
           {business.isPublished && publicHref && (

@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { currentFutprepStaffName, currentFutprepStaffRole, requireFutprepStaff } from "@/app/futprep/staff-auth";
 import { getOrganizationSummary } from "@/db/accounts";
 import { memberCanManagePayments, type Actor } from "@/db/paymentRequests";
+import type { DemoBusiness } from "@/db/demo";
+import { currentDemo, demoSwitchedOff } from "@/lib/auth/demo";
 import { hasPlatformRole, requireOrgRoleApi, type OrgAccess } from "@/lib/auth/guards";
 import { isPaymentErrorCode, paymentErrorMessage } from "./input";
 import { memberHandlesPayments } from "./rules";
@@ -14,12 +16,18 @@ import { memberHandlesPayments } from "./rules";
 // step). Futprep's staff still sign in with a PIN, so its admin and CEO
 // logins reach Futprep's payments through a second door. Nobody else, and
 // never another business's requests.
+//
+// The third door is the demo (brief 18, part B): a visitor with a demo
+// session reaches the demo business's requests, and only those. They can
+// press the buttons (send, remind, mark paid) so the screens behave as they
+// do for a real business, but no message is ever sent, nothing typed is
+// kept, and how the business is paid can't be changed.
 
 export type PaymentsAccess = {
   orgId: number;
   orgName: string;
   orgSlug: string | null;
-  door: "business" | "futprep_staff";
+  door: "business" | "futprep_staff" | "demo";
   actor: Actor;
   // The signed-in person's own account email (a PIN login has none): the
   // only address a TEST request is ever sent to.
@@ -73,6 +81,24 @@ async function futprepAccess(role: string): Promise<PaymentsAccess | null> {
   };
 }
 
+export const DEMO_ACTOR: Actor = { userId: null, name: "Demo visitor" };
+
+// The demo door. Callers get `org` from requireDemo / currentDemo, which
+// only ever hand back the business with is_demo set.
+export function demoPaymentsAccess(org: DemoBusiness): PaymentsAccess {
+  return {
+    orgId: org.id,
+    orgName: org.name,
+    orgSlug: org.slug,
+    door: "demo",
+    actor: DEMO_ACTOR,
+    actorEmail: null,
+    canEditSettings: false,
+    canManageTeam: false,
+    basePath: "/demo/payments",
+  };
+}
+
 // ---- pages -------------------------------------------------------------------
 
 // The page calls requireOrgRole itself (so lib/auth/guards.static.test.ts
@@ -93,7 +119,17 @@ export async function futprepPaymentsAccess(returnTo: string): Promise<PaymentsA
 
 type Denied = { ok: false; response: NextResponse };
 
-export async function paymentsApiAccess(orgId: number): Promise<{ ok: true; access: PaymentsAccess } | Denied> {
+// `demo`: whether this handler is one a demo visitor may use. Most are not
+// (changing how the business is paid, the team, exports, new requests typed
+// by hand): they answer "switched off in the demo" before doing anything.
+export async function paymentsApiAccess(orgId: number, options: { demo?: boolean } = {}): Promise<{ ok: true; access: PaymentsAccess } | Denied> {
+  // A demo session is good for the demo business only: for any other id it
+  // is ignored, and the request is judged by who is really signed in.
+  const demo = await currentDemo();
+  if (demo && demo.id === orgId) {
+    if (!options.demo) return { ok: false, response: demoSwitchedOff() };
+    return { ok: true, access: demoPaymentsAccess(demo) };
+  }
   const staffRole = await currentFutprepStaffRole();
   if (staffRole === "admin" || staffRole === "ceo") {
     const access = await futprepAccess(staffRole);

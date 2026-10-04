@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PaymentRequest } from "@/db/paymentRequests";
+import { DEMO_NOTHING_SENT } from "@/lib/demoText";
 import { balanceCents, daysOverdue, formatDay, linesSummary, money, payPath, reminderMessage, remindedRecently, sinceLabel, whatsappLink } from "@/lib/paymentRequests/rules";
 
 // The chase list: overdue requests, oldest first. One reminder, one
 // customer, one button press at a time: never automatic, never bulk. A
 // second reminder on the same day asks first.
-export function ChaseList({ rows, businessName, basePath, apiBase, origin, today }: { rows: PaymentRequest[]; businessName: string; basePath: string; apiBase: string; origin: string; today: string }) {
+export function ChaseList({ rows, businessName, basePath, apiBase, origin, today, demo = false }: { rows: PaymentRequest[]; businessName: string; basePath: string; apiBase: string; origin: string; today: string; demo?: boolean }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState<number | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
@@ -64,18 +65,24 @@ export function ChaseList({ rows, businessName, basePath, apiBase, origin, today
                 </div>
               ) : (
                 <div className="preq-btns">
-                  <a
-                    className="preq-btn is-wa is-small"
-                    href={whatsappLink(r.customerPhone, text)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Send reminder to ${r.customerName} on WhatsApp`}
-                    onClick={() => void remind(r.id, "whatsapp_link", `Reminder to ${r.customerName} opened in WhatsApp. Press send there.`)}
-                  >
-                    Send reminder (WhatsApp)
-                  </a>
+                  {demo ? (
+                    <button type="button" className="preq-btn is-wa is-small" disabled={busy !== null} aria-label={`Send reminder to ${r.customerName} on WhatsApp`} onClick={() => void remind(r.id, "whatsapp_link", `${DEMO_NOTHING_SENT}. For a real business, WhatsApp opens here with the reminder to ${r.customerName} written.`)}>
+                      Send reminder (WhatsApp)
+                    </button>
+                  ) : (
+                    <a
+                      className="preq-btn is-wa is-small"
+                      href={whatsappLink(r.customerPhone, text)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Send reminder to ${r.customerName} on WhatsApp`}
+                      onClick={() => void remind(r.id, "whatsapp_link", `Reminder to ${r.customerName} opened in WhatsApp. Press send there.`)}
+                    >
+                      Send reminder (WhatsApp)
+                    </a>
+                  )}
                   {r.customerEmail && (
-                    <button type="button" className="preq-btn is-small" disabled={busy !== null} aria-label={`Send reminder to ${r.customerName} by email`} onClick={() => void remind(r.id, "email", `Reminder emailed to ${r.customerName}.`)}>
+                    <button type="button" className="preq-btn is-small" disabled={busy !== null} aria-label={`Send reminder to ${r.customerName} by email`} onClick={() => void remind(r.id, "email", demo ? `${DEMO_NOTHING_SENT}. For a real business, ${r.customerName} gets the reminder by email.` : `Reminder emailed to ${r.customerName}.`)}>
                       {busy === r.id ? "Sending…" : "Send reminder (email)"}
                     </button>
                   )}

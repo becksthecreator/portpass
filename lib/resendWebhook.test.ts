@@ -134,17 +134,17 @@ describe("the Messages log line an email writes", () => {
 
   it("records sent, with the service's id", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ id: "49a3999c-0ce1-4ea6-ab68-afcd6dc2e794" }), { status: 200 })));
-    expect(await send("parent@example.com")).toBe("sent");
-    expect(logged.rows).toEqual([{ organizationId: 7, template: "test_template", recipient: "parent@example.com", status: "sent", detail: null, providerId: "49a3999c-0ce1-4ea6-ab68-afcd6dc2e794" }]);
+    expect(await send("parent@family.test")).toBe("sent");
+    expect(logged.rows).toEqual([{ organizationId: 7, template: "test_template", recipient: "parent@family.test", status: "sent", detail: null, providerId: "49a3999c-0ce1-4ea6-ab68-afcd6dc2e794" }]);
   });
 
   it("records a refusal, an unreachable service and email not being set up", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 422 })));
-    expect(await send("parent@example.com")).toBe("failed");
+    expect(await send("parent@family.test")).toBe("failed");
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network down"); }));
-    expect(await send("parent@example.com")).toBe("failed");
+    expect(await send("parent@family.test")).toBe("failed");
     delete process.env.RESEND_API_KEY;
-    expect(await send("parent@example.com")).toBe("skipped");
+    expect(await send("parent@family.test")).toBe("skipped");
     expect(logged.rows.map((row) => [row.status, row.detail])).toEqual([["failed", "The email service refused it (422)."], ["failed", "The email service could not be reached."], ["skipped", "Email is not set up yet."]]);
   });
 
@@ -156,16 +156,25 @@ describe("the Messages log line an email writes", () => {
     expect(logged.rows[0]).toMatchObject({ status: "skipped", detail: "A test address: never emailed." });
   });
 
+  // The demo business's invented people are all at example.com.
+  it("never emails an example address, whatever asked for it", async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal("fetch", fetcher);
+    for (const address of ["renee.brightwater@example.com", "Someone@EXAMPLE.org", "x@example.net"]) expect(await send(address)).toBe("skipped");
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(logged.rows).toEqual([]);
+  });
+
   it("keeps the subject and the text out of the log", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200 })));
-    await send("parent@example.com");
+    await send("parent@family.test");
     expect(JSON.stringify(logged.rows)).not.toMatch(/TEST subject|TEST body/);
   });
 
   it("writes nothing when an email doesn't ask for a line", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200 })));
     const { sendEmail } = await import("./email");
-    await sendEmail({ to: "parent@example.com", subject: "TEST", html: "<p>TEST</p>" });
+    await sendEmail({ to: "parent@family.test", subject: "TEST", html: "<p>TEST</p>" });
     expect(logged.rows).toEqual([]);
   });
 });

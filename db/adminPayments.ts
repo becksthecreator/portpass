@@ -1,5 +1,6 @@
 import { outstandingFrom, type AdminPayment, type Outstanding, type PaymentKind } from "@/lib/adminBookings";
 import { listAdminBookings } from "./adminBookings";
+import { demoOrganizationIdOrNull } from "./demo";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // Admin -> Payments (brief 08, 1.7): every payment a business recorded
@@ -95,7 +96,10 @@ export async function listAdminPayments(filter: { organizationId?: number | null
     if ((data ?? []).length < PAGE) break;
   }
 
-  const wanted = filter.organizationId ? payments.filter((payment) => payment.organizationId === filter.organizationId) : payments;
+  // The demo business's example payments are not money anyone received.
+  const demoId = await demoOrganizationIdOrNull();
+  const real = demoId === null ? payments : payments.filter((payment) => payment.organizationId !== demoId);
+  const wanted = filter.organizationId ? real.filter((payment) => payment.organizationId === filter.organizationId) : real;
   // Newest first by the moment stored, then by id.
   return wanted.sort((a, b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt) || b.id - a.id);
 }

@@ -27,7 +27,7 @@ const FILTERS: { value: RequestFilter; label: string }[] = [
 
 // Payments -> Requests: filters, search by customer or reference, and the
 // accountant's CSV for a date range.
-export function RequestsBoard({ rows, basePath, apiBase, today, initialFilter }: { rows: ListedRequest[]; basePath: string; apiBase: string; today: string; initialFilter: RequestFilter }) {
+export function RequestsBoard({ rows, basePath, apiBase, today, initialFilter, demo = false }: { rows: ListedRequest[]; basePath: string; apiBase: string; today: string; initialFilter: RequestFilter; demo?: boolean }) {
   const [filter, setFilter] = useState<RequestFilter>(initialFilter);
   const [search, setSearch] = useState("");
   const [from, setFrom] = useState(`${today.slice(0, 7)}-01`);
@@ -50,7 +50,7 @@ export function RequestsBoard({ rows, basePath, apiBase, today, initialFilter }:
       </div>
 
       {rows.length === 0 ? (
-        <p className="preq-empty">No requests yet. <Link className="preq-link" href={`${basePath}/new`}>Send the first one →</Link></p>
+        <p className="preq-empty">No requests yet. {demo ? <Link className="preq-link" href="/demo/registrations">Start from a registration →</Link> : <Link className="preq-link" href={`${basePath}/new`}>Send the first one →</Link>}</p>
       ) : shown.length === 0 ? (
         <p className="preq-empty">Nothing here{search ? ` for “${search}”` : ""}.</p>
       ) : (
@@ -85,7 +85,8 @@ export function RequestsBoard({ rows, basePath, apiBase, today, initialFilter }:
         </ul>
       )}
 
-      <details className="preq-export">
+      {/* The accountant's export is a real business's records: not in the demo. */}
+      {!demo && <details className="preq-export">
         <summary>Export for your accountant</summary>
         <div className="preq-export-body">
           <label>From<input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} /></label>
@@ -93,7 +94,7 @@ export function RequestsBoard({ rows, basePath, apiBase, today, initialFilter }:
           <a className="preq-btn is-small" href={exportHref("requests")} download>Requests (CSV)</a>
           <a className="preq-btn is-small" href={exportHref("payments")} download>Payments (CSV)</a>
         </div>
-      </details>
+      </details>}
     </>
   );
 }

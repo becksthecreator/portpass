@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { PublicView } from "@/db/paymentRequests";
+import { DEMO_BANNER } from "@/lib/demoText";
 import { formatPhoneDisplay } from "@/lib/phone";
 
 // The frame of the customer's /pay pages: the business's name and logo,
@@ -14,6 +15,8 @@ export function PayFrame({ view, children }: { view: Pick<PublicView, "business"
   return (
     <main className="paypage" style={brandStyle(business?.brandColor ?? null)}>
       <div className="paypage-stripe" aria-hidden="true" />
+      {/* A request from the demo business (brief 18, part B): nothing is owed. */}
+      {business?.isDemo && <p className="paypage-demo" role="note">{DEMO_BANNER}</p>}
       <div className="paypage-wrap">
         {business && (
           <div className="paypage-biz">
@@ -29,6 +32,8 @@ export function PayFrame({ view, children }: { view: Pick<PublicView, "business"
 }
 
 export function ContactBusiness({ business }: { business: PublicView["business"] }) {
+  // The demo business has nobody to contact.
+  if (business.isDemo) return null;
   const links = [
     business.whatsappE164 && { href: `https://wa.me/${business.whatsappE164.replace(/\D/g, "")}`, label: "WhatsApp", external: true },
     business.phoneE164 && { href: `tel:${business.phoneE164}`, label: `Call ${formatPhoneDisplay(business.phoneE164)}`, external: false },

@@ -16,8 +16,11 @@ const fixture = JSON.parse(readFileSync(process.env.SCREENSHOT_FIXTURE, "utf8"))
 if (!PIN) throw new Error("SCREENSHOT_PIN is not set.");
 mkdirSync("screenshots", { recursive: true });
 
-// [file name, account, path, element to also capture on its own]
-// account "admin" is the TEST platform owner; anything else is a staff PIN account.
+// [file name, account, path, element to also capture on its own, link to press first]
+// account "admin" is the TEST platform owner; "anon" is a visitor; "demo"
+// is a visitor who pressed "Open the demo"; anything else is a staff PIN
+// account. The fifth item, when there is one, is pressed after the page
+// loads and the screen it opens is the one captured.
 const SHOTS = [
   ["brief12-roster-coaches-today-375", "test-coach", `/futprep/staff/coach?session=${fixture.sessionId}`, ".coach-ratio"],
   // Brief 13: Alex's Coach pay view, a coach's own view, and who coached.
@@ -95,6 +98,21 @@ const SHOTS = [
   ["brief18-own-kit-375", "admin", "/own/kit", ".kit-grid"],
   ["brief18-leads-event-375", "admin", "/admin/leads?event=own2026", ".leads-events"],
   ["brief11-search-375", "admin", "/search?q=kids+football", ".search-results"],
+  // Brief 18, part B: the demo business. Its front door, then every screen
+  // a visitor reaches with a demo session (example data only).
+  ["brief18-demo-375", "anon", "/demo", ".demo-start"],
+  ["brief18-demo-home-375", "demo", "/demo/home", ".biz-home-grid"],
+  ["brief18-demo-booking-375", "demo", "/demo/booking", "#offerings"],
+  ["brief18-demo-registrations-375", "demo", "/demo/registrations", "#reg-people"],
+  ["brief18-demo-registration-375", "demo", "/demo/registrations", ".account-details", "#reg-people + .reg-list a"],
+  ["brief18-demo-payments-375", "demo", "/demo/payments?filter=all", ".preq-list"],
+  ["brief18-demo-request-375", "demo", "/demo/payments?filter=overdue", "#preq-send", "a.preq-row"],
+  ["brief18-demo-chase-375", "demo", "/demo/payments/chase", ".preq-chase"],
+  ["brief18-demo-attendance-375", "demo", "/demo/attendance", ".reg-list"],
+  ["brief18-demo-register-375", "demo", "/demo/attendance", ".att-register", ".reg-list a"],
+  ["brief18-demo-growth-375", "demo", "/demo/growth", ".growth-panel"],
+  // A real (TEST) business's own attendance register.
+  ["brief18-business-attendance-375", "admin", "/business/test-delete-photo-booth/attendance", null],
 ];
 
 // RFC 6238: the six-digit code an authenticator app would show right now.
@@ -142,6 +160,12 @@ async function adminSignIn(page) {
   if (stepUp.status !== 200) throw new Error(`Two-step verification returned ${stepUp.status}`);
 }
 
+// One tap on /demo: the demo session a visitor gets.
+async function demoStart(page) {
+  await page.goto(`${BASE}/demo`, { waitUntil: "networkidle" });
+  await Promise.all([page.waitForURL("**/demo/home", { timeout: 60_000 }), page.locator(".demo-start button").click()]);
+}
+
 const browser = await chromium.launch();
 // One signed-in browser context per account, reused for all its shots: an
 // authenticator code can't be used twice, so the admin signs in once.
@@ -150,8 +174,15 @@ async function pageFor(account) {
   if (!contexts.has(account)) {
     const context = await browser.newContext({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     const page = await context.newPage();
+    // A request that takes seconds is worth knowing about: it is what
+    // keeps a page from settling.
+    page.on("requestfinished", (request) => {
+      const ms = request.timing().responseEnd;
+      if (ms > 3000) console.log(`  slow request (${Math.round(ms)} ms): ${request.method()} ${new URL(request.url()).pathname}`);
+    });
     // "anon" is a visitor who hasn't signed in.
     if (account === "admin") await adminSignIn(page);
+    else if (account === "demo") await demoStart(page);
     else if (account !== "anon") await staffSignIn(page, account);
     contexts.set(account, { context, page });
   }
@@ -162,12 +193,31 @@ async function pageFor(account) {
 // is reported, the rest are still taken, and the job fails at the end.
 const failed = [];
 try {
-  for (const [name, account, path, focus] of SHOTS) {
+  // The product shots on /business (brief 18, A7) come from the demo
+  // business: its requests list, a customer's page with money owing, and
+  // one that is paid. The links are read from the demo's own rows.
+  await pageFor("demo");
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
+  const { data: demoOrg } = await supabase.from("organizations").select("id").eq("is_demo", true).maybeSingle();
+  const { data: demoRequests } = demoOrg ? await supabase.from("payment_requests").select("reference_code,public_token").eq("organization_id", demoOrg.id).in("reference_code", ["HKC-0013", "HKC-0001"]) : { data: [] };
+  const payPath = (reference) => `/pay/${(demoRequests ?? []).find((r) => r.reference_code === reference)?.public_token ?? "missing"}`;
+  SHOTS.push(
+    ["product-shot-requests", "demo", "/demo/payments?filter=all", ".preq-list"],
+    ["product-shot-pay", "anon", payPath("HKC-0013"), ".paypage-wrap"],
+    ["product-shot-paid", "anon", payPath("HKC-0001"), ".paypage-wrap"],
+  );
+
+  for (const [name, account, path, focus, press] of SHOTS) {
     const started = Date.now();
     let loaded = started;
     try {
       const page = await pageFor(account);
       await page.goto(`${BASE}${path}`, { waitUntil: "networkidle", timeout: 60_000 });
+      if (press) {
+        await page.locator(press).first().click();
+        await page.waitForLoadState("networkidle", { timeout: 60_000 });
+        if (focus) await page.locator(focus).first().waitFor({ timeout: 30_000 });
+      }
       loaded = Date.now();
       await page.screenshot({ path: `screenshots/${name}.png`, fullPage: true });
       if (focus) {

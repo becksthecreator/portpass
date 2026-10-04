@@ -1,3 +1,4 @@
+import { demoOrganizationIdOrNull } from "./demo";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type AuditEntry = {
@@ -14,6 +15,10 @@ export type AuditEntry = {
 // approvals, bank-detail edits) must not succeed silently without a
 // record, so a failed audit write fails the action.
 export async function logAudit(entry: AuditEntry): Promise<void> {
+  // The demo business is example data that anyone can press buttons on and
+  // that is wiped every night: none of it belongs in a trail nobody can
+  // edit or delete. (Resetting the demo is logged, with no business on it.)
+  if (entry.organizationId !== undefined && entry.organizationId !== null && entry.organizationId === (await demoOrganizationIdOrNull())) return;
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from("audit_log").insert({
     actor_user_id: entry.actorUserId ?? null,

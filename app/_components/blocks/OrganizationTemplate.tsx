@@ -32,7 +32,8 @@ import "./brand-theme.css";
 // (Futprep) turns it off.
 // `registerHref`: the business has a class or camp open for registration
 // (brief 18, D1), so the page's main button goes to its registration form.
-export function OrganizationTemplate({ listing, enquiryForm = true, registerHref = null }: { listing: OrganizationListing; enquiryForm?: boolean; registerHref?: string | null }) {
+// `share`: off for the demo business, which has no public page to share.
+export function OrganizationTemplate({ listing, enquiryForm = true, registerHref = null, share = true }: { listing: OrganizationListing; enquiryForm?: boolean; registerHref?: string | null; share?: boolean }) {
   const { organization: org, offerings, images, faqs } = listing;
 
   const practicalFacts = offerings
@@ -78,7 +79,7 @@ export function OrganizationTemplate({ listing, enquiryForm = true, registerHref
             otherwise "Enquire" opens the form below (brief 18, G3). */}
         {org.whatsappE164 && <MessageOnWhatsApp e164={org.whatsappE164} businessName={org.name} org={org.slug} label="Book on WhatsApp" />}
         {enquire && <a className="tpl-button tpl-button-secondary" href="#enquire">Enquire <span aria-hidden="true">↓</span></a>}
-        <ShareOnWhatsApp url={`https://portpassbahamas.com${directoryHref(org.slug, org.primaryCategory)}`} text={`${org.name} on PortPass:`} org={org.slug} />
+        {share && <ShareOnWhatsApp url={`https://portpassbahamas.com${directoryHref(org.slug, org.primaryCategory)}`} text={`${org.name} on PortPass:`} org={org.slug} />}
       </div>
       {enquire && (
         <section className="tpl-enquire" id="enquire" aria-labelledby="tpl-enquire-title">

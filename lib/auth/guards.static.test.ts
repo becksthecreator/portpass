@@ -8,10 +8,13 @@ import { describe, expect, it } from "vitest";
 // protect a handler). A file that is public on purpose says so with a
 // pragma in its first five lines, and the pragma list below must match --
 // so nothing can quietly be public without appearing here.
-const ROOTS = ["app/api/account", "app/api/business", "app/api/admin", "app/api/payments", "app/account", "app/business", "app/where-to", "app/admin", "app/organizations"];
+const ROOTS = ["app/api/account", "app/api/business", "app/api/admin", "app/api/payments", "app/api/demo", "app/account", "app/business", "app/where-to", "app/admin", "app/organizations", "app/demo"];
 
 const PUBLIC_ROUTES = new Set<string>([
   "app/business/page.tsx", // the "PortPass for business" marketing page
+  "app/demo/page.tsx", // the demo's front door: one tap starts a demo session
+  "app/demo/start/route.ts", // starts the demo session
+  "app/demo/exit/route.ts", // ends it
 ]);
 
 const HANDLER = /export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE|HEAD)\b|export\s+const\s+(GET|POST|PUT|PATCH|DELETE|HEAD)\s*=/;
@@ -19,7 +22,9 @@ const PAGE = /export\s+default\b/;
 // paymentsApiAccess (lib/paymentRequests/access.ts, brief 17) is
 // requireOrgRoleApi plus the payments permission, or Futprep's staff PIN
 // for Futprep's own payments only.
-const GUARD = /\brequire(SignedIn|PlatformRole|OrgRole|Admin)(Api)?\s*\(|\bpaymentsApiAccess\s*\(/;
+// requireDemo (lib/auth/demo.ts, brief 18 part B) admits a demo session to
+// the demo business only; it is the guard of every /demo screen and route.
+const GUARD = /\brequire(SignedIn|PlatformRole|OrgRole|Admin|Demo)(Api)?\s*\(|\bpaymentsApiAccess\s*\(/;
 const PRAGMA = /^\s*\/\/\s*@public-route:/m;
 
 function walk(dir: string): string[] {
