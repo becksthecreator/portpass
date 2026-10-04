@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { approveBusiness, publishForOwner, sendBackBusiness, suspendBusiness, unsuspendBusiness } from "@/db/adminBusinessActions";
+import { approveBusiness, publishApprovedBusiness, publishForOwner, sendBackBusiness, suspendBusiness, unsuspendBusiness } from "@/db/adminBusinessActions";
 import { listOwnerEmails, type Business } from "@/db/business";
 import { logMessage } from "@/db/growth";
 import { businessNoticeEmail, type BusinessNotice } from "@/lib/adminEmail";
@@ -9,7 +9,7 @@ import { portpassFrom, sendEmail } from "@/lib/email";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-const ACTIONS = ["approve", "publish", "send_back", "suspend", "unsuspend"] as const;
+const ACTIONS = ["approve", "publish", "go_live", "send_back", "suspend", "unsuspend"] as const;
 type Action = (typeof ACTIONS)[number];
 
 // Admin actions are rate-limited per founder (brief 08, security rules).
@@ -19,6 +19,8 @@ const REFUSALS: Record<string, { status: number; error: string }> = {
   NOT_FOUND: { status: 404, error: "Not found." },
   NOT_SUBMITTED: { status: 409, error: "This business isn't waiting for review any more. Refresh the page." },
   NOT_PUBLISHABLE: { status: 409, error: "Only a draft or a submitted business can be published this way." },
+  NOT_APPROVED: { status: 409, error: "Only an approved business that isn't public yet can be published this way. Refresh the page." },
+  NEEDS_PRICE: { status: 409, error: "It needs at least one published offering with a price before it can go public." },
   NOT_SUSPENDABLE: { status: 409, error: "Only a business that is public or waiting for review can be suspended." },
   STILL_PUBLIC: { status: 409, error: "This page is live with a change waiting. Approve the change, or suspend the page. To ask for changes, message the owner." },
   OWN_PAGES: { status: 409, error: "This business has its own pages and forms, which Suspend does not hide. It can't be suspended from here." },
@@ -72,6 +74,9 @@ export async function POST(request: Request, ctx: Ctx) {
     } else if (action === "publish") {
       business = await publishForOwner(id, actor);
       await tellOwners(business, business.status === "live" ? "live" : "approved", null);
+    } else if (action === "go_live") {
+      business = await publishApprovedBusiness(id, actor);
+      await tellOwners(business, "live", null);
     } else if (action === "send_back") {
       business = await sendBackBusiness(id, note, actor);
       await tellOwners(business, "sent_back", note.trim().slice(0, 1000));

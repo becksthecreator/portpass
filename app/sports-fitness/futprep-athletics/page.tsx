@@ -45,7 +45,7 @@ export default async function FutprepOrganizationPage() {
     <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
       <JsonLd data={listingJsonLd(listing, "/sports-fitness/futprep-athletics")} />
       <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: listing.organization.name, href: "/sports-fitness/futprep-athletics" }]} />
-      <OrganizationTemplate listing={listing} />
+      <OrganizationTemplate listing={listing} enquiryForm={false} />
       <FutprepTeamGrid />
       <FutprepTasterCard />
       <FutprepCampsCard />

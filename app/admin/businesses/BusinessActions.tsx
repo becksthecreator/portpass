@@ -75,6 +75,11 @@ export function BusinessActions({ id, name, status, createdByAdmin, claimed, isP
           {busy === "publish" ? "Publishing…" : "Publish (owner agreed)"}
         </button>
       )}
+      {status === "approved" && !isPublic && (
+        <button type="button" className="admin-action is-primary" disabled={busy !== null} onClick={() => { if (confirm(`Publish ${name}? Its page goes public and joins its section now. Only do this when the owner has agreed.`)) void act("go_live"); }}>
+          {busy === "go_live" ? "Publishing…" : "Publish"}
+        </button>
+      )}
       {canClaim && <button type="button" className="admin-action" disabled={busy !== null} onClick={claimLink}>{busy === "claim" ? "Making link…" : link ? "New claim link" : "Send claim link"}</button>}
       {canSuspend && (status === "submitted" || status === "approved" || status === "live" || isPublic) && <button type="button" className="admin-action is-danger" disabled={busy !== null} onClick={() => setAsk(ask === "suspend" ? null : "suspend")}>Suspend</button>}
       {status === "suspended" && <button type="button" className="admin-action is-primary" disabled={busy !== null} onClick={() => act("unsuspend")}>{busy === "unsuspend" ? "Unsuspending…" : "Unsuspend"}</button>}

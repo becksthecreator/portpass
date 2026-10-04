@@ -503,6 +503,8 @@ export type Organization = {
   googleBusinessUrl: string | null;
   subcategory: string | null;
   status: string;
+  // Optional colour overrides (lib/businessTheme.ts); {} for most.
+  theme: Record<string, unknown>;
   // This business's photos may include children: only images with
   // confirmed consent render publicly (see withPhotoConsent).
   photoConsentRequired: boolean;
@@ -532,7 +534,7 @@ export type OrganizationListing = {
   faqs: OrganizationFaq[];
 };
 
-const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color,logo_url,custom_domain,identity_layout,reviews_url,reviews_platform,whatsapp_e164,instagram_handle,google_business_url,subcategory,status,photo_consent_required";
+const LISTING_ORGANIZATION_COLUMNS = "id,slug,name,primary_category,island,area,one_liner,description,years_in_business,rating,review_count,awards,owner_name,owner_bio,owner_image_url,website_url,hero_image_url,brand_color,logo_url,custom_domain,identity_layout,reviews_url,reviews_platform,whatsapp_e164,instagram_handle,google_business_url,subcategory,status,theme,photo_consent_required";
 
 const LISTING_OFFERING_COLUMNS = "id,organization_id,type,slug,name,summary,price_cents,price_unit,inclusions,schedule_text,age_min,age_max,age_label,term_start,term_end,event_date,doors_time,ticket_url,capacity,hourly_rate_cents,day_rate_cents,amenities,lead_time_text,image_url,action_url,is_featured";
 
@@ -566,6 +568,7 @@ function toListingOrganization(row: Record<string, unknown>): Organization {
     googleBusinessUrl: (row.google_business_url as string | null) ?? null,
     subcategory: (row.subcategory as string | null) ?? null,
     status: (row.status as string | null) ?? "draft",
+    theme: row.theme && typeof row.theme === "object" ? (row.theme as Record<string, unknown>) : {},
     photoConsentRequired: Boolean(row.photo_consent_required),
   };
 }

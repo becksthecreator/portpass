@@ -6,7 +6,7 @@ import { track } from "@/lib/analytics";
 // customers, so every listing offers it next to the booking button, never
 // instead of it. Plain links underneath: wa.me needs no JavaScript; the
 // JavaScript only adds the native share sheet and the click events.
-export function MessageOnWhatsApp({ e164, businessName, org, className = "tpl-button tpl-button-secondary" }: { e164: string; businessName: string; org?: string; className?: string }) {
+export function MessageOnWhatsApp({ e164, businessName, org, className = "tpl-button tpl-button-secondary", label = "Message on WhatsApp" }: { e164: string; businessName: string; org?: string; className?: string; label?: string }) {
   const digits = e164.replace(/\D/g, "");
   const text = `Hi ${businessName}, I found you on PortPass and I'd like to ask about booking.`;
   return (
@@ -17,7 +17,7 @@ export function MessageOnWhatsApp({ e164, businessName, org, className = "tpl-bu
       rel="noopener noreferrer"
       onClick={() => track("whatsapp_click", { org: org ?? businessName })}
     >
-      Message on WhatsApp <span aria-hidden="true">↗</span>
+      {label} <span aria-hidden="true">↗</span>
     </a>
   );
 }

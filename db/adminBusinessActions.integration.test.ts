@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { approveBusiness, claimBusiness, claimLinkInfo, createClaimLink, draftBusinessFromApplication, publishForOwner, sendBackBusiness, suspendBusiness, unsuspendBusiness } from "./adminBusinessActions";
+import { approveBusiness, claimBusiness, claimLinkInfo, createClaimLink, draftBusinessFromApplication, publishApprovedBusiness, publishForOwner, sendBackBusiness, suspendBusiness, unsuspendBusiness } from "./adminBusinessActions";
 import { createApplication } from "./applications";
 import { upsertMembership } from "./accounts";
 import { createDraftBusiness, getBusiness, submitBusiness, updateBusinessDetails, updatePaymentMethods, upsertBusinessOffering } from "./business";
@@ -263,5 +263,31 @@ describe("a draft business from a get listed request", () => {
     expect(Number(linked!.application_id)).toBe(application.id);
     await expect(draftBusinessFromApplication(application.id, founder)).rejects.toThrow("ALREADY_REVIEWED");
     expect((await getBusiness(draft.id))?.status).toBe("draft");
+  });
+});
+
+describe("a page that is approved and waiting (brief 18, G1)", () => {
+  it("goes public with one Publish, is logged, and can't be published twice", async () => {
+    // As Carv is: built, priced, approved, and not public.
+    const id = await business("Waiting", { priced: true, ownerUserId: null, createdByAdmin: true });
+    await admin.from("organizations").update({ status: "approved" }).eq("id", id);
+    expect(await flags(id)).toMatchObject({ status: "approved", is_published: false, is_directory_listed: false });
+
+    const live = await publishApprovedBusiness(id, founder);
+    expect(live).toMatchObject({ status: "live", isPublished: true });
+    expect(await flags(id)).toMatchObject({ status: "live", is_published: true, is_directory_listed: true });
+    expect(await actions(id)).toContain("business.published");
+    await expect(publishApprovedBusiness(id, founder)).rejects.toThrow("NOT_APPROVED");
+  });
+
+  it("refuses a page with no price, and one that isn't approved", async () => {
+    const unpriced = await business("Waiting unpriced", { priced: false, ownerUserId: null, createdByAdmin: true });
+    await admin.from("organizations").update({ status: "approved" }).eq("id", unpriced);
+    await expect(publishApprovedBusiness(unpriced, founder)).rejects.toThrow("NEEDS_PRICE");
+    expect(await flags(unpriced)).toMatchObject({ status: "approved", is_published: false });
+
+    const draft = await business("Still a draft", { priced: true, ownerUserId: null, createdByAdmin: true });
+    await expect(publishApprovedBusiness(draft, founder)).rejects.toThrow("NOT_APPROVED");
+    expect(await flags(draft)).toMatchObject({ status: "draft", is_published: false });
   });
 });

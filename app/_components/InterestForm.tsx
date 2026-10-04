@@ -10,7 +10,7 @@ import { PhoneInput } from "./PhoneInput";
 // of its own is filed under the nearest one and named in the note).
 export type InterestChoice = { label: string; category: InterestCategory };
 
-export function InterestForm({ category, placeholder, defaultNote, choices, submitLabel }: { category: InterestCategory; placeholder: string; defaultNote?: string; choices?: InterestChoice[]; submitLabel?: string }) {
+export function InterestForm({ category, placeholder, defaultNote, choices, submitLabel, doneTitle, doneText }: { category: InterestCategory; placeholder: string; defaultNote?: string; choices?: InterestChoice[]; submitLabel?: string; doneTitle?: string; doneText?: string }) {
   const [choice, setChoice] = useState(0);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -49,8 +49,8 @@ export function InterestForm({ category, placeholder, defaultNote, choices, subm
       <section className="confirmation" aria-live="polite">
         <span className="confirmation-mark">✓</span>
         <div className="eyebrow"><span className="eyebrow-dot" />Noted</div>
-        <h2>We&rsquo;ll be in touch.</h2>
-        <p>You&rsquo;re on the list for when this opens.</p>
+        <h2>{doneTitle ?? "We’ll be in touch."}</h2>
+        <p>{doneText ?? "You’re on the list for when this opens."}</p>
       </section>
     );
   }

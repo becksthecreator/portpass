@@ -112,6 +112,30 @@ export async function publishForOwner(id: number, actorUserId: string): Promise<
   return requireBusiness(id);
 }
 
+// Publish a business that is approved but not public (brief 18, G1): one
+// button for a page PortPass has ready and the owner has now said yes to.
+// It sets is_published and is_directory_listed, so no migration is needed
+// on the day. The database still refuses a page with no priced offering.
+export async function publishApprovedBusiness(id: number, actorUserId: string): Promise<Business> {
+  const business = await requireBusiness(id);
+  if (business.status !== "approved" || business.isPublished) throw new Error("NOT_APPROVED");
+  if (!(await hasPricedOffering(id))) throw new Error("NEEDS_PRICE");
+  const { data, error } = await db()
+    .from("organizations")
+    .update({ is_published: true, is_directory_listed: true, status: "live" })
+    .eq("id", id)
+    .eq("status", "approved")
+    .eq("is_published", false)
+    .select("id")
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not publish the business");
+  if (!data) throw new Error("NOT_APPROVED");
+  await logAudit({ actorUserId, organizationId: id, action: "business.published", targetTable: "organizations", targetId: id, before: { status: "approved", is_published: false }, after: { status: "live", is_published: true, is_directory_listed: true, owner_agreed: "confirmed by the founder who pressed Publish" } });
+  await markLeadsLive(id, actorUserId);
+  bumpListings();
+  return requireBusiness(id);
+}
+
 // Send a submitted business back to its owner with a note saying what to
 // change. It returns to draft; the note shows on the owner's dashboard.
 export async function sendBackBusiness(id: number, note: string, actorUserId: string): Promise<Business> {
