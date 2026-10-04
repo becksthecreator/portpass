@@ -77,8 +77,10 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
       const payload: Record<string, string> = { email: fields.email.trim(), mode };
       if (mode === "signup" && intent) {
         payload.intent = intent;
-        payload.fullName = fields.fullName.trim();
-        payload.phone = fields.phone.trim();
+        // A customer is asked for an email only (brief 18, F2); the name is
+        // added on My account. A guest-first link may already carry one.
+        if (fields.fullName.trim()) payload.fullName = fields.fullName.trim();
+        if (intent === "business") payload.phone = fields.phone.trim();
         if (source) payload.source = source;
         if (intent === "business") {
           payload.businessName = fields.businessName.trim();
@@ -135,7 +137,7 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
         setError("Choose one of the two options above.");
         return;
       }
-      if (!fields.fullName.trim()) {
+      if (intent === "business" && !fields.fullName.trim()) {
         setError("Tell us your name.");
         return;
       }
@@ -222,7 +224,7 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
           <div className="auth-doors" role="radiogroup" aria-label="Account type">
             <button type="button" role="radio" aria-checked={intent === "customer"} className={`auth-door${intent === "customer" ? " is-selected" : ""}`} onClick={() => setIntent("customer")}>
               <strong>I&rsquo;m booking or joining</strong>
-              <span>Register a child, plan a wedding, book a session.</span>
+              <span>Register a child, plan a wedding, book a session. Just your email.</span>
             </button>
             <button type="button" role="radio" aria-checked={intent === "business"} className={`auth-door${intent === "business" ? " is-selected" : ""}`} onClick={() => setIntent("business")}>
               <strong>I run a business</strong>
@@ -251,12 +253,12 @@ export function OtpForm({ mode, next, initialIntent = null, phoneEnabled = false
       )}
 
       <form className="auth-form" onSubmit={onDetails}>
-        {mode === "signup" && intent && (
+        {mode === "signup" && intent === "business" && (
           <label><span>Your name *</span><input autoComplete="name" required maxLength={120} value={fields.fullName} onChange={(e) => set("fullName", e.target.value)} /></label>
         )}
         <label><span>Email *</span><input type="email" inputMode="email" autoComplete="email" required maxLength={254} value={fields.email} onChange={(e) => set("email", e.target.value)} /></label>
-        {mode === "signup" && intent && (
-          <label><span>Phone (WhatsApp) {intent === "business" ? "*" : "(optional)"}</span><PhoneInput required={intent === "business"} value={fields.phone} onChange={(v) => set("phone", v)} /></label>
+        {mode === "signup" && intent === "business" && (
+          <label><span>Phone (WhatsApp) *</span><PhoneInput required value={fields.phone} onChange={(v) => set("phone", v)} /></label>
         )}
         {mode === "signup" && intent === "business" && (
           <>

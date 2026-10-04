@@ -41,3 +41,30 @@ export function snoozeInstallBanner() {
     // private mode or storage blocked: the banner simply shows again next visit
   }
 }
+
+// The browser's install prompt fires once, early, and PwaRegister (root
+// layout) catches it. It is kept here so a screen that appears later (the
+// account page, a registration's confirmation) can still offer the real
+// Install button (brief 18, F4).
+export const INSTALLABLE_EVENT = "portpass:installable";
+let installEvent: BeforeInstallPromptEvent | null = null;
+
+export function rememberInstallEvent(event: BeforeInstallPromptEvent | null) {
+  installEvent = event;
+  window.dispatchEvent(new Event(INSTALLABLE_EVENT));
+}
+
+export function getInstallEvent(): BeforeInstallPromptEvent | null {
+  return installEvent;
+}
+
+// Which instructions fit this device when there is no install prompt to
+// offer. Pure, so it is tested: iPhone and iPad can add a web app from
+// Safari only; Android browsers have it in their menu.
+export type InstallGuide = "ios-safari" | "ios-other" | "android" | "desktop" | "installed";
+
+export function installGuide(userAgent: string, platform = "", maxTouchPoints = 0): Exclude<InstallGuide, "installed"> {
+  const ios = /iPhone|iPad|iPod/.test(userAgent) || (platform === "MacIntel" && maxTouchPoints > 1);
+  if (ios) return /Safari\//.test(userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\//.test(userAgent) ? "ios-safari" : "ios-other";
+  return /Android/.test(userAgent) ? "android" : "desktop";
+}

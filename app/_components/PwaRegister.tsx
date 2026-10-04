@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
-import { installBannerSnoozed, isIosSafari, isStandalone, snoozeInstallBanner, type BeforeInstallPromptEvent } from "@/lib/pwa";
+import { installBannerSnoozed, isIosSafari, isStandalone, rememberInstallEvent, snoozeInstallBanner, type BeforeInstallPromptEvent } from "@/lib/pwa";
 
 const SHOW_AFTER_MS = 4000;
 
@@ -44,10 +44,13 @@ export function PwaRegister() {
       snoozeInstallBanner();
       setMode("hidden");
       setInstallEvent(null);
+      rememberInstallEvent(null);
     };
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
       setInstallEvent(event as BeforeInstallPromptEvent);
+      // Kept for the install prompts on the account page and confirmations.
+      rememberInstallEvent(event as BeforeInstallPromptEvent);
       if (!snoozed) timer = window.setTimeout(() => setMode("android"), SHOW_AFTER_MS);
     };
     window.addEventListener("appinstalled", onInstalled);

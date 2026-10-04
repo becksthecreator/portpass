@@ -75,6 +75,11 @@ const SHOTS = [
   ["brief18-section-soon-375", "admin", "/venues", ".soon-panel"],
   ["brief18-tell-us-375", "admin", "/tell-us", null],
   ["brief18-business-375", "admin", "/business", ".biz-shots"],
+  // Brief 18, part F: the header a visitor sees (Sign in · Sign up), the
+  // sign-up doors, and My account.
+  ["brief18-header-signed-out-375", "anon", "/", null],
+  ["brief18-signup-375", "anon", "/signup?as=customer", ".auth-doors"],
+  ["brief18-account-375", "admin", "/account", null],
   ["brief11-search-375", "admin", "/search?q=kids+football", ".search-results"],
 ];
 
@@ -131,8 +136,9 @@ async function pageFor(account) {
   if (!contexts.has(account)) {
     const context = await browser.newContext({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     const page = await context.newPage();
+    // "anon" is a visitor who hasn't signed in.
     if (account === "admin") await adminSignIn(page);
-    else await staffSignIn(page, account);
+    else if (account !== "anon") await staffSignIn(page, account);
     contexts.set(account, { context, page });
   }
   return contexts.get(account).page;

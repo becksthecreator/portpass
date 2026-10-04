@@ -4544,6 +4544,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .account-places span{color:var(--muted);font-size:.85rem;margin-left:8px}
 .site-shell-header-actions{align-items:center;display:flex;gap:16px;flex:0 0 auto}
 .hdr-signin{font-size:.8rem;font-weight:700;color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:2px;white-space:nowrap}
+.hdr-signup{background:var(--signal);border-radius:999px;color:#fff;font-size:.8rem;font-weight:800;padding:8px 14px;white-space:nowrap}
 .hdr-account{position:relative}
 .hdr-avatar{align-items:center;background:var(--ink);border:0;border-radius:50%;color:#fff;cursor:pointer;display:inline-flex;font-size:.72rem;font-weight:800;height:34px;justify-content:center;letter-spacing:.04em;width:34px}
 .hdr-menu{background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 50px #0B2A3C22;display:grid;min-width:220px;padding:8px;position:absolute;right:0;top:calc(100% + 8px);z-index:60}
@@ -5597,8 +5598,12 @@ a.admin-tile:hover{border-color:var(--sky)}
   .site-shell-brand .brand-logo{min-width:0;width:30px;height:30px}
   .site-shell-header-actions{gap:10px}
 }
-@media(max-width:374px){
-  .site-shell-pricing{display:none}
+/* Brief 18, F1: with "Sign up" beside "Sign in", a phone's row is mark ·
+   Browse · Sign in · Sign up. Pricing and For business step out below
+   520px: both are in the Browse sheet and the footer, and the sign-up page
+   has the business door. */
+@media(max-width:519px){
+  .site-shell-header-actions .site-shell-for-business{display:none}
 }
 
 /* Brief 16, C: the Futprep team grid on the Futprep home page, and the

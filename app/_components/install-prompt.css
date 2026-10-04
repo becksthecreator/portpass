@@ -1,0 +1,9 @@
+/* "Add PortPass to your home screen" (brief 18, F4). Inherits the colours
+   of the page it sits on, so it reads on PortPass's and a business's. */
+.install-prompt h2{font-size:1.1rem;margin:0 0 8px}
+.install-prompt p{line-height:1.6;margin:0 0 12px;opacity:.86}
+.install-prompt ol{display:grid;gap:8px;line-height:1.55;margin:0 0 12px;padding-left:22px}
+.install-prompt-glyph{display:inline-block;height:18px;vertical-align:-3px;width:18px}
+.install-prompt-more{font-size:.9rem;margin:0}
+.install-prompt-more a{font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.registration-confirmation .install-prompt{border-top:1px solid currentColor;margin-top:24px;padding-top:20px;text-align:left}
