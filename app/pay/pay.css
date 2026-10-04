@@ -79,3 +79,6 @@
   .paypage-wrap{max-width:none;padding:0}
   .paypage-direct{background:none;color:#000;border:1px solid #000}
 }
+
+/* Brief 18, E3: a TEST request says so at the top of the customer's page. */
+.paypage-test{background:#fff4d6;border:1px solid #c9922b;border-radius:12px;color:#4a3305;font-size:.92rem;line-height:1.5;margin:0 0 12px;padding:10px 14px}

@@ -13,6 +13,7 @@ import {
   displayStatus,
   filterRequests,
   futprepFeeLine,
+  getPaidProblem,
   isOverdue,
   linkExpired,
   linesSummary,
@@ -216,11 +217,39 @@ describe("methods", () => {
     expect(REQUEST_METHODS as string[]).not.toContain("card");
   });
 
-  it("offers bank transfer and Kanoo only once the business has said where to send it", () => {
-    const blank = { bankName: "", accountName: "", accountNumberLast4: null, transferInstructions: "", kanooHandleOrPhone: "", cashNote: "" };
-    expect(methodsSetUp(null)).toEqual(["cash"]);
-    expect(methodsSetUp({ ...blank, bankName: "TEST Bank" })).toEqual(["bank_transfer", "cash"]);
-    expect(methodsSetUp({ ...blank, kanooHandleOrPhone: "242 555 0100" })).toEqual(["cash", "kanoo_wallet_manual"]);
+  const blank = { bankName: "", accountName: "", accountNumberLast4: null, transferInstructions: "", kanooHandleOrPhone: "", cashNote: "" };
+  const bank = { ...blank, bankName: "TEST Bank", accountName: "TEST Kickers", accountNumberLast4: "0042" };
+
+  it("offers only the methods the business chose, each with its details in place", () => {
+    // Nothing until the business has said how it gets paid.
+    expect(methodsSetUp(null)).toEqual([]);
+    expect(methodsSetUp(blank)).toEqual([]);
+    expect(methodsSetUp({ ...blank, acceptedMethods: ["cash"] })).toEqual(["cash"]);
+    // Bank details given but bank transfer not chosen: not offered.
+    expect(methodsSetUp({ ...bank, acceptedMethods: ["cash"] })).toEqual(["cash"]);
+    expect(methodsSetUp({ ...bank, acceptedMethods: ["cash", "bank_transfer"] })).toEqual(["bank_transfer", "cash"]);
+    // Chosen but its details are missing: not offered.
+    expect(methodsSetUp({ ...blank, acceptedMethods: ["cash", "bank_transfer", "kanoo_wallet_manual"] })).toEqual(["cash"]);
+    expect(methodsSetUp({ ...blank, kanooHandleOrPhone: "242 555 0100", acceptedMethods: ["kanoo_wallet_manual"] })).toEqual(["kanoo_wallet_manual"]);
+  });
+
+  it("says in words why a business can't send a request yet", () => {
+    expect(getPaidProblem(null)).toBe("Add how you get paid first.");
+    expect(getPaidProblem({ ...blank, acceptedMethods: [] })).toBe("Add how you get paid first.");
+    expect(getPaidProblem({ ...blank, acceptedMethods: ["cash"] })).toBeNull();
+    expect(getPaidProblem({ ...blank, acceptedMethods: ["bank_transfer"] })).toMatch(/bank and the account name/);
+    expect(getPaidProblem({ ...blank, bankName: "TEST Bank", accountName: "TEST", acceptedMethods: ["bank_transfer"] })).toMatch(/last four digits/);
+    // The last four digits, or the business's own instructions: either will do.
+    expect(getPaidProblem({ ...bank, acceptedMethods: ["bank_transfer"] })).toBeNull();
+    expect(getPaidProblem({ ...blank, bankName: "TEST Bank", accountName: "TEST", transferInstructions: "TEST transit 00000", acceptedMethods: ["bank_transfer"] })).toBeNull();
+    expect(getPaidProblem({ ...blank, acceptedMethods: ["kanoo_wallet_manual"] })).toMatch(/Kanoo handle/);
+  });
+
+  it("leaves a TEST request out of every total and off the chase list", () => {
+    const base = { id: 1, referenceCode: "TKA-0001", customerName: "TEST", customerEmail: null, customerPhone: null, lines: [], createdAt: "2026-10-01T12:00:00Z", sentAt: "2026-10-01T12:00:00Z", customerSaysPaidAt: null, lastRemindedAt: null, status: "sent" as const, totalCents: 100, paidCents: 0, dueDate: "2026-10-02" };
+    const totals = requestTotals([{ ...base, isTest: true }, { ...base, id: 2, totalCents: 5000 }], [], "2026-10-10");
+    expect(totals).toMatchObject({ outstandingCents: 5000, outstandingCount: 1, overdueCents: 5000, overdueCount: 1 });
+    expect(chaseList([{ ...base, isTest: true }, { ...base, id: 2 }], "2026-10-10").map((r) => r.id)).toEqual([2]);
   });
 });
 

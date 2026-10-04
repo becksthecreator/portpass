@@ -7,6 +7,10 @@ import type { Business, BusinessImage, BusinessInvite, BusinessOffering, TeamMem
 import type { Section } from "@/db/categories";
 import { suggestForWhiteText, whiteTextContrast } from "@/lib/color";
 import { PhoneInput } from "@/app/_components/PhoneInput";
+import { PaymentSettingsForm, TestRequest } from "@/app/_components/payments/PaymentSettingsForm";
+import type { PaymentSettings } from "@/db/paymentRequests";
+import { defaultPrefix, getPaidProblem } from "@/lib/paymentRequests/rules";
+import "@/app/_components/payments/payments.css";
 
 type Props = {
   mode: "setup" | "settings";
@@ -18,9 +22,12 @@ type Props = {
   section: Section | null;
   role: OrgRole;
   initialStep: number;
+  // How the business gets paid (brief 18, E1): the same settings as
+  // Payments -> Settings.
+  paymentSettings: PaymentSettings | null;
 };
 
-const STEPS = ["Your business", "Contact", "Look", "What you offer", "How customers pay", "Your team", "Review & submit"];
+const STEPS = ["Your business", "Contact", "Look", "What you offer", "Get paid", "Your team", "Review & submit"];
 const PRICE_UNITS: { value: string; label: string }[] = [
   { value: "", label: "Fixed price" },
   { value: "from", label: "From (starting price)" },
@@ -74,6 +81,8 @@ export function SetupWizard(props: Props) {
   const [notice, setNotice] = useState("");
   const [problems, setProblems] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  // ---- step 5: Get paid ----
+  const [getPaidReady, setGetPaidReady] = useState(getPaidProblem(props.paymentSettings) === null);
   const base = `/api/business/orgs/${business.id}`;
   const isOwner = role === "org_owner";
 
@@ -83,11 +92,11 @@ export function SetupWizard(props: Props) {
       Boolean(business.whatsappE164 || business.phoneE164),
       Boolean(business.logoUrl || images.length),
       offerings.length > 0,
-      business.paymentMethods.length > 0,
+      getPaidReady,
       true,
       business.status !== "draft",
     ],
-    [business, images, offerings],
+    [business, images, offerings, getPaidReady],
   );
   const progress = Math.round((done.filter(Boolean).length / STEPS.length) * 100);
 
@@ -124,9 +133,7 @@ export function SetupWizard(props: Props) {
   // ---- step 4 ----
   const emptyOffering = { id: null as number | null, name: "", summary: "", price: "", priceUnit: "", duration: "", capacity: "" };
   const [offer, setOffer] = useState(emptyOffering);
-  // ---- step 5 ----
-  const [methods, setMethods] = useState<string[]>(business.paymentMethods);
-  const [bank, setBank] = useState(business.bankTransferDetails ?? { bank: "", accountName: "", accountNumber: "", branch: "", instructions: "" });
+
   // ---- step 6 ----
   const [invite, setInvite] = useState({ email: "", role: "org_staff" as OrgRole, canViewMedical: false });
 
@@ -207,25 +214,6 @@ export function SetupWizard(props: Props) {
       setOfferings(data.offerings);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not remove.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function savePayments(next?: number) {
-    setBusy(true);
-    setError("");
-    try {
-      const data = await api<{ business: Business; bankDetailsChanged: boolean }>(`${base}/payment-methods`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentMethods: methods, bankTransferDetails: methods.includes("bank_transfer") ? bank : null }),
-      });
-      setBusiness(data.business);
-      setNotice(data.bankDetailsChanged ? "Saved. Every owner has been emailed about the bank-detail change." : "Saved.");
-      if (next) go(next);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save.");
     } finally {
       setBusy(false);
     }
@@ -462,34 +450,25 @@ export function SetupWizard(props: Props) {
       )}
 
       {step === 5 && (
-        <form className="auth-form" onSubmit={(e) => { e.preventDefault(); void savePayments(6); }}>
-          {!isOwner && <p className="wiz-warn auth-hint">Only the business owner can change payment details.</p>}
-          <fieldset className="wiz-fieldset" disabled={!isOwner}>
-            <label className="wiz-check"><input type="checkbox" checked={methods.includes("cash")} onChange={(e) => setMethods(e.target.checked ? [...methods, "cash"] : methods.filter((m) => m !== "cash"))} /> <span>Cash</span></label>
-            <label className="wiz-check"><input type="checkbox" checked={methods.includes("bank_transfer")} onChange={(e) => setMethods(e.target.checked ? [...methods, "bank_transfer"] : methods.filter((m) => m !== "bank_transfer"))} /> <span>Bank transfer</span></label>
-            <label className="wiz-check is-disabled"><input type="checkbox" disabled /> <span>Card — coming soon with a licensed partner</span></label>
-            {methods.includes("bank_transfer") && (
-              <div className="wiz-subform">
-                <strong>Bank transfer details customers will see</strong>
-                <div className="wiz-two">
-                  <label><span>Bank *</span><input required maxLength={120} value={bank.bank} onChange={(e) => setBank({ ...bank, bank: e.target.value })} /></label>
-                  <label><span>Account name *</span><input required maxLength={120} value={bank.accountName} onChange={(e) => setBank({ ...bank, accountName: e.target.value })} /></label>
-                </div>
-                <div className="wiz-two">
-                  <label><span>Account number *</span><input required maxLength={60} value={bank.accountNumber} onChange={(e) => setBank({ ...bank, accountNumber: e.target.value })} /></label>
-                  <label><span>Branch / transit</span><input maxLength={120} value={bank.branch} onChange={(e) => setBank({ ...bank, branch: e.target.value })} /></label>
-                </div>
-                <label><span>Reference instructions</span><input maxLength={300} placeholder="Use your booking code as the reference" value={bank.instructions} onChange={(e) => setBank({ ...bank, instructions: e.target.value })} /></label>
-                <p className="auth-hint">Every change here is logged and emailed to every owner. That's on purpose.</p>
-              </div>
-            )}
-          </fieldset>
+        <div className="auth-form wiz-getpaid">
+          <p className="auth-lead">Say how customers pay you, so you can send a payment request the day your page goes live. They pay you directly; PortPass never holds the money.</p>
+          <PaymentSettingsForm
+            apiBase={`/api/payments/orgs/${business.id}`}
+            initial={props.paymentSettings}
+            suggestedPrefix={props.paymentSettings?.referencePrefix ?? defaultPrefix(business.name)}
+            canEdit={isOwner}
+            saveLabel="Save how you get paid"
+            onSaved={() => {
+              setGetPaidReady(true);
+              setNotice("Saved. You can now send payment requests.");
+            }}
+          />
+          {isOwner && <TestRequest apiBase={`/api/payments/orgs/${business.id}`} basePath={`/business/${business.slug}/payments`} ready={getPaidReady} />}
           <div className="auth-actions">
-            {isOwner && <button className="primary-button" type="submit" disabled={busy}>{busy ? "Saving…" : "Save & continue →"}</button>}
-            {!isOwner && <button className="primary-button" type="button" onClick={() => go(6)}>Continue →</button>}
+            <button className="primary-button" type="button" onClick={() => go(6)}>Continue →</button>
             <button className="auth-text-button" type="button" onClick={() => go(4)}>Back</button>
           </div>
-        </form>
+        </div>
       )}
 
       {step === 6 && (

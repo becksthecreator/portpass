@@ -4,16 +4,18 @@ import { POST as payRoute } from "@/app/api/pay/[token]/route";
 import { POST as createRoute } from "@/app/api/payments/orgs/[id]/requests/route";
 import { POST as actionRoute } from "@/app/api/payments/orgs/[id]/requests/[requestId]/route";
 import { PATCH as refundRoute, POST as markPaidRoute } from "@/app/api/payments/orgs/[id]/requests/[requestId]/payments/route";
+import { POST as testRequestRoute } from "@/app/api/payments/orgs/[id]/test-request/route";
 import { sendEmail } from "@/lib/email";
 import { nassauToday } from "@/lib/futprepTerms";
 import { paymentsApiAccess, type PaymentsAccess } from "@/lib/paymentRequests/access";
 import { addDays, chaseList, isOverdue } from "@/lib/paymentRequests/rules";
-import { createDraftBusiness } from "./business";
+import { createDraftBusiness, getBusiness } from "./business";
 import {
   customerSaysPaid,
   getPaymentRequest,
   getPublicPaymentRequest,
   listPaymentRequests,
+  listPaymentSetup,
   paymentVolumeReport,
   prefillFromRegistration,
   recordRequestPayment,
@@ -44,7 +46,7 @@ let registrationId = 0;
 let ip = 0;
 
 const actor = () => ({ userId, name: `${MARK} owner` });
-const access = (): PaymentsAccess => ({ orgId, orgName: `${MARK} Pay Biz ${tag}`, orgSlug: null, door: "business", actor: actor(), canEditSettings: true, canManageTeam: true, basePath: "/business/test/payments" });
+const access = (): PaymentsAccess => ({ orgId, orgName: `${MARK} Pay Biz ${tag}`, orgSlug: null, door: "business", actor: actor(), actorEmail: `pay-owner-${tag}@test.portpass.local`, canEditSettings: true, canManageTeam: true, basePath: "/business/test/payments" });
 
 function call(handler: (request: Request, ctx: never) => Promise<Response>, path: string, params: Record<string, string>, body: unknown, method = "POST") {
   ip += 1;
@@ -84,7 +86,7 @@ beforeAll(async () => {
 
   const letters = "ABCDEFGHJKMNPQRSTUVWXYZ";
   prefix = Array.from(crypto.getRandomValues(new Uint8Array(3)), (b) => letters[b % letters.length]).join("");
-  await savePaymentSettings(orgId, { referencePrefix: prefix, bankName: "TEST Bank", accountName: MARK, accountNumberLast4: "0000", transferInstructions: "TEST — transit 00000, account TEST", kanooHandleOrPhone: "", cashNote: "TEST desk", defaultDueDays: 7 }, actor());
+  await savePaymentSettings(orgId, { referencePrefix: prefix, bankName: "TEST Bank", accountName: MARK, accountNumberLast4: "0000", transferInstructions: "TEST — transit 00000, account TEST", kanooHandleOrPhone: "", cashNote: "TEST desk", defaultDueDays: 7, acceptedMethods: ["bank_transfer", "cash"] }, actor());
 
   // A TEST class and a child registered on it, as the Futprep desk has them.
   const { data: program, error: programError } = await admin
@@ -343,5 +345,68 @@ describe("Admin -> Payments", () => {
     expect(mine.reduce((sum, r) => sum + r.recordedPaidCents, 0)).toBeGreaterThan(0);
     expect(mine.reduce((sum, r) => sum + r.otherRecordedCents, 0)).toBe(10000);
     expect(businesses.get(orgId)?.name).toContain("Pay Biz");
+  });
+});
+
+describe("Get paid (brief 18, E)", () => {
+  it("keeps the business's page and shop in step with how it says it gets paid", async () => {
+    const business = (await getBusiness(orgId))!;
+    expect(business.paymentMethods.sort()).toEqual(["bank_transfer", "cash"]);
+    // Only the last four digits have a field; the full number is only in the business's own words.
+    expect(business.bankTransferDetails).toMatchObject({ bank: "TEST Bank", accountNumber: "Ending 0000", instructions: "TEST — transit 00000, account TEST" });
+    const setup = await listPaymentSetup();
+    expect(setup.find((row) => row.organizationId === orgId)).toMatchObject({ problem: null, methods: ["bank_transfer", "cash"] });
+    // Bank details never leave with the list.
+    expect(JSON.stringify(setup)).not.toContain("transit 00000");
+  });
+
+  it("refuses a request from a business that hasn't said how it gets paid", async () => {
+    vi.mocked(paymentsApiAccess).mockResolvedValue({ ok: true, access: { ...access(), orgId: otherOrgId } });
+    const response = await call(createRoute, `/api/payments/orgs/${otherOrgId}/requests`, { id: String(otherOrgId) }, newRequest({ methods: ["cash"] }));
+    expect(response.status).toBe(409);
+    expect(((await response.json()) as { code: string }).code).toBe("NEEDS_GET_PAID");
+    const test = await call(testRequestRoute, `/api/payments/orgs/${otherOrgId}/test-request`, { id: String(otherOrgId) }, {});
+    expect(((await test.json()) as { code: string }).code).toBe("NEEDS_GET_PAID");
+    vi.mocked(paymentsApiAccess).mockResolvedValue({ ok: true, access: access() });
+  });
+
+  it("sends a TEST request to the owner's own email, and marking it paid records no money", async () => {
+    vi.mocked(sendEmail).mockClear();
+    const response = await call(testRequestRoute, `/api/payments/orgs/${orgId}/test-request`, { id: String(orgId) }, { email: "someone-else@test.portpass.local" });
+    expect(response.status).toBe(201);
+    const sent = (await response.json()) as { id: number; payUrl: string; email: string; emailed: boolean };
+    // The address comes from the session, never from the request.
+    expect(sent.email).toBe(`pay-owner-${tag}@test.portpass.local`);
+    expect(sent.emailed).toBe(true);
+    expect(vi.mocked(sendEmail).mock.calls).toHaveLength(1);
+    expect(vi.mocked(sendEmail).mock.calls[0][0].to).toBe(`pay-owner-${tag}@test.portpass.local`);
+
+    // Pressing again reuses the open one: no second request, no second email.
+    const again = (await (await call(testRequestRoute, `/api/payments/orgs/${orgId}/test-request`, { id: String(orgId) }, {})).json()) as { id: number };
+    expect(again.id).toBe(sent.id);
+    expect(vi.mocked(sendEmail).mock.calls).toHaveLength(1);
+
+    const found = (await getPaymentRequest(orgId, sent.id))!;
+    expect(found.request).toMatchObject({ isTest: true, status: "sent", totalCents: 100 });
+    expect(found.request.customerName).toMatch(/^TEST: /);
+    const view = (await getPublicPaymentRequest(sent.payUrl.split("/pay/")[1]))!;
+    expect(view.request.isTest).toBe(true);
+
+    // The database refuses real money against it, whatever asks.
+    await expect(recordRequestPayment(orgId, sent.id, { amountCents: 100, method: "cash", receivedAt: new Date().toISOString(), reference: "", note: "" }, actor())).rejects.toThrow();
+    const direct = await admin.from("payments").insert({ payment_request_id: sent.id, amount_cents: 100, method: "cash", status: "received", recorded_by: MARK });
+    expect(direct.error).not.toBeNull();
+
+    const before = await paymentVolumeReport();
+    const paid = await markPaid(sent.id, 100, "cash");
+    expect(paid.status).toBe(201);
+    expect((await paid.json()) as { test?: boolean; status?: string }).toMatchObject({ test: true, status: "paid" });
+    expect((await getPaymentRequest(orgId, sent.id))!.payments).toHaveLength(0);
+    const { count } = await admin.from("payments").select("id", { count: "exact", head: true }).eq("payment_request_id", sent.id);
+    expect(count).toBe(0);
+    // Nothing in Admin -> Payments moved.
+    const after = await paymentVolumeReport();
+    const total = (report: typeof before) => report.rows.filter((r) => r.organizationId === orgId).reduce((sum, r) => sum + r.requestsSent * 1_000_000 + r.recordedPaidCents + r.requestedCents, 0);
+    expect(total(after)).toBe(total(before));
   });
 });

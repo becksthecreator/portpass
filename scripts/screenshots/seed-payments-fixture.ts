@@ -66,6 +66,7 @@ async function main() {
   const { error: settingsError } = await db.from("organization_payment_settings").insert({
     organization_id: orgId,
     reference_prefix: "TKA",
+    accepted_methods: ["cash", "bank_transfer", "kanoo_wallet_manual"],
     bank_name: "TEST Bank of Nassau",
     account_name: "TEST Kickers Academy",
     account_number_last4: "0042",

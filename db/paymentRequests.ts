@@ -4,6 +4,9 @@ import { normalizePhoneE164 } from "@/lib/phone";
 import { privatePaymentStatus } from "@/lib/privateSessions";
 import type { MarkPaidInput, RequestInput, SettingsInput } from "@/lib/paymentRequests/input";
 import {
+  addDays,
+  getPaidProblem,
+  isRequestMethod,
   balanceCents,
   canEditRequest,
   canVoidRequest,
@@ -11,6 +14,7 @@ import {
   formatDay,
   futprepFeeLine,
   linkExpired,
+  methodsSetUp,
   paymentVolume,
   type HowToPay,
   type LineItem,
@@ -23,6 +27,7 @@ import {
   type VolumeRequest,
   type VolumeRow,
 } from "@/lib/paymentRequests/rules";
+import { nassauToday } from "@/lib/futprepTerms";
 import type { PaymentFrequency } from "./registrations";
 import { logAudit } from "./audit";
 import { findPersonByEmail } from "./accounts";
@@ -49,7 +54,7 @@ export type PaymentSettings = HowToPay & {
   updatedBy: string | null;
 };
 
-const SETTINGS_COLUMNS = "organization_id,reference_prefix,bank_name,account_name,account_number_last4,transfer_instructions,kanoo_handle_or_phone,cash_note,default_due_days,updated_at,updated_by";
+const SETTINGS_COLUMNS = "organization_id,reference_prefix,accepted_methods,bank_name,account_name,account_number_last4,transfer_instructions,kanoo_handle_or_phone,cash_note,default_due_days,updated_at,updated_by";
 
 function toSettings(row: Record<string, unknown>): PaymentSettings {
   return {
@@ -61,6 +66,7 @@ function toSettings(row: Record<string, unknown>): PaymentSettings {
     transferInstructions: (row.transfer_instructions as string) ?? "",
     kanooHandleOrPhone: (row.kanoo_handle_or_phone as string) ?? "",
     cashNote: (row.cash_note as string) ?? "",
+    acceptedMethods: Array.isArray(row.accepted_methods) ? (row.accepted_methods as unknown[]).filter(isRequestMethod) : [],
     defaultDueDays: Number(row.default_due_days ?? 7),
     updatedAt: row.updated_at as string,
     updatedBy: (row.updated_by as string | null) ?? null,
@@ -91,6 +97,7 @@ export async function savePaymentSettings(orgId: number, input: SettingsInput, a
         transfer_instructions: input.transferInstructions,
         kanoo_handle_or_phone: input.kanooHandleOrPhone,
         cash_note: input.cashNote,
+        accepted_methods: input.acceptedMethods,
         default_due_days: input.defaultDueDays,
         updated_at: new Date().toISOString(),
         updated_by: actor.name,
@@ -108,8 +115,20 @@ export async function savePaymentSettings(orgId: number, input: SettingsInput, a
       before.accountNumberLast4 !== settings.accountNumberLast4 ||
       before.transferInstructions !== settings.transferInstructions ||
       before.kanooHandleOrPhone !== settings.kanooHandleOrPhone);
+  // The business's page and its shop read the same answer (cash and bank
+  // transfer; the account's last four digits, the full number only inside
+  // the instructions the business wrote).
+  const accepted = settings.acceptedMethods ?? [];
+  const bank = accepted.includes("bank_transfer")
+    ? { bank: settings.bankName, accountName: settings.accountName, accountNumber: settings.accountNumberLast4 ? `Ending ${settings.accountNumberLast4}` : "See the notes below", branch: "", instructions: settings.transferInstructions }
+    : null;
+  const { error: syncError } = await getSupabaseAdmin()
+    .from("organizations")
+    .update({ payment_methods: accepted.filter((method) => method === "cash" || method === "bank_transfer"), bank_transfer_details: bank })
+    .eq("id", orgId);
+  throwIfSupabaseError(syncError, "Could not save how the business is paid");
   const loggable = (s: PaymentSettings | null) =>
-    s && { reference_prefix: s.referencePrefix, bank_name: s.bankName, account_name: s.accountName, account_number_last4: s.accountNumberLast4, kanoo_handle_or_phone: s.kanooHandleOrPhone, cash_note: s.cashNote, default_due_days: s.defaultDueDays };
+    s && { accepted_methods: s.acceptedMethods ?? [], reference_prefix: s.referencePrefix, bank_name: s.bankName, account_name: s.accountName, account_number_last4: s.accountNumberLast4, kanoo_handle_or_phone: s.kanooHandleOrPhone, cash_note: s.cashNote, default_due_days: s.defaultDueDays };
   await logAudit({
     actorUserId: actor.userId,
     organizationId: orgId,
@@ -139,6 +158,7 @@ export type PaymentRequest = ListedRequest & {
   lastRemindedVia: ReminderVia | null;
   reminderCount: number;
   customerSaysPaidNote: string | null;
+  isTest: boolean;
   createdByName: string;
   updatedAt: string;
   voidedAt: string | null;
@@ -160,7 +180,7 @@ export type RequestPayment = {
 };
 
 const REQUEST_COLUMNS =
-  "id,organization_id,reference_code,public_token,person_id,customer_name,customer_email,customer_phone,registration_id,private_session_request_id,reservation_id,offering_id,line_items,total_cents,due_date,allow_part_payment,methods_allowed,status,paid_cents,paid_at,sent_via,sent_at,last_reminded_at,last_reminded_via,reminder_count,customer_says_paid_at,customer_says_paid_note,created_by_name,created_at,updated_at,voided_at,voided_reason";
+  "id,organization_id,reference_code,public_token,is_test,person_id,customer_name,customer_email,customer_phone,registration_id,private_session_request_id,reservation_id,offering_id,line_items,total_cents,due_date,allow_part_payment,methods_allowed,status,paid_cents,paid_at,sent_via,sent_at,last_reminded_at,last_reminded_via,reminder_count,customer_says_paid_at,customer_says_paid_note,created_by_name,created_at,updated_at,voided_at,voided_reason";
 
 const PAYMENT_COLUMNS = "id,amount_cents,method,status,received_at,created_at,reference,note,recorded_by,receipt_number,refunded_at,refund_note";
 
@@ -205,6 +225,7 @@ function toRequest(row: Record<string, unknown>): PaymentRequest {
     reminderCount: Number(row.reminder_count ?? 0),
     customerSaysPaidAt: (row.customer_says_paid_at as string | null) ?? null,
     customerSaysPaidNote: (row.customer_says_paid_note as string | null) ?? null,
+    isTest: Boolean(row.is_test),
     createdByName: (row.created_by_name as string) ?? "",
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
@@ -287,7 +308,7 @@ async function personFor(orgId: number, input: RequestInput): Promise<number | n
   return null;
 }
 
-export async function createPaymentRequest(orgId: number, input: RequestInput, actor: Actor, defaultPrefix: string): Promise<PaymentRequest> {
+export async function createPaymentRequest(orgId: number, input: RequestInput, actor: Actor, defaultPrefix: string, options: { isTest?: boolean } = {}): Promise<PaymentRequest> {
   await assertLinksBelong(orgId, input);
   const personId = await personFor(orgId, input);
   const { data, error } = await getSupabaseAdmin().rpc("payment_request_create", {
@@ -310,11 +331,12 @@ export async function createPaymentRequest(orgId: number, input: RequestInput, a
       methods_allowed: input.methods,
       created_by: actor.userId,
       created_by_name: actor.name,
+      is_test: Boolean(options.isTest),
     },
   });
   rpcError(error, "Could not create the payment request");
   const request = toRequest(data as Record<string, unknown>);
-  await audit(orgId, actor, "created", request, { total_cents: request.totalCents, due_date: request.dueDate, lines: request.lines.length });
+  await audit(orgId, actor, "created", request, { total_cents: request.totalCents, due_date: request.dueDate, lines: request.lines.length, ...(request.isTest ? { test: true } : {}) });
   return request;
 }
 
@@ -592,6 +614,8 @@ export type PublicRequest = {
   methods: RequestMethod[];
   customerSaysPaidAt: string | null;
   expired: boolean;
+  // A TEST request the owner sent themselves: the page says so.
+  isTest: boolean;
 };
 
 export type PublicView = { request: PublicRequest; business: PublicBusiness; howToPay: HowToPay; payments: PublicPayment[] };
@@ -632,6 +656,7 @@ export async function getPublicPaymentRequest(token: string, now: Date = new Dat
       methods: request.methods,
       customerSaysPaidAt: request.customerSaysPaidAt,
       expired: linkExpired(request, now),
+      isTest: request.isTest,
     },
     business: {
       id: Number(org!.id),
@@ -643,7 +668,7 @@ export async function getPublicPaymentRequest(token: string, now: Date = new Dat
       phoneE164: (org!.phone_e164 as string | null) ?? null,
       publicEmail: (org!.public_email as string | null) ?? null,
     },
-    howToPay: settings ?? { bankName: "", accountName: "", accountNumberLast4: null, transferInstructions: "", kanooHandleOrPhone: "", cashNote: "" },
+    howToPay: settings ?? { bankName: "", accountName: "", accountNumberLast4: null, transferInstructions: "", kanooHandleOrPhone: "", cashNote: "", acceptedMethods: [] },
     payments: (payments ?? []).map((row) => {
       const p = toPayment(row);
       return { receiptNumber: p.receiptNumber, amountCents: p.amountCents, method: p.method, receivedAt: p.receivedAt, status: p.status };
@@ -787,7 +812,7 @@ export async function searchCustomers(orgId: number, q: string): Promise<Custome
   const like = `%${term}%`;
   const or = (name: string, email: string, phone: string) => `${name}.ilike.${like},${email}.ilike.${like},${phone}.ilike.${like}`;
   const [requests, registrations, sessions, reservations] = await Promise.all([
-    db.from("payment_requests").select("customer_name,customer_email,customer_phone").eq("organization_id", orgId).or(or("customer_name", "customer_email", "customer_phone")).order("id", { ascending: false }).limit(10),
+    db.from("payment_requests").select("customer_name,customer_email,customer_phone").eq("organization_id", orgId).eq("is_test", false).or(or("customer_name", "customer_email", "customer_phone")).order("id", { ascending: false }).limit(10),
     db.from("registrations").select("parent_name,parent_email,parent_phone").eq("organization_id", orgId).or(or("parent_name", "parent_email", "parent_phone")).order("id", { ascending: false }).limit(10),
     db.from("private_session_requests").select("parent_name,parent_email,parent_phone").eq("organization_id", orgId).or(or("parent_name", "parent_email", "parent_phone")).order("id", { ascending: false }).limit(10),
     db.from("reservations").select("buyer_name,buyer_email,buyer_phone").eq("organization_id", orgId).or(or("buyer_name", "buyer_email", "buyer_phone")).order("id", { ascending: false }).limit(10),
@@ -860,7 +885,7 @@ export type VolumeReport = { rows: VolumeRow[]; businesses: Map<number, { name: 
 export async function paymentVolumeReport(): Promise<VolumeReport> {
   const db = getSupabaseAdmin();
   const [requests, payments, registrations, sessions, orgs] = await Promise.all([
-    pageAll<Record<string, unknown>>((from, to) => db.from("payment_requests").select("id,organization_id,sent_at,total_cents,paid_cents,status").order("id").range(from, to), "Could not load payment requests"),
+    pageAll<Record<string, unknown>>((from, to) => db.from("payment_requests").select("id,organization_id,sent_at,total_cents,paid_cents,status").eq("is_test", false).order("id").range(from, to), "Could not load payment requests"),
     pageAll<Record<string, unknown>>((from, to) => db.from("payments").select("id,amount_cents,received_at,created_at,status,payment_request_id,registration_id,private_session_request_id").eq("status", "received").order("id").range(from, to), "Could not load payments"),
     pageAll<Record<string, unknown>>((from, to) => db.from("registrations").select("id,organization_id").order("id").range(from, to), "Could not load registrations"),
     pageAll<Record<string, unknown>>((from, to) => db.from("private_session_requests").select("id,organization_id").order("id").range(from, to), "Could not load private sessions"),
@@ -887,4 +912,72 @@ export async function paymentVolumeReport(): Promise<VolumeReport> {
     rows: paymentVolume(volumeRequests, volumePayments),
     businesses: new Map(orgs.map((o): [number, { name: string; slug: string | null }] => [Number(o.id), { name: o.name as string, slug: (o.slug as string | null) ?? null }])),
   };
+}
+
+// ---- the TEST request (brief 18, E3) ---------------------------------------------------
+
+// One request the owner sends to their own email, to see the customer's
+// page and mark it paid once. It is never money: it is flagged, the
+// database refuses any payment row against it, and every total leaves it
+// out. An open one is reused rather than making another.
+export async function createTestRequest(orgId: number, to: { name: string; email: string }, actor: Actor, defaultPrefix: string): Promise<PaymentRequest> {
+  const settings = await getPaymentSettings(orgId);
+  if (getPaidProblem(settings)) throw new Error("NEEDS_GET_PAID");
+  const db = getSupabaseAdmin();
+  const { data: open, error } = await db.from("payment_requests").select(REQUEST_COLUMNS).eq("organization_id", orgId).eq("is_test", true).in("status", ["draft", "sent"]).order("id", { ascending: false }).limit(1).maybeSingle();
+  throwIfSupabaseError(error, "Could not look for a test request");
+  if (open) return toRequest(open);
+  const methods = methodsSetUp(settings);
+  return createPaymentRequest(
+    orgId,
+    {
+      customerName: `TEST: ${to.name}`.slice(0, 120),
+      customerEmail: to.email,
+      customerPhone: null,
+      personId: null,
+      lines: [{ label: "TEST request: nothing to pay", qty: 1, unitCents: 100 }],
+      totalCents: 100,
+      dueDate: addDays(nassauToday(), settings?.defaultDueDays ?? 7),
+      allowPartPayment: false,
+      methods,
+      offeringId: null,
+      registrationId: null,
+      privateSessionRequestId: null,
+      reservationId: null,
+    },
+    actor,
+    settings?.referencePrefix ?? defaultPrefix,
+    { isTest: true },
+  );
+}
+
+// "Mark paid" on a TEST request: it shows as paid and nothing else happens.
+export async function completeTestRequest(orgId: number, id: number, actor: Actor): Promise<PaymentRequest> {
+  const { data, error } = await getSupabaseAdmin().rpc("payment_request_complete_test", { p_org: orgId, p_id: id });
+  rpcError(error, "Could not finish the test request");
+  const request = toRequest(data as Record<string, unknown>);
+  await audit(orgId, actor, "test_completed", request, { test: true });
+  return request;
+}
+
+// ---- Admin -> Payments: who can be paid (brief 18, E5) -----------------------------------
+
+export type PaymentSetupRow = { organizationId: number; name: string; slug: string | null; status: string; isPublished: boolean; methods: RequestMethod[]; problem: string | null };
+
+// Every business that is live or on its way (not a draft nobody has
+// submitted, unless it already has payment details), with whether it has
+// said how it gets paid. Names of methods only: never the bank details.
+export async function listPaymentSetup(): Promise<PaymentSetupRow[]> {
+  const db = getSupabaseAdmin();
+  const [orgs, settings] = await Promise.all([
+    pageAll<Record<string, unknown>>((from, to) => db.from("organizations").select("id,name,slug,status,is_published").order("name").range(from, to), "Could not load businesses"),
+    pageAll<Record<string, unknown>>((from, to) => db.from("organization_payment_settings").select(SETTINGS_COLUMNS).order("organization_id").range(from, to), "Could not load payment settings"),
+  ]);
+  const byOrg = new Map(settings.map((row) => [Number(row.organization_id), toSettings(row)]));
+  return orgs
+    .map((org) => {
+      const s = byOrg.get(Number(org.id)) ?? null;
+      return { organizationId: Number(org.id), name: String(org.name), slug: (org.slug as string | null) ?? null, status: String(org.status ?? ""), isPublished: Boolean(org.is_published), methods: methodsSetUp(s), problem: getPaidProblem(s) };
+    })
+    .filter((row) => row.status !== "draft" || row.problem === null);
 }

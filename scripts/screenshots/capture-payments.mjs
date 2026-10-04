@@ -91,6 +91,16 @@ try {
   await shoot(page, "brief17-request-check-375", `${base}/${fixture.says.id}`);
   await shoot(page, "brief17-chase-375", `${base}/chase`);
   await shoot(page, "brief17-settings-375", `${base}/settings`);
+  // Brief 18, part E: the Get paid step in the business's setup, and the
+  // test request the owner sends themselves.
+  await shoot(page, "brief18-get-paid-step-375", `/business/${fixture.slug}/settings?step=5`, { focus: ".preq-methods" });
+  await shoot(page, "brief18-test-request-375", `${base}/settings`, {
+    focus: ".preq-test",
+    before: async (p) => {
+      await p.getByRole("button", { name: "Send yourself a test request" }).click();
+      await p.waitForTimeout(1500);
+    },
+  });
   await context.close();
 } finally {
   await browser.close();

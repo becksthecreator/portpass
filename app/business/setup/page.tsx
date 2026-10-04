@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { findDraftForUser, listBusinessImages, listBusinessOfferings, listInvites, listTeam } from "@/db/business";
+import { getPaymentSettings } from "@/db/paymentRequests";
 import { getSectionWithSubcategories, listSections } from "@/db/categories";
 import { requireSignedIn } from "@/lib/auth/guards";
 import { createAuthClient } from "@/lib/auth/server";
@@ -24,7 +25,8 @@ export default async function BusinessSetupPage() {
   const draft = await findDraftForUser(session.userId);
 
   if (draft) {
-    const [images, offerings, invites, team, section] = await Promise.all([
+    const [paymentSettings, images, offerings, invites, team, section] = await Promise.all([
+      getPaymentSettings(draft.id).catch(() => null),
       listBusinessImages(draft.id),
       listBusinessOfferings(draft.id),
       listInvites(draft.id),
@@ -35,7 +37,7 @@ export default async function BusinessSetupPage() {
     return (
       <main className="form-page auth-page theme-night">
         <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }, { label: "Set up", href: "/business/setup" }]} />
-        <SetupWizard mode="setup" business={draft} images={images} offerings={offerings} invites={invites} team={team} section={section} role={role} initialStep={1} />
+        <SetupWizard mode="setup" business={draft} images={images} offerings={offerings} invites={invites} team={team} section={section} role={role} initialStep={1} paymentSettings={paymentSettings} />
         <SiteFooter />
       </main>
     );

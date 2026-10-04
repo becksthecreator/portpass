@@ -84,13 +84,31 @@ describe("mark paid", () => {
 
 describe("how customers pay", () => {
   it("keeps only the last four digits of an account number in its own field", () => {
-    const ok = parseSettingsInput({ referencePrefix: "fp", accountNumberLast4: "12 34", bankName: "TEST Bank", defaultDueDays: 14 });
-    expect(ok.ok && ok.value).toMatchObject({ referencePrefix: "FP", accountNumberLast4: "1234", defaultDueDays: 14 });
+    const ok = parseSettingsInput({ referencePrefix: "fp", accountNumberLast4: "12 34", bankName: "TEST Bank", accountName: "TEST Kickers", defaultDueDays: 14, acceptedMethods: ["bank_transfer", "cash"] });
+    expect(ok.ok && ok.value).toMatchObject({ referencePrefix: "FP", accountNumberLast4: "1234", defaultDueDays: 14, acceptedMethods: ["bank_transfer", "cash"] });
     const full = parseSettingsInput({ referencePrefix: "FP", accountNumberLast4: "000123456789" });
     expect(full.ok ? null : full.error).toBe("LAST4_ONLY");
     expect(paymentErrorMessage("LAST4_ONLY")).toContain("last four");
     const prefix = parseSettingsInput({ referencePrefix: "F" });
     expect(prefix.ok ? null : prefix.error).toBe("BAD_PREFIX");
+  });
+
+  it("needs at least one real method, each with its details, and never a card", () => {
+    const err = (body: Record<string, unknown>) => {
+      const parsed = parseSettingsInput({ referencePrefix: "FP", ...body });
+      return parsed.ok ? null : parsed.error;
+    };
+    expect(err({})).toBe("NEEDS_GET_PAID_METHOD");
+    expect(err({ acceptedMethods: [] })).toBe("NEEDS_GET_PAID_METHOD");
+    expect(err({ acceptedMethods: ["cash"] })).toBeNull();
+    expect(err({ acceptedMethods: ["card"] })).toBe("METHOD_NOT_AVAILABLE");
+    expect(err({ acceptedMethods: ["cash", "kanoo_link"] })).toBe("METHOD_NOT_AVAILABLE");
+    expect(paymentErrorMessage("METHOD_NOT_AVAILABLE")).toMatch(/Card payments are coming/);
+    expect(err({ acceptedMethods: ["bank_transfer"], bankName: "TEST Bank" })).toBe("BANK_NEEDS_DETAILS");
+    expect(err({ acceptedMethods: ["bank_transfer"], bankName: "TEST Bank", accountName: "TEST", accountNumberLast4: "0042" })).toBeNull();
+    expect(err({ acceptedMethods: ["bank_transfer"], bankName: "TEST Bank", accountName: "TEST", transferInstructions: "TEST transit 00000" })).toBeNull();
+    expect(err({ acceptedMethods: ["kanoo_wallet_manual"] })).toBe("KANOO_NEEDS_HANDLE");
+    expect(err({ acceptedMethods: ["kanoo_wallet_manual"], kanooHandleOrPhone: "242 555 0100" })).toBeNull();
   });
 });
 

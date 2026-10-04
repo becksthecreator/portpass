@@ -21,6 +21,9 @@ export type PaymentsAccess = {
   orgSlug: string | null;
   door: "business" | "futprep_staff";
   actor: Actor;
+  // The signed-in person's own account email (a PIN login has none): the
+  // only address a TEST request is ever sent to.
+  actorEmail: string | null;
   // Where customers send money: the owner (or a platform owner), or
   // Futprep's admin and CEO logins.
   canEditSettings: boolean;
@@ -46,6 +49,7 @@ function businessAccess(access: OrgAccess): PaymentsAccess {
     orgSlug: access.org.slug,
     door: "business",
     actor: { userId: access.session.userId, name: access.session.profile?.fullName?.trim() || access.session.email || "Team member" },
+    actorEmail: access.session.email,
     canEditSettings: owner,
     canManageTeam: owner,
     basePath: `/business/${access.org.slug}/payments`,
@@ -62,6 +66,7 @@ async function futprepAccess(role: string): Promise<PaymentsAccess | null> {
     orgSlug: org.slug,
     door: "futprep_staff",
     actor: { userId: null, name },
+    actorEmail: null,
     canEditSettings: true,
     canManageTeam: false,
     basePath: "/futprep/staff/payments",

@@ -72,7 +72,7 @@ export async function listAccountBookings(email: string | null): Promise<Account
     db.from("private_session_requests").select("reference_code,organization_id,child_name,requested_date,status,created_at").ilike("parent_email", match).order("created_at", { ascending: false }).limit(LIMIT),
     db.from("reservations").select("reference_code,receipt_token,organization_id,total_cents,status,created_at").ilike("buyer_email", match).order("created_at", { ascending: false }).limit(LIMIT),
     db.from("wedding_leads").select("public_token,status,preferred_wedding_date,created_at").ilike("email", match).order("created_at", { ascending: false }).limit(LIMIT),
-    db.from("payment_requests").select("reference_code,public_token,organization_id,total_cents,paid_cents,status,due_date,created_at").ilike("customer_email", match).not("status", "in", "(draft,void)").order("created_at", { ascending: false }).limit(LIMIT),
+    db.from("payment_requests").select("reference_code,public_token,organization_id,total_cents,paid_cents,status,due_date,created_at").ilike("customer_email", match).eq("is_test", false).not("status", "in", "(draft,void)").order("created_at", { ascending: false }).limit(LIMIT),
   ]);
   throwIfSupabaseError(registrations.error, "Could not load your registrations");
   throwIfSupabaseError(sessions.error, "Could not load your private sessions");

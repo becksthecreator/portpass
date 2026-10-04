@@ -68,7 +68,7 @@ export function RequestsBoard({ rows, basePath, apiBase, today, initialFilter }:
               <li key={r.id}>
                 <Link className={`preq-row${status === "overdue" ? " is-overdue" : ""}`} href={`${basePath}/${r.id}`}>
                   <span className="preq-row-main">
-                    <span className="preq-ref">{r.referenceCode}</span>
+                    <span className="preq-ref">{r.referenceCode}{r.isTest ? " · TEST" : ""}</span>
                     <strong>{r.customerName}</strong>
                     <span>{linesSummary(r.lines)}</span>
                   </span>
