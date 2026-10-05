@@ -1,0 +1,106 @@
+name: Phase 1 end-to-end run (TEST data)
+
+# Brief 19, part B: the run in docs/qa/phase1-run.md, played by a script at
+# 375px so it can be repeated before every release. A business owner signs
+# up, sets up and submits a page; a founder approves it; a stranger finds
+# it, asks to book, and pays; a child is registered and marked present; the
+# customer makes an account and finds both; the demo and /own are walked
+# through, /own with the signal off and back on; and every row is deleted.
+#
+# It runs the app on localhost against a throwaway local Supabase stack. No
+# real database, no real inbox: an email to a test address is recorded and
+# never sent. What needs a real phone, a real inbox or a Google account is
+# listed in the document for a person to do. Not a required check.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/e2e/phase1-run.mjs"
+      - ".github/workflows/phase1-run.yml"
+      - "docs/qa/phase1-run.md"
+
+concurrency:
+  group: phase1-run-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Let a new email sign up in this job
+        # The other jobs seed their accounts; this one signs up for real, so
+        # the local sign-in service must accept a new address.
+        run: |
+          sed -i '/^\[auth\.email\]/,/^\[/ s/^enable_signup = false/enable_signup = true/' supabase/config.toml
+          sed -n '/^\[auth\.email\]/,/^$/p' supabase/config.toml
+      - name: Start local Supabase
+        run: |
+          supabase start || {
+            echo "The default image registry refused the pull; trying ghcr.io."
+            supabase stop --no-backup || true
+            SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io supabase start
+          }
+      - name: Export local Supabase credentials
+        run: |
+          supabase status -o env > supabase-status.env
+          API_URL=$(grep -E '^(API_URL|SUPABASE_URL)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          SERVICE_ROLE_KEY=$(grep -E '^(SERVICE_ROLE_KEY|SUPABASE_SERVICE_ROLE_KEY|SECRET_KEY|SUPABASE_SECRET_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          ANON_KEY=$(grep -E '^(ANON_KEY|SUPABASE_ANON_KEY|PUBLISHABLE_KEY|SUPABASE_PUBLISHABLE_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          MAIL_URL=$(grep -E '^(INBUCKET_URL|MAILPIT_URL)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          if [ -n "$MAIL_URL" ]; then echo "LOCAL_MAIL_URL=$MAIL_URL" >> "$GITHUB_ENV"; fi
+          # The TEST founder (local stack only).
+          echo "PLATFORM_OWNER_EMAILS=test-delete-founder@test.portpass.local" >> "$GITHUB_ENV"
+      - name: Seed test data
+        run: npx tsx scripts/seed-test-data.ts
+      - name: Build
+        # One retry: next/font's Google Fonts fetch occasionally fails in CI
+        # (a known upstream flake, see ci.yml).
+        run: npx next build --webpack || npx next build --webpack
+      - name: Start the app on localhost
+        run: |
+          npx next start -p 3000 > next.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/login > /dev/null && break; sleep 2; done
+          curl -sf http://localhost:3000/login > /dev/null
+      - name: Install Playwright (Chromium)
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: The run
+        # bash with pipefail, so a failed step fails the job through tee.
+        shell: bash
+        run: node scripts/e2e/phase1-run.mjs | tee phase1-run-log.txt
+      - name: Result
+        if: always()
+        run: |
+          if [ -f phase1-run-result.md ]; then cat phase1-run-result.md >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Server log on failure
+        if: failure()
+        run: tail -n 150 next.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase1-run
+          path: |
+            screenshots/
+            phase1-run-result.md
+            phase1-run-log.txt
+          if-no-files-found: warn
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop
