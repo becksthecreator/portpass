@@ -17,6 +17,8 @@ on:
       - "app/futprep/staff/**"
       - "app/admin/leads/**"
       - "app/admin/businesses/**"
+      - "app/admin/phase1/**"
+      - "lib/phase1.ts"
       - "app/admin/people/**"
       - "app/admin/bookings/**"
       - "app/admin/payments/**"
