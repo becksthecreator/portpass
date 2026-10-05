@@ -23,8 +23,10 @@ export async function POST(request: Request, ctx: Ctx) {
 
   try {
     const result = await cancelBookingByCustomer(token);
-    if (result.outcome === "not_found") return NextResponse.json({ error: "This link isn't valid." }, { status: 404 });
-    if (result.outcome === "closed") return NextResponse.json({ error: "This request has already been answered, so it can't be cancelled here. Contact the business." }, { status: 409 });
+    if (result.outcome !== "cancelled") {
+      if (result.outcome === "not_found") return NextResponse.json({ error: "This link isn't valid." }, { status: 404 });
+      return NextResponse.json({ error: "This request has already been answered, so it can't be cancelled here. Contact the business." }, { status: 409 });
+    }
     const { booking } = result;
     const origin = new URL(request.url).origin;
     afterResponse(async () => {
