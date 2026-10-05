@@ -145,7 +145,7 @@ export function phase1Checks(facts: Phase1Facts, now: Date): Phase1Check[] {
       checks.push({
         key: `business_${business.organizationId}`,
         group: "Businesses",
-        label: `${business.name}: nothing missing from its page`,
+        label: `${business.name}: page complete`,
         ok: missing.length === 0,
         detail: missing.length === 0 ? `All ${business.items.length} items are in place.` : `${count(missing.length, "item", "items")} missing:`,
         href: `/business/${business.slug}`,
