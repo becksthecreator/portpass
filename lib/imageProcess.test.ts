@@ -18,7 +18,7 @@ vi.mock("heic-decode", () => ({
 
 import { processUpload } from "./imageProcess";
 
-const noise = (width: number, height: number) => sharp({ create: { width, height, channels: 3, noise: { type: "gaussian", mean: 128, sigma: 60 } } });
+const noise = (width: number, height: number) => sharp({ create: { width, height, channels: 3, background: { r: 128, g: 128, b: 128 }, noise: { type: "gaussian", mean: 128, sigma: 60 } } });
 
 describe("processUpload", () => {
   it("resizes a 10 MB phone photo to a web-sized JPEG", async () => {

@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 
-const noise = (width: number, height: number, sigma: number) => sharp({ create: { width, height, channels: 3, noise: { type: "gaussian", mean: 128, sigma } } });
+const noise = (width: number, height: number, sigma: number) => sharp({ create: { width, height, channels: 3, background: { r: 128, g: 128, b: 128 }, noise: { type: "gaussian", mean: 128, sigma } } });
 
 async function main() {
   const url = process.env.SUPABASE_URL;
