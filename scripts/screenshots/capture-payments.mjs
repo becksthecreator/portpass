@@ -10,6 +10,10 @@ import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright";
 
 const BASE = process.env.SCREENSHOT_BASE_URL ?? "http://localhost:3000";
+// A secret key issues the sign-in codes here, so this only ever runs
+// against a local Supabase stack and the app on localhost.
+if (!process.env.SUPABASE_URL?.includes("127.0.0.1") && !process.env.SUPABASE_URL?.includes("localhost")) throw new Error("Refusing to sign in to anything but a local Supabase stack.");
+if (!["localhost", "127.0.0.1"].includes(new URL(BASE).hostname)) throw new Error("Refusing to run against anything but the app on localhost.");
 const fixture = JSON.parse(readFileSync(process.env.SCREENSHOT_FIXTURE, "utf8"));
 mkdirSync("screenshots", { recursive: true });
 
