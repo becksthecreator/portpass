@@ -1,0 +1,13 @@
+/* Futprep's registration form, readable to WCAG AA (brief 19, part C).
+   Lighthouse found three places where Futprep's pink and teal carried
+   text that was too faint: 3.3:1, 4.1:1 and 2.5:1 against the 4.5:1 that
+   small text needs. The pink and the teal stay; what changes is the shade
+   of the text in the first two and the colour of the words on the button.
+   Its own file, imported by this page only. */
+/* Pink words on the pale-teal pill: a deeper pink, 5.4:1. */
+.futprep-theme.registration-page .registration-intro .eyebrow{color:#b80f43}
+/* White step numbers on pink: a deeper pink behind them, 5.4:1. */
+.futprep-theme.registration-page .registration-form legend>span{background:#d11149}
+/* The teal button: navy words on it, 6.8:1 (white was 2.5:1). */
+.futprep-theme.registration-page .primary-button{color:#0d1b3d}
+.futprep-theme.registration-page .primary-button:hover{background:#d11149;color:#fff}

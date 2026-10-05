@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { Suspense } from "react";
 import { RegistrationForm, type JoinQuote } from "./RegistrationForm";
+import "./contrast.css";
 import { futprepOrganization } from "@/db/growth";
 import { memberEarlyAccess } from "@/db/memberPerks";
 import { getFutprepOffer, listFutprepOffers, trialJoinQuote, type FutprepAvailability } from "@/db/registrations";

@@ -22,7 +22,11 @@ export function FeatureCard({
   actionHref,
   actionLabel,
   wide,
+  priority = false,
 }: {
+  // The first card on the page: its photo is the page's largest paint, so
+  // it is fetched straight away instead of when it scrolls into view.
+  priority?: boolean;
   // null when the business has no photo it's allowed to show yet (see
   // withPhotoConsent in db/organizations.ts): the logo tile takes the slot
   // rather than a stock image of someone else's business.
@@ -48,10 +52,10 @@ export function FeatureCard({
         isOptimisableSrc(photoUrl) ? (
           // Resized and served as AVIF/WebP (speed brief, 29 Sept, 1.5); the
           // class keeps the 220px crop, so nothing moves.
-          <Image className="feature-card-photo" src={photoUrl} alt={photoAlt} width={1200} height={wide ? 380 : 220} sizes={wide ? "(max-width: 1200px) 100vw, 1200px" : "(max-width: 760px) 100vw, 50vw"} loading="lazy" />
+          <Image className="feature-card-photo" src={photoUrl} alt={photoAlt} width={1200} height={wide ? 380 : 220} sizes={wide ? "(max-width: 1200px) 100vw, 1200px" : "(max-width: 760px) 100vw, 50vw"} priority={priority} loading={priority ? undefined : "lazy"} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element -- a host next/image is not configured for
-          <img className="feature-card-photo" src={photoUrl} alt={photoAlt} loading="lazy" />
+          <img className="feature-card-photo" src={photoUrl} alt={photoAlt} width={1200} height={wide ? 380 : 220} loading={priority ? "eager" : "lazy"} decoding="async" />
         )
       ) : (
         <div className="feature-card-photo feature-card-photo-tile" aria-hidden="true">
