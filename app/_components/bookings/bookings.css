@@ -71,3 +71,5 @@
   .bkg-form fieldset{padding:16px 14px}
   .bkg-two{grid-template-columns:1fr}
 }
+/* On the Night theme the accent is a light blue: navy text on it, not white. */
+.theme-night .bkg-tabs a span,.theme-night .chooser-card .bkg-home-count{color:#0D1B3D}
