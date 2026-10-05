@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { retryClockSkewFetch } from "@/lib/supabaseRetryFetch";
 
 let adminClient: SupabaseClient | null = null;
 
@@ -21,6 +22,9 @@ export function getSupabaseAdmin() {
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
+    // One more go for a read refused with PGRST303; writes are never
+    // repeated. See lib/supabaseRetryFetch.ts.
+    global: { fetch: retryClockSkewFetch() },
   });
 
   return adminClient;
@@ -52,6 +56,12 @@ export function throwIfSupabaseError(
 // (a real query, permission, or schema error) is not retry-worthy and
 // rethrows immediately -- retrying a genuine bug doesn't fix it, it just
 // delays reporting it by a second.
+//
+// For PGRST303 this is the second line of defence. Inside a page render a
+// repeated GET is answered from the render's fetch memo, so until the
+// client's own fetch began retrying (lib/supabaseRetryFetch.ts) the second
+// call here never reached Supabase. It still earns its place for network
+// failures, and gives a refused read one further real attempt.
 export async function withOneRetry<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
