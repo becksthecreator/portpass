@@ -1,12 +1,24 @@
 name: Lighthouse (production)
 
-# Speed brief, 29 Sept (1.7): a performance floor on the pages that matter,
-# measured against production after each deploy. Previews are SSO-gated so
+# Speed brief, 29 Sept (1.7): a floor on the pages that matter, measured
+# against production after each deploy. Previews are SSO-gated so
 # Lighthouse cannot load them; production is what visitors get anyway.
+#
+# Brief 19, part C: the nine pages a stranger meets, each to a number
+# (lighthouserc.json): Performance 85, Accessibility 95, Best Practices 95,
+# SEO 95. Five of them are deliberately kept out of search (the sign-up
+# and registration forms, /demo, /own and a customer's /pay page), and
+# Lighthouse's SEO score marks a page down for exactly that, so their SEO
+# number is reported and not enforced: see lighthouserc.noindex.json.
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      pay_token:
+        description: "The token of a /pay/<token> page to audit (use a demo request's; it changes when the demo resets)"
+        required: false
+        type: string
   schedule:
     - cron: "0 11 * * 1" # Mondays 07:00 Nassau
 
@@ -18,13 +30,41 @@ jobs:
       - name: Wait for the production deploy to settle
         if: github.event_name == 'push'
         run: sleep 300
-      - name: Lighthouse (mobile) on /, /sports-fitness, /pricing
+      - name: Lighthouse (mobile) on the pages that are in search
         uses: treosh/lighthouse-ci-action@v12
         with:
           urls: |
             https://portpassbahamas.com/
             https://portpassbahamas.com/sports-fitness
+            https://portpassbahamas.com/sports-fitness/futprep-athletics
+            https://portpassbahamas.com/business
             https://portpassbahamas.com/pricing
           configPath: ./lighthouserc.json
           uploadArtifacts: true
+          artifactName: lighthouse-indexed
+          temporaryPublicStorage: false
+      - name: The pages kept out of search
+        id: noindex
+        if: always()
+        env:
+          PAY_TOKEN: ${{ inputs.pay_token }}
+        run: |
+          {
+            echo "urls<<PAGES"
+            echo "https://portpassbahamas.com/futprep/register"
+            echo "https://portpassbahamas.com/signup"
+            echo "https://portpassbahamas.com/demo"
+            echo "https://portpassbahamas.com/own"
+            # Only a well-formed token is ever put in an address.
+            if printf '%s' "$PAY_TOKEN" | grep -Eq '^[a-f0-9]{40}$'; then echo "https://portpassbahamas.com/pay/$PAY_TOKEN"; fi
+            echo "PAGES"
+          } >> "$GITHUB_OUTPUT"
+      - name: Lighthouse (mobile) on the pages kept out of search
+        if: always()
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: ${{ steps.noindex.outputs.urls }}
+          configPath: ./lighthouserc.noindex.json
+          uploadArtifacts: true
+          artifactName: lighthouse-noindex
           temporaryPublicStorage: false
