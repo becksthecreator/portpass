@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import { isOptimisableSrc } from "@/lib/images";
 import type { Offering } from "@/db/organizations";
 import { OFFERING_ACTION_LABEL, formatAgeRange, formatPrice } from "./format";
 
@@ -23,7 +25,13 @@ export function OfferingsBlock({ offerings, bookHref }: { offerings: Offering[];
         return (
           <div className={`tpl-offering-card${offering.isFeatured ? " tpl-offering-featured" : ""}`} key={offering.id}>
             {offering.isFeatured && <span className="tpl-offering-badge">Most chosen</span>}
-            {offering.imageUrl && <img className="tpl-offering-image" src={offering.imageUrl} alt={imageAlt} loading="lazy" />}
+            {offering.imageUrl &&
+              (isOptimisableSrc(offering.imageUrl) ? (
+                <Image className="tpl-offering-image" src={offering.imageUrl} alt={imageAlt} width={640} height={300} sizes="(max-width: 760px) 100vw, 380px" />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element -- a host next/image is not configured for
+                <img className="tpl-offering-image" src={offering.imageUrl} alt={imageAlt} width={640} height={300} loading="lazy" decoding="async" />
+              ))}
             <h2>{offering.name}</h2>
             {offering.summary && <p className="tpl-offering-summary">{offering.summary}</p>}
             <p className="tpl-offering-price">{formatPrice(offering.priceCents as number, offering.priceUnit)}</p>

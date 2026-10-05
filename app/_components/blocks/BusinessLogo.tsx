@@ -1,4 +1,10 @@
+import Image from "next/image";
 import { suggestForWhiteText } from "@/lib/color";
+import { isOptimisableSrc } from "@/lib/images";
+
+// The box each size is drawn in (the CSS sets the same); "lg" is also
+// stretched to 160px wide on a coming-soon card.
+const LOGO_PX = { sm: 32, md: 44, lg: 160 } as const;
 
 // A business's logo, or a wordmark tile at the same dimensions until one
 // exists: the name set in Fraunces on a tile tinted with that business's
@@ -25,7 +31,11 @@ export function BusinessLogo({
   initialsOnly?: boolean;
 }) {
   if (logoUrl) {
-    return <img className={`biz-logo biz-logo-${size}`} src={logoUrl} alt={`${name} logo`} loading="lazy" />;
+    // Its box is known before it loads, so nothing moves; a logo from our
+    // own files or storage is resized to the box and served as AVIF/WebP.
+    const px = LOGO_PX[size];
+    if (isOptimisableSrc(logoUrl) && !/\.svg(\?|$)/i.test(logoUrl)) return <Image className={`biz-logo biz-logo-${size}`} src={logoUrl} alt={`${name} logo`} width={px} height={px} />;
+    return <img className={`biz-logo biz-logo-${size}`} src={logoUrl} alt={`${name} logo`} width={px} height={px} loading="lazy" decoding="async" />;
   }
   const label = initialsOnly ? initialsOf(name) : name;
   return (

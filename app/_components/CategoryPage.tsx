@@ -201,7 +201,7 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
 
       {liveCount > 0 && cardCount > 0 && (
         <div className={`feature-card-grid${cardCount === 1 ? " feature-card-grid-solo" : ""}`}>
-          {listings.map(({ organization: org, offerings }) => {
+          {listings.map(({ organization: org, offerings }, cardIndex) => {
             const cheapest = offerings
               .filter((offering) => offering.priceCents !== null)
               .sort((a, b) => (a.priceCents as number) - (b.priceCents as number))[0];
@@ -227,6 +227,7 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
                 actionHref={directoryHref(org.slug, org.primaryCategory)}
                 actionLabel={`Explore ${org.name} →`}
                 wide={cardCount === 1}
+                priority={cardIndex === 0}
               />
             );
           })}

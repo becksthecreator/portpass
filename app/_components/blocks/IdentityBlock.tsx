@@ -1,3 +1,7 @@
+import Image from "next/image";
+import { isOptimisableSrc } from "@/lib/images";
+import "./identity.css";
+
 // Block 1 of 8 -- always renders. Name, category, location, open/closed.
 // See claude/PortPass_Site_Architecture.md for the full block system.
 //
@@ -7,6 +11,17 @@
 // --paper, so it never sits ON the photo -- for a business whose photo is
 // bright throughout (a beach ceremony) where an overlay would fight the
 // image instead of reading cleanly.
+// The hero photo is the page's largest paint, so it is a real image the
+// browser finds in the HTML, preloaded and served as AVIF or WebP at the
+// width of the screen (brief 19, part C). It used to be a CSS background:
+// the full-size original, found late. A photo on a host next/image isn't
+// set up for is still a plain image, fetched first.
+function HeroPhoto({ src, sizes }: { src: string; sizes: string }) {
+  if (isOptimisableSrc(src)) return <Image className="tpl-identity-img" src={src} alt="" fill priority sizes={sizes} />;
+  // eslint-disable-next-line @next/next/no-img-element -- a host next/image is not configured for
+  return <img className="tpl-identity-img" src={src} alt="" fetchPriority="high" decoding="async" />;
+}
+
 export function IdentityBlock({
   name,
   category,
@@ -37,7 +52,7 @@ export function IdentityBlock({
   if (layout === "split" && heroImageUrl) {
     return (
       <section className="tpl-identity tpl-identity-split">
-        <div className="tpl-identity-split-image" style={{ backgroundImage: `url(${heroImageUrl})` }} />
+        <div className="tpl-identity-split-image"><HeroPhoto src={heroImageUrl} sizes="(max-width: 760px) 100vw, 50vw" /></div>
         <div className="tpl-identity-split-text">
           {badge}
           <h1>{name}</h1>
@@ -52,7 +67,7 @@ export function IdentityBlock({
       <section className="tpl-identity tpl-identity-brand">
         <div className="tpl-identity-inner">
           {/* eslint-disable-next-line @next/next/no-img-element -- a business's own logo, any size or host */}
-          {logoUrl && <img className="tpl-identity-logo" src={logoUrl} alt={`${name} logo`} />}
+          {logoUrl && <img className="tpl-identity-logo" src={logoUrl} alt={`${name} logo`} width={96} height={96} decoding="async" />}
           {badge}
           <h1>{name}</h1>
           {meta && <p className="tpl-identity-meta">{meta}</p>}
@@ -62,10 +77,8 @@ export function IdentityBlock({
   }
 
   return (
-    <section
-      className={`tpl-identity${heroImageUrl ? " tpl-identity-photo" : ""}`}
-      style={heroImageUrl ? { backgroundImage: `url(${heroImageUrl})` } : undefined}
-    >
+    <section className={`tpl-identity${heroImageUrl ? " tpl-identity-photo" : ""}`}>
+      {heroImageUrl && <HeroPhoto src={heroImageUrl} sizes="100vw" />}
       <div className="tpl-identity-inner">
         {badge}
         <h1>{name}</h1>

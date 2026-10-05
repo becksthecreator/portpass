@@ -22,6 +22,8 @@ on:
       - "db/bookingRequests.ts"
       - "lib/bookings/**"
       - "app/_components/checklist/**"
+      - "app/_components/blocks/**"
+      - "app/futprep/register/**"
       - "app/business/*/page.tsx"
       - "db/pageChecklist.ts"
       - "lib/pageChecklist.ts"

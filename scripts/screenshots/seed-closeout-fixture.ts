@@ -64,6 +64,9 @@ async function main() {
       phone_e164: "+12425550100",
       public_email: "test-delete-booth@test.portpass.local",
       brand_color: "#B4124A",
+      // A photo that ships with the site, so the page's hero is drawn as a
+      // real, resized image (brief 19, part C).
+      hero_image_url: "/weddings/bahamas-by-the-sea/hero.jpg",
     })
     .select("id")
     .single();
