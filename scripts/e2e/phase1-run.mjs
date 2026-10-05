@@ -306,10 +306,18 @@ try {
     });
     expect(created.status === 201, `Creating the payment request answered ${created.status}: ${created.data.error ?? ""}`);
     state.requestId = created.data.id;
-    const sent = await call(owner, "POST", `/api/payments/orgs/${state.orgId}/requests/${state.requestId}`, { action: "send", via: "email" });
-    expect(sent.status === 200, `Sending it by email answered ${sent.status}: ${sent.data.error ?? ""}`);
+    // "Send by email" to a test address: the email is refused (a test
+    // address is never emailed), the owner is told it didn't go, and the
+    // request is not marked sent. On production this is the email arriving.
+    const byEmail = await call(owner, "POST", `/api/payments/orgs/${state.orgId}/requests/${state.requestId}`, { action: "send", via: "email" });
+    expect(byEmail.status === 502, `Send by email to a test address should say it couldn't be sent (502), not ${byEmail.status}.`);
     const emailed = await logged("payment_request", CUSTOMER_EMAIL);
-    expect(emailed, "No payment_request email was recorded for the customer.");
+    expect(emailed?.status === "skipped", "The refused email should be in the Messages log as skipped.");
+    const { data: unsent } = await admin.from("payment_requests").select("status").eq("id", state.requestId).single();
+    expect(unsent.status === "draft", `A request whose email didn't go must stay a draft, not ${unsent.status}.`);
+    // So the owner copies the link instead, as the screen offers.
+    const sent = await call(owner, "POST", `/api/payments/orgs/${state.orgId}/requests/${state.requestId}`, { action: "send", via: "link" });
+    expect(sent.status === 200, `Marking it sent by link answered ${sent.status}: ${sent.data.error ?? ""}`);
     await owner.goto(`${BASE}/business/${state.slug}/payments/${state.requestId}`, { waitUntil: "load" });
     await photo(owner, "2-payment-request");
     return `${created.data.referenceCode}: $450.00`;
@@ -331,17 +339,19 @@ try {
     await photo(visitor, "2-pay-ive-paid");
   });
 
-  await step("2", "The owner marks it paid and the receipt is sent", async () => {
+  await step("2", "The owner marks it paid; the customer sees Paid and the receipt", async () => {
     await owner.goto(`${BASE}/business/${state.slug}/payments?filter=check`, { waitUntil: "load" });
     await photo(owner, "2-payments-to-check");
     const paid = await call(owner, "POST", `/api/payments/orgs/${state.orgId}/requests/${state.requestId}/payments`, { amountCents: 45000, method: "cash", receivedOn: day(0), reference: "", note: "TEST — delete" });
     expect(paid.status === 200 || paid.status === 201, `Marking it paid answered ${paid.status}: ${paid.data.error ?? ""}`);
     const { data: payments } = await admin.from("payments").select("id,receipt_number").eq("payment_request_id", state.requestId);
     expect(payments?.length === 1 && payments[0].receipt_number, "One payment with a receipt number should be recorded.");
+    // "Email the receipt" to a test address is refused and logged, the
+    // same way. On production this is the receipt arriving.
     const receipt = await call(owner, "POST", `/api/payments/orgs/${state.orgId}/requests/${state.requestId}`, { action: "email_receipt", paymentId: payments[0].id });
-    expect(receipt.status === 200, `Emailing the receipt answered ${receipt.status}: ${receipt.data.error ?? ""}`);
+    expect(receipt.status === 502, `Emailing a receipt to a test address should say it couldn't be sent (502), not ${receipt.status}.`);
     const emailed = await logged("payment_receipt", CUSTOMER_EMAIL);
-    expect(emailed, "No payment_receipt email was recorded for the customer.");
+    expect(emailed?.status === "skipped", "The refused receipt email should be in the Messages log as skipped.");
     await visitor.goto(`${BASE}/pay/${state.payToken}`, { waitUntil: "load" });
     await visitor.getByText("Paid in full").first().waitFor({ timeout: 15_000 });
     await photo(visitor, "2-pay-paid");
@@ -419,7 +429,7 @@ try {
     return `code from ${from}`;
   });
 
-  await step("4", "With no signal, the site shows its offline page instead of the browser's error", async () => {
+  await step("4", "With no signal, a page seen before still opens and a new one shows the offline page", async () => {
     await member.goto(`${BASE}/`, { waitUntil: "load" });
     await member.evaluate(async () => {
       if (!("serviceWorker" in navigator)) throw new Error("No service worker support.");
@@ -428,9 +438,12 @@ try {
     await member.waitForTimeout(1500);
     await memberContext.setOffline(true);
     try {
-      await member.goto(`${BASE}/where-to?offline-check=${TAG}`, { waitUntil: "load", timeout: 20_000 });
-      const text = await member.locator("body").innerText();
-      expect(/offline|no signal|connection/i.test(text), "The offline page should say there is no connection.");
+      // The homepage was opened a moment ago, so it is kept.
+      await member.goto(`${BASE}/`, { waitUntil: "load", timeout: 20_000 });
+      expect((await member.locator("h1").count()) > 0, "The homepage should still open with no signal.");
+      // A public page never opened on this phone: the offline page.
+      await member.goto(`${BASE}/pricing?offline-check=${TAG}`, { waitUntil: "load", timeout: 20_000 });
+      await member.getByRole("heading", { name: "You’re offline." }).waitFor({ timeout: 10_000 });
       await photo(member, "4-offline");
     } finally {
       await memberContext.setOffline(false);
