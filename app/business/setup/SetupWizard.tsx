@@ -12,6 +12,7 @@ import { PaymentSettingsForm, TestRequest } from "@/app/_components/payments/Pay
 import type { PaymentSettings } from "@/db/paymentRequests";
 import { defaultPrefix, getPaidProblem } from "@/lib/paymentRequests/rules";
 import "@/app/_components/payments/payments.css";
+import "./photos.css";
 
 type Props = {
   mode: "setup" | "settings";
