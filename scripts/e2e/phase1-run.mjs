@@ -429,25 +429,30 @@ try {
     return `code from ${from}`;
   });
 
-  await step("4", "With no signal, a page seen before still opens and a new one shows the offline page", async () => {
+  // A browser driven by a script can't take the signal away from the part
+  // of the app that works offline, so this checks that the offline copy is
+  // saved on the device; opening the installed app with no signal is a
+  // step for a person with a phone (docs/qa/phase1-run.md, step 4).
+  await step("4", "The offline copy is saved on the device: the homepage and the offline page", async () => {
     await member.goto(`${BASE}/`, { waitUntil: "load" });
     await member.evaluate(async () => {
       if (!("serviceWorker" in navigator)) throw new Error("No service worker support.");
       await Promise.race([navigator.serviceWorker.ready, new Promise((_, reject) => setTimeout(() => reject(new Error("The service worker never became ready.")), 15_000))]);
     });
-    await member.waitForTimeout(1500);
-    await memberContext.setOffline(true);
-    try {
-      // The homepage was opened a moment ago, so it is kept.
-      await member.goto(`${BASE}/`, { waitUntil: "load", timeout: 20_000 });
-      expect((await member.locator("h1").count()) > 0, "The homepage should still open with no signal.");
-      // A public page never opened on this phone: the offline page.
-      await member.goto(`${BASE}/pricing?offline-check=${TAG}`, { waitUntil: "load", timeout: 20_000 });
-      await member.getByRole("heading", { name: "You’re offline." }).waitFor({ timeout: 10_000 });
-      await photo(member, "4-offline");
-    } finally {
-      await memberContext.setOffline(false);
+    let saved = { offline: false, home: false };
+    for (let attempt = 0; attempt < 20 && !(saved.offline && saved.home); attempt += 1) {
+      await member.waitForTimeout(500);
+      saved = await member.evaluate(async () => {
+        const offline = await caches.match("/offline");
+        const home = await caches.match("/");
+        return { offline: offline ? /offline/i.test(await offline.text()) : false, home: Boolean(home) };
+      });
     }
+    expect(saved.offline, "The offline page should be saved for when there is no signal.");
+    expect(saved.home, "The homepage should be saved for when there is no signal.");
+    await member.goto(`${BASE}/offline`, { waitUntil: "load" });
+    await member.getByRole("heading", { name: "You’re offline." }).waitFor({ timeout: 10_000 });
+    await photo(member, "4-offline-page");
   });
 
   // ---------------------------------------------------------------- 5
