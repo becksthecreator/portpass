@@ -176,7 +176,8 @@ try {
     await page.goto(`${BASE}${settings}`, { waitUntil: "load" });
     await figures.nth(3).waitFor({ state: "visible", timeout: 30_000 });
     expect((await page.locator(".wiz-photos figure.is-hidden").count()) === 4, "All four photos should be hidden until consent is ticked.");
-    await figures.nth(0).getByRole("checkbox").check();
+    // The tick shows once the server has saved it, so this is a click and a wait.
+    await figures.nth(0).getByRole("checkbox").click();
     await figures.nth(0).getByText("Consent confirmed · shown").waitFor({ timeout: 15_000 });
     await figures.nth(1).getByRole("button", { name: "Make main" }).click();
     await figures.nth(1).getByRole("button", { name: "★ Main" }).waitFor({ timeout: 15_000 });
