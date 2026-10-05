@@ -24,7 +24,7 @@ export type EditorInitial = {
   methods: RequestMethod[];
   allowPartPayment: boolean;
   offeringId: number | null;
-  link: { registrationId?: number; privateSessionRequestId?: number; reservationId?: number };
+  link: { registrationId?: number; privateSessionRequestId?: number; reservationId?: number; bookingRequestId?: number };
 };
 
 type DraftLine = { key: number; label: string; qty: string; price: string };

@@ -9,12 +9,16 @@ import { receivedDate } from "./growth";
 // for Futprep), so a founder and the business never see two different
 // numbers for the same thing.
 
-export const BOOKING_KINDS = ["registration", "private_session", "wedding_lead", "shop_order"] as const;
+// "booking_request": a request to book a priced offering (brief 19, part
+// A). What it costs is asked for with a payment request, which Admin ->
+// Payments counts, so a booking request carries no amounts here.
+export const BOOKING_KINDS = ["registration", "private_session", "booking_request", "wedding_lead", "shop_order"] as const;
 export type BookingKind = (typeof BOOKING_KINDS)[number];
 
 export const BOOKING_KIND_LABEL: Record<BookingKind, string> = {
   registration: "Registration",
   private_session: "Private session",
+  booking_request: "Booking request",
   wedding_lead: "Wedding lead",
   shop_order: "Shop order",
 };

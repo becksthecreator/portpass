@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
+import "@/app/_components/bookings/bookings.css";
+import { countNewBookings } from "@/db/bookingRequests";
 import { getBusinessBySlug, listBusinessOfferings } from "@/db/business";
 import { requireOrgRole } from "@/lib/auth/guards";
 import { handlesPayments } from "@/lib/paymentRequests/access";
@@ -37,6 +39,10 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
   const canEdit = access.membership ? access.membership.role === "org_owner" || access.membership.role === "org_admin" : Boolean(access.session.platformRole);
   const tools = workspaceLinks(slug);
   const payments = await handlesPayments(access);
+  const isTeam = canEdit || access.membership?.role === "org_staff";
+  // New booking requests waiting for an answer (brief 19, A3): the
+  // dashboard item. A failed count just leaves the number off.
+  const newBookings = isTeam ? await countNewBookings(business.id).catch(() => 0) : 0;
   const publicHref = business.primaryCategory ? `/${business.primaryCategory}/${slug}` : null;
 
   return (
@@ -67,6 +73,13 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
           )}
           {(canEdit || access.membership?.role === "org_staff") && (
             <Link className="chooser-card" href={`/business/${slug}/perks`}><strong>Member perks</strong><span>Offer a perk, check a Member Pass</span><b>Open →</b></Link>
+          )}
+          {isTeam && (
+            <Link className="chooser-card" href={`/business/${slug}/bookings`}>
+              <strong>Bookings{newBookings > 0 && <span className="bkg-home-count">{newBookings} new</span>}</strong>
+              <span>{newBookings > 0 ? (newBookings === 1 ? "1 request is waiting for your answer" : `${newBookings} requests are waiting for your answer`) : "Requests to book your offerings"}</span>
+              <b>Open →</b>
+            </Link>
           )}
           {(canEdit || access.membership?.role === "org_staff") && <Link className="chooser-card" href={`/business/${slug}/registrations`}><strong>Registrations</strong><span>Classes and camps, who has registered</span><b>Open →</b></Link>}
           {(canEdit || access.membership?.role === "org_staff") && <Link className="chooser-card" href={`/business/${slug}/attendance`}><strong>Attendance</strong><span>Mark who came to each session</span><b>Open →</b></Link>}

@@ -13,6 +13,7 @@ import { directoryHref } from "./directoryHref";
 import { formatAgeRange } from "./format";
 import { MemberPerkStrip } from "../perks/MemberPerkStrip";
 import { InterestForm } from "../InterestForm";
+import { bookPath, isBookable } from "@/lib/bookings/rules";
 import { businessTheme, themeVars } from "@/lib/businessTheme";
 import { isInterestCategory, type InterestCategory } from "@/lib/interestCategories";
 import "./brand-theme.css";
@@ -33,7 +34,11 @@ import "./brand-theme.css";
 // `registerHref`: the business has a class or camp open for registration
 // (brief 18, D1), so the page's main button goes to its registration form.
 // `share`: off for the demo business, which has no public page to share.
-export function OrganizationTemplate({ listing, enquiryForm = true, registerHref = null, share = true }: { listing: OrganizationListing; enquiryForm?: boolean; registerHref?: string | null; share?: boolean }) {
+// `bookBase`: the page takes booking requests (brief 19, part A): every
+// priced offering with no link of its own gets "Request to book", which
+// goes to `${bookBase}/book?offering=<slug>`. Only the public page of a
+// live business passes it; a preview or the demo doesn't.
+export function OrganizationTemplate({ listing, enquiryForm = true, registerHref = null, share = true, bookBase = null }: { listing: OrganizationListing; enquiryForm?: boolean; registerHref?: string | null; share?: boolean; bookBase?: string | null }) {
   const { organization: org, offerings, images, faqs } = listing;
 
   const practicalFacts = offerings
@@ -70,7 +75,7 @@ export function OrganizationTemplate({ listing, enquiryForm = true, registerHref
       <GalleryBlock images={images} />
       {/* Member perks (brief 10): renders nothing unless the business has one live. */}
       <MemberPerkStrip slug={org.slug} path={directoryHref(org.slug, org.primaryCategory)} offerings={offerings} />
-      <OfferingsBlock offerings={offerings} />
+      <OfferingsBlock offerings={offerings} bookHref={bookBase ? (offering) => (isBookable(offering) ? bookPath(bookBase, offering.slug) : null) : undefined} />
       <PracticalBlock facts={practicalFacts} />
       <PeopleBlock name={org.ownerName} bio={org.ownerBio} imageUrl={org.ownerImageUrl} />
       <QuestionsBlock faqs={faqs} />
@@ -95,7 +100,7 @@ export function OrganizationTemplate({ listing, enquiryForm = true, registerHref
           />
         </section>
       )}
-      {registerHref ? <ActionBlock label="Register for a class or camp" href={registerHref} /> : hasPricedOffering && <ActionBlock label="See prices & get started" href="#offerings" />}
+      {registerHref ? <ActionBlock label="Register for a class or camp" href={registerHref} /> : hasPricedOffering && <ActionBlock label={bookBase && offerings.some(isBookable) ? "See prices & request to book" : "See prices & get started"} href="#offerings" />}
     </main>
   );
 }

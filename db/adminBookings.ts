@@ -173,6 +173,24 @@ export async function listAdminBookings(filter: BookingFilter = {}): Promise<Adm
     }
   }
 
+  if (wants("booking_request")) {
+    // Booking requests for any business's priced offerings (brief 19, part
+    // A). No amounts: the money is asked for with a payment request.
+    const rows = await readAll((from, to) => {
+      let query = db.from("booking_requests").select("id,reference_code,organization_id,offering_name,customer_name,customer_email,customer_phone,requested_date,status,created_at").order("created_at", { ascending: false }).order("id", { ascending: false });
+      if (orgId) query = query.eq("organization_id", orgId);
+      else if (demoId !== null) query = query.neq("organization_id", demoId);
+      return query.range(from, to);
+    }, read, "Could not load booking requests");
+    for (const row of rows) {
+      const organizationId = Number(row.organization_id);
+      bookings.push({
+        kind: "booking_request", id: Number(row.id), reference: textOrNull(row.reference_code), organizationId, organizationName: orgName(organizationId),
+        customer: text(row.customer_name), detail: [text(row.offering_name), text(row.requested_date)].filter(Boolean).join(" · "),
+        createdAt: String(row.created_at), status: text(row.status), paymentStatus: null, dueCents: null, paidCents: null, email: textOrNull(row.customer_email), phone: textOrNull(row.customer_phone),
+      });
+    }
+  }
   if (wants("wedding_lead")) {
     // Wedding leads belong to the one wedding business; they carry no
     // organization of their own.
