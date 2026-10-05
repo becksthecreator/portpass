@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { saveSignInCodeUsed } from "@/db/adminHealth";
+import { afterResponse } from "@/lib/afterResponse";
 import { bootstrapUser } from "@/lib/auth/bootstrap";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { LAST_CHOICE_COOKIE, resolveDestination } from "@/lib/auth/routing";
@@ -40,6 +42,11 @@ export async function POST(request: Request) {
   if (error || !data.user) {
     return NextResponse.json({ error: "That code didn’t work. Check it and try again, or request a new one." }, { status: 400 });
   }
+
+  // An emailed code was just typed in correctly, so sign-in email is
+  // arriving: Admin -> Phase 1 shows when this last happened. Only the
+  // time is kept. Never in the way of the sign-in itself.
+  afterResponse(() => saveSignInCodeUsed());
 
   await bootstrapUser(data.user);
   const session = await sessionForUser({ id: data.user.id, email: data.user.email ?? null, phone: data.user.phone ?? null });

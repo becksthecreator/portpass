@@ -110,6 +110,24 @@ export async function getBackupHeartbeat(): Promise<BackupHeartbeat | null> {
   return value && typeof value.at === "string" ? { at: value.at, ok: value.ok !== false } : null;
 }
 
+// ---- Sign-in email -------------------------------------------------------------------
+
+// Sign-in codes are emailed by the sign-in service itself, so they never
+// pass through the Messages log. What PortPass can see is a code being
+// typed in correctly: that email arrived. Only the time is kept (one row
+// in site_content), never who signed in (brief 19, part F).
+export async function saveSignInCodeUsed(now: Date = new Date()): Promise<void> {
+  const { error } = await getSupabaseAdmin().from("site_content").upsert({ key: "sign_in_code_used", value: { at: now.toISOString() }, updated_at: now.toISOString() }, { onConflict: "key" });
+  throwIfSupabaseError(error, "Could not record the sign-in");
+}
+
+export async function getSignInCodeUsedAt(): Promise<string | null> {
+  const { data, error } = await getSupabaseAdmin().from("site_content").select("value").eq("key", "sign_in_code_used").maybeSingle();
+  throwIfSupabaseError(error, "Could not load the last sign-in by code");
+  const value = data?.value as { at?: unknown } | undefined;
+  return value && typeof value.at === "string" ? value.at : null;
+}
+
 // ---- Database checks ------------------------------------------------------------------
 
 export type DatabaseCheck = { name: string; problems: number };
