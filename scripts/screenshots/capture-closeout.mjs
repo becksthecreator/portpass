@@ -98,6 +98,8 @@ try {
   await ownerSignIn(page);
   const base = `/business/${fixture.slug}`;
   await shoot(page, "brief19-a-business-home-375", base, { focus: ".bkg-home-count" });
+  // Part D: what this business's page is missing, on its own home.
+  await shoot(page, "brief19-d-business-missing-375", base, { focus: ".pchk" });
   await shoot(page, "brief19-a-bookings-new-375", `${base}/bookings`);
   await shoot(page, "brief19-a-bookings-decline-reason-375", `${base}/bookings`, {
     focus: ".bkg-decline",

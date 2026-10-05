@@ -1,7 +1,8 @@
 name: Phase 1 close-out screenshots (TEST data)
 
 # Brief 19: an offering's "Request to book", the form, the customer's
-# /booking page and the business's Bookings screen at 375px. The business's
+# /booking page, the business's Bookings screen and its "what your page is
+# missing" list at 375px. The business's
 # pages need a sign-in, so like the payments job this runs the app on
 # localhost against a throwaway local Supabase stack with a TEST business,
 # TEST booking requests and a TEST owner that exist only in that stack, and
@@ -20,6 +21,10 @@ on:
       - "app/api/bookings/**"
       - "db/bookingRequests.ts"
       - "lib/bookings/**"
+      - "app/_components/checklist/**"
+      - "app/business/*/page.tsx"
+      - "db/pageChecklist.ts"
+      - "lib/pageChecklist.ts"
       - "scripts/screenshots/seed-closeout-fixture.ts"
       - "scripts/screenshots/capture-closeout.mjs"
       - ".github/workflows/closeout-screenshots.yml"

@@ -5,6 +5,8 @@ import { SiteFooter } from "@/app/_components/SiteFooter";
 import "@/app/_components/bookings/bookings.css";
 import { countNewBookings } from "@/db/bookingRequests";
 import { getBusinessBySlug, listBusinessOfferings } from "@/db/business";
+import { getBusinessChecklist } from "@/db/pageChecklist";
+import { MissingFromPage } from "@/app/_components/checklist/PageChecklist";
 import { requireOrgRole } from "@/lib/auth/guards";
 import { handlesPayments } from "@/lib/paymentRequests/access";
 import { workspaceLinks } from "@/lib/orgWorkspaces";
@@ -43,6 +45,9 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
   // New booking requests waiting for an answer (brief 19, A3): the
   // dashboard item. A failed count just leaves the number off.
   const newBookings = isTeam ? await countNewBookings(business.id).catch(() => 0) : 0;
+  // What the page is missing (brief 19, part D), read from the data. A
+  // failed read leaves the section off rather than the page down.
+  const checklist = isTeam ? await getBusinessChecklist(business.id).catch(() => null) : null;
   const publicHref = business.primaryCategory ? `/${business.primaryCategory}/${slug}` : null;
 
   return (
@@ -94,6 +99,8 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
         {!business.googleBusinessUrl && canEdit && business.isPublished && (
           <p className="auth-hint">On Google Maps? <Link href={`/business/${slug}/settings?step=2`}>Add your Google Business Profile link</Link> to ask customers for Google reviews.</p>
         )}
+
+        {checklist && <MissingFromPage items={checklist.items} canFix={canEdit} />}
 
         <section className="account-section">
           <h2>Offerings</h2>
