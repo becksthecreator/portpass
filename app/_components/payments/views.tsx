@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { prefillFromBooking } from "@/db/bookingRequests";
 import { listBusinessOfferings } from "@/db/business";
 import {
   getPaymentRequest,
@@ -15,7 +16,7 @@ import {
 } from "@/db/paymentRequests";
 import { nassauToday, nassauLocalToIso } from "@/lib/futprepTerms";
 import type { PaymentsAccess } from "@/lib/paymentRequests/access";
-import { addDays, chaseList, defaultPrefix, getPaidProblem, methodsSetUp, money, requestTotals, type HowToPay } from "@/lib/paymentRequests/rules";
+import { addDays, chaseList, defaultPrefix, getPaidProblem, methodsSetUp, money, requestTotals, type HowToPay, type RequestStatus } from "@/lib/paymentRequests/rules";
 import { ChaseList } from "./ChaseList";
 import { PaymentSettingsForm, TestRequest } from "./PaymentSettingsForm";
 import { PaymentTeam } from "./PaymentTeam";
@@ -91,6 +92,21 @@ async function loadPrefill(orgId: number, params: Record<string, string | undefi
   if (session) return prefillFromPrivateSession(orgId, session);
   const reservation = id(params.reservation);
   if (reservation) return prefillFromReservation(orgId, reservation);
+  // A confirmed booking request (brief 19, A4): the customer, and one line
+  // at the offering's price on the day it was asked for.
+  const booking = id(params.booking);
+  if (booking) {
+    const found = await prefillFromBooking(orgId, booking);
+    if (!found) return null;
+    return {
+      customer: found.customer,
+      lines: found.line ? [found.line] : [],
+      link: { bookingRequestId: booking },
+      offeringId: found.offeringId,
+      source: `Booking ${found.referenceCode}`,
+      openRequests: found.open ? [{ id: found.open.id, referenceCode: found.open.referenceCode, status: found.open.status as RequestStatus, balanceCents: Math.max(0, found.open.totalCents - found.open.paidCents) }] : [],
+    };
+  }
   return undefined;
 }
 
@@ -115,7 +131,7 @@ export async function NewRequestView({ access, params }: { access: PaymentsAcces
     dueDate: addDays(today, settings?.defaultDueDays ?? 7),
     methods: methodsAvailable,
     allowPartPayment: false,
-    offeringId: null,
+    offeringId: prefill?.offeringId ?? null,
     link: prefill?.link ?? {},
   };
   // No request until the business has said how it gets paid.

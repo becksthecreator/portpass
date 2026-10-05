@@ -15,6 +15,7 @@ export const RESERVED_TOP_LEVEL_SLUGS = new Set<string>([
   "apple-icon",
   "brand",
   "apply",
+  "booking",
   "business",
   "contact",
   "entertainment",
@@ -56,7 +57,7 @@ export const RESERVED_TOP_LEVEL_SLUGS = new Set<string>([
 
 // Second-level names that already exist as static routes under a section
 // (e.g. /weddings/admin), so a business or subcategory can't shadow them.
-export const RESERVED_SECOND_LEVEL_SLUGS = new Set<string>(["admin", "staff", "register", "my", "coaches", "notify", "plan", "settings", "preview", "setup"]);
+export const RESERVED_SECOND_LEVEL_SLUGS = new Set<string>(["admin", "staff", "register", "book", "my", "coaches", "notify", "plan", "settings", "preview", "setup"]);
 
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 

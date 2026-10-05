@@ -6,7 +6,11 @@ import { OFFERING_ACTION_LABEL, formatAgeRange, formatPrice } from "./format";
 // not render here, mirroring the platform-level rule that an organization
 // with no priced offering cannot publish at all: "enquire for pricing" is
 // the thing this template replaces, not a state it can display.
-export function OfferingsBlock({ offerings }: { offerings: Offering[] }) {
+//
+// `bookHref` (brief 19, part A): where "Request to book" goes for an
+// offering that can be asked for on PortPass (a price and no link of its
+// own), or null. A page that doesn't take booking requests leaves it out.
+export function OfferingsBlock({ offerings, bookHref }: { offerings: Offering[]; bookHref?: (offering: Offering) => string | null }) {
   const priced = offerings.filter((offering) => offering.priceCents !== null);
   if (priced.length === 0) return null;
 
@@ -15,6 +19,7 @@ export function OfferingsBlock({ offerings }: { offerings: Offering[] }) {
       {priced.map((offering) => {
         const ageRange = formatAgeRange(offering.ageMin, offering.ageMax, offering.ageLabel);
         const imageAlt = offering.summary ? `${offering.name} — ${offering.summary}` : offering.name;
+        const requestHref = !offering.actionUrl && bookHref ? bookHref(offering) : null;
         return (
           <div className={`tpl-offering-card${offering.isFeatured ? " tpl-offering-featured" : ""}`} key={offering.id}>
             {offering.isFeatured && <span className="tpl-offering-badge">Most chosen</span>}
@@ -40,6 +45,11 @@ export function OfferingsBlock({ offerings }: { offerings: Offering[] }) {
                 {OFFERING_ACTION_LABEL[offering.type]} {offering.name} <span aria-hidden="true">→</span>
               </Link>
             ))}
+            {requestHref && (
+              <Link className="tpl-offering-cta" href={requestHref} prefetch={false}>
+                Request to book <span className="sr-only">{offering.name} </span><span aria-hidden="true">→</span>
+              </Link>
+            )}
           </div>
         );
       })}

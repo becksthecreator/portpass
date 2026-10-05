@@ -3,10 +3,10 @@ import { isReservedSlug, isValidSlug } from "./reservedSlugs";
 
 describe("reserved slugs", () => {
   it("refuses names that are already routes", () => {
-    for (const slug of ["admin", "api", "login", "account", "sports-fitness", "own", "sites", "where-to"]) {
+    for (const slug of ["admin", "api", "login", "account", "sports-fitness", "own", "sites", "where-to", "booking"]) {
       expect(isReservedSlug(slug, "top"), slug).toBe(true);
     }
-    for (const slug of ["admin", "staff", "register", "plan", "settings"]) {
+    for (const slug of ["admin", "staff", "register", "book", "plan", "settings"]) {
       expect(isReservedSlug(slug, "second"), slug).toBe(true);
     }
   });

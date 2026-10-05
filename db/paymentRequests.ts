@@ -714,7 +714,11 @@ export async function customerSaysPaid(token: string, note: string): Promise<"fl
 export type Prefill = {
   customer: { name: string; email: string | null; phone: string | null };
   lines: LineItem[];
-  link: { registrationId?: number; privateSessionRequestId?: number; reservationId?: number };
+  // bookingRequestId: a booking request (brief 19, part A). It is not a
+  // column on the payment request: the booking remembers the request.
+  link: { registrationId?: number; privateSessionRequestId?: number; reservationId?: number; bookingRequestId?: number };
+  // The offering the request is for, when the record names one.
+  offeringId?: number | null;
   source: string;
   openRequests: { id: number; referenceCode: string; status: RequestStatus; balanceCents: number }[];
 };

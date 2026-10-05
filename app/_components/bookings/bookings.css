@@ -1,0 +1,73 @@
+/* Booking requests (brief 19, part A): the business's Bookings screen
+   (.bkg-tabs, .bkg-list, .bkg-card) and the customer's "Request to book"
+   form (.bkg-form). Base tokens only; its own file, imported by the pages
+   that use it. On the form the buttons take the business's colours from
+   registration-theme.css (.biz-reg). */
+.bkg-tabs{border-bottom:1px solid var(--line);display:flex;gap:4px;margin:18px 0 16px;overflow-x:auto}
+.bkg-tabs a{align-items:center;border-bottom:3px solid transparent;color:var(--muted);display:inline-flex;font-size:.92rem;font-weight:700;gap:6px;min-height:44px;padding:0 12px;text-decoration:none;white-space:nowrap}
+.bkg-tabs a[aria-current="page"]{border-bottom-color:var(--harbour);color:var(--ink)}
+.bkg-tabs a span{background:var(--harbour);border-radius:999px;color:#fff;font-size:.72rem;line-height:1;min-width:20px;padding:4px 6px;text-align:center}
+.bkg-empty a{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.bkg-list{display:grid;gap:12px;list-style:none;margin:0 0 16px;padding:0}
+.bkg-card{border:1px solid var(--line);border-radius:14px;display:grid;gap:12px;padding:16px}
+.bkg-card.is-cancelled,.bkg-card.is-declined{border-style:dashed}
+.bkg-card-head{align-items:flex-start;display:flex;gap:12px;justify-content:space-between}
+.bkg-card-head>div:first-child{display:grid;gap:3px;min-width:0}
+.bkg-card-head strong{font-size:1.05rem;line-height:1.25}
+.bkg-card-head span{color:var(--muted);font-size:.9rem}
+.bkg-card-ref{display:grid;flex:0 0 auto;gap:4px;justify-items:end;text-align:right}
+.bkg-card-ref code{font-size:.82rem;letter-spacing:.04em}
+.bkg-card-ref b{font-size:.72rem;letter-spacing:.05em;text-transform:uppercase}
+.bkg-facts{display:grid;gap:6px;margin:0}
+.bkg-facts div{display:grid;gap:10px;grid-template-columns:92px 1fr}
+.bkg-facts dt{color:var(--muted);font-size:.76rem;font-weight:800;letter-spacing:.05em;padding-top:2px;text-transform:uppercase}
+.bkg-facts dd{font-size:.94rem;margin:0;min-width:0;overflow-wrap:anywhere}
+.bkg-facts dd a,.bkg-payment a,.bkg-links a{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.bkg-notes{white-space:pre-line}
+.bkg-payment{font-size:.9rem;margin:0}
+.bkg-actions{display:grid;gap:8px}
+.bkg-buttons{align-items:center;display:flex;flex-wrap:wrap;gap:10px 18px}
+.bkg-buttons .primary-button{min-height:46px}
+.bkg-buttons .auth-text-button{min-height:44px}
+.bkg-hint{color:var(--muted);font-size:.8rem;margin:0}
+.bkg-decline{display:grid;gap:8px}
+.bkg-decline label{display:grid;font-size:.86rem;font-weight:800;gap:2px}
+.bkg-decline label small{color:var(--muted);font-weight:400}
+.bkg-decline textarea{background:var(--deck);border:1px solid var(--muted);border-radius:10px;color:var(--ink);font:inherit;padding:10px 12px;width:100%}
+.bkg-actions .form-error{margin:0}
+.bkg-links{align-items:center;display:flex;flex-wrap:wrap;font-size:.9rem;gap:8px 20px}
+.bkg-links a{align-items:center;display:inline-flex;min-height:44px}
+.bkg-link-strong{font-size:.96rem}
+.chooser-card .bkg-home-count{background:var(--harbour);border-radius:999px;color:#fff;font-size:.74rem;font-weight:800;margin-left:8px;padding:3px 8px;vertical-align:middle}
+
+/* The customer's form: one screen, on PortPass's paper. */
+.bkg-shell{margin:0 auto;max-width:720px;padding:40px 24px 64px}
+.bkg-shell h1{font-family:var(--font-pp-display),Archivo,sans-serif;font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:8px 0 10px}
+.bkg-lede{color:var(--muted);font-size:1rem;line-height:1.55;margin:0 0 20px}
+.bkg-offer{background:var(--hdr-bg);border-radius:14px;color:var(--hdr-ink);display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between;margin:0 0 22px;padding:16px 18px}
+.bkg-offer strong{font-size:1.08rem}
+.bkg-offer span{font-weight:800;white-space:nowrap}
+.bkg-offer small{flex:1 0 100%;font-size:.86rem;opacity:.86}
+.bkg-form{display:grid;gap:16px}
+.bkg-form fieldset{border:1px solid var(--line);border-radius:14px;display:grid;gap:14px;margin:0;min-width:0;padding:18px}
+.bkg-form legend{font-family:var(--font-pp-display),Archivo,sans-serif;font-size:1.05rem;font-weight:800;padding:0 6px}
+.bkg-form label{display:grid;gap:6px;min-width:0}
+.bkg-form label>span{font-size:.84rem;font-weight:800}
+.bkg-form label>small{color:var(--muted);font-size:.8rem;line-height:1.45}
+.bkg-form input[type="text"],.bkg-form input[type="email"],.bkg-form input[type="tel"],.bkg-form input[type="date"],.bkg-form input[type="time"],.bkg-form select,.bkg-form textarea{background:#fff;border:1px solid var(--muted);border-radius:10px;color:var(--ink);font:inherit;font-size:1rem;min-height:48px;padding:10px 12px;width:100%}
+.bkg-form textarea{min-height:96px}
+.bkg-two{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+.bkg-tick{align-items:flex-start;display:flex!important;gap:10px}
+.bkg-tick input{flex:0 0 auto;height:22px;margin-top:2px;width:22px}
+.bkg-tick span{font-size:.94rem!important;font-weight:400!important;line-height:1.5}
+.bkg-form .form-error{margin:0}
+.bkg-submit{display:grid;gap:10px}
+.bkg-submit .primary-button{min-height:52px;width:100%}
+.bkg-submit p{color:var(--muted);font-size:.84rem;line-height:1.5;margin:0}
+.bkg-submit a{color:var(--brand-text);font-weight:700}
+@media(max-width:560px){
+  .bkg-facts div{gap:2px;grid-template-columns:1fr}
+  .bkg-shell{padding:28px 16px 48px}
+  .bkg-form fieldset{padding:16px 14px}
+  .bkg-two{grid-template-columns:1fr}
+}

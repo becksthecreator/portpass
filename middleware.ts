@@ -35,6 +35,8 @@ const NEVER_REWRITE_PREFIXES = [
   // A customer's payment request page is PortPass's, whichever host the
   // link was opened on (brief 17).
   "/pay",
+  // So is a customer's booking request page (brief 19).
+  "/booking",
   // The demo business and the event sign-up form are PortPass's own.
   "/demo",
   "/own",

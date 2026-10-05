@@ -10,7 +10,9 @@ function brandStyle(color: string | null): CSSProperties | undefined {
   return color && /^#[0-9a-fA-F]{6}$/.test(color) ? ({ "--pay-brand": color } as CSSProperties) : undefined;
 }
 
-export function PayFrame({ view, children }: { view: Pick<PublicView, "business"> | null; children: ReactNode }) {
+// `foot`: the line under the page, for a page that isn't about a payment
+// (the customer's booking request, brief 19).
+export function PayFrame({ view, children, foot }: { view: Pick<PublicView, "business"> | null; children: ReactNode; foot?: ReactNode }) {
   const business = view?.business;
   return (
     <main className="paypage" style={brandStyle(business?.brandColor ?? null)}>
@@ -25,7 +27,7 @@ export function PayFrame({ view, children }: { view: Pick<PublicView, "business"
           </div>
         )}
         {children}
-        <p className="paypage-foot">PortPass sends payment requests for businesses in The Bahamas. It never holds anyone&rsquo;s money. <a href="https://portpassbahamas.com">portpassbahamas.com</a></p>
+        <p className="paypage-foot">{foot ?? <>PortPass sends payment requests for businesses in The Bahamas. It never holds anyone&rsquo;s money.</>} <a href="https://portpassbahamas.com">portpassbahamas.com</a></p>
       </div>
     </main>
   );

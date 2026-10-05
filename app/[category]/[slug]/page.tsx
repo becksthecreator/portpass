@@ -16,6 +16,7 @@ import { bizDisplay, ppSans } from "@/app/fonts";
 import { listSections } from "@/db/categories";
 import { getOrganizationListingBySlug } from "@/db/organizations";
 import { listFutprepOffers } from "@/db/registrations";
+import { BOOKING_EXCLUDED_SLUGS } from "@/lib/bookings/rules";
 
 // /{section}/{slug} is a subcategory first, then a live business in that
 // section -- the convention directoryHref() has pointed at all along.
@@ -102,7 +103,13 @@ export default async function SectionSlugPage({ params }: { params: Params }) {
     <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
       <JsonLd data={listingJsonLd(listing, directoryHref(listing.organization.slug, listing.organization.primaryCategory))} />
       <SiteHeader breadcrumb={[{ label: resolved.section.name, href: `/${category}` }, { label: listing.organization.name, href: `/${category}/${slug}` }]} />
-      <OrganizationTemplate listing={listing} registerHref={(await hasOpenRegistration(listing.organization.id)) ? `/${category}/${slug}/register` : null} />
+      <OrganizationTemplate
+        listing={listing}
+        registerHref={(await hasOpenRegistration(listing.organization.id)) ? `/${category}/${slug}/register` : null}
+        // Booking requests (brief 19, part A). Futprep's own pages and
+        // private-session requests stay as they are.
+        bookBase={BOOKING_EXCLUDED_SLUGS.includes(slug) ? null : `/${category}/${slug}`}
+      />
       <RelatedInSection section={category} sectionName={resolved.section.name} exceptSlug={slug} />
       <InOurGuides organizationSlug={slug} />
       <SiteFooter orgLine={`${listing.organization.name} · Booking and payments powered by PortPass`} />

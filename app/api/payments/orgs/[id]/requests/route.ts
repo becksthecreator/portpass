@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getBooking, linkBookingPaymentRequest } from "@/db/bookingRequests";
 import { createPaymentRequest, getPaymentSettings } from "@/db/paymentRequests";
 import { orgIdFrom, paymentRouteError, paymentsApiAccess } from "@/lib/paymentRequests/access";
 import { paymentErrorMessage, parseRequestInput } from "@/lib/paymentRequests/input";
@@ -24,7 +25,13 @@ export async function POST(request: Request, ctx: Ctx) {
     if (getPaidProblem(settings)) return NextResponse.json({ error: paymentErrorMessage("NEEDS_GET_PAID"), code: "NEEDS_GET_PAID" }, { status: 409 });
     const parsed = parseRequestInput(body, { methodsAvailable: methodsSetUp(settings) });
     if (!parsed.ok) return NextResponse.json({ error: paymentErrorMessage(parsed.error), code: parsed.error }, { status: 400 });
+    // Made from a booking request (brief 19, A4): it must be one of this
+    // business's own, and it then remembers this payment request.
+    const bookingId = Number(body.bookingRequestId);
+    const booking = Number.isInteger(bookingId) && bookingId > 0 ? await getBooking(orgId, bookingId) : null;
+    if (body.bookingRequestId !== undefined && body.bookingRequestId !== null && !booking) return NextResponse.json({ error: paymentErrorMessage("LINK_NOT_FOUND"), code: "LINK_NOT_FOUND" }, { status: 404 });
     const created = await createPaymentRequest(orgId, parsed.value, auth.access.actor, settings?.referencePrefix ?? defaultPrefix(auth.access.orgName));
+    if (booking) await linkBookingPaymentRequest(orgId, booking.id, created.id);
     return NextResponse.json({ id: created.id, referenceCode: created.referenceCode }, { status: 201 });
   } catch (error) {
     return paymentRouteError(error, "payment request create");
