@@ -16,7 +16,7 @@ export type ProcessedImage = { bytes: Buffer; mime: "image/jpeg" | "image/png"; 
 // More pixels than any phone camera saves (a 48 MP photo is 48 million).
 const MAX_PIXELS = 80_000_000;
 
-async function decodeHeic(bytes: Buffer): Promise<sharp.Sharp> {
+async function decodeHeic(bytes: Buffer): Promise<ReturnType<typeof sharp>> {
   // Loaded only when a HEIC arrives: the decoder is large, and most
   // uploads never need it.
   const { default: decode } = await import("heic-decode");
