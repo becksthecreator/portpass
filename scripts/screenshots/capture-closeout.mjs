@@ -62,6 +62,10 @@ try {
   // Part A, the customer's side. The business's page: every priced
   // offering with no link of its own has "Request to book".
   await shoot(page, "brief19-a-offering-request-to-book-375", pageHref, { focus: "#offerings" });
+  // Part C: the hero photo as a real image under the scrim and the name,
+  // and Futprep's registration form with readable pink and teal.
+  await shoot(page, "brief19-c-business-hero-375", pageHref, { focus: ".tpl-identity" });
+  await shoot(page, "brief19-c-futprep-register-375", "/futprep/register", { focus: ".registration-intro" });
   await shoot(page, "brief19-a-book-form-375", `${pageHref}/book?offering=photo-booth`);
   await shoot(page, "brief19-a-book-form-kids-375", `${pageHref}/book?offering=kids-party`, { focus: ".bkg-tick" });
   // Fill it in and send it: the customer lands on their own page.
