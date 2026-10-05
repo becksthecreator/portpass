@@ -298,6 +298,22 @@ export async function setImageConsent(id: number, imageId: number, confirmed: bo
   return listBusinessImages(id);
 }
 
+// "Children appear in some of my photos" (brief 19, part E). Any business
+// can switch this on, not only the sections where it starts on: from then
+// every photo is hidden from the public page until consent is confirmed
+// on it, photo by photo. It is only ever switched on here. Switching it
+// off would put unconfirmed photos of children back on a public page, so
+// that is not something the owner's screen can do.
+export async function requirePhotoConsent(id: number, actorUserId: string): Promise<Business> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from("organizations").update({ photo_consent_required: true }).eq("id", id).select(BUSINESS_COLUMNS).maybeSingle();
+  throwIfSupabaseError(error, "Could not save the photo consent setting");
+  if (!data) throw new Error("NOT_FOUND");
+  await logAudit({ actorUserId, organizationId: id, action: "business.photo_consent_required", targetTable: "organizations", targetId: id, after: { photo_consent_required: true } });
+  bumpListings();
+  return toBusiness(data);
+}
+
 export async function addBusinessImage(id: number, url: string, alt: string | null): Promise<BusinessImage> {
   const supabase = getSupabaseAdmin();
   const existing = await listBusinessImages(id);

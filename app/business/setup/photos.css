@@ -1,0 +1,12 @@
+/* The Look step's photos on the Night theme (brief 19, part E). The photo
+   cards were white with the theme's near-white text on them, so "Make
+   main", "Remove" and the consent line could not be read; the warning was
+   dark red on navy. Its own file, imported by the wizard. */
+.theme-night .wiz-photos figure{background:var(--surface)}
+.theme-night .wiz-photos figure.is-hero{border-color:var(--link);box-shadow:inset 0 0 0 1px var(--link)}
+.theme-night .wiz-warn{color:#ffb4a8}
+/* The "children appear in my photos" tick sits beside its words, and the
+   buttons on a photo are big enough for a thumb. */
+.auth-form label.wiz-children{align-items:flex-start;flex-direction:row;gap:10px}
+.wiz-children input{flex:0 0 auto}
+.wiz-photos button{min-height:40px}
