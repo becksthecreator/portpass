@@ -37,6 +37,8 @@ const SHOTS = [
   // suspend) and People & access.
   ["brief08-admin-businesses-375", "admin", "/admin/businesses", ".admin-row-actions"],
   ["brief08-admin-people-375", "admin", "/admin/people", ".admin-table"],
+  // Brief 19, part D: what each business's page is missing, in one table.
+  ["brief19-d-admin-missing-375", "admin", "/admin/businesses", "#missing"],
   // Brief 08, build B: bookings across every business, one registration
   // with its health details hidden behind Reveal, payments month by month,
   // the leads board, and Content.

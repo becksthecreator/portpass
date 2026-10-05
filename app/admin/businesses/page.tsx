@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { ChecklistTable } from "@/app/_components/checklist/PageChecklist";
 import { listAdminBusinesses } from "@/db/adminBusinesses";
+import { listBusinessChecklists } from "@/db/pageChecklist";
+import { PHOTO_TARGET } from "@/lib/pageChecklist";
 import { listCategories, listSections } from "@/db/categories";
 import { requireAdmin } from "@/lib/auth/admin";
 import { AdminShell } from "../_components/AdminShell";
@@ -27,10 +30,16 @@ function when(iso: string | null): string {
 export default async function AdminBusinessesPage({ searchParams }: { searchParams: Promise<{ status?: string; section?: string }> }) {
   const session = await requireAdmin("/admin/businesses");
   const { status, section } = await searchParams;
-  const [rows, sections, categories] = await Promise.all([
+  const [rows, sections, categories, checklists] = await Promise.all([
     listAdminBusinesses({ status: status && STATUSES.includes(status) ? status : null, section: section || null }),
     listSections({ includeHidden: true }),
     listCategories(),
+    // What each page is missing (brief 19, part D): every business, whatever
+    // the filters above say. A failed read leaves the table off.
+    listBusinessChecklists().catch((error) => {
+      console.error("admin businesses: page checklists", error instanceof Error ? error.message : "");
+      return null;
+    }),
   ]);
   const sectionName = (slug: string | null) => categories.find((c) => c.slug === slug)?.name ?? slug ?? "—";
   const href = (next: { status?: string; section?: string }) => {
@@ -74,6 +83,18 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
           </tbody>
         </table>
       )}
+
+      <section className="admin-group" id="missing" aria-labelledby="missing-title">
+        <h2 id="missing-title">What each page is missing</h2>
+        {checklists === null ? (
+          <p className="admin-empty">Could not load the checklists. Refresh to try again.</p>
+        ) : (
+          <>
+            <p className="admin-form-note">Every business, read from its data: hero photo, {PHOTO_TARGET} photos, a price, WhatsApp, Instagram, Get paid, a member perk, the Google Business link, and something open to book. Each missing item opens where that business fixes it.</p>
+            <ChecklistTable lists={checklists} />
+          </>
+        )}
+      </section>
     </AdminShell>
   );
 }

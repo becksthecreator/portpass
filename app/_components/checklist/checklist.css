@@ -1,0 +1,29 @@
+/* "What your page is missing" (brief 19, part D) and the Phase 1 checklist
+   (part F). Its own file, imported by the components that use it. Both
+   screens are on the Night theme: the marks carry their own colours and a
+   shape (a tick or a cross), so nothing is told by colour alone. */
+.pchk-list{display:grid;gap:10px;list-style:none;margin:12px 0 0;padding:0}
+.pchk-list li{align-items:flex-start;border:1px solid var(--line);border-radius:14px;display:flex;gap:12px;padding:12px 14px}
+.pchk-list li>div{display:grid;gap:3px;min-width:0}
+.pchk-list strong{font-size:.98rem}
+.pchk-list li>div>span{color:var(--muted);font-size:.86rem;line-height:1.45}
+.pchk-list a{align-items:center;color:var(--harbour);display:inline-flex;font-size:.9rem;font-weight:700;min-height:44px;text-decoration:underline;text-underline-offset:3px}
+.pchk-mark{align-items:center;border-radius:999px;display:inline-flex;flex:0 0 auto;font-size:.78rem;font-weight:800;height:22px;justify-content:center;line-height:1;width:22px}
+.pchk-mark.is-done{background:#1f6f43;color:#fff}
+.pchk-mark.is-missing{background:#8f1d24;color:#fff}
+.pchk-done{margin-top:12px}
+.pchk-done summary{color:var(--muted);cursor:pointer;font-size:.88rem;font-weight:700;min-height:44px;padding:12px 0}
+.pchk-cells{display:grid;gap:6px;list-style:none;margin:0;padding:0}
+.pchk-cells li{align-items:center;display:flex;gap:8px}
+.pchk-cells .pchk-mark{font-size:.66rem;height:18px;width:18px}
+.pchk-table td{vertical-align:top}
+
+/* Admin -> Phase 1: one line per check. */
+.p1-list{display:grid;gap:8px;list-style:none;margin:0 0 8px;padding:0}
+.p1-list li{align-items:flex-start;border:1px solid var(--line);border-radius:12px;display:flex;gap:12px;padding:12px 14px}
+.p1-list li>div{display:grid;gap:2px;min-width:0}
+.p1-list strong{font-size:.96rem}
+.p1-list li>div>span{color:var(--muted);font-size:.86rem;line-height:1.45;overflow-wrap:anywhere}
+.p1-list a{color:var(--sky);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.p1-list code{font-size:.82rem}
+.p1-total{font-size:1rem;margin:0 0 16px}
