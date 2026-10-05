@@ -7,6 +7,7 @@ import type { Business, BusinessImage, BusinessInvite, BusinessOffering, TeamMem
 import type { Section } from "@/db/categories";
 import { suggestForWhiteText, whiteTextContrast } from "@/lib/color";
 import { PhoneInput } from "@/app/_components/PhoneInput";
+import { uploadImage } from "@/app/_components/uploadPhoto";
 import { PaymentSettingsForm, TestRequest } from "@/app/_components/payments/PaymentSettingsForm";
 import type { PaymentSettings } from "@/db/paymentRequests";
 import { defaultPrefix, getPaidProblem } from "@/lib/paymentRequests/rules";
@@ -49,26 +50,6 @@ async function api<T>(url: string, init: RequestInit): Promise<T> {
   return data;
 }
 
-// Photos are shrunk in the browser before upload: phones produce 5-12 MB
-// images and Vercel caps a request body at 4.5 MB. Anything that can't be
-// decoded (or is already small) goes up as-is and the server decides.
-async function downscale(file: File): Promise<Blob> {
-  if (file.size < 1_200_000) return file;
-  try {
-    const bitmap = await createImageBitmap(file);
-    const max = 2048;
-    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
-    return blob ?? file;
-  } catch {
-    return file;
-  }
-}
-
 export function SetupWizard(props: Props) {
   const { mode, section, role } = props;
   const [business, setBusiness] = useState(props.business);
@@ -77,6 +58,8 @@ export function SetupWizard(props: Props) {
   const [invites, setInvites] = useState(props.invites);
   const [step, setStep] = useState(props.initialStep);
   const [busy, setBusy] = useState(false);
+  // What an upload is doing right now ("Uploading… 33%"), or "".
+  const [uploading, setUploading] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [problems, setProblems] = useState<string[]>([]);
@@ -141,10 +124,9 @@ export function SetupWizard(props: Props) {
     setBusy(true);
     setError("");
     try {
-      const body = new FormData();
-      body.append("kind", kind);
-      body.append("file", await downscale(file), file.name.replace(/\.[^.]+$/, "") + ".jpg");
-      const data = await api<{ logoUrl?: string; images?: BusinessImage[] }>(`${base}/images`, { method: "POST", body });
+      // Shrunk in the browser where it can be, sent in pieces where it
+      // can't (a 10 MB HEIC on Android); the server converts and resizes.
+      const data = await uploadImage<{ logoUrl?: string; images?: BusinessImage[] }>(`${base}/images`, kind, file, setUploading);
       if (kind === "logo" && data.logoUrl) setBusiness((b) => ({ ...b, logoUrl: data.logoUrl! }));
       if (data.images) {
         setImages(data.images);
@@ -154,6 +136,20 @@ export function SetupWizard(props: Props) {
       setError(e instanceof Error ? e.message : "Upload failed.");
     } finally {
       setBusy(false);
+      setUploading("");
+    }
+  }
+
+  // "Children appear in some of my photos": from then every photo is
+  // hidden until its consent is confirmed. On only.
+  async function requireConsent() {
+    if (!window.confirm("Turn this on? Every photo is then hidden from your public page until you confirm, photo by photo, that you hold signed consent for each child in it. Photos with no children can be confirmed straight away.")) return;
+    try {
+      const data = await api<{ photoConsentRequired: boolean; images: BusinessImage[] }>(`${base}/images`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ childrenInPhotos: true }) });
+      setBusiness((b) => ({ ...b, photoConsentRequired: data.photoConsentRequired }));
+      setImages(data.images);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save that.");
     }
   }
 
@@ -352,10 +348,14 @@ export function SetupWizard(props: Props) {
           <div className="wiz-upload">
             <span>Logo</span>
             {business.logoUrl && <img className="wiz-logo" src={business.logoUrl} alt="" />}
-            <input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload("logo", f); e.target.value = ""; }} />
+            <input type="file" aria-label="Choose a logo" accept="image/*" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload("logo", f); e.target.value = ""; }} />
           </div>
           <div className="wiz-upload">
             <span>Photos ({images.length}/8) — the first, or the one you star, is the main photo</span>
+            <label className="wiz-consent wiz-children">
+              <input type="checkbox" checked={business.photoConsentRequired} disabled={business.photoConsentRequired || busy} onChange={(e) => { if (e.target.checked) void requireConsent(); }} />
+              <span>{business.photoConsentRequired ? "Children appear in some of my photos: each photo needs your tick below before it is shown." : "Children appear in some of my photos"}</span>
+            </label>
             {business.photoConsentRequired && (
               <p className="auth-hint wiz-warn">
                 Photos of children stay hidden from the public page until you confirm, photo by photo, that you hold signed photo consent for every child in it. Photos with no children can be confirmed straight away.
@@ -380,7 +380,12 @@ export function SetupWizard(props: Props) {
                 ))}
               </div>
             )}
-            {images.length < 8 && <input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload("photo", f); e.target.value = ""; }} />}
+            {/* image/*: a phone opens its camera roll, and an iPhone hands
+                over a JPEG. A HEIC from any other device is converted on
+                the server. */}
+            {images.length < 8 && <input type="file" aria-label="Add a photo" accept="image/*" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload("photo", f); e.target.value = ""; }} />}
+            {uploading && <p className="auth-hint" role="status">{uploading}</p>}
+            <p className="auth-hint">Straight from your phone is fine: photos up to 24 MB, including iPhone (HEIC) photos. We resize them and remove the location a phone saves in a photo.</p>
           </div>
           <label>
             <span>Brand colour</span>

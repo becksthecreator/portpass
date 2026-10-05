@@ -1,0 +1,139 @@
+name: Photos from a phone (TEST data)
+
+# Brief 19, part E: an owner adds photos from a phone's camera roll. This
+# runs the real Look step at 375px against a throwaway local Supabase stack
+# with file storage switched on, a TEST business and a TEST owner, and
+# photos made in this job (noise and flat colour, nobody's picture):
+#   - a JPEG over 10 MB, saved on its side with a location in it;
+#   - a small HEIC and a large HEIC, encoded here with heif-enc;
+# and checks that each is stored as an upright JPEG no longer than 2048 px
+# with nothing of the phone's left in it, that a large file sent in pieces
+# is put back together and resized on the server, that the consent tick
+# works, and that no pieces are left behind. It never touches the real
+# database or the real file storage, and isn't a required check.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "lib/imageUpload.ts"
+      - "lib/imageProcess.ts"
+      - "lib/imageIncoming.ts"
+      - "app/_components/uploadPhoto.ts"
+      - "app/api/business/orgs/*/images/**"
+      - "app/business/setup/**"
+      - "types/heic-decode.d.ts"
+      - "next.config.ts"
+      - "package.json"
+      - "scripts/e2e/seed-photos-fixture.ts"
+      - "scripts/e2e/photos.mjs"
+      - ".github/workflows/photos-e2e.yml"
+
+concurrency:
+  group: photos-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  photos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install
+      - name: Install the HEIC encoder (to make the TEST photos)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libheif-examples
+          # On newer Ubuntu the HEVC encoder is a separate plugin.
+          sudo apt-get install -y libheif-plugin-x265 || true
+          heif-enc --version || true
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Switch file storage on for this job
+        # The other jobs run with storage off (supabase/config.toml).
+        run: |
+          sed -i '/^\[storage\]/,/^\[/ s/^enabled = false/enabled = true/' supabase/config.toml
+          sed -n '/^\[storage\]/,/^\[/p' supabase/config.toml
+      - name: Start local Supabase
+        run: |
+          supabase start || {
+            echo "The default image registry refused the pull; trying ghcr.io."
+            supabase stop --no-backup || true
+            SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io supabase start
+          }
+      - name: Export local Supabase credentials
+        run: |
+          supabase status -o env > supabase-status.env
+          API_URL=$(grep -E '^(API_URL|SUPABASE_URL)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          SERVICE_ROLE_KEY=$(grep -E '^(SERVICE_ROLE_KEY|SUPABASE_SERVICE_ROLE_KEY|SECRET_KEY|SUPABASE_SECRET_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          ANON_KEY=$(grep -E '^(ANON_KEY|SUPABASE_ANON_KEY|PUBLISHABLE_KEY|SUPABASE_PUBLISHABLE_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "SCREENSHOT_FIXTURE=$RUNNER_TEMP/photos-fixture.json" >> "$GITHUB_ENV"
+          echo "PHOTO_DIR=$RUNNER_TEMP/photos" >> "$GITHUB_ENV"
+      - name: Seed the TEST business and make the TEST photos
+        run: |
+          npx tsx scripts/seed-test-data.ts
+          npx tsx scripts/e2e/seed-photos-fixture.ts
+      - name: Encode the HEIC photos
+        run: |
+          cd "$PHOTO_DIR"
+          heif-enc -q 60 heic-small-source.png -o small.heic
+          # The large one must be too big for one request (over 3.5 MB) and
+          # within what a phone saves (under 20 MB): step the quality down
+          # until it is.
+          for q in 95 90 80 70 60 50 40 30; do
+            heif-enc -q "$q" heic-big-source.png -o big.heic
+            size=$(stat -c %s big.heic)
+            echo "big.heic at quality $q: $size bytes"
+            if [ "$size" -le 20000000 ]; then break; fi
+          done
+          size=$(stat -c %s big.heic)
+          if [ "$size" -le 3600000 ] || [ "$size" -gt 20000000 ]; then
+            echo "::error::big.heic is $size bytes; it must be between 3.6 MB and 20 MB to test an upload in pieces."
+            exit 1
+          fi
+          ls -la
+      - name: Build
+        # One retry: next/font's Google Fonts fetch occasionally fails in CI
+        # (a known upstream flake, see ci.yml).
+        run: npx next build --webpack || npx next build --webpack
+      - name: Start the app on localhost
+        run: |
+          npx next start -p 3000 > next.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/login > /dev/null && break; sleep 2; done
+          curl -sf http://localhost:3000/login > /dev/null
+      - name: Install Playwright (Chromium)
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Add photos from a phone
+        # bash with pipefail, so a failed step fails the job through tee.
+        shell: bash
+        run: node scripts/e2e/photos.mjs | tee photos-result.txt
+      - name: Result
+        if: always()
+        run: |
+          if [ -f photos-result.txt ]; then sed -n '/^| Step/,$p' photos-result.txt >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Server log on failure
+        if: failure()
+        run: tail -n 120 next.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: photos-e2e
+          path: |
+            screenshots/
+            photos-result.txt
+          if-no-files-found: warn
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop

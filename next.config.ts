@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Photos are converted and resized on the server (lib/imageProcess.ts,
+  // brief 19 part E): sharp is native code and the HEIC decoder is one
+  // large WebAssembly file, so both are loaded as they are, not bundled.
+  serverExternalPackages: ["sharp", "heic-decode", "libheif-js"],
   // The share cards (lib/og/PMark.tsx) read the Prow mark SVG from public/
   // at render time, so the file must travel with every opengraph-image
   // function on Vercel.
