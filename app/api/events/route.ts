@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { FUTPREP_STAFF_COOKIE } from "@/app/futprep/staff-auth";
 import { futprepOrganization, pageEventsOverCap, recordPageEvent } from "@/db/growth";
 import { ATTRIBUTION_COOKIE, parseAttributionCookie } from "@/lib/attribution";
@@ -44,6 +45,9 @@ function fromOurOwnPage(request: Request): boolean {
 // stranger nothing.
 const done = () => new NextResponse(null, { status: 204 });
 
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["path", "event"]);
+
 export async function POST(request: Request) {
   if (!fromOurOwnPage(request)) return done();
   if (BOT.test(request.headers.get("user-agent") ?? "")) return done();
@@ -51,7 +55,9 @@ export async function POST(request: Request) {
   // Staff looking at their own public pages are not visitors.
   if (cookie(request, FUTPREP_STAFF_COOKIE)) return done();
 
-  const body = (await request.json().catch(() => null)) as { path?: unknown; event?: unknown } | null;
+  const read = await readJson(request, Body);
+  if (!read.ok) return read.response;
+  const body: { path?: unknown; event?: unknown } | null = read.value;
   const path = cleanEventPath(body?.path);
   if (!path || !isPageEvent(body?.event)) return done();
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { listSections } from "@/db/categories";
 import { importLeads } from "@/db/leads";
 import { requireAdminApi } from "@/lib/auth/admin";
@@ -10,9 +11,14 @@ const MAX_ROWS = 1000;
 // Admin -> Leads: the one-off import of the Prospect Tracker's "Prospects"
 // sheet, saved as CSV. Preview first (nothing is saved), then apply. A
 // business already in Leads, or marked "do not contact", is skipped.
+// Per address, per server instance (Brief 21, part E): a stuck button or a
+// script cannot hammer this.
+const limited = createRateLimiter(10, 10 * 60_000);
+
 export async function POST(request: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
+  if (limited(clientIp(request))) return NextResponse.json({ error: "Too many imports in a short time. Wait a few minutes." }, { status: 429 });
 
   const body = (await request.json().catch(() => null)) as { csv?: unknown; apply?: unknown } | null;
   const csv = typeof body?.csv === "string" ? body.csv : "";

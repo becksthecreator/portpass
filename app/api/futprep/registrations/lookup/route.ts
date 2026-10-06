@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { getFutprepRegistrationStatus } from "@/db/registrations";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -16,13 +17,18 @@ function rateLimited(ip: string) {
   return entry.count > RATE_LIMIT_MAX_ATTEMPTS;
 }
 
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["referenceCode", "childDob"]);
+
 export async function POST(request: Request) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   if (rateLimited(ip)) {
     return NextResponse.json({ error: "Too many attempts. Try again in a minute." }, { status: 429 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as { referenceCode?: string; childDob?: string };
+  const read = await readJson(request, Body);
+  if (!read.ok) return read.response;
+  const body = read.value as { referenceCode?: string; childDob?: string };
   const referenceCode = typeof body.referenceCode === "string" ? body.referenceCode.trim() : "";
   const childDob = typeof body.childDob === "string" ? body.childDob.trim() : "";
 

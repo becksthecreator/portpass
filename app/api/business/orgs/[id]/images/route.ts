@@ -60,7 +60,7 @@ export async function POST(request: Request, ctx: Ctx) {
       bytes = whole;
     } catch (error) {
       await removeParts(id, uploadId, position.total);
-      if (error instanceof Error && error.message === "IMAGE_TOO_LARGE") return NextResponse.json({ error: "That photo is over 24 MB. Try a smaller one." }, { status: 413 });
+      if (error instanceof Error && error.message === "IMAGE_TOO_LARGE") return NextResponse.json({ error: "That photo is over 10 MB. Try a smaller one." }, { status: 413 });
       console.error("org image pieces", error instanceof Error ? error.message.slice(0, 120) : "");
       return NextResponse.json({ error: "Could not upload that photo. Please try again." }, { status: 500 });
     } finally {

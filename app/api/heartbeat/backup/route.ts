@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { saveBackupHeartbeat } from "@/db/adminHealth";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { logRefusedUnset } from "@/lib/env";
@@ -14,6 +15,9 @@ const limited = createRateLimiter(12, 60 * 60_000);
 // accepted (503, and the log names the setting). The call says only "a
 // backup finished" or "a backup failed": no data about the backup or the
 // database travels with it.
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["ok"]);
+
 export async function POST(request: Request) {
   const secret = process.env.BACKUP_HEARTBEAT_SECRET?.trim();
   if (!secret) {
@@ -24,7 +28,9 @@ export async function POST(request: Request) {
   if (!secretsMatch(bearerToken(request), secret)) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
   // It must say plainly whether the backup worked: a body that can't be
   // read is refused, never taken as "it worked".
-  const body = (await request.json().catch(() => null)) as { ok?: unknown } | null;
+  const read = await readJson(request, Body);
+  if (!read.ok) return read.response;
+  const body: { ok?: unknown } | null = read.value;
   if (typeof body?.ok !== "boolean") return NextResponse.json({ error: "Say whether the backup worked." }, { status: 400 });
   try {
     await saveBackupHeartbeat(body.ok);

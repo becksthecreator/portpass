@@ -386,7 +386,7 @@ export function SetupWizard(props: Props) {
                 the server. */}
             {images.length < 8 && <input type="file" aria-label="Add a photo" accept="image/*" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload("photo", f); e.target.value = ""; }} />}
             {uploading && <p className="auth-hint" role="status">{uploading}</p>}
-            <p className="auth-hint">Straight from your phone is fine: photos up to 24 MB, including iPhone (HEIC) photos. We resize them and remove the location a phone saves in a photo.</p>
+            <p className="auth-hint">Straight from your phone is fine: photos up to 10 MB, including iPhone (HEIC) photos. We resize them and remove the location a phone saves in a photo.</p>
           </div>
           <label>
             <span>Brand colour</span>

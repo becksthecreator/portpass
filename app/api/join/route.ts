@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { listSections } from "@/db/categories";
 import { recordEventSignup } from "@/db/leads";
 import { afterResponse } from "@/lib/afterResponse";
@@ -32,9 +33,14 @@ async function sectionCheck(): Promise<{ known: (slug: string) => boolean; name:
   return { known: isSectionSlug, name: (slug) => sectionName(slug) ?? slug };
 }
 
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["event", "name", "businessName", "whatsapp", "section", "instagram", "whatsappConsent"]);
+
 export async function POST(request: Request) {
   if (perAddress(clientIp(request))) return NextResponse.json({ error: "Too many sign-ups from here in a short time. Wait a few minutes." }, { status: 429 });
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const read = await readJson(request, Body);
+  if (!read.ok) return read.response;
+  const body: Record<string, unknown> | null = read.value;
   if (!body) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
 
   const sections = await sectionCheck();

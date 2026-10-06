@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { saveSignInCodeUsed } from "@/db/adminHealth";
 import { afterResponse } from "@/lib/afterResponse";
 import { bootstrapUser } from "@/lib/auth/bootstrap";
@@ -16,11 +17,16 @@ function str(body: Record<string, unknown>, key: string, max: number): string {
   return typeof body[key] === "string" ? body[key].trim().slice(0, max) : "";
 }
 
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["email", "token", "next", "intent"]);
+
 export async function POST(request: Request) {
   const ip = clientIp(request);
   if (ipLimited(ip)) return NextResponse.json({ error: "Too many attempts. Try again in a few minutes." }, { status: 429 });
 
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const read = await readJson(request, Body);
+  if (!read.ok) return read.response;
+  const body: Record<string, unknown> | null = read.value;
   if (!body) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
 
   const email = str(body, "email", 254).toLowerCase();

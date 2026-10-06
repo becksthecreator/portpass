@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { futprepOrganization } from "@/db/growth";
 import { memberEarlyAccess, recordOnlineRedemption } from "@/db/memberPerks";
 import { afterResponse } from "@/lib/afterResponse";
@@ -44,10 +45,15 @@ function clean(body: Record<string, unknown>, field: string) {
   return (typeof body[field] === "string" ? body[field].trim() : "").slice(0, limits[field] ?? 250);
 }
 
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["parentName", "parentEmail", "parentPhone", "relationship", "childName", "childDob", "gender", "authorizedPickup", "emergencyContactName", "emergencyContactPhone", "allergies", "medicalConditions", "medications", "specialNeeds", "additionalNotes", "offerKey", "paymentFrequency", "paymentMethod", "photoConsent", "signatureName", "consentAccepted", "heardAboutUs", "referralCode", "programSlug", "termId", "mode", "returnToken", "trialSessionId", "joinFromTrialCode", "utmSource", "utmMedium", "utmCampaign", "referrerHost", "viaPortpass"]);
+
 export async function POST(request: Request) {
   let body: Record<string, unknown>;
   try {
-    body = await request.json() as Record<string, unknown>;
+    const read = await readJson(request, Body);
+    if (!read.ok) return read.response;
+    body = read.value;
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }

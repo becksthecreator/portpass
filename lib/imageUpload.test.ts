@@ -92,9 +92,9 @@ describe("photos from a phone", () => {
     expect(sniffUpload(new TextEncoder().encode("<svg xmlns='http://www.w3.org/2000/svg'/>".padEnd(64, " ")))).toBeNull();
   });
 
-  it("sends a big photo in pieces of 3 MB, up to 24 MB", () => {
+  it("sends a big photo in pieces of 3 MB, up to 10 MB", () => {
     expect(UPLOAD_CHUNK_BYTES).toBe(3 * 1024 * 1024);
-    expect(MAX_ORIGINAL_BYTES).toBe(24 * 1024 * 1024);
+    expect(MAX_ORIGINAL_BYTES).toBe(10 * 1024 * 1024);
     expect(chunkCount(1)).toBe(1);
     expect(chunkCount(UPLOAD_CHUNK_BYTES)).toBe(1);
     expect(chunkCount(UPLOAD_CHUNK_BYTES + 1)).toBe(2);
