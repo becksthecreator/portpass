@@ -109,7 +109,12 @@ describe("reserve", () => {
 
   it("takes the stock, prices from the database and records a PortPass link as the source", async () => {
     const cookie = `${shopAttributionCookie(slug)}=${serializeAttributionCookie({ utmSource: "portpass", utmMedium: "link", utmCampaign: "drop_test", referrerHost: null, viaPortpass: false })}`;
-    const response = await post(reserve, "/api/shop/reservations", order([{ variantId: variant(jersey, "M").id, qty: 1 }, { variantId: variant(cap, "One size").id, qty: 2 }], { unitCents: 1 }), cookie);
+    // A client that tries to send its own price is refused outright (Brief
+    // 21, part E: a body may carry only the fields the route reads).
+    const priced = await post(reserve, "/api/shop/reservations", order([{ variantId: variant(jersey, "M").id, qty: 1 }], { unitCents: 1 }), cookie);
+    expect(priced.status).toBe(400);
+    expect(await stockOf(variant(jersey, "M").id)).toBeGreaterThan(0);
+    const response = await post(reserve, "/api/shop/reservations", order([{ variantId: variant(jersey, "M").id, qty: 1 }, { variantId: variant(cap, "One size").id, qty: 2 }]), cookie);
     expect(response.status).toBe(201);
     const body = (await response.json()) as { referenceCode: string; receiptUrl: string; holdUntil: string };
     const shop = await getShop(orgId);

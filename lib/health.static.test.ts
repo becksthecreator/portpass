@@ -30,8 +30,10 @@ const MAY_SELECT_PROTECTED = new Set<string>([
   "db/registrations.ts", // writes what the parent typed; reads it back for the parent's own record
   "db/staff.ts", // Futprep staff roster and registration detail, behind the staff PIN
   "db/businessRegistrations.ts", // a business's registration detail, behind the team permission (canViewMedical)
-  "db/adminBookings.ts", // the audited, rate-limited reveal (Admin -> Bookings -> registration)
   "db/teamsnapImport.ts", // the one-off import of Futprep's old records
+  // db/adminBookings.ts (the audited, rate-limited reveal) builds its select
+  // from lib/adminBookings.ts HEALTH_FIELDS, so no literal column appears
+  // there; the reveal is covered by its own tests.
 ]);
 
 // Modules that produce something that travels: an email, a CSV, an export,

@@ -116,20 +116,6 @@ const HEALTH = "allergies,medical_conditions,medications,special_needs,additiona
 const KEPT = "child_name,child_dob,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,photo_consent,payment_status,signature_name";
 
 describe("children's health details are deleted 90 days after the programme ends", () => {
-  it("the nightly run writes one audit_log row saying how many were cleared, and nothing about whom", async () => {
-    const before = new Date().toISOString();
-    const { data, error } = await db().rpc("purge_expired_health_details_nightly");
-    expect(error).toBeNull();
-    const { data: rows } = await db().from("audit_log").select("action,target_table,target_id,organization_id,actor_user_id,after").eq("action", "registrations.health_purged").gte("created_at", before).order("id", { ascending: false }).limit(1);
-    expect(rows).toHaveLength(1);
-    expect(rows![0]).toMatchObject({ target_table: "registrations", target_id: null, organization_id: null, actor_user_id: null });
-    expect(rows![0].after).toMatchObject({ cleared: Number(data), job: "purge-expired-health-details" });
-    expect(JSON.stringify(rows![0])).not.toMatch(/peanut|wheezy|child_name/);
-    // The browser roles cannot start it.
-    const anon = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY ?? "", { auth: { persistSession: false } });
-    expect((await anon.rpc("purge_expired_health_details_nightly")).error).not.toBeNull();
-  });
-
   it("clears the health fields and their edit history at 91 days, and nothing else", async () => {
     const before = (await db().from("registrations").select(KEPT).eq("id", dueId).single()).data;
     const { data: cleared, error } = await db().rpc("purge_expired_health_details", { p_today: today });
@@ -204,6 +190,22 @@ describe("children's health details are deleted 90 days after the programme ends
     expect(error).toBeNull();
     const { data: recent } = await db().from("registrations").select(HEALTH).eq("id", recentId).single();
     expect(recent).toMatchObject({ allergies: "TEST peanut", medical_conditions: "TEST asthma", additional_notes: "TEST gets wheezy when running", health_purged_at: null });
+  });
+
+  // Last on purpose: it runs the purge for real, and the tests above want
+  // their due rows still uncleared when they start.
+  it("the nightly run writes one audit_log row saying how many were cleared, and nothing about whom", async () => {
+    const before = new Date().toISOString();
+    const { data, error } = await db().rpc("purge_expired_health_details_nightly");
+    expect(error).toBeNull();
+    const { data: rows } = await db().from("audit_log").select("action,target_table,target_id,organization_id,actor_user_id,after").eq("action", "registrations.health_purged").gte("created_at", before).order("id", { ascending: false }).limit(1);
+    expect(rows).toHaveLength(1);
+    expect(rows![0]).toMatchObject({ target_table: "registrations", target_id: null, organization_id: null, actor_user_id: null });
+    expect(rows![0].after).toMatchObject({ cleared: Number(data), job: "purge-expired-health-details" });
+    expect(JSON.stringify(rows![0])).not.toMatch(/peanut|wheezy|child_name/);
+    // The browser roles cannot start it.
+    const anon = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY ?? "", { auth: { persistSession: false } });
+    expect((await anon.rpc("purge_expired_health_details_nightly")).error).not.toBeNull();
   });
 
   it("clears 'who entered the medical info' along with the details", async () => {
