@@ -21,6 +21,7 @@ export function BusinessActions({ id, name, status, createdByAdmin, claimed, isP
   const [done, setDone] = useState("");
   const [link, setLink] = useState<ClaimLink | null>(null);
   const [copied, setCopied] = useState(false);
+  const [exported, setExported] = useState<{ url: string; expiresAt: string; bytes: number } | null>(null);
 
   async function act(action: string, body: Record<string, unknown> = {}) {
     setBusy(action);
@@ -65,6 +66,23 @@ export function BusinessActions({ id, name, status, createdByAdmin, claimed, isP
     }
   }
 
+  // Brief 21, part H: everything PortPass holds for the business, as a file
+  // behind a link that works for 24 hours. The founder sends it on themselves.
+  async function exportData() {
+    if (!confirm(`Export everything PortPass holds for ${name}? You get a link that works for 24 hours. It is logged.`)) return;
+    setBusy("export");
+    setError("");
+    setExported(null);
+    const response = await fetch(`/api/admin/businesses/${id}/export`, { method: "POST" }).catch(() => null);
+    const data = response ? ((await response.json().catch(() => ({}))) as { url?: string; expiresAt?: string; bytes?: number; error?: string }) : {};
+    setBusy(null);
+    if (!response || !response.ok || !data.url) {
+      setError(data.error ?? "Could not make the export.");
+      return;
+    }
+    setExported({ url: data.url, expiresAt: data.expiresAt ?? "", bytes: data.bytes ?? 0 });
+  }
+
   const canClaim = createdByAdmin && !claimed && status !== "suspended";
   return (
     <div className="admin-row-actions">
@@ -83,6 +101,7 @@ export function BusinessActions({ id, name, status, createdByAdmin, claimed, isP
       {canClaim && <button type="button" className="admin-action" disabled={busy !== null} onClick={claimLink}>{busy === "claim" ? "Making link…" : link ? "New claim link" : "Send claim link"}</button>}
       {canSuspend && (status === "submitted" || status === "approved" || status === "live" || isPublic) && <button type="button" className="admin-action is-danger" disabled={busy !== null} onClick={() => setAsk(ask === "suspend" ? null : "suspend")}>Suspend</button>}
       {status === "suspended" && <button type="button" className="admin-action is-primary" disabled={busy !== null} onClick={() => act("unsuspend")}>{busy === "unsuspend" ? "Unsuspending…" : "Unsuspend"}</button>}
+      <button type="button" className="admin-action" disabled={busy !== null} onClick={exportData}>{busy === "export" ? "Exporting…" : "Export data"}</button>
 
       {ask && (
         <div className="admin-action-ask">
@@ -105,6 +124,15 @@ export function BusinessActions({ id, name, status, createdByAdmin, claimed, isP
             <button type="button" className="admin-action" onClick={copy}>{copied ? "Copied" : "Copy link"}</button>
           </div>
           <p>It is shown once. Making a new link switches this one off.</p>
+        </div>
+      )}
+
+      {exported && (
+        <div className="admin-action-ask">
+          <p>The export is ready ({Math.max(1, Math.round(exported.bytes / 1024))} KB). The link works for 24 hours and is logged. Send it to the business yourself; children&rsquo;s health details are never in it.</p>
+          <div className="admin-form-actions">
+            <a className="admin-action is-primary" href={exported.url} target="_blank" rel="noopener noreferrer">Download the file ↗</a>
+          </div>
         </div>
       )}
 

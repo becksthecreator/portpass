@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { pruneHealthRecords } from "@/db/adminHealth";
 import { prunePassChecks } from "@/db/memberPerks";
 import { listOwnerEmails } from "@/db/business";
+import { pruneExports } from "@/db/businessExport";
 import { resetDemoBusiness } from "@/db/demo";
 import { pruneSecurityEvents } from "@/db/securityEvents";
 import { getSiteContent } from "@/db/siteContent";
@@ -84,6 +85,12 @@ export async function GET(request: Request) {
     await pruneHealthRecords(now);
   } catch (error) {
     console.error("daily job: messages log and site errors retention", error instanceof Error ? error.message : "");
+  }
+  // A business's export file is kept 7 days; its link worked for 24 hours (Brief 21, part H).
+  try {
+    await pruneExports(now);
+  } catch (error) {
+    console.error("daily job: exports retention", error instanceof Error ? error.message : "");
   }
   // Member Pass checks are kept 30 days (brief 10; the Privacy Policy says so).
   try {
