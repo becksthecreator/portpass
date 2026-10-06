@@ -97,6 +97,13 @@ describe("the seller's own settings", () => {
     expect(asked.ok && asked.value.requestVerification).toBe(true);
   });
 
+  it("keeps a licence number already on file even if it predates the check, but checks a new one", () => {
+    const old = "BL#7, Nassau";
+    expect(parseSellerProfile({ ...base, licenceNumber: old }, old)).toMatchObject({ ok: true, value: { licenceNumber: old } });
+    expect(parseSellerProfile({ ...base, licenceNumber: "BL#8, Nassau" }, old).ok).toBe(false);
+    expect(parseSellerProfile({ ...base, licenceNumber: "BL-8" }, old)).toMatchObject({ ok: true, value: { licenceNumber: "BL-8" } });
+  });
+
   it("lets the category be cleared but not made up", () => {
     const cleared = parseSellerProfile({ ...base, category: "" });
     expect(cleared.ok && cleared.value.marketCategory).toBeNull();

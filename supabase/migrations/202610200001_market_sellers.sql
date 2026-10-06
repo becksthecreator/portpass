@@ -120,9 +120,11 @@ alter table public.products add constraint products_market_category_valid check 
 -- between the page loading and the press), nothing is verified
 -- (RECORDS_CHANGED), so a founder only ever verifies what they saw.
 -- Verifying is PortPass's review of a seller, so a draft or submitted
--- business becomes approved; if it already has a published product and a
--- phone or WhatsApp number buyers can use, it goes live (the same rule as
--- a first published product, db/shop.ts, plus rule 7's contact button).
+-- business becomes approved. It goes live (published and listed) only
+-- when it also has a published product, a phone or WhatsApp number buyers
+-- can use (rule 7's contact button) and a way to be paid (a payment
+-- method, cash on pickup, or bank details in its payment settings);
+-- otherwise it stays approved until those are in place.
 -- Returns {"went_live": bool, "was_status": text}.
 create or replace function public.market_verify_seller(p_org bigint, p_actor uuid, p_licence text, p_contact text)
 returns jsonb
@@ -186,12 +188,17 @@ begin
          approved_by = case when status in ('draft', 'submitted') then p_actor else approved_by end
    where id = p_org;
 
-  update public.organizations
+  update public.organizations o
      set is_published = true, is_directory_listed = true, status = 'live'
-   where id = p_org
-     and status = 'approved'
-     and not is_published
-     and (length(btrim(coalesce(whatsapp_e164, ''))) > 0 or length(btrim(coalesce(phone_e164, ''))) > 0)
+   where o.id = p_org
+     and o.status in ('approved', 'live')
+     and not o.is_published
+     and (length(btrim(coalesce(o.whatsapp_e164, ''))) > 0 or length(btrim(coalesce(o.phone_e164, ''))) > 0)
+     and (
+       cardinality(coalesce(o.payment_methods, '{}')) > 0
+       or exists (select 1 from public.shops s where s.organization_id = p_org and s.accepts_cash_on_pickup)
+       or exists (select 1 from public.organization_payment_settings ps where ps.organization_id = p_org and (ps.account_number_last4 is not null or length(btrim(ps.transfer_instructions)) > 0))
+     )
      and exists (select 1 from public.products where organization_id = p_org and is_published);
   v_live := found;
 
@@ -269,6 +276,36 @@ drop trigger if exists shops_seller_status_guard on public.shops;
 create trigger shops_seller_status_guard
   before insert or update on public.shops
   for each row execute function public.shops_seller_status_guard();
+
+-- A Shop Bahamian business's own page is its storefront (/shop/<slug>).
+-- When its seller stops being verified (a checked record changed, or
+-- PortPass suspended it), or the owner closes the shop, the storefront
+-- goes dark, so the business leaves the section lists, search and the
+-- sitemap with it instead of leaving links that answer 404. Verifying
+-- again, or reopening a verified seller's shop, takes it back live
+-- (market_verify_seller, db/shop.ts). A business in another section keeps
+-- its own page: only its shop and products leave the Market.
+create or replace function public.shops_seller_unlisted()
+returns trigger
+language plpgsql
+set search_path = public, pg_temp
+as $$
+begin
+  if (old.seller_status = 'verified' and new.seller_status <> 'verified') or (old.is_published and not new.is_published) then
+    update public.organizations
+       set is_published = false, is_directory_listed = false
+     where id = new.organization_id
+       and primary_category = 'shop'
+       and (is_published or is_directory_listed);
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists shops_seller_unlisted on public.shops;
+create trigger shops_seller_unlisted
+  after update of seller_status, is_published on public.shops
+  for each row execute function public.shops_seller_unlisted();
 
 -- Server only: PostgREST exposes public functions as /rpc/*, and Postgres
 -- grants EXECUTE to PUBLIC by default.

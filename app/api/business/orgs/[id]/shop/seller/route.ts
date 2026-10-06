@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { alertSellerApplied } from "@/db/marketAlerts";
-import { saveSellerProfile } from "@/db/marketSellers";
+import { getSellerRecords, saveSellerProfile } from "@/db/marketSellers";
 import { afterResponse } from "@/lib/afterResponse";
 import { bodyOf, readJson } from "@/lib/api/body";
 import { requireOrgRoleApi } from "@/lib/auth/guards";
@@ -26,7 +26,7 @@ export async function PUT(request: Request, ctx: Ctx) {
   if (!auth.ok) return auth.response;
   const read = await readJson(request, Body);
   if (!read.ok) return read.response;
-  const parsed = parseSellerProfile(read.value as Record<string, unknown>);
+  const parsed = parseSellerProfile(read.value as Record<string, unknown>, (await getSellerRecords(id)).licenceNumber);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
   try {
     const { shop, joinedQueue } = await saveSellerProfile(id, parsed.value, auth.session.userId);
