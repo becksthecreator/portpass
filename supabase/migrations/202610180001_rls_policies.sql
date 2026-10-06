@@ -36,8 +36,12 @@
 --     payment_requests, payments, people, perk_redemptions,
 --     private_session_events, private_session_requests, program_terms,
 --     programs, registration_edits, registrations, reservations,
---     session_staff, sessions, shops, staff_members, wedding_lead_notes,
---     wedding_leads, wedding_site_settings, wedding_unavailable_dates
+--     session_plans, session_staff, sessions, shops, staff_members,
+--     staff_work_logs, wedding_lead_notes, wedding_leads,
+--     wedding_site_settings, wedding_unavailable_dates
+--
+--     (session_plans and staff_work_logs are made by 202609010002 and exist
+--     in a fresh stack; the project's own database no longer has them.)
 --
 --   platform-only   PortPass's own books and tools. Founders only, through
 --                   the server. No browser role may read or write a row.
@@ -114,9 +118,9 @@ begin
     'member_pass_checks', 'member_perks', 'message_log', 'organization_invites',
     'organization_payment_settings', 'page_events', 'payment_requests', 'payments', 'people',
     'perk_redemptions', 'private_session_events', 'private_session_requests', 'program_terms',
-    'programs', 'registration_edits', 'registrations', 'reservations', 'session_staff',
-    'sessions', 'shops', 'staff_members', 'wedding_lead_notes', 'wedding_leads',
-    'wedding_site_settings', 'wedding_unavailable_dates',
+    'programs', 'registration_edits', 'registrations', 'reservations', 'session_plans',
+    'session_staff', 'sessions', 'shops', 'staff_members', 'staff_work_logs',
+    'wedding_lead_notes', 'wedding_leads', 'wedding_site_settings', 'wedding_unavailable_dates',
     -- platform-only
     'admin_links', 'applications', 'billing_accounts', 'billing_events', 'billing_reminders',
     'commission_plans', 'interest_submissions', 'job_runs', 'leads', 'organization_claim_links',

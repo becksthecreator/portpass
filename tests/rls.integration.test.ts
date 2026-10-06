@@ -57,8 +57,7 @@ describe.skipIf(!anonKey)("row level security, seen through a browser key", () =
           name: `TEST — delete ${TAG} ${kind}`,
           slug: SLUG[kind],
           primary_category: "sports-fitness",
-          status: kind === "published" ? "live" : "draft",
-          is_published: kind === "published",
+          status: "draft",
           is_demo: kind === "demo",
           email: `owner-${TAG}@example.com`,
           phone: "242-555-0100",
@@ -72,6 +71,12 @@ describe.skipIf(!anonKey)("row level security, seen through a browser key", () =
       if (offering.error) throw new Error(`could not seed offering: ${offering.error.message}`);
       const faq = await admin.from("organization_faqs").insert({ organization_id: ids[kind], question: `TEST ${TAG}?`, answer: "TEST", sort_order: 0 });
       if (faq.error) throw new Error(`could not seed faq: ${faq.error.message}`);
+      // No price, no publish (rule 7) is enforced by the database, so the
+      // business is published only once its priced offering exists.
+      if (kind === "published") {
+        const publish = await admin.from("organizations").update({ is_published: true, status: "live" }).eq("id", ids[kind]);
+        if (publish.error) throw new Error(`could not publish the TEST organisation: ${publish.error.message}`);
+      }
     }
   });
 
