@@ -1,0 +1,107 @@
+name: Market screenshots (TEST data)
+
+# PortPass Market (brief 25): /sell, a verified seller's storefront, the
+# seller's PortPass Market settings and Admin -> Market at 375px. The seller
+# and admin pages need a sign-in, so like the shop and staff screenshot jobs
+# this runs the app on localhost against a throwaway local Supabase stack
+# with TEST sellers, a TEST owner and a TEST platform owner that exist only
+# in that stack, and saves the screenshots as an artifact. It never touches
+# the real database and isn't a required check.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/sell/**"
+      - "app/market/**"
+      - "app/order/**"
+      - "app/shop/**"
+      - "app/admin/market/**"
+      - "app/business/**/shop/**"
+      - "app/account/**"
+      - "db/market*.ts"
+      - "db/shop.ts"
+      - "lib/market/**"
+      - "scripts/screenshots/seed-shop-fixture.ts"
+      - "scripts/screenshots/seed-market-fixture.ts"
+      - "scripts/screenshots/capture-market.mjs"
+      - ".github/workflows/market-screenshots.yml"
+
+concurrency:
+  group: market-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm ci
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v1
+        with:
+          version: latest
+      - name: Start local Supabase
+        # The Supabase CLI pulls its images from public.ecr.aws, which at times
+        # rate-limits GitHub's runners ("toomanyrequests"). When that happens
+        # the same images are pulled from GitHub's own registry instead.
+        run: |
+          supabase start || {
+            echo "The default image registry refused the pull; trying ghcr.io."
+            supabase stop --no-backup || true
+            SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io supabase start
+          }
+      - name: Export local Supabase credentials
+        run: |
+          supabase status -o env > supabase-status.env
+          API_URL=$(grep -E '^(API_URL|SUPABASE_URL)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          SERVICE_ROLE_KEY=$(grep -E '^(SERVICE_ROLE_KEY|SUPABASE_SERVICE_ROLE_KEY|SECRET_KEY|SUPABASE_SECRET_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          ANON_KEY=$(grep -E '^(ANON_KEY|SUPABASE_ANON_KEY|PUBLISHABLE_KEY|SUPABASE_PUBLISHABLE_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "SCREENSHOT_FIXTURE=$RUNNER_TEMP/shop-fixture.json" >> "$GITHUB_ENV"
+          echo "MARKET_FIXTURE=$RUNNER_TEMP/market-fixture.json" >> "$GITHUB_ENV"
+          # The TEST platform owner seeded by seed-market-fixture.ts (local stack only).
+          echo "PLATFORM_OWNER_EMAILS=test-delete-market-admin@test.portpass.local" >> "$GITHUB_ENV"
+      - name: Seed test data
+        run: |
+          npx tsx scripts/seed-test-data.ts
+          npx tsx scripts/screenshots/seed-shop-fixture.ts
+          npx tsx scripts/screenshots/seed-market-fixture.ts
+      - name: Build
+        # One retry: next/font's Google Fonts fetch occasionally fails in CI
+        # (a known upstream flake, see ci.yml).
+        run: npx next build --webpack || npx next build --webpack
+      - name: Start the app on localhost
+        run: |
+          npx next start -p 3000 > next.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/sell > /dev/null && break; sleep 2; done
+          curl -sf http://localhost:3000/sell > /dev/null
+      - name: Install Playwright (Chromium)
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Capture
+        run: node scripts/screenshots/capture-market.mjs
+      - name: Server log on failure
+        if: failure()
+        run: tail -n 80 next.log || true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: market-screenshots
+          path: screenshots/
+          if-no-files-found: warn
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop

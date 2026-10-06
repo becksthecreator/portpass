@@ -1,0 +1,18 @@
+/* /sell (brief 25, A4). Still: no motion on this page (brief 22's Never
+   list). Builds on the /apply form styles in globals.css (form-page,
+   form-intro, application-form, form-grid). */
+.sell-steps{margin:22px 0 0;padding:0 0 0 20px;display:grid;gap:8px;line-height:1.5;color:var(--ink)}
+.sell-steps strong{font-weight:800}
+.sell-existing{max-width:820px;margin:0 auto 18px;padding:16px 20px;border:1px solid var(--line);background:var(--deck);line-height:1.5}
+.sell-existing p{margin:0 0 8px}
+.sell-existing ul{margin:0 0 10px;padding:0;list-style:none;display:grid;gap:6px}
+.sell-existing a{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.sell-signin h2{margin:0 0 10px;font-size:1.3rem}
+.sell-signin p{margin:0 0 18px;line-height:1.55;color:var(--muted)}
+.sell-signin-actions{display:flex;flex-wrap:wrap;gap:12px}
+.sell-cash{border:0;margin:0;padding:0;display:grid;gap:10px}
+.sell-cash legend{font-size:.74rem;font-weight:800;margin-bottom:10px}
+.sell-cash label{display:flex;align-items:center;gap:10px;min-height:44px;font-size:.95rem}
+.sell-cash input{width:auto;min-height:0}
+.sell-page .application-form label small{color:var(--muted);font-size:.72rem;line-height:1.4}
+.sell-tagline{text-align:center;font-weight:800;color:var(--ink);margin:28px 16px 36px;letter-spacing:.02em}

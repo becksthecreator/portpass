@@ -19,6 +19,9 @@ import {
 import { slugify } from "@/lib/slug";
 import { logAudit } from "./audit";
 import { getBusiness, getBusinessBySlug, type Business } from "./business";
+import { demoOrganizationIdOrNull } from "./demo";
+import { zonesFromRow, type DeliveryZone, type SellerPlan, type SellerStatus } from "@/lib/market/sellers";
+import { isMarketCategory, type MarketCategorySlug } from "@/lib/market/categories";
 import { markLeadsLive } from "./leadLinks";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -30,18 +33,57 @@ import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // ---- shops -----------------------------------------------------------------
 
-export type Shop = { organizationId: number; referencePrefix: string; returnsPolicy: string; holdHours: number; isPublished: boolean };
+// The seller's Market fields (brief 25, part A) ride on the shop row: a
+// seller is a business with a shop. The licence number and the contact
+// person are the organisation's own records (db/marketSellers.ts).
+export type Shop = {
+  organizationId: number;
+  referencePrefix: string;
+  returnsPolicy: string;
+  holdHours: number;
+  isPublished: boolean;
+  sellerStatus: SellerStatus;
+  sellerVerifiedAt: string | null;
+  sellerPlan: SellerPlan;
+  sellerPickupNote: string;
+  sellerDeliveryZones: DeliveryZone[];
+  acceptsCashOnPickup: boolean;
+  marketCategory: MarketCategorySlug | null;
+  whatTheySell: string;
+  sellerAppliedAt: string | null;
+  sellerStatusReason: string | null;
+};
 
-const SHOP_COLUMNS = "organization_id,reference_prefix,returns_policy,hold_hours,is_published";
+export const SHOP_COLUMNS =
+  "organization_id,reference_prefix,returns_policy,hold_hours,is_published,seller_status,seller_verified_at,seller_plan,seller_pickup_note,seller_delivery_zones,accepts_cash_on_pickup,market_category,what_they_sell,seller_applied_at,seller_status_reason";
 
-function toShop(row: Record<string, unknown>): Shop {
+export function toShop(row: Record<string, unknown>): Shop {
+  const status = row.seller_status as SellerStatus | undefined;
   return {
     organizationId: Number(row.organization_id),
     referencePrefix: row.reference_prefix as string,
     returnsPolicy: (row.returns_policy as string) ?? "",
     holdHours: Number(row.hold_hours ?? DEFAULT_HOLD_HOURS),
     isPublished: Boolean(row.is_published),
+    sellerStatus: status ?? "none",
+    sellerVerifiedAt: (row.seller_verified_at as string | null) ?? null,
+    sellerPlan: row.seller_plan === "seller" ? "seller" : "none",
+    sellerPickupNote: (row.seller_pickup_note as string | null) ?? "",
+    sellerDeliveryZones: zonesFromRow(row.seller_delivery_zones),
+    acceptsCashOnPickup: Boolean(row.accepts_cash_on_pickup),
+    marketCategory: isMarketCategory(row.market_category) ? row.market_category : null,
+    whatTheySell: (row.what_they_sell as string | null) ?? "",
+    sellerAppliedAt: (row.seller_applied_at as string | null) ?? null,
+    sellerStatusReason: (row.seller_status_reason as string | null) ?? null,
   };
+}
+
+// A storefront, its products and its drops are public only for a verified
+// seller with an open shop, on an approved or live business that is not
+// the demo (brief 25, A2-A3; private.market_seller says the same to the
+// browser roles).
+export function isPublicStorefront(shop: Shop, org: Pick<Business, "id" | "status">, demoId: number | null): boolean {
+  return shop.isPublished && shop.sellerStatus === "verified" && (org.status === "approved" || org.status === "live") && org.id !== demoId;
 }
 
 export async function getShop(orgId: number): Promise<Shop | null> {
@@ -94,12 +136,15 @@ export type Product = {
   licenceKind: LicenceKind | null;
   licenceNote: string | null;
   licenceApprovedAt: string | null;
+  // The /market chip it sits under (brief 25); null until the seller picks one.
+  marketCategory: MarketCategorySlug | null;
   sortOrder: number;
+  createdAt: string | null;
   variants: ProductVariant[];
 };
 
 const PRODUCT_COLUMNS =
-  "id,organization_id,slug,title,description,price_cents,photos,is_published,uses_marks,licence_kind,licence_note,licence_approved_at,sort_order,product_variants(id,product_id,label,stock,sort_order)";
+  "id,organization_id,slug,title,description,price_cents,photos,is_published,uses_marks,licence_kind,licence_note,licence_approved_at,market_category,sort_order,created_at,product_variants(id,product_id,label,stock,sort_order)";
 
 function toVariant(row: Record<string, unknown>): ProductVariant {
   return {
@@ -127,7 +172,9 @@ function toProduct(row: Record<string, unknown>): Product {
     licenceKind: (row.licence_kind as LicenceKind | null) ?? null,
     licenceNote: (row.licence_note as string | null) ?? null,
     licenceApprovedAt: (row.licence_approved_at as string | null) ?? null,
+    marketCategory: isMarketCategory(row.market_category) ? row.market_category : null,
     sortOrder: Number(row.sort_order ?? 0),
+    createdAt: (row.created_at as string | null) ?? null,
     variants,
   };
 }
@@ -156,6 +203,7 @@ export type ProductInput = {
   usesMarks: boolean;
   licenceKind: LicenceKind | null;
   licenceNote: string | null;
+  marketCategory: MarketCategorySlug | null;
   variants: VariantInput[];
 };
 
@@ -189,6 +237,7 @@ export async function saveProduct(orgId: number, productId: number | null, input
     uses_marks: input.usesMarks,
     licence_kind: input.usesMarks ? input.licenceKind : null,
     licence_note: input.usesMarks ? input.licenceNote?.trim() || null : null,
+    market_category: input.marketCategory,
     updated_at: new Date().toISOString(),
   };
   let id = productId;
@@ -446,13 +495,14 @@ export async function saveDrop(orgId: number, dropId: number | null, input: Drop
 
 export type PublicShop = { org: Business; shop: Shop; products: Product[]; drops: Drop[] };
 
-// A shop page exists for an approved or live business with a published
-// shop. Drafts and suspended businesses have none.
+// A shop page exists for an approved or live business with an open shop
+// whose seller PortPass has verified (brief 25). Drafts, suspended
+// businesses, unverified or suspended sellers and the demo have none.
 export async function getPublicShop(orgSlug: string): Promise<PublicShop | null> {
   const org = await getBusinessBySlug(orgSlug);
   if (!org || (org.status !== "approved" && org.status !== "live")) return null;
-  const shop = await getShop(org.id);
-  if (!shop?.isPublished) return null;
+  const [shop, demoId] = await Promise.all([getShop(org.id), demoOrganizationIdOrNull()]);
+  if (!shop || !isPublicStorefront(shop, org, demoId)) return null;
   const [products, drops] = await Promise.all([listProducts(org.id, { publishedOnly: true }), listDrops(org.id, { visibleOnly: true })]);
   return { org, shop, products, drops };
 }
@@ -462,8 +512,8 @@ export type PublicDrop = { org: Business; shop: Shop; drop: Drop; products: Prod
 export async function getPublicDrop(orgSlug: string, dropSlug: string): Promise<PublicDrop | null> {
   const org = await getBusinessBySlug(orgSlug);
   if (!org || (org.status !== "approved" && org.status !== "live")) return null;
-  const shop = await getShop(org.id);
-  if (!shop?.isPublished) return null;
+  const [shop, demoId] = await Promise.all([getShop(org.id), demoOrganizationIdOrNull()]);
+  if (!shop || !isPublicStorefront(shop, org, demoId)) return null;
   const { data, error } = await getSupabaseAdmin().from("drops").select(DROP_COLUMNS).eq("organization_id", org.id).eq("slug", dropSlug).neq("status", "draft").maybeSingle();
   throwIfSupabaseError(error, "Could not load drop");
   if (!data) return null;
