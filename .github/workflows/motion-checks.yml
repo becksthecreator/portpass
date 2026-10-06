@@ -1,0 +1,100 @@
+name: Motion checks (TEST data)
+
+# Brief 22: the public site's motion, proved on each PR that touches it.
+# The app runs on localhost against the same throwaway local Supabase
+# stack the integration tests use, with TEST data, and
+# scripts/motion/check.mjs loads the homepage three ways (reduced motion,
+# no JavaScript, a slow phone), checks the rules in docs/motion.md and
+# saves a 375px filmstrip of the motion as an artifact. It never touches
+# the real database and isn't a required check.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "lib/motion/**"
+      - "app/_components/motion/**"
+      - "app/layout.tsx"
+      - "app/page.tsx"
+      - "app/HomeHero.tsx"
+      - "app/ArrivalPlate.tsx"
+      - "app/globals.css"
+      - "app/_components/SiteHeader.tsx"
+      - "app/_components/SiteNav.tsx"
+      - "app/_components/BrandLogo.tsx"
+      - "app/_components/OpenNowCards.tsx"
+      - "app/_components/BusinessCarousel.tsx"
+      - "app/_components/SectionGrid.tsx"
+      - "app/_components/CategoryPage.tsx"
+      - "app/[category]/**"
+      - "scripts/motion/**"
+      - ".github/workflows/motion-checks.yml"
+
+concurrency:
+  group: motion-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  motion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase
+        # The Supabase CLI pulls its images from public.ecr.aws, which at times
+        # rate-limits GitHub's runners ("toomanyrequests"). When that happens
+        # the same images are pulled from GitHub's own registry instead.
+        run: |
+          supabase start || {
+            echo "The default image registry refused the pull; trying ghcr.io."
+            supabase stop --no-backup || true
+            SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io supabase start
+          }
+      - name: Export local Supabase credentials
+        run: |
+          supabase status -o env > supabase-status.env
+          API_URL=$(grep -E '^(API_URL|SUPABASE_URL)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          SERVICE_ROLE_KEY=$(grep -E '^(SERVICE_ROLE_KEY|SUPABASE_SERVICE_ROLE_KEY|SECRET_KEY|SUPABASE_SECRET_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          ANON_KEY=$(grep -E '^(ANON_KEY|SUPABASE_ANON_KEY|PUBLISHABLE_KEY|SUPABASE_PUBLISHABLE_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+      - name: Seed test data
+        run: npx tsx scripts/seed-test-data.ts
+      - name: Build
+        # One retry: next/font's Google Fonts fetch occasionally fails in CI
+        # (a known upstream flake, see ci.yml).
+        run: npx next build --webpack || npx next build --webpack
+      - name: Start the app on localhost
+        run: |
+          npx next start -p 3000 > next.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/ > /dev/null && break; sleep 2; done
+          curl -sf http://localhost:3000/ > /dev/null
+      - name: Install Playwright (Chromium)
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Check the motion
+        run: node scripts/motion/check.mjs
+      - name: Server log on failure
+        if: failure()
+        run: tail -n 80 next.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: motion-checks
+          path: motion-checks/
+          if-no-files-found: warn
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop

@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./staff.css";
+import "@/lib/motion/tokens.css";
+import "@/lib/motion/motion.css";
+import { getSiteContent } from "@/db/siteContent";
 import { GrowthBeacon } from "./_components/GrowthBeacon";
 import { PwaRegister } from "./_components/PwaRegister";
 import { analyticsRedactionScript } from "@/lib/analyticsRedact";
@@ -44,16 +47,26 @@ export const metadata: Metadata = {
 // The installed app's title bar takes this colour (round 5, §6).
 export const viewport: Viewport = { themeColor: "#0D1B3D" };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // The motion kill switch (brief 22, M1): data-motion="on|off" from the
+  // motion setting in Admin -> Content, read through the same cache as
+  // the announcement bar (a failed read means "on"). lib/motion/motion.css
+  // turns every animation and transition off under "off", and a visitor
+  // who asked for reduced motion gets off whatever this says.
+  const { motion } = await getSiteContent();
   return (
-    <html lang="en">
+    <html lang="en" data-motion={motion ? "on" : "off"}>
       {/* Poppins + Inter on <body>, so every page -- sign-in, account, admin,
           staff, the offline page, the install banner -- has the brand type
           without setting it itself. Business listing pages put their own
           serif (bizDisplay) on their wrapper, which wins inside it. */}
       <body className={`${ppDisplay.variable} ${ppSans.variable}`}>
+        {/* One line, before anything below it is parsed: "JavaScript is
+            running". A scroll reveal starts hidden only when this is set,
+            so a page without script shows everything at once. */}
+        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.setAttribute('data-motion-js','')" }} />
         {children}
         <PwaRegister />
         <GrowthBeacon />

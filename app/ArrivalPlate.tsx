@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motionEnabled } from "@/lib/motion/client";
 
 const SESSION_KEY = "portpass_arrival_seen";
 // Mark scales in at 60ms (520ms), wordmark opens at 300ms (620ms), a brief
@@ -19,13 +20,9 @@ export function ArrivalPlate() {
   const [lifting, setLifting] = useState(false);
 
   useEffect(() => {
-    let reduced = false;
-    try {
-      reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    } catch {
-      // ignore
-    }
-    if (reduced) return;
+    // Reduced motion, or the kill switch in Admin -> Content (brief 22):
+    // the plate never mounts, so nothing can sit over the page unanimated.
+    if (!motionEnabled()) return;
 
     let seen = false;
     try {

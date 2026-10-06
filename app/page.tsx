@@ -5,6 +5,7 @@ import { HomeHero } from "./HomeHero";
 import { BusinessCarousel } from "./_components/BusinessCarousel";
 import { OpenNowCards, type OpenNowCard } from "./_components/OpenNowCards";
 import { SectionGrid } from "./_components/SectionGrid";
+import { Reveal } from "./_components/motion/Reveal";
 import { HomePerksRow } from "./_components/perks/HomePerksRow";
 import { DEFAULT_BRAND } from "./_components/blocks/brand";
 import { categoryLabel } from "./_components/blocks/categoryLabel";
@@ -161,19 +162,21 @@ export default async function Home() {
       {/* Member perks (brief 10): hidden until three are live. */}
       <HomePerksRow />
 
+      {/* Brief 22 (M1): the section headings rise in as they come into
+          view. The sections' own contents follow in M3. */}
       <section className="home-chooser" id="chooser">
-        <div className="home-section-heading">
+        <Reveal className="home-section-heading" variant="rise">
           <span className="home-eyebrow">What PortPass covers</span>
           <h2>Where do you want to go?</h2>
-        </div>
+        </Reveal>
         <SectionGrid liveSlugs={liveSlugs} />
       </section>
 
       <section className="home-how" id="how-it-works">
-        <div className="home-section-heading">
+        <Reveal className="home-section-heading" variant="rise">
           <span className="home-eyebrow">How PortPass works</span>
           <h2>Two ways to use it.</h2>
-        </div>
+        </Reveal>
         <div className="home-how-grid">
           <div className="home-how-track">
             <h3>If you&rsquo;re booking</h3>

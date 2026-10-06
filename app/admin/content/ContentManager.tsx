@@ -13,8 +13,9 @@ async function put(body: Record<string, unknown>): Promise<string | null> {
   return data.error ?? "Could not finish saving. Reload to see what is stored.";
 }
 
-// The announcement bar and the homepage card order (brief 08, 1.9).
-export function ContentManager({ announcement, businesses, announcementMax, linkLabelMax }: { announcement: Announcement; businesses: Business[]; announcementMax: number; linkLabelMax: number }) {
+// The announcement bar and the homepage card order (brief 08, 1.9), and
+// the motion switch (brief 22).
+export function ContentManager({ announcement, businesses, announcementMax, linkLabelMax, motion }: { announcement: Announcement; businesses: Business[]; announcementMax: number; linkLabelMax: number; motion: boolean }) {
   const router = useRouter();
   const [text, setText] = useState(announcement.text);
   const [href, setHref] = useState(announcement.href ?? "");
@@ -22,9 +23,22 @@ export function ContentManager({ announcement, businesses, announcementMax, link
   const [until, setUntil] = useState(announcement.until ?? "");
   const [active, setActive] = useState(announcement.active);
   const [order, setOrder] = useState(businesses);
-  const [busy, setBusy] = useState<"announcement" | "order" | null>(null);
+  const [motionOn, setMotionOn] = useState(motion);
+  const [busy, setBusy] = useState<"announcement" | "order" | "motion" | null>(null);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
+
+  async function saveMotion(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy("motion");
+    setError("");
+    setDone("");
+    const failed = await put({ motion: { enabled: motionOn } });
+    setBusy(null);
+    if (failed) return setError(failed);
+    setDone(motionOn ? "Saved. The public site moves again." : "Saved. Every public page now shows still, at once.");
+    router.refresh();
+  }
 
   async function saveAnnouncement(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -117,6 +131,20 @@ export function ContentManager({ announcement, businesses, announcementMax, link
             </div>
           </>
         )}
+      </section>
+
+      <section className="admin-group" aria-labelledby="content-motion">
+        <h2 id="content-motion">Motion on the public site</h2>
+        <form className="admin-content-form" onSubmit={saveMotion}>
+          <label className="admin-content-check">
+            <input type="checkbox" checked={motionOn} onChange={(event) => setMotionOn(event.target.checked)} />
+            <span>Animate the public site: scroll reveals, the hero and moving between pages</span>
+          </label>
+          <p className="admin-form-note">Off shows every page still, at once, with no deploy. A visitor who asked their phone for less motion always gets it off, whatever this says.</p>
+          <div className="admin-form-actions">
+            <button type="submit" className="admin-action is-primary" disabled={busy !== null}>{busy === "motion" ? "Saving…" : "Save the motion switch"}</button>
+          </div>
+        </form>
       </section>
 
       {error && <p className="form-error" role="alert">{error}</p>}
