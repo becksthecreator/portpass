@@ -1,11 +1,14 @@
 import { logAudit } from "./audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
-// Business licence details (round 5, §7), held for a verification process
-// that is not built yet. Admin only: these columns are deliberately absent
-// from every public and owner select, and this module is their only
-// reader and writer. Callers must have checked platform access
-// (lib/auth/guards.ts requirePlatformRole) first.
+// Business licence details (round 5, §7). Since brief 25 they are what
+// PortPass Market verification checks: never public (absent from every
+// public select and the browser roles' column grants), seen only by
+// PortPass admins (Admin -> Market, which reads them with the seller list
+// in db/marketSellers.ts) and by the business's own owners and admins on its
+// shop settings. Callers must have checked that access (lib/auth/guards.ts)
+// first. Any change clears the verification (below), and the database then
+// sends a verified Market seller back to pending.
 
 export type Licence = {
   type: string;

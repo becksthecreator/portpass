@@ -103,21 +103,50 @@ export async function saveSellerProfile(orgId: number, input: SellerProfileInput
 // A signed-in person applies to sell: a new draft business they own, in the
 // Shop Bahamian section, with a shop that is not open yet and a seller
 // waiting for PortPass. Someone who already has a pending application is
-// sent back to it instead of making another business.
+// sent back to it instead of making another business, and an application
+// that failed half-way (a draft with no shop yet) is finished by the next
+// try rather than left behind.
 export async function applyToSell(userId: string, app: SellerApplication): Promise<{ organizationId: number; slug: string; existing: boolean }> {
   const pending = await findPendingApplication(userId);
   if (pending) return { ...pending, existing: true };
 
-  const business = await createDraftBusiness({ name: app.businessName, section: "shop", subcategory: null, ownerUserId: userId, actorUserId: userId });
-  const { error: orgError } = await db().from("organizations").update({ whatsapp_e164: app.whatsappE164, primary_contact: app.contactPerson }).eq("id", business.id);
+  const unfinished = await findUnfinishedApplication(userId);
+  if (unfinished) {
+    const { error } = await db().from("organizations").update({ name: app.businessName.trim() }).eq("id", unfinished.id).eq("status", "draft");
+    throwIfSupabaseError(error, "Could not save the business name");
+  }
+  const business = unfinished ?? (await createDraftBusiness({ name: app.businessName, section: "shop", subcategory: null, ownerUserId: userId, actorUserId: userId }));
+  await completeApplication(business.id, userId, app);
+  await logAudit({ actorUserId: userId, organizationId: business.id, action: "market.seller_applied", targetTable: "shops", targetId: business.id, after: { market_category: app.marketCategory, cash_on_pickup: app.acceptsCashOnPickup } });
+  return { organizationId: business.id, slug: business.slug ?? "", existing: false };
+}
+
+// A draft in the Shop Bahamian section that this person owns and that has no
+// shop row: what a failed application leaves.
+async function findUnfinishedApplication(userId: string): Promise<{ id: number; slug: string | null } | null> {
+  const { data: owned, error } = await db().from("organization_members").select("organization_id").eq("user_id", userId).eq("role", "org_owner");
+  throwIfSupabaseError(error, "Could not look up the seller's businesses");
+  const ids = (owned ?? []).map((row) => Number(row.organization_id));
+  if (!ids.length) return null;
+  const [{ data: drafts, error: draftError }, { data: shops, error: shopError }] = await Promise.all([
+    db().from("organizations").select("id,slug").in("id", ids).eq("status", "draft").eq("primary_category", "shop").order("id", { ascending: true }),
+    db().from("shops").select("organization_id").in("organization_id", ids),
+  ]);
+  throwIfSupabaseError(draftError ?? shopError, "Could not look up the seller's applications");
+  const withShop = new Set((shops ?? []).map((row) => Number(row.organization_id)));
+  const draft = (drafts ?? []).find((row) => !withShop.has(Number(row.id)));
+  return draft ? { id: Number(draft.id), slug: (draft.slug as string | null) ?? null } : null;
+}
+
+async function completeApplication(orgId: number, userId: string, app: SellerApplication): Promise<void> {
+  const { error: orgError } = await db().from("organizations").update({ whatsapp_e164: app.whatsappE164, primary_contact: app.contactPerson }).eq("id", orgId);
   throwIfSupabaseError(orgError, "Could not save the seller's contact details");
-  await setOrganizationLicences(business.id, [{ type: BUSINESS_LICENCE_TYPE, number: app.licenceNumber, expiresOn: null, documentUrl: null }], userId);
+  await setOrganizationLicences(orgId, [{ type: BUSINESS_LICENCE_TYPE, number: app.licenceNumber, expiresOn: null, documentUrl: null }], userId);
 
   const now = new Date().toISOString();
-  let created = false;
   for (const prefix of prefixCandidates(app.businessName).slice(0, 60)) {
     const { error } = await db().from("shops").insert({
-      organization_id: business.id,
+      organization_id: orgId,
       reference_prefix: prefix,
       returns_policy: "",
       hold_hours: 48,
@@ -131,12 +160,9 @@ export async function applyToSell(userId: string, app: SellerApplication): Promi
     });
     if (error?.code === "23505") continue; // that prefix belongs to another shop
     throwIfSupabaseError(error, "Could not create the shop");
-    created = true;
-    break;
+    return;
   }
-  if (!created) throw new Error("Could not find a free reference prefix");
-  await logAudit({ actorUserId: userId, organizationId: business.id, action: "market.seller_applied", targetTable: "shops", targetId: business.id, after: { market_category: app.marketCategory, cash_on_pickup: app.acceptsCashOnPickup } });
-  return { organizationId: business.id, slug: business.slug ?? "", existing: false };
+  throw new Error("Could not find a free reference prefix");
 }
 
 async function findPendingApplication(userId: string): Promise<{ organizationId: number; slug: string } | null> {
@@ -249,20 +275,27 @@ export async function countPendingSellers(): Promise<number> {
   return count ?? 0;
 }
 
-const VERIFY_ERRORS = ["NOT_FOUND", "DEMO", "BUSINESS_SUSPENDED", "SELLER_SUSPENDED", "NEEDS_CONTACT", "NEEDS_LICENCE", "NO_SHOP"] as const;
+const VERIFY_ERRORS = ["NOT_FOUND", "DEMO", "BUSINESS_SUSPENDED", "SELLER_SUSPENDED", "NEEDS_CONTACT", "NEEDS_LICENCE", "RECORDS_CHANGED", "NO_SHOP"] as const;
 
-// Platform owners only (the route checks). The database function checks
-// the records and marks the seller verified and the licence checked, in one
-// transaction; a business that already has a published product goes live.
-export async function verifySeller(orgId: number, actorUserId: string): Promise<{ wentLive: boolean }> {
-  const { data, error } = await db().rpc("market_verify_seller", { p_org: orgId, p_actor: actorUserId });
+// Platform owners only (the route checks). `seen` is the licence number and
+// contact person the founder was looking at: the database function refuses
+// (RECORDS_CHANGED) if either changed since, then checks the records and
+// marks the seller verified and the licence checked, in one transaction. A
+// draft or submitted business is approved by it (logged as such), and one
+// that already has a published product and a phone number goes live.
+export async function verifySeller(orgId: number, actorUserId: string, seen: { licenceNumber: string; contactPerson: string }): Promise<{ wentLive: boolean }> {
+  const { data, error } = await db().rpc("market_verify_seller", { p_org: orgId, p_actor: actorUserId, p_licence: seen.licenceNumber, p_contact: seen.contactPerson });
   if (error) {
     const known = VERIFY_ERRORS.find((code) => (error.message ?? "").includes(code));
     if (known) throw new Error(known);
     throwIfSupabaseError(error, "Could not verify the seller");
   }
-  const wentLive = Boolean((data as { went_live?: boolean } | null)?.went_live);
+  const result = (data ?? {}) as { went_live?: boolean; was_status?: string };
+  const wentLive = Boolean(result.went_live);
   await logAudit({ actorUserId, organizationId: orgId, action: "market.seller_verified", targetTable: "shops", targetId: orgId, after: { seller_status: "verified" } });
+  if (result.was_status === "draft" || result.was_status === "submitted") {
+    await logAudit({ actorUserId, organizationId: orgId, action: "business.approved", targetTable: "organizations", targetId: orgId, before: { status: result.was_status }, after: { status: "approved", via: "market seller verified" } });
+  }
   if (wentLive) {
     await logAudit({ actorUserId, organizationId: orgId, action: "business.went_live", targetTable: "organizations", targetId: orgId, after: { via: "market seller verified" } });
     await markLeadsLive(orgId, actorUserId);

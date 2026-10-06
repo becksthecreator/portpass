@@ -7,7 +7,9 @@ import { positiveInt } from "@/lib/shop/server";
 
 type Ctx = { params: Promise<{ orgId: string }> };
 
-const Body = bodyOf(["action", "reason"]);
+// For "verify": the licence number and contact person the founder saw on
+// the row, so what is verified is exactly what was checked.
+const Body = bodyOf(["action", "reason", "licenceNumber", "contactPerson"]);
 
 const ERRORS: Record<string, [number, string]> = {
   NOT_FOUND: [404, "Not found."],
@@ -16,6 +18,7 @@ const ERRORS: Record<string, [number, string]> = {
   NEEDS_CONTACT: [400, "There's no contact person on file yet."],
   NEEDS_LICENCE: [400, "There's no business licence number on file yet."],
   NO_SHOP: [400, "This business has no shop yet."],
+  RECORDS_CHANGED: [409, "The seller changed their licence number or contact person a moment ago. Reload and check again."],
   SELLER_SUSPENDED: [400, "Lift the suspension first: the seller goes back to the queue, then verify."],
   NEEDS_REASON: [400, "Say why, in a sentence: the seller sees it."],
 };
@@ -31,10 +34,11 @@ export async function PATCH(request: Request, ctx: Ctx) {
   if (!orgId) return NextResponse.json({ error: "Not found." }, { status: 404 });
   const read = await readJson(request, Body);
   if (!read.ok) return read.response;
-  const { action, reason } = read.value;
+  const { action, reason, licenceNumber, contactPerson } = read.value;
   try {
     if (action === "verify") {
-      const { wentLive } = await verifySeller(orgId, auth.session.userId);
+      if (typeof licenceNumber !== "string" || typeof contactPerson !== "string") return NextResponse.json({ error: "Reload the page and try again." }, { status: 400 });
+      const { wentLive } = await verifySeller(orgId, auth.session.userId, { licenceNumber, contactPerson });
       return NextResponse.json({ ok: true, wentLive });
     }
     if (action === "suspend") {

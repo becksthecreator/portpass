@@ -7,7 +7,8 @@ import type { SellerStatus } from "@/lib/market/sellers";
 // Admin -> Market -> Sellers (brief 25, A5): one seller's decisions.
 // Verify needs a licence number and a contact person on file (the database
 // refuses it otherwise); suspending asks for a reason the seller sees.
-export function SellerActions({ orgId, name, status, canVerify }: { orgId: number; name: string; status: SellerStatus; canVerify: boolean }) {
+export function SellerActions({ orgId, name, status, licenceNumber, contactPerson }: { orgId: number; name: string; status: SellerStatus; licenceNumber: string | null; contactPerson: string | null }) {
+  const canVerify = Boolean(licenceNumber && contactPerson);
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -18,7 +19,7 @@ export function SellerActions({ orgId, name, status, canVerify }: { orgId: numbe
     setBusy(true);
     setError("");
     try {
-      const r = await fetch(`/api/admin/market/sellers/${orgId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(action === "suspend" ? { action, reason } : { action }) });
+      const r = await fetch(`/api/admin/market/sellers/${orgId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(action === "suspend" ? { action, reason } : action === "verify" ? { action, licenceNumber, contactPerson } : { action }) });
       const data = (await r.json().catch(() => ({}))) as { error?: string };
       if (!r.ok) throw new Error(data.error ?? "That didn't save.");
       setSuspending(false);

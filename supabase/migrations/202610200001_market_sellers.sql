@@ -115,11 +115,16 @@ alter table public.products add constraint products_market_category_valid check 
 -- suspension puts it back in the queue first), and one without a licence
 -- number and a contact person on file; then marks the seller verified and
 -- the licence checked.
+-- p_licence and p_contact are the records the founder was looking at when
+-- they pressed Verify: if either has changed since (the seller edited it
+-- between the page loading and the press), nothing is verified
+-- (RECORDS_CHANGED), so a founder only ever verifies what they saw.
 -- Verifying is PortPass's review of a seller, so a draft or submitted
--- business becomes approved; if it already has a published product it goes
--- live (the same rule as a first published product, db/shop.ts).
--- Returns {"went_live": bool}.
-create or replace function public.market_verify_seller(p_org bigint, p_actor uuid)
+-- business becomes approved; if it already has a published product and a
+-- phone or WhatsApp number buyers can use, it goes live (the same rule as
+-- a first published product, db/shop.ts, plus rule 7's contact button).
+-- Returns {"went_live": bool, "was_status": text}.
+create or replace function public.market_verify_seller(p_org bigint, p_actor uuid, p_licence text, p_contact text)
 returns jsonb
 language plpgsql
 set search_path = public, pg_temp
@@ -129,7 +134,7 @@ declare
   v_seller text;
   v_live boolean := false;
 begin
-  select id, is_demo, status, primary_contact, licences
+  select id, is_demo, status, primary_contact, licences, whatsapp_e164, phone_e164
     into v_org
     from public.organizations
    where id = p_org
@@ -159,6 +164,14 @@ begin
   ) then
     raise exception 'NEEDS_LICENCE' using errcode = 'P0001';
   end if;
+  if btrim(coalesce(p_contact, '')) is distinct from btrim(v_org.primary_contact)
+     or not exists (
+       select 1 from jsonb_array_elements(coalesce(v_org.licences, '[]'::jsonb)) l
+        where btrim(coalesce(l->>'number', '')) = btrim(coalesce(p_licence, ''))
+          and length(btrim(coalesce(p_licence, ''))) > 0
+     ) then
+    raise exception 'RECORDS_CHANGED' using errcode = 'P0001';
+  end if;
 
   update public.shops
      set seller_status = 'verified', seller_verified_at = now(), seller_verified_by = p_actor,
@@ -178,10 +191,11 @@ begin
    where id = p_org
      and status = 'approved'
      and not is_published
+     and (length(btrim(coalesce(whatsapp_e164, ''))) > 0 or length(btrim(coalesce(phone_e164, ''))) > 0)
      and exists (select 1 from public.products where organization_id = p_org and is_published);
   v_live := found;
 
-  return jsonb_build_object('went_live', v_live);
+  return jsonb_build_object('went_live', v_live, 'was_status', v_org.status);
 end;
 $$;
 
@@ -260,10 +274,10 @@ create trigger shops_seller_status_guard
 -- grants EXECUTE to PUBLIC by default.
 revoke all on function public.market_category_valid(text) from public, anon, authenticated;
 revoke all on function public.seller_delivery_zones_valid(jsonb) from public, anon, authenticated;
-revoke all on function public.market_verify_seller(bigint, uuid) from public, anon, authenticated;
+revoke all on function public.market_verify_seller(bigint, uuid, text, text) from public, anon, authenticated;
 grant execute on function public.market_category_valid(text) to service_role;
 grant execute on function public.seller_delivery_zones_valid(jsonb) to service_role;
-grant execute on function public.market_verify_seller(bigint, uuid) to service_role;
+grant execute on function public.market_verify_seller(bigint, uuid, text, text) to service_role;
 
 -- ------------------------------------------- the shop's public rows, gated
 -- Brief 15 let anyone read a published business's published products and

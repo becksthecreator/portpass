@@ -29,6 +29,9 @@ const application = {
   acceptsCashOnPickup: true,
 };
 
+// What a founder sees on the Admin -> Market row when they press Verify.
+const seen = (licence = `BL-TEST-${tag}`) => ({ licenceNumber: licence, contactPerson: "TEST — delete Contact" });
+
 async function anonProducts(): Promise<number> {
   const { data } = await anon.from("products").select("id").eq("organization_id", orgId);
   return (data ?? []).length;
@@ -96,9 +99,9 @@ describe("verifying", () => {
     const letters = "ABCDEFGHJKMNPQRSTUVWXYZ";
     const prefix = Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => letters[b % letters.length]).join("");
     await saveShop(bareOrgId, { referencePrefix: prefix, returnsPolicy: "", holdHours: 48, isPublished: false }, userId);
-    await expect(verifySeller(bareOrgId, userId)).rejects.toThrow("NEEDS_CONTACT");
+    await expect(verifySeller(bareOrgId, userId, { licenceNumber: "", contactPerson: "" })).rejects.toThrow("NEEDS_CONTACT");
     await admin.from("organizations").update({ primary_contact: "TEST — delete" }).eq("id", bareOrgId);
-    await expect(verifySeller(bareOrgId, userId)).rejects.toThrow("NEEDS_LICENCE");
+    await expect(verifySeller(bareOrgId, userId, { licenceNumber: "", contactPerson: "TEST — delete" })).rejects.toThrow("NEEDS_LICENCE");
     const { error } = await admin.from("shops").update({ seller_status: "verified", seller_verified_at: new Date().toISOString() }).eq("organization_id", bareOrgId);
     expect(error?.code).toBe("23514");
   });
@@ -106,11 +109,17 @@ describe("verifying", () => {
   it("refuses the demo business", async () => {
     const { data: demo } = await admin.from("organizations").select("id").eq("is_demo", true).maybeSingle();
     if (!demo) return; // a stack without the demo business has nothing to refuse
-    await expect(verifySeller(Number(demo.id), userId)).rejects.toThrow(/DEMO|NO_SHOP/);
+    await expect(verifySeller(Number(demo.id), userId, seen())).rejects.toThrow(/DEMO|NO_SHOP/);
+  });
+
+  it("only verifies the records the founder saw", async () => {
+    await expect(verifySeller(orgId, userId, seen("BL-SOMETHING-ELSE"))).rejects.toThrow("RECORDS_CHANGED");
+    await expect(verifySeller(orgId, userId, { ...seen(), contactPerson: "Someone else" })).rejects.toThrow("RECORDS_CHANGED");
+    expect((await getShop(orgId))!.sellerStatus).toBe("pending");
   });
 
   it("approves the business, takes it live with its published product, and opens the storefront to everyone", async () => {
-    const { wentLive } = await verifySeller(orgId, userId);
+    const { wentLive } = await verifySeller(orgId, userId, seen());
     expect(wentLive).toBe(true);
     const { data: org } = await admin.from("organizations").select("status,is_published,licence_verified_at").eq("id", orgId).single();
     expect(org!.status).toBe("live");
@@ -138,13 +147,13 @@ describe("after verification", () => {
   });
 
   it("a suspension takes it off with a reason; lifting it goes back to the queue, not straight back on", async () => {
-    await verifySeller(orgId, userId);
+    await verifySeller(orgId, userId, seen(`BL-TEST-${tag}-2`));
     expect(await getPublicShop(slug)).not.toBeNull();
     await expect(suspendSeller(orgId, " ", userId)).rejects.toThrow("NEEDS_REASON");
     await suspendSeller(orgId, "TEST — paused while we talk", userId);
     expect(await getShop(orgId)).toMatchObject({ sellerStatus: "suspended", sellerStatusReason: "TEST — paused while we talk", sellerVerifiedAt: null });
     expect(await getPublicShop(slug)).toBeNull();
-    await expect(verifySeller(orgId, userId)).rejects.toThrow("SELLER_SUSPENDED");
+    await expect(verifySeller(orgId, userId, seen(`BL-TEST-${tag}-2`))).rejects.toThrow("SELLER_SUSPENDED");
     await expect(saveSellerProfile(orgId, { marketCategory: "home", whatTheySell: "", contactPerson: "TEST — delete Contact", licenceNumber: `BL-TEST-${tag}-2`, pickupNote: "TEST", deliveryZones: [], acceptsCashOnPickup: true, requestVerification: true }, userId)).rejects.toThrow("SUSPENDED");
     await unsuspendSeller(orgId, userId);
     expect(await getShop(orgId)).toMatchObject({ sellerStatus: "pending", sellerStatusReason: null });

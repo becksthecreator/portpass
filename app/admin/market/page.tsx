@@ -97,7 +97,7 @@ export default async function AdminMarketPage({ searchParams }: { searchParams: 
                 <td data-label="Products">{seller.productsPublished} published / {seller.productsTotal}</td>
                 <td data-label="Applied">{when(seller.appliedAt)}</td>
                 <td data-label="Decide">
-                  {canDecide ? <SellerActions orgId={seller.orgId} name={seller.name} status={seller.sellerStatus} canVerify={Boolean(seller.licenceNumber && seller.contactPerson)} /> : "—"}
+                  {canDecide ? <SellerActions orgId={seller.orgId} name={seller.name} status={seller.sellerStatus} licenceNumber={seller.licenceNumber} contactPerson={seller.contactPerson} /> : "—"}
                 </td>
               </tr>
             ))}
