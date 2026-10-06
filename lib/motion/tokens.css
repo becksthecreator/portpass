@@ -1,24 +1,32 @@
-/* Motion tokens (brief 22, M1). Every animation and transition on the
-   public site takes its time and its curve from here; none writes a number
-   of its own. Six durations, two curves:
+/* Motion tokens (brief 22). Every animation and transition on the public
+   site takes its time and its curve from here; none writes a number of
+   its own.
 
-     --dur-fast   press feedback, a quick fade (the Prow moment leaving)
-     --dur-base   a card lifting, a chip, a cross-fade between pages
-     --dur-slow   a scroll reveal
-     --dur-hero   the hero's own entrance
-     --dur-menu   a menu or sheet opening (brief 22, M2: 200 ms)
-     --dur-drift  the hero photo's slow drift, the one looping animation
+     --dur-step      one step of a stagger (60 ms); n steps is
+                     calc(var(--dur-step) * n)
+     --dur-fast      press feedback, a quick fade (the Prow moment leaving)
+     --dur-menu      a menu or sheet opening (200 ms)
+     --dur-base      a card lifting, a chip, a cross-fade between pages
+     --dur-slow      a scroll reveal
+     --dur-hero      the hero's own entrance
+     --dur-sun       the Sun Drift: the glow rising behind the hero, once
+     --dur-failsafe  how long a held reveal waits for its script before it
+                     shows anyway (motion.css)
+     --dur-drift     the hero photo's slow drift, the one looping animation
 
      --ease-out     arrives and settles (reveals, menus, anything entering)
      --ease-in-out  leaves and returns (a condensing header, a colour ease)
 
    See docs/motion.md for how an effect is added and tested. */
 :root{
+  --dur-step:60ms;
   --dur-fast:150ms;
+  --dur-menu:200ms;
   --dur-base:300ms;
   --dur-slow:600ms;
   --dur-hero:900ms;
-  --dur-menu:200ms;
+  --dur-sun:1600ms;
+  --dur-failsafe:2.5s;
   --dur-drift:20s;
   --ease-out:cubic-bezier(.22,1,.36,1);
   --ease-in-out:cubic-bezier(.65,0,.35,1);

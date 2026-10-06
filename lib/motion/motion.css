@@ -32,7 +32,7 @@ html[data-motion="on"][data-motion-js] [data-reveal][data-stagger]:not([data-in]
    this rule no longer matches, so a reveal reached later still rises. */
 html[data-motion="on"][data-motion-js]:not([data-motion-ready]) [data-reveal]:not([data-stagger]):not([data-in]),
 html[data-motion="on"][data-motion-js]:not([data-motion-ready]) [data-reveal][data-stagger]:not([data-in])>*{
-  animation:motion-reveal-failsafe 0s linear 2.5s forwards;
+  animation:motion-reveal-failsafe 0s linear var(--dur-failsafe,2.5s) forwards;
 }
 html[data-motion="on"][data-motion-js] [data-reveal="rise"]:not([data-stagger]):not([data-in]),
 html[data-motion="on"][data-motion-js] [data-reveal="rise"][data-stagger]:not([data-in])>*{transform:translateY(16px)}
@@ -42,17 +42,17 @@ html[data-motion="on"][data-motion-js] [data-reveal="scale"][data-stagger]:not([
 
 /* Delays: 60 ms a step, six steps at most. In a stagger the seventh child
    and beyond arrive with the sixth. */
-[data-reveal][data-delay="1"]{transition-delay:60ms}
-[data-reveal][data-delay="2"]{transition-delay:120ms}
-[data-reveal][data-delay="3"]{transition-delay:180ms}
-[data-reveal][data-delay="4"]{transition-delay:240ms}
-[data-reveal][data-delay="5"]{transition-delay:300ms}
-[data-reveal][data-delay="6"]{transition-delay:360ms}
-[data-reveal][data-stagger]>:nth-child(2){transition-delay:60ms}
-[data-reveal][data-stagger]>:nth-child(3){transition-delay:120ms}
-[data-reveal][data-stagger]>:nth-child(4){transition-delay:180ms}
-[data-reveal][data-stagger]>:nth-child(5){transition-delay:240ms}
-[data-reveal][data-stagger]>:nth-child(n+6){transition-delay:300ms}
+[data-reveal][data-delay="1"]{transition-delay:var(--dur-step)}
+[data-reveal][data-delay="2"]{transition-delay:calc(var(--dur-step) * 2)}
+[data-reveal][data-delay="3"]{transition-delay:calc(var(--dur-step) * 3)}
+[data-reveal][data-delay="4"]{transition-delay:calc(var(--dur-step) * 4)}
+[data-reveal][data-delay="5"]{transition-delay:calc(var(--dur-step) * 5)}
+[data-reveal][data-delay="6"]{transition-delay:calc(var(--dur-step) * 6)}
+[data-reveal][data-stagger]>:nth-child(2){transition-delay:var(--dur-step)}
+[data-reveal][data-stagger]>:nth-child(3){transition-delay:calc(var(--dur-step) * 2)}
+[data-reveal][data-stagger]>:nth-child(4){transition-delay:calc(var(--dur-step) * 3)}
+[data-reveal][data-stagger]>:nth-child(5){transition-delay:calc(var(--dur-step) * 4)}
+[data-reveal][data-stagger]>:nth-child(n+6){transition-delay:calc(var(--dur-step) * 5)}
 
 /* ---- reduced motion: everything off, the final state shown -------------
    Every animation, transition and smooth scroll on the site, not only the

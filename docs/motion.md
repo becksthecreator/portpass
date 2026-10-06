@@ -8,16 +8,19 @@ Brief 22 (6 Oct 2026). PortPass should feel motion designed: smooth scroll revea
 
 | Token | Value | Used for |
 | --- | --- | --- |
-| `--dur-fast` | 150ms | press feedback, a menu opening |
+| `--dur-step` | 60ms | one step of a stagger: `calc(var(--dur-step) * n)` |
+| `--dur-fast` | 150ms | press feedback, a quick fade |
+| `--dur-menu` | 200ms | a menu or sheet opening |
 | `--dur-base` | 300ms | a card lifting, a chip, a cross-fade between pages |
 | `--dur-slow` | 600ms | a scroll reveal |
 | `--dur-hero` | 900ms | the hero's own entrance |
-| `--dur-menu` | 200ms | a menu or sheet opening |
+| `--dur-sun` | 1600ms | the Sun Drift, once |
+| `--dur-failsafe` | 2.5s | how long a held reveal waits for its script before it shows anyway |
 | `--dur-drift` | 20s | the hero photo's slow drift, the one looping animation |
 | `--ease-out` | `cubic-bezier(.22,1,.36,1)` | arrives and settles: reveals, menus, anything entering |
 | `--ease-in-out` | `cubic-bezier(.65,0,.35,1)` | leaves and returns: a condensing header, a colour ease |
 
-Staggers step 60ms apart and never stagger more than six children.
+Staggers step `--dur-step` apart and never stagger more than six children.
 
 ## The rules
 
@@ -68,6 +71,10 @@ In JavaScript, `motionEnabled()` from `lib/motion/client.ts` answers the first t
 - **The header** (`HeaderMotion.tsx`): sticky on the home theme. Past 24px of scroll it gets `data-condensed`: the logo scales from 36 to 30px by a transform (so the row's height never changes) and a 1px `--line` rule fades in under it. Anchors scroll to just under it (`scroll-margin-top`).
 - **The category menu**: on the home theme and the directory pages, the desktop panel opens with a `--dur-menu` fade and an 8px rise, and the phone's Browse sheet uses the same tokens; a business's own page keeps its header still.
 
+### Sun Drift (M2 step 4, tested before it shipped)
+
+Once per page view a soft white glow (Harbour Signal's own `--paper`, no new colour) rises behind the hero's words like morning light over `--dur-sun` (1.6s), by transform and opacity, and stays. It is one radial gradient between the photo and the scrim: no clouds, no waves, nothing that loops (the photo's drift stays the one loop on screen). Its resting state is the risen sun, so reduced motion and the kill switch show it already up; without script it still rises, in CSS. It went in only after the motion check measured `/` both ways on the same runner: Lighthouse mobile on the branch's build without the sun, then with it, and the headline's contrast over the photo with and without it (the numbers are in the PR that added it).
+
 ## Adding an effect
 
 1. Decide what moves: `transform` and `opacity` only. If the effect needs a layout property, it is a different effect.
@@ -86,11 +93,12 @@ In JavaScript, `motionEnabled()` from `lib/motion/client.ts` answers the first t
 - A slow phone (CPU slowed 4x): a filmstrip of the first 1.8 s and of the first section revealing (the `motion-checks` artifact, `frames/`), a reveal below the fold is still held 3 s after load and is on its way in once scrolled to, every reveal has arrived after one scroll through the page, and the layout shift measured in the page is under 0.05.
 
 - The Prow moment, the drift and the header (M2): the moment plays on the first load and not on the second in the same session; the drift runs on screen and is paused off screen; the header is condensed, at the top, and the same height after scrolling; at 1440px the logo condenses by a transform to 30px and the category menu fades in.
+- The hero's words against the photo: once everything in the hero that ends has ended, the area behind the headline is photographed with the words hidden and its darkest 5% compared with the headline's colour; the headline must reach WCAG AA for large text (3:1), and the lede's ratio is reported against 4.5:1. A new layer behind the words (the Sun Drift) is measured with and without itself.
 
 The script reads one optional env var, `MOTION_BASE_URL` (default `http://localhost:3000`), and refuses any host but localhost.
 
 The kill switch is covered by unit tests (`lib/siteContent.test.ts`) and by reading `<html data-motion>` on the live site after a save in Admin → Content.
 
-Lighthouse mobile runs against production after each merge (`.github/workflows/lighthouse.yml`); the `/` score and CLS come from its `lighthouse-indexed` artifact (`lhr-*.json`, `categories.performance.score`, `audits.cumulative-layout-shift.numericValue`). Report the run before the merge and the run after.
+**Lighthouse, twice.** The same job then runs Lighthouse mobile on `/` three times against the branch's own build (375×812 at 2x, simulated slow 4G and a 4x slower CPU, as `lighthouse.yml` does) and `scripts/motion/lighthouse.mjs` keeps the median and writes the table and the largest-paint element into `report.md`, with a BELOW line when the median is under 0.85, a run has no score, or a run's CLS is 0.05 or more. That step reports and never blocks the job: localhost reads a few points under production (no CDN, a local database), so compare a branch with `main`'s run of the same job, not with production's numbers. The 85 floor that blocks is production's. After each merge `.github/workflows/lighthouse.yml` measures production; the `/` score and CLS come from its `lighthouse-indexed` artifact (`lhr-*.json`, `categories.performance.score`, `audits.cumulative-layout-shift.numericValue`). Report the run before the merge and the run after.
 
 For a phone in hand: Android Chrome → Settings → Accessibility → "Remove animations" (or iOS → Accessibility → Motion → Reduce Motion) must leave every page still and complete.

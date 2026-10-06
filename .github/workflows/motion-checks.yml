@@ -39,13 +39,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
       - name: Install dependencies
         run: npm ci
-      - uses: supabase/setup-cli@v3
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: latest
       - name: Start local Supabase
@@ -85,10 +85,32 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Check the motion
         run: node scripts/motion/check.mjs
+      - name: Lighthouse (mobile) on / against this build
+        # Brief 22: every motion PR reports Lighthouse mobile on / before and
+        # after. This is the same audit as lighthouse.yml against this
+        # branch's build on localhost, three runs, the median kept
+        # (scripts/motion/lighthouse.mjs), so a part that moves / shows up
+        # in report.md before it merges. Localhost reads a few points under
+        # production (no CDN, a local database), so this step reports and
+        # never blocks: the 85 floor is enforced on production by
+        # lighthouse.yml after each merge, and a branch is judged against
+        # main's run of this same job.
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: |
+          export CHROME_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())")
+          mkdir -p motion-checks/lighthouse
+          for i in 1 2 3; do
+            npx --yes lighthouse@12.8.2 http://localhost:3000/ --quiet --only-categories=performance \
+              --form-factor=mobile --screenEmulation.mobile --screenEmulation.width=375 --screenEmulation.height=812 --screenEmulation.deviceScaleFactor=2 \
+              --throttling-method=simulate --chrome-flags="--headless=new --no-sandbox" \
+              --output=json --output-path=motion-checks/lighthouse/run-$i.json
+          done
+          node scripts/motion/lighthouse.mjs motion-checks/lighthouse
       - name: Server log on failure
         if: failure()
         run: tail -n 80 next.log || true
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: motion-checks
