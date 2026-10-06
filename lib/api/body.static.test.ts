@@ -139,7 +139,7 @@ describe("API routes read their JSON body through lib/api/body.ts", () => {
   it("every public route reads its body through readJson, with a schema", () => {
     // The staff bootstrap routes are a one-time door (createBootstrapAdmin
     // refuses once any account exists), so they count as guarded here.
-    const guard = /\brequire(SignedIn|PlatformRole|OrgRole|Admin|Demo)(Api)?\s*\(|\bpaymentsApiAccess\s*\(|requireFutprepStaff|currentFutprepStaff|currentWeddingStaff|requireWeddingStaff|cronGate|resolvePayAccess|verifyResendSignature|createBootstrapAdmin|[bB]ootstrapw*Admin/;
+    const guard = /\brequire(SignedIn|PlatformRole|OrgRole|Admin|Demo)(Api)?\s*\(|\bpaymentsApiAccess\s*\(|requireFutprepStaff|currentFutprepStaff|currentWeddingStaff|requireWeddingStaff|cronGate|resolvePayAccess|verifyResendSignature|createBootstrap\w*Admin/;
     for (const file of routes) {
       const source = readFileSync(file, "utf8");
       if (guard.test(source) || !/\b(request|req)\.json\(\)/.test(source)) continue;
