@@ -6,7 +6,8 @@ What stops a bad dependency or a leaked key reaching PortPass, and who does what
 
 | Check | Where | What it does | Blocks the merge |
 |---|---|---|---|
-| `npm audit --audit-level=high` | `.github/workflows/ci.yml` | Fails on a high or critical advisory against any dependency, development ones included (it was production dependencies only until 6 Oct 2026). | Yes |
+| `npm audit --omit=dev --audit-level=high` | `.github/workflows/ci.yml` | Fails on a high or critical advisory against a dependency that ships in the site. | Yes |
+| `npm audit --audit-level=high` (all dependencies) | `.github/workflows/ci.yml` | The same for development dependencies, reported on every run. Not blocking yet: on 6 Oct 2026 `braces` (pulled in by `eslint-config-next`) carried a high advisory with no fixed version, and `vitest` a moderate one with a fix Dependabot will propose. The step turns blocking once the report is clean. | Not yet |
 | CodeQL | `.github/workflows/codeql.yml` | GitHub's scanner reads the JavaScript and TypeScript for the security-and-quality query set and files findings under the repository's **Security → Code scanning** tab. Also on every push to main and weekly. | No. A founder reads the findings; the aim is zero open ones. |
 | Secrets scan (gitleaks) | `.github/workflows/gitleaks.yml` | Reads the whole git history, every PR and weekly, for anything shaped like a key, token or password. Reports rule, file, commit and line; the match is redacted. `.gitleaks.toml` allows the known TEST values, each with its reason. | Yes |
 | Unit tests, type-check, integration tests | `.github/workflows/ci.yml` | As before; the type-check covers every `.ts` file, tests and scripts included. | Yes |
