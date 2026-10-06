@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ppDisplay, ppSans } from "./fonts";
-import { ArrivalPlate } from "./ArrivalPlate";
+import { ProwMoment } from "./_components/motion/ProwMoment";
 import { HomeHero } from "./HomeHero";
 import { BusinessCarousel } from "./_components/BusinessCarousel";
 import { OpenNowCards, type OpenNowCard } from "./_components/OpenNowCards";
@@ -149,7 +149,7 @@ export default async function Home() {
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`} data-world="portpass">
       {/* Who PortPass is, and the site search (brief 11). */}
       <JsonLd data={homeJsonLd()} />
-      <ArrivalPlate />
+      <ProwMoment />
       <a className="home-skip-link" href="#chooser">Skip to browse</a>
 
       <SiteHeader />

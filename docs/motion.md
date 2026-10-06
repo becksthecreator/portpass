@@ -12,6 +12,8 @@ Brief 22 (6 Oct 2026). PortPass should feel motion designed: smooth scroll revea
 | `--dur-base` | 300ms | a card lifting, a chip, a cross-fade between pages |
 | `--dur-slow` | 600ms | a scroll reveal |
 | `--dur-hero` | 900ms | the hero's own entrance |
+| `--dur-menu` | 200ms | a menu or sheet opening |
+| `--dur-drift` | 20s | the hero photo's slow drift, the one looping animation |
 | `--ease-out` | `cubic-bezier(.22,1,.36,1)` | arrives and settles: reveals, menus, anything entering |
 | `--ease-in-out` | `cubic-bezier(.65,0,.35,1)` | leaves and returns: a condensing header, a colour ease |
 
@@ -57,6 +59,15 @@ In JavaScript, `motionEnabled()` from `lib/motion/client.ts` answers the first t
 
 `stagger` leaves the element itself still and moves its direct children; the seventh child and beyond arrive with the sixth. Never stagger more than one level at once. The hero is not a `<Reveal>`: it is visible before any script runs (rule 3) and has its own CSS entrance.
 
+### The hero and the header (M2)
+
+`lib/motion/public.css`, loaded by the root layout and scoped to the hero and to pages on the home theme.
+
+- **The hero**: the kicker, the headline's two lines, the lede and the buttons rise in 60ms apart (`--dur-hero`, `--ease-out`), CSS only, on text that is in the HTML at its final size. The photo drifts from scale 1 to 1.04 over `--dur-drift`, alternating, the one looping animation on the site; `HeroMotion` pauses it and drops its layer (`will-change`) while the hero is off screen.
+- **The Prow moment** (`ProwMoment.tsx`): once per session on the first load of `/`, a copy of the supplied mark sits over the header logo's mark and its two red stripes slide in behind the hull over `--dur-slow`, then it fades over `--dur-fast`. A layer over one 36px mark, never over content; remembered in `sessionStorage` (inside try/catch) and once per page load whatever storage says, so it never replays on navigation.
+- **The header** (`HeaderMotion.tsx`): sticky on the home theme. Past 24px of scroll it gets `data-condensed`: the logo scales from 36 to 30px by a transform (so the row's height never changes) and a 1px `--line` rule fades in under it. Anchors scroll to just under it (`scroll-margin-top`).
+- **The category menu**: on the home theme and the directory pages, the desktop panel opens with a `--dur-menu` fade and an 8px rise, and the phone's Browse sheet uses the same tokens; a business's own page keeps its header still.
+
 ## Adding an effect
 
 1. Decide what moves: `transform` and `opacity` only. If the effect needs a layout property, it is a different effect.
@@ -73,6 +84,8 @@ In JavaScript, `motionEnabled()` from `lib/motion/client.ts` answers the first t
 - Reduced motion: `document.getAnimations().length` on `/` is 0 after load and after scrolling to the end; every reveal is at full opacity.
 - No JavaScript: the hero headline, image and both buttons are on the first screen; no reveal is held hidden.
 - A slow phone (CPU slowed 4x): a filmstrip of the first 1.8 s and of the first section revealing (the `motion-checks` artifact, `frames/`), a reveal below the fold is still held 3 s after load and is on its way in once scrolled to, every reveal has arrived after one scroll through the page, and the layout shift measured in the page is under 0.05.
+
+- The Prow moment, the drift and the header (M2): the moment plays on the first load and not on the second in the same session; the drift runs on screen and is paused off screen; the header is condensed, at the top, and the same height after scrolling; at 1440px the logo condenses by a transform to 30px and the category menu fades in.
 
 The script reads one optional env var, `MOTION_BASE_URL` (default `http://localhost:3000`), and refuses any host but localhost.
 

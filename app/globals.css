@@ -44,22 +44,6 @@
   --hero-ink-soft: rgba(234, 241, 245, .68);
 }
 
-/* Arrival plate -- homepage only, see app/ArrivalPlate.tsx */
-.pp-arrival-plate{position:fixed;inset:0;z-index:200;background:var(--paper);display:flex;align-items:center;justify-content:center;gap:14px;pointer-events:none}
-.pp-arrival-plate.pp-arrival-lift{animation:pp-arrival-lift-kf 780ms cubic-bezier(.4,0,.2,1) forwards}
-@keyframes pp-arrival-lift-kf{to{transform:scale(1.07);opacity:0}}
-.pp-arrival-mark{width:54px;height:54px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:27px;transform:scale(.72);opacity:0;animation:pp-arrival-mark-kf 520ms cubic-bezier(.2,.8,.2,1) 60ms forwards}
-@keyframes pp-arrival-mark-kf{to{transform:scale(1);opacity:1}}
-.pp-arrival-wordmark{font:700 15px var(--font-pp-sans),Inter,sans-serif;letter-spacing:.34em;color:var(--ink);overflow:hidden;white-space:nowrap;max-width:0;opacity:0;animation:pp-arrival-wordmark-kf 620ms cubic-bezier(.2,.8,.2,1) 300ms forwards}
-@keyframes pp-arrival-wordmark-kf{to{max-width:230px;opacity:1}}
-@media(max-width:560px){
-  .pp-arrival-mark{width:44px;height:44px;font-size:22px}
-  .pp-arrival-wordmark{font-size:12.5px;letter-spacing:.28em}
-}
-@media(prefers-reduced-motion:reduce){
-  .pp-arrival-plate,.pp-arrival-mark,.pp-arrival-wordmark{animation:none!important}
-}
-
 *{box-sizing:border-box}
 /* 100vw (used by full-bleed sections like .tpl-carousel) includes the
    vertical scrollbar's width, which clientWidth does not -- on a page with
@@ -3936,7 +3920,7 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
    bahamas-by-the-sea page, which still uses it via .bws-theme below).
    Seeing this should feel like landing on that business's own site, not a
    sub-page of PortPass. Session key (bws_arrival_seen) is deliberately
-   distinct from the homepage's (portpass_arrival_seen); kept as-is since
+   distinct from the homepage's old plate (gone since brief 22 M2); kept as-is since
    only one business uses this today. .site-shell-business is the shared
    template's business-shell wrapper (app/_components/BusinessShell.tsx) --
    listed alongside .bws-theme so both the old bespoke page and the new
@@ -4625,8 +4609,8 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .site-shell-browse-button{display:none;cursor:pointer;align-items:center;gap:4px;font:inherit;font-size:.8rem;font-weight:700;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);white-space:nowrap;margin-right:auto}
 .site-shell-browse-button[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
 .sheet-root{position:fixed;inset:0;z-index:120}
-.sheet-backdrop{position:absolute;inset:0;background:rgba(11,42,60,.45);animation:sheet-fade .2s ease-out}
-.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88dvh;display:flex;flex-direction:column;background:var(--paper);border-radius:22px 22px 0 0;box-shadow:0 -12px 40px #0B2A3C33;animation:sheet-up .26s cubic-bezier(.2,.8,.2,1);transition:transform .2s;padding-bottom:env(safe-area-inset-bottom)}
+.sheet-backdrop{position:absolute;inset:0;background:rgba(11,42,60,.45);animation:sheet-fade var(--dur-menu) var(--ease-out)}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88dvh;display:flex;flex-direction:column;background:var(--paper);border-radius:22px 22px 0 0;box-shadow:0 -12px 40px #0B2A3C33;animation:sheet-up var(--dur-base) var(--ease-out);transition:transform var(--dur-menu);padding-bottom:env(safe-area-inset-bottom)}
 @keyframes sheet-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes sheet-fade{from{opacity:0}to{opacity:1}}
 .sheet-head{padding:10px 18px 6px;touch-action:none;flex:0 0 auto}
@@ -5064,7 +5048,7 @@ img.biz-logo{object-fit:contain;background:#fff;border:1px solid var(--line)}
    read, not squeezed into the square logo footprint above -- a business
    header's whole point is naming the business, so this is the one wordmark
    variant that gets a real lockup: a round mark plus the name at legible
-   size, echoing the arrival plate's mark treatment (.pp-arrival-mark). */
+   size, in the spirit of the old homepage arrival plate (retired in brief 22 M2). */
 .biz-logo-wordmark-lockup{width:auto;height:auto;background:none;color:var(--ink);display:inline-flex;align-items:center;gap:8px;padding:0;text-align:left;overflow:visible}
 .biz-logo-wordmark-lockup.biz-logo-sm{font-size:1rem}
 .biz-logo-wordmark-lockup.biz-logo-md{font-size:1.2rem}

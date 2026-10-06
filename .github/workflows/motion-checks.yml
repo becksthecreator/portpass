@@ -18,7 +18,6 @@ on:
       - "app/layout.tsx"
       - "app/page.tsx"
       - "app/HomeHero.tsx"
-      - "app/ArrivalPlate.tsx"
       - "app/globals.css"
       - "app/_components/SiteHeader.tsx"
       - "app/_components/SiteNav.tsx"
@@ -45,7 +44,7 @@ jobs:
         with:
           node-version: "22"
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - uses: supabase/setup-cli@v3
         with:
           version: latest

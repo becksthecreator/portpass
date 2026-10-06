@@ -1,0 +1,72 @@
+/* The public site's own effects (brief 22, M2): the hero, the Prow moment
+   on the header mark, the header condensing on scroll, the category menu.
+   Tokens in tokens.css; the switches (reduced motion, the kill switch,
+   JavaScript running) in motion.css, whose global blocks turn everything
+   here off and leave the final state, because every keyframe below starts
+   from a hidden "from" and ends at the element's resting style.
+   Loaded by the root layout; every rule is scoped to the homepage hero or
+   to pages on the home theme (/, /business, /pricing, /app). */
+
+/* ---- the hero ----------------------------------------------------------
+   The kicker, the headline (two lines), the lede and the two buttons rise
+   in 60 ms apart; the buttons settle last. CSS only: the text is in the
+   HTML at its final size and the animation needs no script, so the first
+   screen is never behind one. The photo (the page's largest paint) drifts
+   from scale 1 to 1.04 over 20 s, the one animation on the site that loops;
+   it is paused and loses its layer while the hero is off-screen
+   (HeroMotion.tsx). */
+.pp-hero-kicker,.pp-hero-line,.pp-hero-lede,.pp-hero-actions{animation:pp-hero-rise var(--dur-hero) var(--ease-out) both}
+.pp-hero-line{display:block}
+.pp-hero-line:first-child{animation-delay:60ms}
+.pp-hero-line+.pp-hero-line{animation-delay:120ms}
+.pp-hero-lede{animation-delay:180ms}
+.pp-hero-actions{animation-delay:240ms}
+@keyframes pp-hero-rise{from{opacity:0;transform:translateY(16px)}}
+.pp-hero-frame img{animation:pp-hero-drift var(--dur-drift) var(--ease-in-out) infinite alternate;transform-origin:50% 50%;will-change:transform}
+@keyframes pp-hero-drift{to{transform:scale(1.04)}}
+.pp-hero[data-offscreen] .pp-hero-frame img{animation-play-state:paused;will-change:auto}
+/* No drift means no layer either: the photo is the largest thing on the
+   page and a compositor layer for it is only worth having while it moves. */
+@media (prefers-reduced-motion: reduce){.pp-hero-frame img{will-change:auto}}
+html[data-motion="off"] .pp-hero-frame img{will-change:auto}
+
+/* ---- the Prow moment (ProwMoment.tsx) -----------------------------------
+   Once per session on the homepage: a copy of the mark, the supplied SVG
+   exactly, sits over the header's logo mark and its two red stripes slide
+   in behind the hull, then it fades and the ordinary logo is what was
+   there all along. The clip is on the outer group and the slide on the
+   inner one, so the hull always clips the stripes. */
+.site-shell-brand{position:relative}
+.prow-moment{position:absolute;display:block;pointer-events:none;animation:prow-moment-out var(--dur-fast) var(--ease-in-out) var(--dur-slow) both}
+.prow-moment svg{display:block;width:100%;height:100%}
+.prow-moment-stripes{animation:prow-moment-in var(--dur-slow) var(--ease-out) both}
+@keyframes prow-moment-in{from{transform:translate(-34px,44px)}}
+@keyframes prow-moment-out{to{opacity:0}}
+
+/* ---- the header (HeaderMotion.tsx) -------------------------------------
+   Sticky on the home theme. Past 24 px of scroll it condenses: the logo
+   scales from 36 to 30 px (transform only, so the row's height never
+   changes) and a 1 px --line rule fades in under it. The border the
+   header already has keeps its space and goes transparent, so there is no
+   jump either way. Anchors scroll to just under it. */
+/* The home theme wrapper clipped sideways overflow with overflow-x:hidden,
+   which makes the wrapper a scroll container and pins a sticky header to
+   it instead of to the screen; clip crops the same overflow without that
+   (globals.css does the same on html). */
+.home-theme{overflow-x:clip}
+.home-theme .site-shell-header{position:sticky;top:0;border-bottom-color:transparent}
+.home-theme .site-shell-header::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--line);opacity:0;transition:opacity var(--dur-base) var(--ease-in-out)}
+.home-theme .site-shell-header[data-condensed]::after{opacity:1}
+.home-theme .site-shell-brand .brand-logo{transform-origin:left center;transition:transform var(--dur-base) var(--ease-in-out)}
+.home-theme .site-shell-header[data-condensed] .site-shell-brand .brand-logo{transform:scale(.8334)}
+/* Under 1200px the logo is already 30px (globals.css), so only the rule fades in. */
+@media(max-width:1199px){.home-theme .site-shell-header[data-condensed] .site-shell-brand .brand-logo{transform:none}}
+.home-theme section[id],.home-theme [id="open-now"]{scroll-margin-top:84px}
+/* /business and /pricing carry the "back" row under the header's top row. */
+.home-theme .site-shell-header:has(.site-shell-breadcrumb)~section[id]{scroll-margin-top:124px}
+
+/* ---- the category menu -------------------------------------------------
+   On the home theme and the directory pages, where the public site moves;
+   a business's own page keeps its header still. */
+.home-theme .nav-item.is-open .nav-panel,.tpl-page .nav-item.is-open .nav-panel{animation:nav-panel-in var(--dur-menu) var(--ease-out) both}
+@keyframes nav-panel-in{from{opacity:0;transform:translateY(8px)}}
