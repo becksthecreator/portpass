@@ -10,7 +10,8 @@ import { ppDisplay, ppSans } from "@/app/fonts";
 import { listSections } from "@/db/categories";
 import { getPublicShop, type Drop, type PublicShop } from "@/db/shop";
 import { dropPhase, formatNassau, licenceLabel, money, paymentMethodLabel, publicOpensAt, SHOP_PAYMENT_METHODS, whatsappHref } from "@/lib/shop/rules";
-import { MADE_IN_BAHAMAS, zoneLine } from "@/lib/market/sellers";
+import { MadeBadge } from "@/app/_components/market/MadeBadge";
+import { zoneLine } from "@/lib/market/sellers";
 import { MARKET_TAGLINE } from "@/lib/market/copy";
 import { Countdown } from "../Countdown";
 import "../shop.css";
@@ -99,7 +100,7 @@ export default async function ShopPage({ params }: { params: Params }) {
           {org.logoUrl && <img className="shop-hero-logo" src={org.logoUrl} alt="" width={64} height={64} />}
           <p className="shop-eyebrow">Shop · {org.name}</p>
           <h1>{org.name}</h1>
-          <p className="shop-badge shop-badge-hero">{MADE_IN_BAHAMAS}</p>
+          <MadeBadge variant="hero" as="p" />
           {org.oneLiner && <p className="shop-lede">{org.oneLiner}</p>}
           <p className="shop-pay-direct">Order here, then pay {org.name} directly{payLine ? ` by ${payLine}` : ""}.</p>
           {org.whatsappE164 && (
@@ -144,7 +145,7 @@ export default async function ShopPage({ params }: { params: Params }) {
                   <div className="shop-card-photo">
                     {product.photos[0] ? <img src={product.photos[0]} alt={product.title} loading="lazy" /> : <span aria-hidden="true">{product.title.slice(0, 1)}</span>}
                     {edition && <span className="shop-edition">{edition}</span>}
-                    <span className="shop-badge shop-badge-card">{MADE_IN_BAHAMAS}</span>
+                    <MadeBadge />
                   </div>
                   <div className="shop-card-body">
                     <h3>{product.title}</h3>

@@ -216,3 +216,44 @@ export function businessJsonLd(business: LdBusiness, offerings: LdOffering[], fa
   }
   return { "@context": "https://schema.org", "@graph": graph };
 }
+
+// ---- A PortPass Market product (brief 25) -----------------------------------------------
+
+export type LdProduct = {
+  name: string;
+  description: string;
+  path: string;
+  photos: string[];
+  priceCents: number;
+  inStock: boolean;
+  category: string | null;
+  sellerName: string;
+  sellerPath: string;
+};
+
+// One product page: the product, its price in Bahamian dollars, whether
+// any size is left, and the business selling it. Only real photos (http)
+// are listed; nothing about ratings, shipping or returns is invented.
+export function productJsonLd(product: LdProduct): Json {
+  const url = absoluteUrl(product.path);
+  return {
+    "@context": "https://schema.org",
+    ...clean({
+      "@type": "Product",
+      "@id": `${url}#product`,
+      name: product.name,
+      description: product.description || undefined,
+      image: product.photos.filter((p) => /^https?:\/\//i.test(p)),
+      category: product.category ?? undefined,
+      brand: { "@type": "Brand", name: product.sellerName },
+      offers: {
+        "@type": "Offer",
+        url,
+        price: money(product.priceCents),
+        priceCurrency: "BSD",
+        availability: product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        seller: { "@type": "Organization", name: product.sellerName, url: absoluteUrl(product.sellerPath) },
+      },
+    }),
+  };
+}

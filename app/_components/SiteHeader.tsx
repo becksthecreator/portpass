@@ -24,7 +24,7 @@ const HEADER_MARK_QUERY = "(max-width: 519px)";
 // plan), which keeps its own bws-theme chrome rather than this header.
 //
 // Sections come from the categories table (lib/navSections.getNavTree) and
-// render through SiteNav: dropdown panels per section from 1320px up, a
+// render through SiteNav: dropdown panels per section from 1380px up, a
 // "Browse" bottom sheet below that (round 5, §2-3). On a phone the header
 // stays one row -- mark, Browse, account, Pricing, For business, with
 // Pricing left to the Browse sheet and footer under 375px -- and the
