@@ -8,7 +8,10 @@ import { PRICE_CURRENCY_LINE } from "./blocks/format";
 // appends its own credit line above this via the orgLine prop, but the
 // company name, contact details, and legal links are always the same --
 // no page should be missing any of them.
-export async function SiteFooter({ orgLine }: { orgLine?: string }) {
+// `tide` (brief 22, M4): on a main public page the section links, Pricing
+// and About carry the "tide" transition type (the Tide Wipe).
+export async function SiteFooter({ orgLine, tide = false }: { orgLine?: string; tide?: boolean }) {
+  const types = tide ? ["tide"] : undefined;
   // "Guides" appears only once a guide is published (brief 18, A5); a
   // failed read shows none.
   const [categoryLinks, guides] = await Promise.all([getNavSections(), listPublishedGuides()]);
@@ -23,7 +26,7 @@ export async function SiteFooter({ orgLine }: { orgLine?: string }) {
           </p>
         </div>
         <nav className="site-shell-footer-categories" aria-label="Sections">
-          {categoryLinks.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
+          {categoryLinks.map((link) => <Link key={link.href} href={link.href} transitionTypes={types}>{link.label}</Link>)}
         </nav>
       </div>
       <p className="site-shell-footer-prices">{PRICE_CURRENCY_LINE}</p>
@@ -32,9 +35,9 @@ export async function SiteFooter({ orgLine }: { orgLine?: string }) {
           <Link href="/login">Sign in</Link>
           <Link href="/signup">Create an account</Link>
           <Link href="/apply">For business</Link>
-          <Link href="/pricing">Pricing</Link>
+          <Link href="/pricing" transitionTypes={types}>Pricing</Link>
           {guides.length > 0 && <Link href="/guides">Guides</Link>}
-          <Link href="/about">About</Link>
+          <Link href="/about" transitionTypes={types}>About</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>

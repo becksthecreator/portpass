@@ -57,8 +57,15 @@ export default async function RootLayout({
   // turns every animation and transition off under "off", and a visitor
   // who asked for reduced motion gets off whatever this says.
   const { motion } = await getSiteContent();
+  // data-scroll-behavior="smooth": the site scrolls smoothly within a page
+  // (app/globals.css), and this tells Next 16 to make its own scroll to the
+  // top of a new page instant, as it was before Next 16. Without it a move
+  // from far down a page arrives still scrolled down while the View
+  // Transition is measured, the new page's heading is off screen, and the
+  // section card's icon and title fade out instead of morphing (brief 22,
+  // M4).
   return (
-    <html lang="en" data-motion={motion ? "on" : "off"} suppressHydrationWarning>
+    <html lang="en" data-motion={motion ? "on" : "off"} data-scroll-behavior="smooth" suppressHydrationWarning>
       {/* Poppins + Inter on <body>, so every page -- sign-in, account, admin,
           staff, the offline page, the install banner -- has the brand type
           without setting it itself. Business listing pages put their own

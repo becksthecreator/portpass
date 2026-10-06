@@ -8,6 +8,8 @@ import { formatPriceCents } from "@/app/_components/blocks/format";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SubsectionChips } from "@/app/_components/SubsectionChips";
+import { SectionIcon } from "@/app/_components/SectionGrid";
+import { PageTransition, SharedElement } from "@/app/_components/motion/PageTransition";
 import { ppDisplay, ppSans } from "@/app/fonts";
 import { JsonLd } from "@/app/_components/seo/JsonLd";
 import { sectionJsonLd } from "@/lib/seo/jsonLd";
@@ -79,13 +81,17 @@ export default async function WeddingsPage() {
   const { brand, brandText } = computeBrandTokens(org?.brandColor ?? null);
 
   return (
-    <main className={`tpl-page ${ppDisplay.variable} ${ppSans.variable}`}>
+    // Brief 22 (M4): a main page like every section page, so the homepage's
+    // Weddings card morphs into this icon and heading and the header and
+    // footer links run the Tide Wipe in and out.
+    <PageTransition>
+    <main className={`tpl-page category-page ${ppDisplay.variable} ${ppSans.variable}`}>
       <JsonLd data={sectionJsonLd({ name: "Weddings", path: "/weddings", description: DESCRIPTION, businesses: org ? [{ name: org.name, path: "/weddings/bahamas-weddings-by-the-sea" }] : [] })} />
-      <SiteHeader breadcrumb={[{ label: "Weddings", href: "/weddings" }]} />
+      <SiteHeader breadcrumb={[{ label: "Weddings", href: "/weddings" }]} tide />
       <section className="category-hero" style={{ backgroundImage: `url(${CATEGORY_HERO_IMAGE})` }}>
         <div className="category-hero-inner">
-          <span className="category-hero-eyebrow">Weddings</span>
-          <h1>Weddings in The Bahamas.</h1>
+          <span className="category-hero-eyebrow"><SharedElement name="section-icon-weddings"><span className="category-hero-icon" aria-hidden="true"><SectionIcon slug="weddings" /></span></SharedElement>Weddings</span>
+          <SharedElement name="section-title-weddings"><h1>Weddings in The Bahamas.</h1></SharedElement>
           <p>Island ceremonies and vow renewals, planned end to end: officiant, venue, photography, and paperwork.</p>
         </div>
       </section>
@@ -112,7 +118,8 @@ export default async function WeddingsPage() {
       </div>
       {!org && <p className="category-empty">More wedding businesses join PortPass as they come on board.</p>}
 
-      <SiteFooter />
+      <SiteFooter tide />
     </main>
+    </PageTransition>
   );
 }

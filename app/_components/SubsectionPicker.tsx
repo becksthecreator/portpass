@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+// Brief 22 (M4): moving between a section and its subsections cross-fades
+// (the "card" transition type, lib/motion/public.css).
+const CHIP_TYPES = ["card"];
+
 export type SubsectionChip = { slug: string | null; name: string; href: string; live: number };
 
 // The subsection picker under a section heading (round 5, §4): "All" first,
@@ -21,7 +25,7 @@ export function SubsectionPicker({ label, items, current }: { label: string; ite
         {items.map((item) => {
           const isCurrent = item.slug === current;
           return (
-            <Link key={item.href} href={item.href} className={`subsection-chip${isCurrent ? " is-current" : ""}`} aria-current={isCurrent ? "page" : undefined}>
+            <Link key={item.href} href={item.href} className={`subsection-chip${isCurrent ? " is-current" : ""}`} aria-current={isCurrent ? "page" : undefined} transitionTypes={CHIP_TYPES}>
               {item.name}
               {item.slug !== null && <small>{item.live > 0 ? item.live : "Soon"}</small>}
             </Link>

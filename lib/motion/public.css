@@ -235,3 +235,85 @@ html[data-motion="off"] :is(.home-theme,.category-page) :is(.home-button,.featur
 .board-cell[data-flap="b"]{animation:board-flap-b var(--dur-flap) var(--ease-linear)}
 @keyframes board-flap-a{from{opacity:.5;transform:scaleY(.55)}}
 @keyframes board-flap-b{from{opacity:.5;transform:scaleY(.55)}}
+
+/* ---- moving between pages (brief 22, M4) ------------------------------
+   React's <ViewTransition> (app/_components/motion/PageTransition.tsx and
+   the named ones in SectionGrid and CategoryPage) hands these classes to
+   the browser's View Transitions API on a client navigation, keyed by the
+   type the link carries:
+     card  a homepage section card or a subsection chip: the page being
+           left fades out and the one arriving fades in over --dur-page,
+           and the card's icon and title morph into the section page's
+           icon and heading (the same names on both)
+     tide  the header's and the footer's links between the main public
+           pages (home, the sections, pricing, about): the Tide Wipe below
+   A navigation with no type (Back, Forward, any other link) swaps at once,
+   as the browser always has. A browser without the API navigates as
+   before. A tap during a transition is held by the overlay rather than
+   landing on the page arriving underneath, which is not on screen yet;
+   the header stays put above it all. */
+::view-transition-old(.page-out){animation:vt-fade var(--dur-page) var(--ease-in-out) both reverse}
+::view-transition-new(.page-in){animation:vt-fade var(--dur-page) var(--ease-out) both}
+@keyframes vt-fade{from{opacity:0}}
+::view-transition-group(.morph){animation-duration:var(--dur-page);animation-timing-function:var(--ease-out)}
+::view-transition-old(.morph),::view-transition-new(.morph){animation-timing-function:var(--ease-out)}
+/* The page outside the named parts (the root) swaps at once on every move,
+   typed or not. React starts a view transition for any navigation that
+   leaves or enters a page with a <ViewTransition>, so without this a move
+   with no type (into a business page, a form, anything on the Never list)
+   would still cross-fade by the browser's default. Only the new snapshot
+   is shown, so nothing blends for a frame. */
+::view-transition-group(root){animation:none}
+::view-transition-old(root){display:none}
+::view-transition-new(root){animation:none}
+:is(.home-theme,.category-page,.about-page) .site-shell-header{view-transition-name:site-header}
+::view-transition-group(site-header){animation:none;z-index:100}
+::view-transition-old(site-header){display:none}
+::view-transition-new(site-header){animation:none}
+/* The section page's icon, beside its eyebrow: where the card's icon lands. */
+.category-hero-icon{display:inline-flex;color:var(--sky)}
+.category-hero-icon svg{width:20px;height:20px}
+
+/* The Tide Wipe: a navy panel with skewed edges sweeps across in
+   --dur-tide while the page swaps underneath it, by transform and
+   opacity only. The panel is a fixed, invisible element on the main pages
+   (SiteHeader renders it there) that is given a view-transition-name only
+   while a "tide" transition runs; its group is painted navy and slid
+   across, its snapshots are hidden. The page being left holds until the
+   panel covers the screen, then the new one is there as it passes. Where
+   a browser lacks :active-view-transition-type(), the tide classes fall
+   back to the plain cross-fade. */
+.tide-panel{position:fixed;top:0;bottom:0;left:-20vw;right:-20vw;opacity:0;pointer-events:none;z-index:-1}
+@supports selector(:active-view-transition-type(tide)){
+  html:active-view-transition-type(tide) .tide-panel{view-transition-name:tide-panel}
+  ::view-transition-group(tide-panel){background:linear-gradient(100deg,transparent 0 7%,var(--ink) 7% 93%,transparent 93%);animation:tide-sweep var(--dur-tide) var(--ease-in-out) both;z-index:50}
+  ::view-transition-old(tide-panel),::view-transition-new(tide-panel){display:none}
+  ::view-transition-old(.tide-out){animation:tide-hold-out var(--dur-tide) var(--ease-linear) both}
+  ::view-transition-new(.tide-in){animation:tide-hold-in var(--dur-tide) var(--ease-linear) both}
+}
+@supports not selector(:active-view-transition-type(tide)){
+  ::view-transition-old(.tide-out){animation:vt-fade var(--dur-page) var(--ease-in-out) both reverse}
+  ::view-transition-new(.tide-in){animation:vt-fade var(--dur-page) var(--ease-out) both}
+}
+/* The keyframes replace the group's own placement, so the panel (140vw
+   wide) is placed here: from wholly off the left to wholly off the right,
+   centred on the screen at the swap, where it covers every pixel. */
+@keyframes tide-sweep{from{transform:translateX(-100%)}to{transform:translateX(100vw)}}
+@keyframes tide-hold-out{0%,50%{opacity:1}50.01%,100%{opacity:0}}
+@keyframes tide-hold-in{0%,50%{opacity:0}50.01%,100%{opacity:1}}
+
+/* Reduced motion and the kill switch: every swap is instant. (These
+   pseudo-elements hang off <html>, out of reach of the global blocks in
+   motion.css, so they are named here.) */
+@media (prefers-reduced-motion: reduce){
+  ::view-transition-old(*),::view-transition-new(*),::view-transition-group(*),::view-transition-image-pair(*){animation-duration:0s!important;animation-delay:0s!important}
+}
+html[data-motion="off"]::view-transition-old(*),html[data-motion="off"]::view-transition-new(*),html[data-motion="off"]::view-transition-group(*),html[data-motion="off"]::view-transition-image-pair(*){animation-duration:0s!important;animation-delay:0s!important}
+
+/* A featured listing's vector logo mark idles on the category list
+   (app/_components/motion/IdleLogo.tsx picks one mark on screen every few
+   seconds): a small bounce, transform only, over --dur-hero. */
+.idle-logo{display:inline-flex}
+.idle-logo>*{transform-origin:50% 100%}
+.idle-logo[data-idle]>*{animation:idle-logo-bounce var(--dur-hero) var(--ease-out) both}
+@keyframes idle-logo-bounce{0%{transform:none}30%{transform:translateY(-4px) scale(1.04)}55%{transform:translateY(0) scale(.98)}75%{transform:translateY(-1px)}100%{transform:none}}
