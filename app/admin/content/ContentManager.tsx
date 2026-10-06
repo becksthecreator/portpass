@@ -138,7 +138,7 @@ export function ContentManager({ announcement, businesses, announcementMax, link
         <form className="admin-content-form" onSubmit={saveMotion}>
           <label className="admin-content-check">
             <input type="checkbox" checked={motionOn} onChange={(event) => setMotionOn(event.target.checked)} />
-            <span>Animate the public site: scroll reveals, the hero and moving between pages</span>
+            <span>Animate the public site (scroll reveals today; more as it ships)</span>
           </label>
           <p className="admin-form-note">Off shows every page still, at once, with no deploy. A visitor who asked their phone for less motion always gets it off, whatever this says.</p>
           <div className="admin-form-actions">

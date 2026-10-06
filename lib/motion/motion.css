@@ -73,4 +73,4 @@ html[data-motion="off"] [data-reveal],html[data-motion="off"] [data-reveal][data
    rule exists only under prefers-reduced-motion (app/globals.css): the
    same final state here. The booking-sent steamer on /futprep/coaches. */
 html[data-motion="off"] .request-mail-card{opacity:0}
-html[data-motion="off"] .request-mail-steamer{left:50%;opacity:1;transform:translateX(-50%)}
+html[data-motion="off"] .request-mail-steamer{left:50%!important;opacity:1!important;transform:translateX(-50%)!important}
