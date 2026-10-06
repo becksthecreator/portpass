@@ -47,6 +47,9 @@ async function main() {
       status: "approved",
       one_liner: "TEST — delete. Jerseys and caps, for screenshots only.",
       whatsapp_e164: "+12425550100",
+      // Brief 25: what a verified Market seller has on file (never public).
+      primary_contact: "TEST Owner",
+      licences: [{ type: "Business licence", number: "TEST-BL-00001" }],
       brand_color: "#0E7C86",
       payment_methods: ["bank_transfer", "cash"],
       bank_transfer_details: { bank: "TEST Bank", accountName: "TEST Kit Shop", accountNumber: "000-TEST-000", branch: "TEST branch", instructions: "Use your reference code." },
@@ -57,7 +60,7 @@ async function main() {
   if (orgError || !org) throw new Error(`Could not seed the TEST shop: ${orgError?.message}`);
   const orgId = Number(org.id);
   await db.from("organization_members").insert({ organization_id: orgId, user_id: ownerId, role: "org_owner" });
-  const { error: shopError } = await db.from("shops").insert({ organization_id: orgId, reference_prefix: "TK", returns_policy: "TEST — Exchanges for another size within 7 days of pickup, unworn with tags. Custom names can't be returned.", hold_hours: 48, is_published: true });
+  const { error: shopError } = await db.from("shops").insert({ organization_id: orgId, reference_prefix: "TK", returns_policy: "TEST — Exchanges for another size within 7 days of pickup, unworn with tags. Custom names can't be returned.", hold_hours: 48, is_published: true, seller_status: "verified", seller_verified_at: new Date().toISOString(), seller_plan: "seller", market_category: "kits-apparel", what_they_sell: "TEST — jerseys and caps", seller_pickup_note: "TEST studio, Saturdays 10am to 2pm", seller_delivery_zones: [{ zone: "Nassau East", fee_cents: 1000, lead_days: 2 }, { zone: "Cable Beach", fee_cents: 1500, lead_days: 3 }], accepts_cash_on_pickup: true });
   if (shopError) throw new Error(`Could not seed the shop row: ${shopError.message}`);
 
   type SeedProduct = { slug: string; title: string; description: string; price_cents: number; photos: string[]; uses_marks: boolean; licence_kind: string | null; licence_note: string | null; licence_approved_at: string | null; sizes: [string, number | null][] };
@@ -71,7 +74,7 @@ async function main() {
   const productIdBySlug: Record<string, number> = {};
   for (const [index, p] of products.entries()) {
     const { sizes, ...row } = p;
-    const { data: product, error } = await db.from("products").insert({ ...row, organization_id: orgId, sort_order: index, is_published: false }).select("id").single();
+    const { data: product, error } = await db.from("products").insert({ ...row, organization_id: orgId, sort_order: index, is_published: false, market_category: "kits-apparel" }).select("id").single();
     if (error || !product) throw new Error(`Could not seed ${p.title}: ${error?.message}`);
     productIds.push(Number(product.id));
     productIdBySlug[p.slug] = Number(product.id);

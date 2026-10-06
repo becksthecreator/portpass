@@ -23,6 +23,7 @@ export const ADMIN_NAV = [
   { href: "/admin/security", label: "Security" },
   { href: "/admin/settings", label: "Settings" },
   { href: "/admin/shop", label: "Shop" },
+  { href: "/admin/market", label: "Market" },
   { href: "/admin/tools", label: "Our tools" },
   { href: "/admin/phase1", label: "Phase 1" },
 ] as const;

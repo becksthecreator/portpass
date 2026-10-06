@@ -269,3 +269,27 @@
 .admin-licence-main span{color:var(--muted);font-size:.82rem}
 .admin-licence-main p{margin:4px 0 0;font-size:.9rem;line-height:1.5;white-space:pre-line;overflow-wrap:anywhere}
 .admin-licence-actions .admin-mini{min-height:40px;padding:0 14px}
+
+/* ------------------------------------------- PortPass Market (brief 25, A) */
+/* "Made in The Bahamas": a verified seller's badge, on the storefront hero
+   and on every product card. Gold of the flag with navy text (11:1). */
+.shop-badge{display:inline-flex;align-items:center;gap:6px;background:#FFC72C;color:#0D1B3D;border-radius:999px;padding:4px 11px;font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;line-height:1.2}
+.shop-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:#00778B;flex:none}
+.shop-badge-hero{margin:0 0 12px}
+.shop-badge-card{position:absolute;right:10px;bottom:10px}
+.shop-getting-list{display:grid;gap:10px;margin:0;grid-template-columns:minmax(0,1fr)}
+.shop-getting-list>div{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.shop-getting-list dt{font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.shop-getting-list dd{margin:0;font-size:.92rem;line-height:1.5;white-space:pre-line}
+.shop-getting-list ul{margin:0;padding:0 0 0 18px;display:grid;gap:4px}
+.shop-tagline{text-align:center;font-weight:800;margin:30px 16px 34px;letter-spacing:.02em;color:var(--ink)}
+@media(min-width:760px){.shop-getting-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.seller-applied{background:rgba(141,184,242,.14);border:1px solid var(--line);border-radius:12px;padding:12px 14px;line-height:1.5;margin:0 0 14px}
+.seller-market-status{margin:0;line-height:1.5;font-size:.92rem;color:var(--muted)}
+.seller-market-status strong{color:var(--text);display:block;margin-bottom:2px}
+.seller-market-status.is-verified strong::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:#FFC72C;margin-right:7px}
+.seller-zones{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.seller-zones li{display:grid;grid-template-columns:minmax(0,1fr) 72px 64px 44px;gap:6px;align-items:center}
+.seller-zones input{min-height:44px!important;padding:8px!important}
+.seller-zones .admin-mini{min-height:44px}
+.seller-fieldset>.admin-mini{min-height:44px;padding:0 14px}
