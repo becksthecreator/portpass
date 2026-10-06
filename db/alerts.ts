@@ -59,7 +59,7 @@ export async function noteAdminSignIn(userId: string, request: Request, now: Dat
     const ip = clientIp(request);
     const userAgent = request.headers.get("user-agent");
     const label = deviceLabel(userAgent);
-    const { isNew } = await rememberAdminDevice(userId, deviceHash(userAgent, ip), label, now);
+    const { isNew } = await rememberAdminDevice(userId, await deviceHash(userAgent, ip), label, now);
     if (!isNew) return;
     await recordSecurityEvent("admin_new_device", ip, { label, user: userId.slice(0, 8) });
     await sendSecurityAlert("admin_new_device", { label, ip, userShort: userId.slice(0, 8), at: now });

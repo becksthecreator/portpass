@@ -15,15 +15,15 @@ describe("the security alerts", () => {
     expect(alertPeriodKey("failed_logins", new Date("2026-10-06T15:00:00Z"))).not.toBe(alertPeriodKey("failed_logins", new Date("2026-10-06T14:59:59Z")));
   });
 
-  it("recognise a device by browser and network, not by the exact address", () => {
+  it("recognise a device by browser and network, not by the exact address", async () => {
     const ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
     expect(networkOf("203.0.113.42")).toBe("203.0.113");
     expect(networkOf("2001:db8:85a3:8d3:1319:8a2e:370:7348")).toBe("2001:db8:85a3:8d3");
     expect(networkOf("")).toBe("");
-    expect(deviceHash(ua, "203.0.113.42")).toBe(deviceHash(ua, "203.0.113.99"));
-    expect(deviceHash(ua, "203.0.113.42")).not.toBe(deviceHash(ua, "198.51.100.42"));
-    expect(deviceHash(ua, "203.0.113.42")).not.toBe(deviceHash("Mozilla/5.0 (Windows NT 10.0) Chrome/130.0 Safari/537.36", "203.0.113.42"));
-    expect(deviceHash(ua, "203.0.113.42")).toMatch(/^[0-9a-f]{32}$/);
+    expect(await deviceHash(ua, "203.0.113.42")).toBe(await deviceHash(ua, "203.0.113.99"));
+    expect(await deviceHash(ua, "203.0.113.42")).not.toBe(await deviceHash(ua, "198.51.100.42"));
+    expect(await deviceHash(ua, "203.0.113.42")).not.toBe(await deviceHash("Mozilla/5.0 (Windows NT 10.0) Chrome/130.0 Safari/537.36", "203.0.113.42"));
+    expect(await deviceHash(ua, "203.0.113.42")).toMatch(/^[0-9a-f]{32}$/);
     expect(deviceLabel(ua)).toBe("Safari on iPhone");
     expect(deviceLabel("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")).toBe("Chrome on Windows");
     expect(deviceLabel("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Gecko/20100101 Firefox/131.0")).toBe("Firefox on Mac");

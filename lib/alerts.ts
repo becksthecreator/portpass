@@ -1,9 +1,9 @@
-import { createHash } from "node:crypto";
-
 // The security alerts (Brief 21, part G), the pure part: what is watched,
 // the thresholds, how a device is recognised, and the email. Nothing here
 // touches the database or sends anything; db/alerts.ts does that with
-// these definitions. Unit-tested in lib/alerts.test.ts.
+// these definitions. Unit-tested in lib/alerts.test.ts. No Node-only
+// modules: instrumentation.ts pulls this in through db/alerts.ts, and it is
+// bundled for the edge runtime too.
 //
 // Every alert goes to the founders (PLATFORM_OWNER_EMAILS) through Resend,
 // at most once an hour per alert, and says counts, kinds, addresses and
@@ -57,8 +57,10 @@ export function networkOf(ip: string | null | undefined): string {
   return parts.length === 4 ? parts.slice(0, 3).join(".") : value;
 }
 
-export function deviceHash(userAgent: string | null | undefined, ip: string | null | undefined): string {
-  return createHash("sha256").update(`${(userAgent ?? "").trim()}\n${networkOf(ip)}`).digest("hex").slice(0, 32);
+export async function deviceHash(userAgent: string | null | undefined, ip: string | null | undefined): Promise<string> {
+  const bytes = new TextEncoder().encode(`${(userAgent ?? "").trim()}\n${networkOf(ip)}`);
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
 }
 
 // "Safari on iPhone", "Chrome on Windows": enough to recognise, nothing more.
