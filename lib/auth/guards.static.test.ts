@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 // protect a handler). A file that is public on purpose says so with a
 // pragma in its first five lines, and the pragma list below must match --
 // so nothing can quietly be public without appearing here.
-const ROOTS = ["app/api/account", "app/api/business", "app/api/admin", "app/api/payments", "app/api/demo", "app/account", "app/business", "app/where-to", "app/admin", "app/organizations", "app/demo"];
+const ROOTS = ["app/api/account", "app/api/business", "app/api/admin", "app/api/payments", "app/api/demo", "app/api/market", "app/account", "app/business", "app/where-to", "app/admin", "app/organizations", "app/demo"];
 
 const PUBLIC_ROUTES = new Set<string>([
   "app/business/page.tsx", // the "PortPass for business" marketing page
