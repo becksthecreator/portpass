@@ -16,4 +16,4 @@ How to plan:
 * Reuse before adding: the helper, table or screen the work extends (`lib/`, `db/`, `app/_components/`) and the merged PR to copy.
 * Anything that touches booking, registration, payments or sign-in needs the Phase 1 run (`docs/qa/phase1-run.md`) before merge; say so on that PR.
 
-Output: the open questions, if any; then the PR list, numbered, each under ten lines; then one line naming the smallest first PR so work can start today. Plain words.
+Output, in this order and within these limits, which are hard: an "Open questions" block of at most 5 lines, left out when there are none; the PR list, numbered, each entry at most 8 lines counting every line (files, migration, tests, risk, rules, report); then one line naming the smallest first PR so work can start today. An entry that needs more lines is a PR that needs splitting. Plain words.
