@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { logAudit } from "@/db/audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "@/db/supabase";
+import { hashPin, verifyPin } from "@/lib/pinHash";
 import { issueStaffToken, readStaffToken, staffTokenValid } from "@/lib/staffSession";
 import { PIN_PATTERN } from "@/app/futprep/staff-auth";
 
@@ -85,21 +86,32 @@ async function accountByKey(accountKey: string): Promise<CachedAccount | null> {
   return account && account.active ? account : null;
 }
 
-async function digest(value: string) {
-  const bytes = new TextEncoder().encode(value);
-  const hash = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(hash))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+// As in app/futprep/staff-auth.ts: an old unsalted hash is replaced by the
+// salted scrypt form on the owner's next correct sign-in (Brief 24, part D).
+async function upgradeStoredPin(account: CachedAccount, pin: string): Promise<string> {
+  const newHash = await hashPin(pin);
+  const orgId = await weddingOrgId();
+  const { error } = await getSupabaseAdmin()
+    .from("staff_members")
+    .update({ pin_hash: newHash })
+    .eq("id", account.id)
+    .eq("organization_id", orgId);
+  if (error) {
+    console.error("wedding staff pin upgrade failed", error.message);
+    return account.pinHash;
+  }
+  invalidateAccountCache();
+  return newHash;
 }
 
 export async function makeWeddingStaffToken(accountKey: string, pin: string) {
   const account = await accountByKey(accountKey);
   if (!account) return null;
-  const submittedHash = await digest(pin);
-  if (submittedHash !== account.pinHash) return null;
+  const check = await verifyPin(pin, account.pinHash);
+  if (!check.ok) return null;
+  const pinHash = check.upgrade ? await upgradeStoredPin(account, pin) : account.pinHash;
   // Signed with a server secret and dated (lib/staffSession.ts).
-  return issueStaffToken("weddings", { accountKey, role: account.role, pinHash: account.pinHash });
+  return issueStaffToken("weddings", { accountKey, role: account.role, pinHash });
 }
 
 export async function currentWeddingStaffAccount(): Promise<string | null> {
@@ -152,11 +164,11 @@ export async function changeWeddingPin(
 ): Promise<string | null> {
   const account = await accountByKey(accountKey);
   if (!account) return null;
-  if ((await digest(currentPin)) !== account.pinHash) return null;
+  if (!(await verifyPin(currentPin, account.pinHash)).ok) return null;
   if (!PIN_PATTERN.test(newPin)) throw new Error("INVALID_PIN");
 
-  const newHash = await digest(newPin);
-  if (newHash === account.pinHash) throw new Error("SAME_PIN");
+  if ((await verifyPin(newPin, account.pinHash)).ok) throw new Error("SAME_PIN");
+  const newHash = await hashPin(newPin);
   const supabase = getSupabaseAdmin();
   const orgId = await weddingOrgId();
   const { error } = await supabase
@@ -216,7 +228,7 @@ export async function createWeddingStaffAccount(input: {
   throwIfSupabaseError(existingError, "Could not check account name");
   if (existing) throw new Error("ACCOUNT_KEY_TAKEN");
 
-  const pinHash = await digest(input.pin);
+  const pinHash = await hashPin(input.pin);
   const orgId = await weddingOrgId();
   const now = new Date().toISOString();
   const { data, error } = await supabase
