@@ -47,27 +47,30 @@ async function main() {
   const member = await db.from("organization_members").insert({ organization_id: orgId, user_id: created.user.id, role: "org_owner" });
   if (member.error) throw new Error(`Could not seed the owner's membership: ${member.error.message}`);
 
-  // The pictures. A phone's 10 MB JPEG, saved on its side with a tag that
+  // The pictures. A large phone JPEG, saved on its side with a tag that
   // says so and the place it was taken; and the sources the job turns
   // into HEIC files with heif-enc.
   mkdirSync(dir, { recursive: true });
   // Noise doesn't compress, so the quality is stepped down until the file
-  // is the size of a large phone photo: over 10 MB, under 20.
+  // is the size of a large phone photo that the server still takes when it
+  // is sent untouched (lib/imageUpload.ts: 3 MB pieces, at most 4 of them,
+  // 10 MB in all): over 4 MB, so it needs at least two pieces, and no more
+  // than three pieces' worth (9 MB), under the 10 MB cap.
+  const minBytes = 4 * 1024 * 1024;
+  const maxBytes = 3 * 3 * 1024 * 1024;
   let big: Buffer | null = null;
-  for (const quality of [100, 97, 94, 90, 85, 80, 72, 64]) {
+  for (const quality of [80, 72, 64, 56, 48, 40, 32, 24, 16]) {
     const candidate = await noise(6000, 4000, 60)
       .withMetadata({ orientation: 6 })
       .withExifMerge({ IFD0: { Make: "TESTPHONE" }, IFD3: { GPSLatitudeRef: "N", GPSLatitude: "25/1 3/1 36/1", GPSLongitudeRef: "W", GPSLongitude: "77/1 20/1 42/1" } })
       .jpeg({ quality })
       .toBuffer();
     console.log(`big.jpg at quality ${quality}: ${(candidate.length / 1024 / 1024).toFixed(1)} MB`);
-    if (candidate.length < 10 * 1024 * 1024) break;
-    if (candidate.length <= 20 * 1024 * 1024) {
-      big = candidate;
-      break;
-    }
+    if (candidate.length > maxBytes) continue;
+    if (candidate.length >= minBytes) big = candidate;
+    break;
   }
-  if (!big) throw new Error("Could not make a TEST photo between 10 and 20 MB.");
+  if (!big) throw new Error("Could not make a TEST photo between 4 and 9 MB.");
   writeFileSync(join(dir, "big.jpg"), big);
   // A flat picture compresses to a small HEIC (one request); a noisy one
   // to a large HEIC (sent in pieces).

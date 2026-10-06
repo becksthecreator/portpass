@@ -5,18 +5,21 @@
 // routes and uses the real Look step:
 //
 //   1. switches on "Children appear in some of my photos";
-//   2. adds a 10 MB+ JPEG saved on its side with a location in it;
-//   3. adds a small HEIC (one request) and a large HEIC (sent in pieces);
-//   4. sends the 10 MB JPEG untouched, in pieces, so the server resizes it;
-//   5. checks every stored photo is an upright JPEG no longer than 2048 px
+//   2. adds a 4 to 9 MB JPEG saved on its side with a location in it;
+//   3. adds a small HEIC (one request) and a large HEIC (3.6 to 10 MB,
+//      sent in pieces);
+//   4. sends the same JPEG untouched, in 2 or 3 pieces, so the server
+//      resizes it;
+//   5. is refused a photo over 10 MB, and one in more than 4 pieces;
+//   6. checks every stored photo is an upright JPEG no longer than 2048 px
 //      with nothing of the phone's left in it;
-//   6. ticks consent on a photo, makes one the main photo, adds a logo;
-//   7. is told plainly when a file isn't a photo;
-//   8. finds no pieces left behind.
+//   7. ticks consent on a photo, makes one the main photo, adds a logo;
+//   8. is told plainly when a file isn't a photo;
+//   9. finds no pieces left behind.
 //
 // Each step is timed. Screenshots go to ./screenshots; a step that fails
 // is reported and the run exits 1.
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright";
@@ -32,7 +35,11 @@ const dir = process.env.PHOTO_DIR;
 const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
 mkdirSync("screenshots", { recursive: true });
 
+// The server's limits for a photo sent in pieces (lib/imageUpload.ts):
+// 3 MB pieces, at most 4 of them, 10 MB in all.
 const CHUNK = 3 * 1024 * 1024;
+const MAX_PIECES = 4;
+const mb = (bytes) => (bytes / 1024 / 1024).toFixed(1);
 const results = [];
 let failed = false;
 
@@ -124,13 +131,13 @@ try {
     expect(data.photo_consent_required === true, "The business should now need consent on each photo.");
   });
 
-  await step("Adds a 10 MB+ JPEG from the camera roll", async () => {
+  await step("Adds a large JPEG (4 to 9 MB) from the camera roll", async () => {
     const photo = await addPhoto("big.jpg", 1);
     checkPhoto(photo, "The big JPEG");
     // Saved on its side by the phone (6000 x 4000 with a "turn me" tag):
     // stored upright.
     expect(photo.height > photo.width, `The big JPEG should be stored upright, not ${photo.width}x${photo.height}.`);
-    return `${(fixture.bigJpegBytes / 1024 / 1024).toFixed(1)} MB in, ${photo.width}x${photo.height} and ${(photo.bytes / 1024).toFixed(0)} KB stored`;
+    return `${mb(fixture.bigJpegBytes)} MB in, ${photo.width}x${photo.height} and ${(photo.bytes / 1024).toFixed(0)} KB stored`;
   });
 
   await step("Adds a small HEIC (one request)", async () => {
@@ -140,16 +147,17 @@ try {
     return `${photo.width}x${photo.height} JPEG`;
   });
 
-  await step("Adds a large HEIC (sent in pieces, converted on the server)", async () => {
+  await step("Adds a large HEIC (3.6 to 10 MB, sent in pieces, converted on the server)", async () => {
     const photo = await addPhoto("big.heic", 3);
     checkPhoto(photo, "The large HEIC");
     expect(photo.width === 2048 && photo.height === 1536, `The large HEIC should be resized to 2048x1536, not ${photo.width}x${photo.height}.`);
-    return `${photo.width}x${photo.height} JPEG`;
+    return `${mb(statSync(join(dir, "big.heic")).size)} MB in, ${photo.width}x${photo.height} JPEG`;
   });
 
-  await step("The server resizes a 10 MB JPEG sent untouched, in pieces", async () => {
+  await step("The server resizes the same JPEG sent untouched, in 2 or 3 pieces", async () => {
     const bytes = readFileSync(join(dir, "big.jpg"));
     const total = Math.ceil(bytes.length / CHUNK);
+    expect(total === 2 || total === 3, `big.jpg is ${mb(bytes.length)} MB, ${total} pieces; this step sends 2 or 3.`);
     const uploadId = crypto.randomUUID();
     let last = null;
     for (let index = 0; index < total; index += 1) {
@@ -164,7 +172,7 @@ try {
     const photo = await stored(all[3].url);
     checkPhoto(photo, "The JPEG the server resized");
     expect(photo.width === 1365 && photo.height === 2048, `Expected 1365x2048 upright, got ${photo.width}x${photo.height}.`);
-    return `${total} pieces, ${photo.width}x${photo.height} stored`;
+    return `${mb(bytes.length)} MB in ${total} pieces, ${photo.width}x${photo.height} stored`;
   });
 
   await step("A piece from someone who isn't signed in is refused", async () => {
@@ -174,6 +182,23 @@ try {
     expect(response.status() === 401, `Expected 401, got ${response.status()}.`);
     const bad = await context.request.post(`${BASE}/api/business/orgs/${fixture.orgId}/images`, { multipart: { kind: "photo", uploadId: "../../org/1/photo", index: "0", total: "2", file: { name: "a.jpg", mimeType: "image/jpeg", buffer: Buffer.alloc(1024, 1) } } });
     expect(bad.status() === 400, `A made-up upload id should be refused, got ${bad.status()}.`);
+  });
+
+  await step("A photo over 10 MB, or in more than 4 pieces, is refused", async () => {
+    const send = (uploadId, index, total, buffer) =>
+      context.request.post(`${BASE}/api/business/orgs/${fixture.orgId}/images`, { multipart: { kind: "photo", uploadId, index: String(index), total: String(total), file: { name: "big.jpg", mimeType: "image/jpeg", buffer } }, timeout: 120_000 });
+    const tooMany = await send(crypto.randomUUID(), 0, MAX_PIECES + 1, Buffer.alloc(1024, 1));
+    expect(tooMany.status() === 400, `A photo in ${MAX_PIECES + 1} pieces should be refused, got ${tooMany.status()}: ${await tooMany.text()}`);
+    // Four full pieces are 12 MB, over the 10 MB cap: each piece is taken,
+    // and the photo is refused once the last one is counted.
+    const uploadId = crypto.randomUUID();
+    for (let index = 0; index < MAX_PIECES; index += 1) {
+      const response = await send(uploadId, index, MAX_PIECES, Buffer.alloc(CHUNK, 1));
+      const want = index === MAX_PIECES - 1 ? 413 : 202;
+      expect(response.status() === want, `Piece ${index + 1} of ${MAX_PIECES} (${mb(MAX_PIECES * CHUNK)} MB in all) answered ${response.status()}, not ${want}: ${await response.text()}`);
+    }
+    expect((await images()).length === 4, "A refused photo must not be saved.");
+    return `${MAX_PIECES + 1} pieces: 400; ${mb(MAX_PIECES * CHUNK)} MB in ${MAX_PIECES} pieces: 413`;
   });
 
   await step("Photos stay hidden until consent is ticked; one is made the main photo", async () => {
