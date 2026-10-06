@@ -12,6 +12,7 @@ Rules:
 * Local only. `npm test` runs the unit tests (no database); `npm run test:integration` runs against a local Supabase stack seeded by `scripts/seed-test-data.ts`. Never run anything against a preview or production, and never point `SUPABASE_URL` anywhere but a local stack. If Node or the stack is missing here, say so and read the tests instead of running them.
 * TEST data only: a TEST organisation, `@example.com` addresses, `242-555-01xx` phones. Nothing you suggest may email or message a real person (rule 4).
 * A child's details in a test are made up, and never appear in a test name or an assertion message (rule 3).
+* Report env var names only; never print a value, a key, a PIN or a code, even from a failing run's output (rule 6).
 
 For each change, list:
 
