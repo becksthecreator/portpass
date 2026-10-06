@@ -32,7 +32,9 @@ describe("categories seed", () => {
 });
 
 describe("RLS on the new tables", () => {
-  const tables = ["profiles", "organization_members", "organization_invites", "audit_log", "people", "guardianships", "categories"];
+  // categories left this list with Brief 21 part B: it is public-read now
+  // (visible sections only), and tests/rls.integration.test.ts covers it.
+  const tables = ["profiles", "organization_members", "organization_invites", "audit_log", "people", "guardianships"];
 
   it.skipIf(!anonKey)("gives the anon key nothing from any of them", async () => {
     const anon = createClient(url, anonKey!);

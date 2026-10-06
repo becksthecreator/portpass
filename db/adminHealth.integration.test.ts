@@ -102,7 +102,7 @@ describe("the database's safety checks", () => {
   // privileged function a browser role may call fails here, before deploy.
   it("finds nothing wrong with the schema the migrations build", async () => {
     const checks = await databaseChecks();
-    expect(checks.map((c) => c.name).sort()).toEqual(["definer_functions_open_to_browser_roles", "functions_without_search_path", "tables_without_rls"]);
+    expect(checks.map((c) => c.name).sort()).toEqual(["definer_functions_open_to_browser_roles", "functions_without_search_path", "tables_browser_roles_can_write", "tables_with_rls_but_no_policy", "tables_without_rls"]);
     expect(checks.filter((c) => c.problems > 0)).toEqual([]);
   });
 
