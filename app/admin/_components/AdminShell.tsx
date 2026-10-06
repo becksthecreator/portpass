@@ -20,6 +20,7 @@ export const ADMIN_NAV = [
   { href: "/admin/guides", label: "Guides" },
   { href: "/admin/messages", label: "Messages" },
   { href: "/admin/audit", label: "Audit log" },
+  { href: "/admin/security", label: "Security" },
   { href: "/admin/settings", label: "Settings" },
   { href: "/admin/shop", label: "Shop" },
   { href: "/admin/tools", label: "Our tools" },

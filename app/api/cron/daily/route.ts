@@ -3,6 +3,7 @@ import { pruneHealthRecords } from "@/db/adminHealth";
 import { prunePassChecks } from "@/db/memberPerks";
 import { listOwnerEmails } from "@/db/business";
 import { resetDemoBusiness } from "@/db/demo";
+import { pruneSecurityEvents } from "@/db/securityEvents";
 import { getSiteContent } from "@/db/siteContent";
 import { bumpListings } from "@/lib/revalidate";
 import { claimJobRun, futprepOrganization, getGrowthReport, logMessage, prunePageEvents, releaseJobRun, reportRecipients, syncCommissionEvents } from "@/db/growth";
@@ -89,6 +90,12 @@ export async function GET(request: Request) {
     await prunePassChecks(now.getTime());
   } catch (error) {
     console.error("daily job: pass checks retention", error instanceof Error ? error.message : "");
+  }
+  // Security events (wrong codes and PINs, new admin devices) are kept 90 days (Brief 21, part G).
+  try {
+    await pruneSecurityEvents(now);
+  } catch (error) {
+    console.error("daily job: security events retention", error instanceof Error ? error.message : "");
   }
 
   const month = monthlyReportPeriod(clock);

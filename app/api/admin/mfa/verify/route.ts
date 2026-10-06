@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { noteAdminSignIn, recordFailedSignIn } from "@/db/alerts";
 import { logAudit } from "@/db/audit";
+import { afterResponse } from "@/lib/afterResponse";
 import { adminWindowCookieOptions } from "@/lib/auth/admin";
 import { hasPlatformRole, requireSignedInApi } from "@/lib/auth/guards";
 import { safeNext } from "@/lib/auth/next";
@@ -29,12 +31,16 @@ export async function POST(request: Request) {
   const client = await createAuthClient();
   const { data, error } = await client.auth.mfa.challengeAndVerify({ factorId, code });
   if (error || !data) {
+    // Counted for the failed-sign-ins alert (Brief 21, part G): the address, never the code.
+    afterResponse(() => recordFailedSignIn("admin_code_failed", clientIp(request)));
     return NextResponse.json({ error: "That code didn’t work. Codes change every 30 seconds — try the current one." }, { status: 400 });
   }
 
   const cookieStore = await cookies();
   cookieStore.set(adminWindowCookieOptions());
   await logAudit({ actorUserId: auth.session.userId, action: "admin.mfa.verified", targetTable: "auth.users", targetId: auth.session.userId }).catch((e) => console.error("audit", e));
+  // A browser and network not seen before for this owner emails the founders (Brief 21, part G).
+  afterResponse(() => noteAdminSignIn(auth.session.userId, request));
 
   const next = safeNext(typeof body?.next === "string" ? body.next : "", "/admin") || "/admin";
   return NextResponse.json({ ok: true, next }, { headers: { "Cache-Control": "private, no-store" } });

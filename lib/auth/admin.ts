@@ -1,8 +1,9 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
+import { logAudit } from "@/db/audit";
 import { hasPlatformRole, requirePlatformRole, requireSignedInApi } from "./guards";
 import { createAuthClient } from "./server";
 import type { Session } from "./session";
@@ -100,6 +101,35 @@ export async function requireAdmin(returnTo: string): Promise<Session> {
 
 // ---- route handlers -------------------------------------------------------
 
+// The method and path of the call this code is running for, as the
+// middleware wrote them into the request (a route handler cannot see its
+// own path otherwise). Null outside a request.
+export async function currentApiCall(): Promise<{ method: string; path: string } | null> {
+  try {
+    const h = await headers();
+    const method = h.get("x-portpass-method") ?? "";
+    const path = h.get("x-portpass-path") ?? "";
+    return method && path ? { method, path } : null;
+  } catch {
+    return null;
+  }
+}
+
+// Every admin action is in the audit log (Brief 21, part G): who, what
+// (method and path), from where (the IP, db/audit.ts), when. Specific
+// actions still write their own richer entries (before/after); this is the
+// line that is always there. It never blocks the call: a trail that fails
+// to write is logged as an error, not turned into an outage.
+async function auditAdminCall(session: Session): Promise<void> {
+  const call = await currentApiCall();
+  if (!call || call.method === "GET" || call.method === "HEAD" || call.method === "OPTIONS") return;
+  try {
+    await logAudit({ actorUserId: session.userId, action: "admin.api", after: { method: call.method, path: call.path } });
+  } catch (error) {
+    console.error("admin.api audit", error instanceof Error ? error.message : "");
+  }
+}
+
 export async function requireAdminApi(): Promise<{ ok: true; session: Session } | { ok: false; response: NextResponse }> {
   const signedIn = await requireSignedInApi();
   if (!signedIn.ok) return signedIn;
@@ -110,5 +140,6 @@ export async function requireAdminApi(): Promise<{ ok: true; session: Session } 
   if (!step.aal2 || !step.windowOpen) {
     return { ok: false, response: NextResponse.json({ error: "Two-step verification required.", code: "mfa_required", verify: ADMIN_MFA_PATH }, { status: 403 }) };
   }
+  await auditAdminCall(signedIn.session);
   return signedIn;
 }

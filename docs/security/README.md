@@ -51,9 +51,25 @@ These are dashboard settings, not code. Antonio makes each change and ticks it h
 | Setting | Where | Value | Done |
 |---|---|---|---|
 | `CRON_SECRET`, `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET` | Project → Settings → Environment Variables (Production) | Set (names only here; `env-vars.md`) | ☐ |
-| Firewall: Attack Challenge Mode | Project → Firewall | Off day to day; **on during an incident** (`incident-response.md`) | — |
-| Firewall: rate-limit rules for `/api/*` and `/login` | Project → Firewall → Rules | Added (Brief 21, part G, with the clicks written there) | ☐ |
-| Bot protection | Project → Firewall → Bot Protection | On | ☐ |
+| Firewall: Attack Challenge Mode | Project → Firewall → the **Attack Challenge Mode** switch at the top | Off day to day; **on during an incident**, off again when it is over (`incident-response.md`). Every visitor then answers a browser challenge before any page loads. | — |
+| Firewall: rate limit `/api/*` | Project → Firewall → **Configure** → **Add rule**: name `API rate limit`; *If* Request Path starts with `/api/`; *Then* **Rate limit**, 200 requests per 60 seconds per IP address, action **Deny** for 60 seconds → Save → **Publish** | Added | ☐ |
+| Firewall: rate limit sign-in | The same, a second rule: name `Sign-in rate limit`; *If* Request Path starts with `/login` **or** `/api/auth/`; *Then* **Rate limit**, 30 requests per 60 seconds per IP address, action **Deny** for 300 seconds → Save → **Publish** | Added | ☐ |
+| Bot protection | Project → Firewall → **Configure** → **Bot Protection** → Challenge | On | ☐ |
+
+The in-app limits (`lib/auth/rateLimit.ts`) are per server instance; the firewall's hold across all of them and stop a flood before it reaches the code.
+
+## Alerts
+
+Four, each emailed to the platform owners (`PLATFORM_OWNER_EMAILS`) through Resend, at most once an hour per kind, and shown with their last send time in **Admin → Security** (`lib/alerts.ts`, `db/alerts.ts`). Every send is in Admin → Messages as `security_alert_<kind>`. An alert says counts, kinds, addresses and times; never an email address someone typed, a PIN or a code.
+
+| Alert | Fires when | What the email asks for |
+|---|---|---|
+| Failed sign-ins | 10 or more wrong sign-in codes, staff PINs or admin codes in 10 minutes, from anywhere | Read the addresses in Admin → Security; if it keeps going, Attack Challenge Mode |
+| Admin sign-in from a new device | A platform owner passes the admin second step from a browser and network not seen before | If it was not you: sign the account out everywhere (Admin → People), change the authenticator |
+| A scheduled job ran without its secret | `/api/cron/*` is called while `CRON_SECRET` is unset (the call was refused) | Set `CRON_SECRET` in Vercel, redeploy |
+| Spike in site errors | 20 or more server-side errors in 10 minutes | Admin → Health for the routes, Vercel logs for the detail, roll back if it followed a deploy |
+
+What they count is in `security_events` (kept 90 days) and `admin_devices`; both platform-only. The audit log (`audit_log`) carries the caller's address since 6 Oct 2026, and every admin API call that changes something is in it as `admin.api`, every settings change on a business as `business.settings.api`, beside the richer entries specific actions already wrote.
 
 ## What the database enforces
 

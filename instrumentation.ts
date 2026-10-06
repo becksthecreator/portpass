@@ -40,6 +40,9 @@ export const onRequestError: Instrumentation.onRequestError = async (error, _req
       errorName: typeof failure?.name === "string" ? failure.name : "Error",
       digest: typeof failure?.digest === "string" ? failure.digest : null,
     });
+    // Twenty in ten minutes is a spike: the founders are told once an hour (Brief 21, part G).
+    const { checkSiteErrorSpike } = await import("@/db/alerts");
+    await checkSiteErrorSpike();
   } catch {
     // Counting an error must never cause another one.
   }
