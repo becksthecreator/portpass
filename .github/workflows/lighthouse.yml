@@ -26,12 +26,12 @@ jobs:
   lighthouse:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Wait for the production deploy to settle
         if: github.event_name == 'push'
         run: sleep 300
       - name: Lighthouse (mobile) on the pages that are in search
-        uses: treosh/lighthouse-ci-action@v12
+        uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12
         with:
           urls: |
             https://portpassbahamas.com/
@@ -61,7 +61,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
       - name: Lighthouse (mobile) on the pages kept out of search
         if: always()
-        uses: treosh/lighthouse-ci-action@v12
+        uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12
         with:
           urls: ${{ steps.noindex.outputs.urls }}
           configPath: ./lighthouserc.noindex.json

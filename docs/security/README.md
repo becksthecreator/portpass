@@ -10,6 +10,7 @@ PortPass holds children's registrations, families' contact details and businesse
 |---|---|---|---|
 | `README.md` (this file) | Overview, the sign-in rules, the dashboard switches | Antonio | Quarterly, and after every security brief |
 | `env-vars.md` | Every setting the server reads: purpose, who sets it, rotation | Antonio | Quarterly, and whenever a setting is added (`lib/env.test.ts` fails otherwise) |
+| `dependencies.md` | npm audit, CodeQL, the gitleaks scan and pre-commit hook, Dependabot, pinned Actions, how a dependency is added | Antonio | Quarterly |
 | `incident-response.md` | Who does what in the first hour; contacts; the notice to affected businesses | Antonio and Adon | Twice a year, with a tabletop run-through |
 | `access-control.md` | Roles, what each may do, the joiner and leaver checklist | Antonio | Quarterly |
 | `restore-drill.md` | How a backup is restored, and the last drill's time | Antonio | After every drill (at least twice a year) |

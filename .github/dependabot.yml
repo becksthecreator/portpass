@@ -1,0 +1,35 @@
+# Brief 21, part F: Dependabot looks for newer dependencies once a week and
+# opens one PR per group, which CI then checks like any other PR. Security
+# updates for a known vulnerability come whenever one is published, once
+# "Dependabot security updates" is switched on in the repository's Code
+# security settings (docs/security/dependencies.md).
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "America/Nassau"
+    open-pull-requests-limit: 5
+    groups:
+      # Next.js and React move together; everything else in one PR a week.
+      next-react:
+        patterns: ["next", "react", "react-dom", "eslint-config-next", "@types/react", "@types/react-dom"]
+      everything-else:
+        patterns: ["*"]
+        exclude-patterns: ["next", "react", "react-dom", "eslint-config-next", "@types/react", "@types/react-dom"]
+    commit-message:
+      prefix: "deps"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "America/Nassau"
+    # Actions are pinned by commit SHA; Dependabot updates the SHA and keeps
+    # the version comment beside it.
+    commit-message:
+      prefix: "ci"

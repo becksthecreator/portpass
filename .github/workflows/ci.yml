@@ -14,14 +14,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
       - name: Install dependencies
         run: npm install
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
+      # Development dependencies too (Brief 21, part F). Reported on every
+      # run, not blocking: on 6 Oct 2026 `braces` (through eslint-config-next)
+      # carried a high advisory with no fixed version to move to, and a
+      # blocking step would have stopped every PR for a package that never
+      # ships. Dependabot opens the fix when there is one; the step turns
+      # blocking once the report is clean.
+      - name: Full dependency audit (reported, not blocking)
+        continue-on-error: true
+        run: npm audit --audit-level=high
       - name: Unit tests
         run: npm run test
       - name: Build
@@ -39,13 +48,13 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
       - name: Install dependencies
         run: npm install
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1
         with:
           version: latest
       - name: Start local Supabase (real Postgres, migrations applied)
