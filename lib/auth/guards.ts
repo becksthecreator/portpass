@@ -95,6 +95,25 @@ export async function requirePlatformRoleApi(min: PlatformRole): Promise<{ ok: t
   return signedIn;
 }
 
+// Every settings change on a business is in the audit log (Brief 21, part
+// G): who, which business, what (method and path), from where, when.
+// lib/alerts.ts says which paths count as settings; day-to-day records
+// (attendance, a registration) have their own entries where they matter.
+// Never blocks the call.
+async function auditBusinessSettingsCall(access: OrgAccess): Promise<void> {
+  try {
+    const { currentApiCall } = await import("./admin");
+    const call = await currentApiCall();
+    if (!call) return;
+    const { isBusinessSettingsPath } = await import("@/lib/alerts");
+    if (!isBusinessSettingsPath(call.method, call.path)) return;
+    const { logAudit } = await import("@/db/audit");
+    await logAudit({ actorUserId: access.session.userId, organizationId: access.org.id, action: "business.settings.api", after: { method: call.method, path: call.path, via: access.via } });
+  } catch (error) {
+    console.error("business.settings.api audit", error instanceof Error ? error.message : "");
+  }
+}
+
 export async function requireOrgRoleApi(orgRef: number | { slug: string }, min: OrgRole): Promise<({ ok: true } & OrgAccess) | ApiDenied> {
   const signedIn = await requireSignedInApi();
   if (!signedIn.ok) return signedIn;
@@ -104,5 +123,6 @@ export async function requireOrgRoleApi(orgRef: number | { slug: string }, min: 
   if (verifyPath) {
     return { ok: false, response: NextResponse.json({ error: "Two-step verification required.", code: "mfa_required", verify: verifyPath }, { status: 403 }) };
   }
+  await auditBusinessSettingsCall(access);
   return { ok: true, ...access };
 }

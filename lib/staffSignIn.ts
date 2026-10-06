@@ -36,6 +36,10 @@ export async function staffSignIn(
   const token = await makeToken(accountKey, String(body.pin ?? ""));
   if (!token) {
     await recordStaffLoginFailure(area, accountKey);
+    // Counted for the failed-sign-ins alert (Brief 21, part G): the address
+    // only. Loaded here, not at the top, so this module stays free of the
+    // database for its unit test.
+    void import("@/db/alerts").then((alerts) => alerts.recordFailedSignIn("pin_failed", clientIp(request))).catch(() => {});
     return { ok: false, response: NextResponse.json({ error: "That account name or PIN is incorrect." }, { status: 401 }) };
   }
 

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { saveSignInCodeUsed } from "@/db/adminHealth";
+import { recordFailedSignIn } from "@/db/alerts";
 import { afterResponse } from "@/lib/afterResponse";
 import { bootstrapUser } from "@/lib/auth/bootstrap";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
@@ -42,6 +43,8 @@ export async function POST(request: Request) {
 
   const { data, error } = await client.auth.verifyOtp({ email, token, type: "email" });
   if (error || !data.user) {
+    // Counted for the failed-sign-ins alert (Brief 21, part G): the address, never the email or the code.
+    afterResponse(() => recordFailedSignIn("login_failed", ip));
     return NextResponse.json({ error: "That code didn’t work. Check it and try again, or request a new one." }, { status: 400 });
   }
 

@@ -138,6 +138,23 @@ function rememberAttribution(request: NextRequest, response: NextResponse, cooki
 }
 
 export async function middleware(request: NextRequest) {
+  // For the audit trail (Brief 21, part G): a route handler cannot see its
+  // own method and path, so the middleware writes them into the request for
+  // every API call. Set here, never taken from the browser: whatever a
+  // client sent under these names is replaced or removed.
+  try {
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      request.headers.set("x-portpass-method", request.method);
+      request.headers.set("x-portpass-path", request.nextUrl.pathname);
+    } else {
+      request.headers.delete("x-portpass-method");
+      request.headers.delete("x-portpass-path");
+    }
+  } catch {
+    // A runtime that refuses the change leaves the trail without a path;
+    // it never stops the request.
+  }
+
   const domainRewrite = await rewriteForCustomDomain(request);
   if (domainRewrite) return domainRewrite;
 
