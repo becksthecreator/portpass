@@ -4,13 +4,15 @@ name: Photos from a phone (TEST data)
 # runs the real Look step at 375px against a throwaway local Supabase stack
 # with file storage switched on, a TEST business and a TEST owner, and
 # photos made in this job (noise and flat colour, nobody's picture):
-#   - a JPEG over 10 MB, saved on its side with a location in it;
-#   - a small HEIC and a large HEIC, encoded here with heif-enc;
+#   - a JPEG of 4 to 9 MB, saved on its side with a location in it;
+#   - a small HEIC and a large HEIC (3.6 to 10 MB), encoded here with
+#     heif-enc;
 # and checks that each is stored as an upright JPEG no longer than 2048 px
 # with nothing of the phone's left in it, that a large file sent in pieces
-# is put back together and resized on the server, that the consent tick
-# works, and that no pieces are left behind. It never touches the real
-# database or the real file storage, and isn't a required check.
+# is put back together and resized on the server, that one over the 10 MB
+# cap or in more than 4 pieces is refused, that the consent tick works,
+# and that no pieces are left behind. It never touches the real database
+# or the real file storage, and isn't a required check.
 
 on:
   workflow_dispatch:
@@ -88,17 +90,19 @@ jobs:
           cd "$PHOTO_DIR"
           heif-enc -q 60 heic-small-source.png -o small.heic
           # The large one must be too big for one request (over 3.5 MB) and
-          # within what a phone saves (under 20 MB): step the quality down
-          # until it is.
-          for q in 95 90 80 70 60 50 40 30; do
+          # within the server's 10 MB cap (MAX_ORIGINAL_BYTES in
+          # lib/imageUpload.ts, at most 4 pieces): step the quality down
+          # until it is. Quality 95 makes about 17 MB, so start lower.
+          max=10485760
+          for q in 70 60 50 40 30 20 10; do
             heif-enc -q "$q" heic-big-source.png -o big.heic
             size=$(stat -c %s big.heic)
             echo "big.heic at quality $q: $size bytes"
-            if [ "$size" -le 20000000 ]; then break; fi
+            if [ "$size" -le "$max" ]; then break; fi
           done
           size=$(stat -c %s big.heic)
-          if [ "$size" -le 3600000 ] || [ "$size" -gt 20000000 ]; then
-            echo "::error::big.heic is $size bytes; it must be between 3.6 MB and 20 MB to test an upload in pieces."
+          if [ "$size" -le 3600000 ] || [ "$size" -gt "$max" ]; then
+            echo "::error::big.heic is $size bytes; it must be between 3.6 MB and 10 MB to test an upload in pieces."
             exit 1
           fi
           ls -la
