@@ -6,7 +6,7 @@ import { resetDemoBusiness } from "@/db/demo";
 import { getSiteContent } from "@/db/siteContent";
 import { bumpListings } from "@/lib/revalidate";
 import { claimJobRun, futprepOrganization, getGrowthReport, logMessage, prunePageEvents, releaseJobRun, reportRecipients, syncCommissionEvents } from "@/db/growth";
-import { cronAuthorized } from "@/lib/cron";
+import { cronGate } from "@/lib/cron";
 import { runBillingStep } from "./billing";
 import { portpassFrom, sendEmail } from "@/lib/email";
 import { monthlyReportPeriod, nassauClock } from "@/lib/growth";
@@ -15,7 +15,8 @@ import { growthReportEmail } from "@/lib/growthEmail";
 export const dynamic = "force-dynamic";
 
 // @public-route: called by Vercel Cron once a day; lib/cron.ts refuses
-// anything that does not carry the project's cron secret.
+// anything that does not carry the project's cron secret, and everything
+// while CRON_SECRET is unset (503).
 //
 // 1. For a business on a commission plan, writes the fee for each payment
 //    received from a commissionable family as a billing event. A business
@@ -35,7 +36,8 @@ export const dynamic = "force-dynamic";
 // The answer says only that the job ran: what it did is in the audit trail
 // (billing_events, message_log), not in a response anyone could read.
 export async function GET(request: Request) {
-  if (!cronAuthorized(request)) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  const gate = cronGate(request);
+  if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
   const now = new Date();
   const clock = nassauClock(now);
   const organization = await futprepOrganization().catch(() => null);

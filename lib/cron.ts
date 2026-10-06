@@ -1,15 +1,28 @@
+import { logRefusedUnset } from "./env";
+import { bearerToken, secretsMatch } from "./sharedSecret";
+
 // Who may run a scheduled job (app/api/cron/*). Vercel Cron calls each
-// route on its schedule and, when the CRON_SECRET environment variable is
-// set on the project, sends it as a bearer token.
+// route on its schedule and, because CRON_SECRET is set on the project,
+// sends it as "Authorization: Bearer <CRON_SECRET>" (that is Vercel's own
+// behaviour for the variable of that name; vercel.json holds only the
+// schedule).
 //
-// In production the routes refuse every call until CRON_SECRET is set, and
-// then every call that does not carry it: a job that sends email or writes
-// fees is not something a stranger should be able to start, even though
-// each job also claims its period so it cannot act twice. Outside
-// production (local, CI, a preview with no secret) the routes run, so they
-// can be tested.
-export function cronAuthorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) return process.env.VERCEL_ENV !== "production";
-  return request.headers.get("authorization") === `Bearer ${secret}`;
+// The routes fail closed everywhere: without CRON_SECRET set, every call is
+// refused with 503 and the log says the setting's name, so a job that
+// sends email or writes fees cannot be started by a stranger, and a copy of
+// the site that has not been set up does not quietly run jobs. With it set,
+// every call that does not carry it is refused with 401. There is no
+// "outside production the routes run" any more (Brief 21, part A): a local
+// stack or CI sets its own CRON_SECRET to test a job.
+
+export type CronGate = { ok: true } | { ok: false; status: 503 | 401; error: string };
+
+export function cronGate(request: Request, env: Record<string, string | undefined> = process.env): CronGate {
+  const secret = env.CRON_SECRET?.trim();
+  if (!secret) {
+    logRefusedUnset("CRON_SECRET", new URL(request.url).pathname);
+    return { ok: false, status: 503, error: "Not set up." };
+  }
+  if (!secretsMatch(bearerToken(request), secret)) return { ok: false, status: 401, error: "Not allowed." };
+  return { ok: true };
 }

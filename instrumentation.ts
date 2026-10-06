@@ -1,5 +1,14 @@
 import type { Instrumentation } from "next";
 
+// Runs once when a server instance starts. Writes one line saying which
+// required settings are missing, by name (lib/env.ts; Brief 21, part A).
+// Only the Node.js runtime: the edge middleware has its own, smaller needs.
+export async function register() {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  const { checkEnvAtStartup } = await import("@/lib/env");
+  checkEnvAtStartup();
+}
+
 // A soft brake: a broken page hit by a crowd must not become thousands of
 // rows. Per server instance, which is enough to keep the count honest.
 const WINDOW_MS = 60_000;

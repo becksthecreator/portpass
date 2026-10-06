@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { claimJobRun, futprepOrganization, logMessage, releaseJobRun, sessionsToNudge } from "@/db/growth";
-import { cronAuthorized } from "@/lib/cron";
+import { cronGate } from "@/lib/cron";
 import { portpassFrom, sendEmail } from "@/lib/email";
 import { isNudgeWindow, nassauClock } from "@/lib/growth";
 import { attendanceNudgeEmail } from "@/lib/growthEmail";
@@ -8,7 +8,8 @@ import { attendanceNudgeEmail } from "@/lib/growthEmail";
 export const dynamic = "force-dynamic";
 
 // @public-route: called by Vercel Cron on Saturday morning; lib/cron.ts
-// refuses anything that does not carry the project's cron secret. It is
+// refuses anything that does not carry the project's cron secret, and
+// everything while CRON_SECRET is unset (503). It is
 // scheduled at 12:45 and 13:45 UTC because the clocks change in November
 // and March; whichever run lands at about 8:45 in Nassau does the work,
 // and each session is nudged once.
@@ -19,7 +20,8 @@ export const dynamic = "force-dynamic";
 // If a send fails the session is released so the next run tries again.
 // Nothing is ever sent to a parent.
 export async function GET(request: Request) {
-  if (!cronAuthorized(request)) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  const gate = cronGate(request);
+  if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
   const now = new Date();
   if (!isNudgeWindow(nassauClock(now))) return NextResponse.json({ ok: true });
 
