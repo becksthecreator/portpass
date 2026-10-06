@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { STAFF_SESSION_MAX_AGE_SECONDS } from "@/lib/staffSession";
 import {
   FUTPREP_STAFF_COOKIE,
   PIN_PATTERN,

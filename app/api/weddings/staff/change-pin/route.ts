@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { STAFF_SESSION_MAX_AGE_SECONDS } from "@/lib/staffSession";
 import { PIN_PATTERN } from "@/app/futprep/staff-auth";
 import {
   WEDDING_STAFF_COOKIE,
