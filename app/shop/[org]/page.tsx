@@ -10,12 +10,17 @@ import { ppDisplay, ppSans } from "@/app/fonts";
 import { listSections } from "@/db/categories";
 import { getPublicShop, type Drop, type PublicShop } from "@/db/shop";
 import { dropPhase, formatNassau, licenceLabel, money, paymentMethodLabel, publicOpensAt, SHOP_PAYMENT_METHODS, whatsappHref } from "@/lib/shop/rules";
+import { MADE_IN_BAHAMAS, zoneLine } from "@/lib/market/sellers";
+import { MARKET_TAGLINE } from "@/lib/market/copy";
 import { Countdown } from "../Countdown";
 import "../shop.css";
 
 // /shop/<x> is a Shop Bahamian subsection first (Apparel & Merch), then a
 // business's shop page (brief 15, §2). Dynamic: whether "Reserve" shows
-// depends on the clock and on drops opening.
+// depends on the clock and on drops opening. Since brief 25 the storefront
+// is always on for a verified seller ("Made in The Bahamas"): every
+// product shows, with its badge, and one in stock outside a drop can be
+// asked for on WhatsApp (ordering on PortPass arrives with part C).
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ org: string }>;
@@ -80,6 +85,9 @@ export default async function ShopPage({ params }: { params: Params }) {
   const nextDropFor = (productId: number) => current.find((d) => d.productIds.includes(productId)) ?? null;
   const methods = SHOP_PAYMENT_METHODS.filter((m) => org.paymentMethods.includes(m));
   const payLine = methods.map((m) => paymentMethodLabel(m).toLowerCase()).join(" or ");
+  const seller = shop.shop;
+  const inStock = (productId: number) => products.find((p) => p.id === productId)?.variants.some((v) => v.stock === null || v.stock > 0) ?? false;
+  const askHref = (title: string) => (org.whatsappE164 ? whatsappHref(org.whatsappE164, `Hi ${org.name}, I'd like to order ${title} from your PortPass shop.`) : null);
 
   return (
     <main className={`tpl-page shop-page ${ppDisplay.variable} ${ppSans.variable}`} style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}>
@@ -91,8 +99,12 @@ export default async function ShopPage({ params }: { params: Params }) {
           {org.logoUrl && <img className="shop-hero-logo" src={org.logoUrl} alt="" width={64} height={64} />}
           <p className="shop-eyebrow">Shop · {org.name}</p>
           <h1>{org.name}</h1>
+          <p className="shop-badge shop-badge-hero">{MADE_IN_BAHAMAS}</p>
           {org.oneLiner && <p className="shop-lede">{org.oneLiner}</p>}
-          <p className="shop-pay-direct">Reserve here, then pay {org.name} directly{payLine ? ` by ${payLine}` : ""}.</p>
+          <p className="shop-pay-direct">Order here, then pay {org.name} directly{payLine ? ` by ${payLine}` : ""}.</p>
+          {org.whatsappE164 && (
+            <p className="shop-hero-note"><a href={whatsappHref(org.whatsappE164, `Hi ${org.name}, a question about your shop on PortPass:`)} target="_blank" rel="noopener noreferrer">Message {org.name} on WhatsApp →</a></p>
+          )}
         </div>
       </section>
 
@@ -119,18 +131,20 @@ export default async function ShopPage({ params }: { params: Params }) {
       <section className="shop-section" aria-labelledby="shop-products">
         <h2 id="shop-products">Products</h2>
         {products.length === 0 ? (
-          <p className="shop-muted">Nothing listed yet. Check back for the next drop.</p>
+          <p className="shop-muted">Nothing listed yet. Check back soon.</p>
         ) : (
           <div className="shop-grid">
             {products.map((product) => {
               const open = openDropFor(product.id);
               const next = open ? null : nextDropFor(product.id);
               const edition = product.usesMarks ? licenceLabel(product.licenceKind) : null;
+              const ask = !open && inStock(product.id) ? askHref(product.title) : null;
               return (
                 <article key={product.id} className="shop-card">
                   <div className="shop-card-photo">
                     {product.photos[0] ? <img src={product.photos[0]} alt={product.title} loading="lazy" /> : <span aria-hidden="true">{product.title.slice(0, 1)}</span>}
                     {edition && <span className="shop-edition">{edition}</span>}
+                    <span className="shop-badge shop-badge-card">{MADE_IN_BAHAMAS}</span>
                   </div>
                   <div className="shop-card-body">
                     <h3>{product.title}</h3>
@@ -139,8 +153,10 @@ export default async function ShopPage({ params }: { params: Params }) {
                     <p className="shop-sizes">{product.variants.map((v) => v.label).join(" · ")}</p>
                     {open ? (
                       <Link className="primary-button shop-card-action" href={`/shop/${slug}/drop/${open.slug}#product-${product.id}`}>Reserve</Link>
+                    ) : ask ? (
+                      <a className="primary-button shop-card-action" href={ask} target="_blank" rel="noopener noreferrer">Order on WhatsApp</a>
                     ) : (
-                      <p className="shop-muted">{next ? `In ${next.title}: ${dropStatusLine(next, now).toLowerCase()}` : "Not on sale right now."}</p>
+                      <p className="shop-muted">{next ? `In ${next.title}: ${dropStatusLine(next, now).toLowerCase()}` : inStock(product.id) ? "Message the seller to order." : "Sold out for now."}</p>
                     )}
                   </div>
                 </article>
@@ -150,12 +166,26 @@ export default async function ShopPage({ params }: { params: Params }) {
         )}
       </section>
 
+      {(seller.sellerPickupNote || seller.sellerDeliveryZones.length > 0) && (
+        <section className="shop-section shop-getting" aria-labelledby="shop-getting">
+          <h2 id="shop-getting">Pickup and delivery</h2>
+          <dl className="shop-getting-list">
+            {seller.sellerPickupNote && (
+              <div><dt>Pickup</dt><dd>{seller.sellerPickupNote}{seller.acceptsCashOnPickup ? " · Cash on pickup welcome." : ""}</dd></div>
+            )}
+            {seller.sellerDeliveryZones.length > 0 && (
+              <div><dt>Delivery by {org.name}</dt><dd><ul>{seller.sellerDeliveryZones.map((z) => <li key={z.zone}>{zoneLine(z)}</li>)}</ul></dd></div>
+            )}
+          </dl>
+        </section>
+      )}
+
       <section className="shop-section shop-how" aria-labelledby="shop-how">
         <h2 id="shop-how">How it works</h2>
         <ol>
-          <li>Reserve your size while a drop is open. You get a reference code and an itemised receipt.</li>
+          <li>Order a product, or reserve your size while a drop is open. You get a reference code.</li>
           <li>Pay {org.name} directly{payLine ? ` by ${payLine}` : ""}. PortPass never takes the money.</li>
-          <li>Collect, or have {org.name} deliver, on the date the drop gives.</li>
+          <li>Collect, or have {org.name} deliver, when they say it&rsquo;s ready.</li>
         </ol>
       </section>
 
@@ -167,7 +197,8 @@ export default async function ShopPage({ params }: { params: Params }) {
         )}
       </section>
 
-      <SiteFooter orgLine={`${org.name} · Reservations through PortPass. You pay ${org.name} directly.`} />
+      <p className="shop-tagline">{MARKET_TAGLINE}</p>
+      <SiteFooter orgLine={`${org.name} · Orders through PortPass. You pay ${org.name} directly.`} />
     </main>
   );
 }

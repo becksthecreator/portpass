@@ -75,9 +75,15 @@ beforeAll(async () => {
   const letters = "ABCDEFGHJKMNPQRSTUVWXYZ";
   const prefix = Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => letters[b % letters.length]).join("");
   await saveShop(orgId, { referencePrefix: prefix, returnsPolicy: "TEST — exchanges within 7 days.", holdHours: 48, isPublished: true }, userId);
+  // Brief 25: a storefront and its drops are public only once PortPass has
+  // verified the seller, which needs a licence number and a contact person.
+  const { error: recordsError } = await admin.from("organizations").update({ primary_contact: "TEST — delete contact", licences: [{ type: "Business licence", number: `TEST-${tag}` }] }).eq("id", orgId);
+  expect(recordsError).toBeNull();
+  const { error: verifyError } = await admin.from("shops").update({ seller_status: "verified", seller_verified_at: new Date().toISOString() }).eq("organization_id", orgId);
+  expect(verifyError).toBeNull();
 
-  jersey = (await saveProduct(orgId, null, { title: "TEST Home jersey", description: "TEST — delete", priceCents: 6500, photos: [], isPublished: true, usesMarks: false, licenceKind: null, licenceNote: null, variants: [{ id: null, label: "M", stock: 1 }, { id: null, label: "L", stock: 3 }] }, userId)).product;
-  cap = (await saveProduct(orgId, null, { title: "TEST Cap", description: "TEST — delete", priceCents: 2500, photos: [], isPublished: true, usesMarks: false, licenceKind: null, licenceNote: null, variants: [{ id: null, label: "One size", stock: null }] }, userId)).product;
+  jersey = (await saveProduct(orgId, null, { title: "TEST Home jersey", description: "TEST — delete", priceCents: 6500, photos: [], isPublished: true, usesMarks: false, licenceKind: null, licenceNote: null, marketCategory: null, variants: [{ id: null, label: "M", stock: 1 }, { id: null, label: "L", stock: 3 }] }, userId)).product;
+  cap = (await saveProduct(orgId, null, { title: "TEST Cap", description: "TEST — delete", priceCents: 2500, photos: [], isPublished: true, usesMarks: false, licenceKind: null, licenceNote: null, marketCategory: null, variants: [{ id: null, label: "One size", stock: null }] }, userId)).product;
   expect(jersey.isPublished).toBe(true);
 
   drop = await saveDrop(orgId, null, {
@@ -272,7 +278,7 @@ describe("the drop window", () => {
 
 describe("§5 marks and crests", () => {
   it("keeps a product with another organisation's marks unpublished until a platform owner approves its licence", async () => {
-    const input = { title: "TEST Crest jersey", description: "TEST — delete", priceCents: 7000, photos: [], isPublished: true, usesMarks: true, licenceKind: "official_licensed" as const, licenceNote: "TEST — licence letter", variants: [{ id: null, label: "M", stock: 5 }] };
+    const input = { title: "TEST Crest jersey", description: "TEST — delete", priceCents: 7000, photos: [], isPublished: true, usesMarks: true, licenceKind: "official_licensed" as const, licenceNote: "TEST — licence letter", marketCategory: null, variants: [{ id: null, label: "M", stock: 5 }] };
     const first = await saveProduct(orgId, null, input, userId);
     expect(first.blocked).toBe("licence");
     expect(first.product.isPublished).toBe(false);

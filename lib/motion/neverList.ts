@@ -1,7 +1,8 @@
 // The places brief 22's motion rules keep still (docs/motion.md, rule 10,
 // "Never"): sign-in, the account, the business and admin areas, a child's
 // registration or trial, booking and a booking's own page, a wedding plan,
-// a payment, the demo business, the shop and the pass. The Ferry Route
+// a payment, the demo business, the shop and the pass. Brief 25 adds
+// applying to sell (/sell). The Ferry Route
 // (app/_components/motion/RouteProgress.tsx) never shows for a move into
 // one of them. A new flow of this kind belongs here.
 const QUIET_PREFIXES = [
@@ -22,6 +23,8 @@ const QUIET_PREFIXES = [
   "/pay",
   "/pass",
   "/shop",
+  // PortPass Market (brief 25): applying to sell.
+  "/sell",
   "/api",
 ];
 

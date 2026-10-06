@@ -3,6 +3,7 @@
 // clean value or the sentence to show the seller.
 import { nassauLocalToIso } from "@/lib/futprepTerms";
 import { isValidReferencePrefix, type DropStatus, type LicenceKind } from "./rules";
+import { isMarketCategory } from "@/lib/market/categories";
 import type { DropInput, ProductInput, ShopInput, VariantInput } from "@/db/shop";
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; error: string };
@@ -62,7 +63,7 @@ export function parseProductInput(body: Record<string, unknown>): Parsed<Product
 
   return {
     ok: true,
-    value: { title, description, priceCents, photos, isPublished: body.isPublished === true, usesMarks, licenceKind: usesMarks ? licenceKind : null, licenceNote: usesMarks ? licenceNote : null, variants },
+    value: { title, description, priceCents, photos, isPublished: body.isPublished === true, usesMarks, licenceKind: usesMarks ? licenceKind : null, licenceNote: usesMarks ? licenceNote : null, marketCategory: isMarketCategory(body.marketCategory) ? body.marketCategory : null, variants },
   };
 }
 

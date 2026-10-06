@@ -30,6 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `https://${PLATFORM_HOST}/business` },
     { url: `https://${PLATFORM_HOST}/pricing` },
     { url: `https://${PLATFORM_HOST}/apply` },
+    { url: `https://${PLATFORM_HOST}/sell` },
     { url: `https://${PLATFORM_HOST}/about` },
     { url: `https://${PLATFORM_HOST}/contact` },
     { url: `https://${PLATFORM_HOST}/app` },

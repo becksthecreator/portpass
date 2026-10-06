@@ -20,7 +20,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const access = await requireOrgRole({ slug }, "org_admin", `/business/${slug}/shop/products/${productId}`);
   if (!canEditShop(access)) notFound();
   const business = await getBusinessBySlug(slug);
-  if (!business || !(await getShop(business.id))) notFound();
+  const shop = business ? await getShop(business.id) : null;
+  if (!business || !shop) notFound();
   const id = productId === "new" ? null : Number(productId);
   if (id !== null && (!Number.isInteger(id) || id <= 0)) notFound();
   const [product, images] = await Promise.all([id === null ? Promise.resolve(null) : getProduct(business.id, id), listBusinessImages(business.id)]);
@@ -32,7 +33,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <div className="seller-wrap">
         <div className="eyebrow"><span className="eyebrow-dot" />Shop · Product</div>
         <h1 className="seller-title">{product?.title ?? "New product"}</h1>
-        <ProductEditor orgId={business.id} slug={slug} product={product} listingPhotos={images.map((i) => i.url)} />
+        <ProductEditor orgId={business.id} slug={slug} product={product} listingPhotos={images.map((i) => i.url)} defaultCategory={shop.marketCategory} />
       </div>
       <SiteFooter />
     </main>

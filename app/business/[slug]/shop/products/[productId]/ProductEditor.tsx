@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import type { Product } from "@/db/shop";
 import type { LicenceKind } from "@/lib/shop/rules";
+import { MARKET_CATEGORIES, type MarketCategorySlug } from "@/lib/market/categories";
 import { downscale } from "../../downscale";
 
 type VariantRow = { key: string; id: number | null; label: string; stock: string };
@@ -22,7 +23,7 @@ const nextKey = () => `row-${++rowKey}`;
 // sizes with stock (blank = unlimited) and the §5 marks question. A product
 // using another organisation's crest, logo or official kit design needs a
 // licence note and PortPass's approval before it can be published.
-export function ProductEditor({ orgId, slug, product, listingPhotos }: { orgId: number; slug: string; product: Product | null; listingPhotos: string[] }) {
+export function ProductEditor({ orgId, slug, product, listingPhotos, defaultCategory = null }: { orgId: number; slug: string; product: Product | null; listingPhotos: string[]; defaultCategory?: MarketCategorySlug | null }) {
   const router = useRouter();
   const [title, setTitle] = useState(product?.title ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
@@ -36,6 +37,7 @@ export function ProductEditor({ orgId, slug, product, listingPhotos }: { orgId: 
   const [licenceKind, setLicenceKind] = useState<LicenceKind | "">(product?.licenceKind ?? "");
   const [licenceNote, setLicenceNote] = useState(product?.licenceNote ?? "");
   const [isPublished, setIsPublished] = useState(product?.isPublished ?? false);
+  const [marketCategory, setMarketCategory] = useState<MarketCategorySlug | "">(product?.marketCategory ?? defaultCategory ?? "");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
 
@@ -80,6 +82,7 @@ export function ProductEditor({ orgId, slug, product, listingPhotos }: { orgId: 
           usesMarks,
           licenceKind: usesMarks ? licenceKind : null,
           licenceNote: usesMarks ? licenceNote : null,
+          marketCategory: marketCategory || null,
           isPublished,
         }),
       });
@@ -117,6 +120,13 @@ export function ProductEditor({ orgId, slug, product, listingPhotos }: { orgId: 
     <form className="seller-form" onSubmit={save}>
       <label className="seller-field-wide"><span>Name</span><input required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Home jersey 2026" /></label>
       <label><span>Price (BSD)</span><input required inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="65" /></label>
+      <label><span>Market category</span>
+        <select value={marketCategory} onChange={(e) => setMarketCategory(e.target.value as MarketCategorySlug | "")}>
+          <option value="">Choose one</option>
+          {MARKET_CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+        </select>
+        <small>Where it shows on PortPass Market once you are verified.</small>
+      </label>
       <label className="seller-field-wide"><span>Description (shown before buyers reserve)</span><textarea rows={4} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Fabric, fit, what's printed on it." /></label>
 
       <fieldset className="seller-field-wide seller-fieldset">

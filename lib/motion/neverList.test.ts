@@ -26,6 +26,7 @@ describe("the motion never-list (brief 22)", () => {
       "/pass",
       "/demo/payments",
       "/shop",
+      "/sell",
       "/organizations",
       "/claim",
     ]) {
