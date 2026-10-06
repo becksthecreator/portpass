@@ -2,32 +2,52 @@
    site takes its time and its curve from here; none writes a number of
    its own.
 
-     --dur-step      one step of a stagger (60 ms); n steps is
-                     calc(var(--dur-step) * n)
-     --dur-fast      press feedback, a quick fade (the Prow moment leaving)
-     --dur-menu      a menu or sheet opening (200 ms)
-     --dur-base      a card lifting, a chip, a cross-fade between pages
-     --dur-slow      a scroll reveal
-     --dur-hero      the hero's own entrance
-     --dur-sun       the Sun Drift: the glow rising behind the hero, once
-     --dur-failsafe  how long a held reveal waits for its script before it
-                     shows anyway (motion.css)
-     --dur-drift     the hero photo's slow drift, the one looping animation
+     --dur-step        one step of a stagger (60 ms); n steps is
+                       calc(var(--dur-step) * n)
+     --dur-flap        one flicker of a Departure Board cell
+     --dur-badge-step  one step of the Bounce Badges' stagger (90 ms)
+     --dur-press       a card's press on a touch screen (100 ms)
+     --dur-fast        a quick fade (the Prow moment leaving)
+     --dur-squish      a Squish Button's press and spring back (180 ms)
+     --dur-menu        a menu or sheet opening (200 ms)
+     --dur-base        a card lifting, a chip, a cross-fade between pages
+     --dur-pop         a Bounce Badge popping in (550 ms)
+     --dur-slow        a scroll reveal
+     --dur-hero        the hero's own entrance
+     --dur-board       the Departure Board's flicker before it settles
+     --dur-sun         the Sun Drift: the glow rising behind the hero, once
+     --dur-failsafe    how long a held reveal waits for its script before
+                       it shows anyway (motion.css)
+     --dur-drift       the hero photo's slow drift, the one looping animation
 
      --ease-out     arrives and settles (reveals, menus, anything entering)
      --ease-in-out  leaves and returns (a condensing header, a colour ease)
+     --ease-linear  constant speed: a line drawn with the scroll, a board
+                    cell's fold, a held reveal's failsafe
+     --ease-spring  overshoots and springs back. The playful moves only:
+                    Bounce Badges, Squish Buttons and the Pass Stamp. Never
+                    on anything about money, a child's details, sign-in or
+                    admin.
 
    See docs/motion.md for how an effect is added and tested. */
 :root{
   --dur-step:60ms;
+  --dur-flap:60ms;
+  --dur-badge-step:90ms;
+  --dur-press:100ms;
   --dur-fast:150ms;
+  --dur-squish:180ms;
   --dur-menu:200ms;
   --dur-base:300ms;
+  --dur-pop:550ms;
   --dur-slow:600ms;
   --dur-hero:900ms;
+  --dur-board:900ms;
   --dur-sun:1600ms;
   --dur-failsafe:2.5s;
   --dur-drift:20s;
   --ease-out:cubic-bezier(.22,1,.36,1);
   --ease-in-out:cubic-bezier(.65,0,.35,1);
+  --ease-linear:linear;
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
 }

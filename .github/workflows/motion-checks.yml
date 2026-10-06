@@ -69,7 +69,9 @@ jobs:
           echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
           echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
       - name: Seed test data
-        run: npx tsx scripts/seed-test-data.ts
+        run: |
+          npx tsx scripts/seed-test-data.ts
+          npx tsx scripts/motion/seed-motion-fixture.ts
       - name: Build
         # One retry: next/font's Google Fonts fetch occasionally fails in CI
         # (a known upstream flake, see ci.yml).

@@ -84,3 +84,154 @@ html[data-motion="off"] .pp-hero-frame img{will-change:auto}
    a business's own page keeps its header still. */
 .home-theme .nav-item.is-open .nav-panel,.tpl-page .nav-item.is-open .nav-panel{animation:nav-panel-in var(--dur-menu) var(--ease-out) both}
 @keyframes nav-panel-in{from{opacity:0;transform:translateY(8px)}}
+
+/* ---- the sections (brief 22, M3) --------------------------------------- */
+
+/* Open now: the cards rise in with a stagger (the grid is a <Reveal
+   stagger>, each card in its own slot so the slot carries the reveal and
+   the card its own hover). On a pointer device the card lifts 4px and the
+   arrow nudges 4px; on touch a 100 ms press scale answers the tap. A card
+   that leads to a child's details ("Register a child", a children's camp)
+   carries data-still and never moves at all. */
+.open-now-slot{display:flex}
+.open-now-slot>.open-now-card{flex:1 1 auto}
+.open-now-card:not([data-still]){transition:transform var(--dur-base) var(--ease-out)}
+.open-now-card:not([data-still]) .home-button span{display:inline-block;transition:transform var(--dur-base) var(--ease-out)}
+@media (hover:hover) and (pointer:fine){
+  .open-now-card:not([data-still]):hover{transform:translateY(-4px)}
+  .open-now-card:not([data-still]):hover .home-button span{transform:translateX(4px)}
+}
+@media (hover:none){
+  .open-now-card:not([data-still]):active{transform:scale(.98);transition-duration:var(--dur-press)}
+}
+
+/* Where do you want to go: a live section lifts on hover. The sections not
+   open yet are the "Coming next" line under the grid, which stays still in
+   the muted colour, so the live ones read as live. */
+.home-section-slot{display:flex}
+.home-section-slot>.home-section-card{flex:1 1 auto}
+.home-section-card{transition:transform var(--dur-base) var(--ease-out)}
+@media (hover:hover) and (pointer:fine){
+  .home-sections-live .home-section-card.is-live:hover{transform:translateY(-4px)}
+}
+.home-coming-next{color:var(--muted)}
+
+/* How it works: numbered steps with a line down their left that draws as
+   the list scrolls into view, by stroke-dashoffset as the brief asks
+   (scroll-driven where the browser has it, a one-time draw on reveal where
+   it does not), each number counting in with a short fade and scale after
+   its step. The line is given the steps' height: an <svg> does not stretch
+   between a top and a bottom on its own. */
+.home-how-steps-wrap{position:relative}
+.home-how-track .home-how-steps{list-style:none;margin:0;padding:0;position:relative;z-index:1}
+.home-how-track .home-how-steps li{display:flex;gap:14px;align-items:flex-start;color:var(--muted);font-size:.95rem;line-height:1.6}
+.home-how-track .home-how-steps li+li{margin-top:14px}
+.home-how-num{flex:0 0 28px;width:28px;height:28px;border-radius:50%;background:var(--harbour);color:#fff;font-size:.8rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center;margin-top:2px;transition:opacity var(--dur-base) var(--ease-out),transform var(--dur-base) var(--ease-out)}
+.home-how-line{position:absolute;left:13px;top:16px;height:calc(100% - 32px);width:2px;overflow:visible;z-index:0}
+.home-how-line path{fill:none;stroke:var(--tint);stroke-width:2;stroke-dasharray:100;stroke-dashoffset:0}
+html[data-motion="on"][data-motion-js] .home-how-steps:not([data-in]) .home-how-num{opacity:0;transform:scale(.6)}
+.home-how-steps>:nth-child(1) .home-how-num{transition-delay:calc(var(--dur-step) * 2)}
+.home-how-steps>:nth-child(2) .home-how-num{transition-delay:calc(var(--dur-step) * 3)}
+.home-how-steps>:nth-child(3) .home-how-num{transition-delay:calc(var(--dur-step) * 4)}
+@supports (animation-timeline: view()){
+  html[data-motion="on"] .home-how-line path{animation:home-how-draw var(--ease-linear) both;animation-timeline:view();animation-range:entry 20% cover 45%}
+}
+@supports not (animation-timeline: view()){
+  .home-how-line path{transition:stroke-dashoffset var(--dur-slow) var(--ease-out) calc(var(--dur-step) * 2)}
+  html[data-motion="on"][data-motion-js] .home-how-steps:not([data-in])+.home-how-line path{stroke-dashoffset:100}
+}
+@keyframes home-how-draw{from{stroke-dashoffset:100}}
+
+/* List with PortPass: on the homepage the section is deck until it enters,
+   when an --ink layer eases in over --dur-slow (opacity, so nothing
+   repaints the text), and the words and the button arrive after it, the
+   button last. Only the revealed band (the homepage's) does this; the
+   bands of the same class on /pricing and /business keep their colour. */
+.home-theme .home-business[data-reveal]{position:relative;isolation:isolate;background:var(--deck)}
+.home-business[data-reveal]::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--ink);transition:opacity var(--dur-slow) var(--ease-in-out)}
+html[data-motion="on"][data-motion-js] .home-business[data-reveal]:not([data-in])::before{opacity:0}
+.home-business[data-reveal][data-stagger]>:nth-child(1){transition-delay:calc(var(--dur-step) * 3)}
+.home-business[data-reveal][data-stagger]>:nth-child(2){transition-delay:calc(var(--dur-step) * 6)}
+
+/* What starts hidden above ends shown without its script, as every reveal
+   does (lib/motion/motion.css): if the script never takes charge, the
+   numbers, the line and the ink layer take their final state at
+   --dur-failsafe; reduced motion shows it at once. */
+html[data-motion="on"][data-motion-js]:not([data-motion-ready]) .home-how-steps:not([data-in]) .home-how-num,
+html[data-motion="on"][data-motion-js]:not([data-motion-ready]) .home-business[data-reveal]:not([data-in])::before{animation:motion-reveal-failsafe 0s var(--ease-linear) var(--dur-failsafe,2.5s) forwards}
+@supports not (animation-timeline: view()){
+  html[data-motion="on"][data-motion-js]:not([data-motion-ready]) .home-how-steps:not([data-in])+.home-how-line path{animation:home-how-failsafe 0s var(--ease-linear) var(--dur-failsafe,2.5s) forwards}
+}
+@keyframes home-how-failsafe{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion: reduce){
+  .home-how-num{opacity:1!important;transform:none!important}
+  .home-how-line path{stroke-dashoffset:0!important}
+  .home-business[data-reveal]::before{opacity:1!important}
+}
+
+/* ---- Squish Buttons (M3) -----------------------------------------------
+   On the home theme and the category pages, a button that is not about
+   money, a child's details or signing in gets a physical press: down 4px
+   and squashed on :active, sprung back on release, over --dur-squish with
+   the spring; lifted 2px on hover where there is a pointer. Opt-in by
+   class, and out again by data-still: the pricing plans, "Register a
+   child", the camp cards, and a category card's button wherever the card
+   shows a price or a perk. Sign-in links carry none of these classes.
+   The press moves the button, not the place it can be pressed: while it is
+   hovered or held, an invisible margin above and below keeps the spot a
+   press began on inside it, so a click that started at its edge still
+   lands. The focus ring is an outline and does not change. */
+:is(.home-theme,.category-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button):not([data-still]){position:relative;transition:transform var(--dur-squish) var(--ease-spring)}
+:is(.home-theme,.category-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button):not([data-still]):is(:hover,:active)::after{content:"";position:absolute;inset:-12px 0}
+@media (hover:hover) and (pointer:fine){
+  :is(.home-theme,.category-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button):not([data-still]):hover{transform:translateY(-2px)}
+}
+:is(.home-theme,.category-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button):not([data-still]):active{transform:translateY(4px) scale(1.04,.92)}
+
+/* With motion off (reduced motion, the kill switch) nothing lifts, nudges
+   or squashes, not even at once. */
+@media (prefers-reduced-motion: reduce){
+  :is(.home-theme,.category-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button),.open-now-card,.open-now-card .home-button span,.home-section-card{transform:none!important}
+}
+html[data-motion="off"] :is(.home-theme,.category-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button),html[data-motion="off"] .open-now-card,html[data-motion="off"] .open-now-card .home-button span,html[data-motion="off"] .home-section-card{transform:none!important}
+
+/* ---- Bounce Badges (M3) ------------------------------------------------
+   The "Open now" and "Closes in..." chips, the live section chips and, on
+   a category page, the subsection chips and the "Open now" labels pop in
+   once per page view with the spring, over --dur-pop, --dur-badge-step
+   apart, six at most (the seventh and beyond come with the sixth). On the
+   homepage they pop when their section is revealed (a little after the
+   cards start to rise), from a fifth of their size and 8px down. A
+   category page's are on its first screen, so they pop on load from a
+   visible start (six tenths of their size, 8px down, never hidden), the
+   chips first and the labels after. A card that holds still holds its
+   chip or label still too, and perk chips (money) never move. */
+@keyframes badge-pop{from{opacity:0;transform:translateY(8px) scale(.2)}}
+@keyframes badge-pop-visible{from{transform:translateY(8px) scale(.6)}}
+.open-now-grid[data-in] .open-now-card:not([data-still]) .open-now-chip,.home-sections-grid[data-in] .home-section-chip.is-live{animation:badge-pop var(--dur-pop) var(--ease-spring) both;animation-delay:calc(var(--dur-base) + var(--dur-badge-step) * var(--badge-i,0))}
+.category-page .subsection-chip{animation:badge-pop-visible var(--dur-pop) var(--ease-spring) both;animation-delay:calc(var(--dur-badge-step) * var(--badge-i,0))}
+.category-page .feature-card:not([data-still]) .feature-card-label{animation:badge-pop-visible var(--dur-pop) var(--ease-spring) both;animation-delay:calc(var(--dur-pop) + var(--dur-badge-step) * var(--badge-i,0))}
+:is(.open-now-grid,.home-sections-grid,.subsection-chips,.feature-card-grid)>:nth-child(2){--badge-i:1}
+:is(.open-now-grid,.home-sections-grid,.subsection-chips,.feature-card-grid)>:nth-child(3){--badge-i:2}
+:is(.open-now-grid,.home-sections-grid,.subsection-chips,.feature-card-grid)>:nth-child(4){--badge-i:3}
+:is(.open-now-grid,.home-sections-grid,.subsection-chips,.feature-card-grid)>:nth-child(5){--badge-i:4}
+:is(.open-now-grid,.home-sections-grid,.subsection-chips,.feature-card-grid)>:nth-child(n+6){--badge-i:5}
+.open-now-chip,.home-section-chip,.feature-card-label,.subsection-chip{transform-origin:50% 100%}
+
+/* ---- Departure Board (M3) ----------------------------------------------
+   The homepage's real counts in split-flap cells under the hero
+   (DepartureBoard.tsx). Each digit sits in its own fixed-width cell with
+   tabular figures, so the flicker (BoardFlicker.tsx, characters swapped
+   one --dur-flap at a time for --dur-board) never moves anything; each
+   swap gives the cell a quick fold by transform and opacity. The cells are
+   the board's own ink lit by a tenth of paper, with an ink seam. */
+.board{background:var(--ink);color:var(--deck);padding:18px 5vw}
+.board-list{list-style:none;margin:0 auto;padding:0;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:14px 36px;max-width:1000px}
+.board-item{display:flex;align-items:center;gap:10px}
+.board-value{display:inline-flex;gap:3px}
+.board-cell{display:inline-block;width:1.15em;padding:5px 0 4px;text-align:center;font-size:1.5rem;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--deck);border-radius:5px;background:linear-gradient(to bottom,transparent calc(50% - .5px),var(--ink) calc(50% - .5px),var(--ink) calc(50% + .5px),transparent calc(50% + .5px)),color-mix(in srgb,var(--paper) 10%,transparent);transform-origin:50% 50%}
+.board-label{color:var(--sky);font-size:.72rem;font-weight:800;letter-spacing:.12em;line-height:1.3;max-width:9em;text-transform:uppercase}
+.board-cell[data-flap="a"]{animation:board-flap-a var(--dur-flap) var(--ease-linear)}
+.board-cell[data-flap="b"]{animation:board-flap-b var(--dur-flap) var(--ease-linear)}
+@keyframes board-flap-a{from{opacity:.5;transform:scaleY(.55)}}
+@keyframes board-flap-b{from{opacity:.5;transform:scaleY(.55)}}

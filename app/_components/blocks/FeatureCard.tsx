@@ -46,8 +46,12 @@ export function FeatureCard({
   actionLabel: string;
   wide?: boolean;
 }) {
+  // Brief 22 (M3): a card that shows a price or a perk holds still, its
+  // button and its "Open now" label alike: no squish or spring next to
+  // money (lib/motion/public.css reads data-still).
+  const still = Boolean(priceLabel || perkLabel);
   return (
-    <div className={`feature-card${wide ? " feature-card-wide" : ""}`} style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}>
+    <div className={`feature-card${wide ? " feature-card-wide" : ""}`} data-still={still ? "" : undefined} style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}>
       {photoUrl ? (
         isOptimisableSrc(photoUrl) ? (
           // Resized and served as AVIF/WebP (speed brief, 29 Sept, 1.5); the
@@ -71,7 +75,7 @@ export function FeatureCard({
         {description && <p className="feature-card-description">{description}</p>}
         {priceLabel && <p className="feature-card-price">{priceLabel}</p>}
         {perkLabel && <span className="perk-chip">{perkLabel}</span>}
-        <Link className="feature-card-button" href={actionHref}>
+        <Link className="feature-card-button" href={actionHref} data-still={still ? "" : undefined}>
           {actionLabel}
         </Link>
       </div>

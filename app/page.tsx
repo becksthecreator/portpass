@@ -6,6 +6,8 @@ import { BusinessCarousel } from "./_components/BusinessCarousel";
 import { OpenNowCards, type OpenNowCard } from "./_components/OpenNowCards";
 import { SectionGrid } from "./_components/SectionGrid";
 import { Reveal } from "./_components/motion/Reveal";
+import { DepartureBoard, type BoardCount } from "./_components/motion/DepartureBoard";
+import { getSectionTiles } from "@/lib/navSections";
 import { HomePerksRow } from "./_components/perks/HomePerksRow";
 import { DEFAULT_BRAND } from "./_components/blocks/brand";
 import { categoryLabel } from "./_components/blocks/categoryLabel";
@@ -112,7 +114,8 @@ export default async function Home() {
       href: directoryHref(biz.slug, biz.primaryCategory),
     };
     if (biz.slug === "futprep" && futprepProgram) {
-      return { ...base, name: `${biz.name}: ${futprepProgram.day} sessions`, line: `${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location} · ${spotsThisWeek} spots open`, cta: "Register a child" };
+      // still: it leads to a child's registration, so the button never squishes.
+      return { ...base, name: `${biz.name}: ${futprepProgram.day} sessions`, line: `${futprepProgram.day}s ${programTimeRange(futprepProgram)} · ${futprepProgram.location} · ${spotsThisWeek} spots open`, cta: "Register a child", still: true };
     }
     if (biz.slug === "bahamas-weddings") {
       return { ...base, line: `${weddingSettings.yearsExperience} years · ${weddingSettings.reviewCount} five-star reviews · Nassau`, cta: "Plan a wedding" };
@@ -139,11 +142,25 @@ export default async function Home() {
           cta: "See the camp",
           chip: closesInLabel(camp.registrationClosesAt),
           closesAt: camp.registrationClosesAt,
+          // A children's camp: the button never squishes.
+          still: true,
         }))
     : [];
   // Soonest to close first, then the businesses in the founders' order.
   const cards = orderOpenNow([...datedCards, ...businessCards]);
   const carousel = directory.length >= CAROUSEL_FROM;
+
+  // The Departure Board (brief 22, M3): counts this page already reads, and
+  // only those. Businesses open is the directory (the demo business can
+  // never be listed); categories open are the top-level sections with a
+  // live business; camps open are the camp offers taking sign-ups, the
+  // same ones that get their own card above.
+  const sectionsOpen = (await getSectionTiles()).filter((tile) => liveSlugs.has(tile.slug)).length;
+  const boardCounts: BoardCount[] = [
+    { value: directory.length, label: ["Business open", "Businesses open"] },
+    { value: sectionsOpen, label: ["Category open", "Categories open"] },
+    { value: datedCards.length, label: ["Camp open", "Camps open"] },
+  ];
 
   return (
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`} data-world="portpass">
@@ -154,6 +171,7 @@ export default async function Home() {
 
       <SiteHeader />
       <HomeHero openSentence={openCountSentence(directory.length)} />
+      <DepartureBoard counts={boardCounts} />
 
       {/* With a carousel of businesses, the dated offers still get their cards. */}
       <OpenNowCards cards={carousel ? orderOpenNow(datedCards) : cards} />
@@ -177,34 +195,46 @@ export default async function Home() {
           <span className="home-eyebrow">How PortPass works</span>
           <h2>Two ways to use it.</h2>
         </Reveal>
+        {/* Brief 22 (M3): each track is a stagger; a line down its left
+            draws as it scrolls into view and each number counts in. */}
         <div className="home-how-grid">
           <div className="home-how-track">
             <h3>If you&rsquo;re booking</h3>
-            <ol>
-              <li>Find what you&rsquo;re looking for — sessions, ceremonies, venues</li>
-              <li>Book online, no phone tag. Pay the way the business accepts, and keep one record of it</li>
-              <li>Your confirmation and details live in one place</li>
-            </ol>
+            <div className="home-how-steps-wrap">
+              <Reveal as="ol" className="home-how-steps" variant="rise" stagger>
+                <li><span className="home-how-num">1</span><span>Find what you&rsquo;re looking for — sessions, ceremonies, venues</span></li>
+                <li><span className="home-how-num">2</span><span>Book online, no phone tag. Pay the way the business accepts, and keep one record of it</span></li>
+                <li><span className="home-how-num">3</span><span>Your confirmation and details live in one place</span></li>
+              </Reveal>
+              <svg className="home-how-line" viewBox="0 0 2 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 0 V100" pathLength="100" /></svg>
+            </div>
           </div>
           <div className="home-how-track">
             <h3>If you run a business</h3>
-            <ol>
-              <li>Your listing goes live with real availability and prices</li>
-              <li>Customers register themselves, and you see who&rsquo;s paid</li>
-              <li>You see who&rsquo;s coming and what&rsquo;s been collected, on one screen</li>
-            </ol>
+            <div className="home-how-steps-wrap">
+              <Reveal as="ol" className="home-how-steps" variant="rise" stagger>
+                <li><span className="home-how-num">1</span><span>Your listing goes live with real availability and prices</span></li>
+                <li><span className="home-how-num">2</span><span>Customers register themselves, and you see who&rsquo;s paid</span></li>
+                <li><span className="home-how-num">3</span><span>You see who&rsquo;s coming and what&rsquo;s been collected, on one screen</span></li>
+              </Reveal>
+              <svg className="home-how-line" viewBox="0 0 2 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 0 V100" pathLength="100" /></svg>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="home-business">
+      {/* Brief 22 (M3): deck until it enters, then the ink layer eases in
+          and the words and the button arrive after it, the button last. */}
+      <Reveal as="section" className="home-business" variant="rise" stagger>
         <div>
           <span className="home-eyebrow">Run a club or a business?</span>
           <h2>List with PortPass.</h2>
           <p>Bring your organization onto the same system powering Futprep and Bahamas Weddings By The Sea.</p>
         </div>
-        <Link className="home-button home-button-light" href="/business">Learn more →</Link>
-      </section>
+        <div className="home-business-action">
+          <Link className="home-button home-button-light" href="/business">Learn more →</Link>
+        </div>
+      </Reveal>
 
       <SiteFooter />
     </main>

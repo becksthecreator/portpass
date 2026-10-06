@@ -109,7 +109,7 @@ export default async function PricingPage() {
                 )}
                 {isCommission && <div className="pricing-price when-annual"><strong>{dollars(plan.monthlyCents)}</strong><span>/month</span></div>}
                 <p className="pricing-price-note">{isCommission ? plan.blurb : <><span className="when-monthly">First 30 days free</span><span className="when-annual">2 months free · Setup waived</span></>}</p>
-                <Link className="home-button" href={`/apply?plan=${encodeURIComponent(plan.code)}&utm_source=pricing`}>Start free</Link>
+                <Link className="home-button" href={`/apply?plan=${encodeURIComponent(plan.code)}&utm_source=pricing`} data-still="">Start free</Link>
                 {previous && <p className="pricing-features-lead">Everything in {previous.name}, plus</p>}
                 <ul className="pricing-features">
                   {features.map((f) => <li key={f}>{f}</li>)}
