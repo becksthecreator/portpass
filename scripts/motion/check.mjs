@@ -83,7 +83,7 @@ async function heroTextContrast(page, selector, { hide = [] } = {}) {
     return { x: Math.max(0, r.left), y: Math.max(0, r.top), width: r.width, height: r.height, color: getComputedStyle(el).color };
   }, selector);
   if (!box || box.width < 1 || box.height < 1) return null;
-  const tag = await page.addStyleTag({ content: [".pp-hero-centre{visibility:hidden!important}", ...hide.map((s) => `${s}{display:none!important}`)].join("") });
+  const tag = await page.addStyleTag({ content: [".pp-hero-centre{visibility:hidden!important}", ...hide.map((s) => `${s}{visibility:hidden!important}`)].join("") });
   await page.waitForTimeout(80);
   const png = await page.screenshot({ clip: { x: box.x, y: box.y, width: box.width, height: box.height } });
   await tag.evaluate((node) => node.remove());
@@ -328,13 +328,14 @@ try {
       }, null, { timeout: 15000 })
       .catch(() => null);
     await settledWithin(page, ".pp-hero", 4000);
+    // The settled frame first, before any pass hides or shows anything.
+    await page.screenshot({ path: `${OUT}/frames/hero-settled-375.png` });
     const hasSun = await page.evaluate(() => Boolean(document.querySelector(".pp-hero-sun")));
     const headline = await heroTextContrast(page, ".pp-hero h1");
     const lede = await heroTextContrast(page, ".pp-hero-lede");
     const without = hasSun ? await heroTextContrast(page, ".pp-hero h1", { hide: [".pp-hero-sun"] }) : null;
     check(headline !== null && headline >= 3, "the hero headline against what is behind it passes WCAG AA for large text (3:1)", `${headline}:1${without !== null ? `; ${without}:1 without the sun` : ""}`);
     lines.push(`- Hero lede against what is behind it: ${lede}:1 (WCAG AA for body text asks 4.5:1).`);
-    await page.screenshot({ path: `${OUT}/frames/hero-settled-375.png` });
     await context.close();
   }
 

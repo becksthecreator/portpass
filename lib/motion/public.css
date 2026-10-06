@@ -31,16 +31,17 @@
 html[data-motion="off"] .pp-hero-frame img{will-change:auto}
 
 /* ---- Sun Drift (brief 22, M2 step 4) -----------------------------------
-   Once per page view a soft glow, white at its heart and flag gold at its
-   edge (the perks' gold), rises behind the hero's words: one radial
-   gradient that comes up from below and from nothing over --dur-sun, by
-   transform and opacity only, then stays. It loops nowhere (the photo's
-   drift is the one loop on the page), sits over the photo and under the
-   scrim and the words, and its resting state is the risen sun, so reduced
-   motion, the kill switch and a page without script all show it already
-   up. It shipped only after the motion check measured / with and without
-   it (Lighthouse on the branch's build, and the headline's contrast). */
-.pp-hero-sun{--sun-size:min(130vw,980px);--sun-gold:var(--perk-gold,#FFC72C);position:absolute;z-index:-1;left:50%;top:42%;width:var(--sun-size);height:var(--sun-size);margin:calc(var(--sun-size) / -2) 0 0 calc(var(--sun-size) / -2);border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,color-mix(in srgb,var(--paper) 46%,transparent) 0%,color-mix(in srgb,var(--sun-gold) 22%,transparent) 36%,color-mix(in srgb,var(--sun-gold) 8%,transparent) 60%,transparent 78%);animation:pp-sun-rise var(--dur-sun) var(--ease-out) var(--dur-fast) both}
+   Once per page view a soft white glow, Harbour Signal's own --paper and
+   nothing new, rises behind the hero's words like morning light: one
+   radial gradient that comes up from below and from nothing over
+   --dur-sun, by transform and opacity only, then stays. It loops nowhere
+   (the photo's drift is the one loop on the page) and sits over the photo
+   and under the scrim and the words. Its resting state is the risen sun,
+   so reduced motion and the kill switch show it already up; without
+   script it still rises, in CSS. It shipped only after the motion check
+   measured / with and without it (Lighthouse on the branch's build, and
+   the headline's contrast). */
+.pp-hero-sun{--sun-size:min(130vw,980px);position:absolute;z-index:-1;left:50%;top:42%;width:var(--sun-size);height:var(--sun-size);margin:calc(var(--sun-size) / -2) 0 0 calc(var(--sun-size) / -2);border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,color-mix(in srgb,var(--paper) 52%,transparent) 0%,color-mix(in srgb,var(--paper) 26%,transparent) 38%,color-mix(in srgb,var(--paper) 10%,transparent) 62%,transparent 80%);animation:pp-sun-rise var(--dur-sun) var(--ease-out) var(--dur-fast) both}
 @keyframes pp-sun-rise{from{opacity:0;transform:translateY(22%) scale(.86)}}
 
 /* ---- the Prow moment (ProwMoment.tsx) -----------------------------------

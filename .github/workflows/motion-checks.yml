@@ -87,16 +87,21 @@ jobs:
         run: node scripts/motion/check.mjs
       - name: Lighthouse (mobile) on / against this build
         # Brief 22: every motion PR reports Lighthouse mobile on / before and
-        # after. Production is measured after each merge (lighthouse.yml);
-        # this is the same audit against this branch's build on localhost,
-        # three runs, the median kept (scripts/motion/lighthouse.mjs), so a
-        # part that would take / under 85 is caught before it merges.
-        if: always()
+        # after. This is the same audit as lighthouse.yml against this
+        # branch's build on localhost, three runs, the median kept
+        # (scripts/motion/lighthouse.mjs), so a part that moves / shows up
+        # in report.md before it merges. Localhost reads a few points under
+        # production (no CDN, a local database), so this step reports and
+        # never blocks: the 85 floor is enforced on production by
+        # lighthouse.yml after each merge, and a branch is judged against
+        # main's run of this same job.
+        if: ${{ !cancelled() }}
+        continue-on-error: true
         run: |
           export CHROME_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())")
           mkdir -p motion-checks/lighthouse
           for i in 1 2 3; do
-            npx --yes lighthouse@12 http://localhost:3000/ --quiet --only-categories=performance \
+            npx --yes lighthouse@12.8.2 http://localhost:3000/ --quiet --only-categories=performance \
               --form-factor=mobile --screenEmulation.mobile --screenEmulation.width=375 --screenEmulation.height=812 --screenEmulation.deviceScaleFactor=2 \
               --throttling-method=simulate --chrome-flags="--headless=new --no-sandbox" \
               --output=json --output-path=motion-checks/lighthouse/run-$i.json

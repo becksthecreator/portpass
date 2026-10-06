@@ -32,7 +32,7 @@ html[data-motion="on"][data-motion-js] [data-reveal][data-stagger]:not([data-in]
    this rule no longer matches, so a reveal reached later still rises. */
 html[data-motion="on"][data-motion-js]:not([data-motion-ready]) [data-reveal]:not([data-stagger]):not([data-in]),
 html[data-motion="on"][data-motion-js]:not([data-motion-ready]) [data-reveal][data-stagger]:not([data-in])>*{
-  animation:motion-reveal-failsafe 0s linear var(--dur-failsafe) forwards;
+  animation:motion-reveal-failsafe 0s linear var(--dur-failsafe,2.5s) forwards;
 }
 html[data-motion="on"][data-motion-js] [data-reveal="rise"]:not([data-stagger]):not([data-in]),
 html[data-motion="on"][data-motion-js] [data-reveal="rise"][data-stagger]:not([data-in])>*{transform:translateY(16px)}
