@@ -36,5 +36,5 @@ PortPass is a booking platform for Bahamian businesses (portpassbahamas.com). Fo
 * Briefs: the Claude project "The Beckford HQ", folder `ClaudeCode_Queue_Sept29/`. Read the brief you were given in full before starting. Briefs written with `/brief` are saved in `docs/briefs/`.
 * The Handbook (how PortPass runs, pricing rules, onboarding steps, the lead score) is in the same project as `PortPass_Handbook.md`.
 * Admin → Phase 1 shows the live checklist of what's switched on and what each business is missing.
-* Agents and commands for this repo are in `.claude/`.
+* Agents and commands for this repo are in `.claude/`: `reviewer`, `qa-runner` and `onboarder` from brief 20, and `security-reviewer` (report-only), `planner` (read-only) and `tdd-guide`, taken from the everything-claude-code kit and rewritten for PortPass (brief 23).
 * Addresses that are never emailed, whatever is pressed: `@example.com`, `@example.org`, `@example.net` and `@test.portpass.local` (`lib/email.ts`).
