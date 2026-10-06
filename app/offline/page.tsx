@@ -17,6 +17,7 @@ export default function OfflinePage() {
         <h1>You&rsquo;re offline.</h1>
         <p>Your saved pages are below. Anything you open while connected is kept for next time.</p>
         <SavedPages />
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full page load: Try again has to ask the network, not the router */}
         <a className="primary-button" href="/">Try again →</a>
       </div>
     </main>

@@ -38,6 +38,7 @@ export default async function ContractsPage() {
           <div><span className="section-kicker">The school pays Futprep</span><h1>School contracts.</h1></div>
           <p>Sessions delivered so far and what to invoice each school. Add a contract on the Programs page (type: School contract); staff keep its roster by name and mark attendance as usual.</p>
         </div>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a CSV file from a route handler, not a page */}
         <p className="coach-export"><a className="secondary-button" href="/api/futprep/staff/contracts/csv">Download invoice CSV (no child data) ↓</a></p>
         {lines.length === 0 && <div className="dashboard-empty"><h3>No school contracts yet.</h3><p>Add one on the Programs page.</p></div>}
         <div className="pay-cards">

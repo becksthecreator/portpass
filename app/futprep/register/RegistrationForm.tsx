@@ -503,7 +503,7 @@ export function RegistrationForm({
                   <span className="choice-heading">{form.paymentMethod === "online_banking" ? "Pay via online banking" : "Futprep bank transfer"}</span>
                   <p>{form.paymentMethod === "online_banking"
                     ? "Send this from your own bank's online or mobile banking app."
-                    : "Visit your bank and transfer to the account below."} You'll get a registration code after you submit — use it as the transfer reference so Futprep can match your payment.</p>
+                    : "Visit your bank and transfer to the account below."} You&apos;ll get a registration code after you submit — use it as the transfer reference so Futprep can match your payment.</p>
                 </div>
                 <dl className="bank-details">
                   <div><dt>Bank</dt><dd>{FUTPREP_BANK_DETAILS.bankName}</dd></div>

@@ -2,14 +2,17 @@ import { NextResponse } from "next/server";
 import { currentFutprepStaffAccount, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
 import { actOnPrivateSessionRequest, listPrivateSessionRequests } from "@/db/coaches";
 
+const ACTIONS=["accept","decline","refer","parent_notified","complete"] as const;
+function isAction(value:unknown):value is (typeof ACTIONS)[number]{return typeof value==="string"&&(ACTIONS as readonly string[]).includes(value);}
+
 export async function PATCH(request:Request,{params}:{params:Promise<{id:string}>}){
   const [account,role]=await Promise.all([currentFutprepStaffAccount(),currentFutprepStaffRole()]);
   if(!account||!role||role==="helper") return NextResponse.json({error:"Sign in again."},{status:401});
   const {id}=await params;
   const requestId=Number(id);
-  const body=await request.json().catch(()=>({})) as any;
+  const body=await request.json().catch(()=>({})) as Record<string,unknown>;
   if(!Number.isInteger(requestId)||requestId<1) return NextResponse.json({error:"Invalid request."},{status:400});
-  if(!["accept","decline","refer","parent_notified","complete"].includes(body.action)) return NextResponse.json({error:"Invalid action."},{status:400});
+  if(!isAction(body.action)) return NextResponse.json({error:"Invalid action."},{status:400});
   try{
     await actOnPrivateSessionRequest({id:requestId,action:body.action,coachId:Number(body.coachId)||null,targetCoachId:Number(body.targetCoachId)||null,reason:String(body.reason??""),actor:account});
     const result=await listPrivateSessionRequests();

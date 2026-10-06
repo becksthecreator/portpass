@@ -4,13 +4,14 @@ import { listAllCoachProfiles, restoreCoach, saveCoachAvailability, saveCoachPro
 import { bumpListings } from "@/lib/revalidate";
 
 function csv(value:unknown){return String(value??"").split(",").map((v)=>v.trim()).filter(Boolean);}
+function oneOf<T extends string>(value:unknown,allowed:readonly T[],fallback:T):T{return typeof value==="string"&&(allowed as readonly string[]).includes(value)?value as T:fallback;}
 
 export async function POST(request:Request){
   const account=await currentFutprepStaffAccount();
   const role=await currentFutprepStaffRole();
   if(!account||!role) return NextResponse.json({error:"Sign in again."},{status:401});
   if(!canManageFutprepTeam(role)) return NextResponse.json({error:"Only an admin or CEO can manage the team."},{status:403});
-  const body=await request.json().catch(()=>({})) as any;
+  const body=await request.json().catch(()=>({})) as Record<string,unknown>;
   try{
     if(body.action==="delete"){
       await softDeleteCoach(Number(body.id));
@@ -18,10 +19,10 @@ export async function POST(request:Request){
       await restoreCoach(Number(body.id));
     }else if(body.action==="availability"){
       if(!body.coachId||!body.date||!body.startTime||!body.endTime) return NextResponse.json({error:"Complete the availability details."},{status:400});
-      await saveCoachAvailability({coachId:Number(body.coachId),date:String(body.date),startTime:String(body.startTime),endTime:String(body.endTime),status:["available","blocked","booked"].includes(body.status)?body.status:"available",location:String(body.location??""),note:String(body.note??""),actor:account});
+      await saveCoachAvailability({coachId:Number(body.coachId),date:String(body.date),startTime:String(body.startTime),endTime:String(body.endTime),status:oneOf(body.status,["available","blocked","booked"],"available"),location:String(body.location??""),note:String(body.note??""),actor:account});
     }else if(body.action==="save"){
       if(!String(body.displayName??"").trim()||!String(body.slug??"").trim()) return NextResponse.json({error:"Name and slug are required."},{status:400});
-      await saveCoachProfile({id:Number(body.id)||undefined,displayName:String(body.displayName),slug:String(body.slug),positionTitle:String(body.positionTitle||"Coach"),memberType:["coach","relations","admin"].includes(body.memberType)?body.memberType:"coach",bio:String(body.bio??""),licenses:csv(body.licenses),playedAt:csv(body.playedAt),favoritePlayer:String(body.favoritePlayer??""),favoriteTeam:String(body.favoriteTeam??""),photoUrl:body.photoUrl===undefined?undefined:String(body.photoUrl??""),introVideoUrl:String(body.introVideoUrl??""),testimonialQuote:String(body.testimonialQuote??""),testimonialName:String(body.testimonialName??""),publicVisible:Boolean(body.publicVisible),bookable:Boolean(body.bookable),sortOrder:Number(body.sortOrder)||100});
+      await saveCoachProfile({id:Number(body.id)||undefined,displayName:String(body.displayName),slug:String(body.slug),positionTitle:String(body.positionTitle||"Coach"),memberType:oneOf(body.memberType,["coach","relations","admin"],"coach"),bio:String(body.bio??""),licenses:csv(body.licenses),playedAt:csv(body.playedAt),favoritePlayer:String(body.favoritePlayer??""),favoriteTeam:String(body.favoriteTeam??""),photoUrl:body.photoUrl===undefined?undefined:String(body.photoUrl??""),introVideoUrl:String(body.introVideoUrl??""),testimonialQuote:String(body.testimonialQuote??""),testimonialName:String(body.testimonialName??""),publicVisible:Boolean(body.publicVisible),bookable:Boolean(body.bookable),sortOrder:Number(body.sortOrder)||100});
     }else return NextResponse.json({error:"Unknown team action."},{status:400});
     // The Futprep home page shows the team grid from ISR (brief 16, C3).
     bumpListings();

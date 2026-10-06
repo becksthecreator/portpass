@@ -13,6 +13,7 @@ export function InstallButton() {
 
   useEffect(() => {
     if (isStandalone()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the installed app is only known in the browser, after hydration
       setState("standalone");
       return;
     }

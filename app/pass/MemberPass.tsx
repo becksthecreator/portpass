@@ -68,6 +68,7 @@ export function MemberPass() {
 
   useEffect(() => {
     const stored = readStoredPass();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved pass is in this browser's storage, read after hydration
     if (stored) setState({ kind: "ready", pass: stored });
     void refresh();
     const tick = setInterval(() => setNow(Date.now()), 500);

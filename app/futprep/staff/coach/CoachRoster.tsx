@@ -14,8 +14,6 @@ type AttendanceStatus = "present" | "absent" | "excused" | "late";
 const CLEAR = "__clear__" as const;
 type QueuedChange = AttendanceStatus | typeof CLEAR;
 
-function money(cents:number){return new Intl.NumberFormat("en-BS",{style:"currency",currency:"BSD",minimumFractionDigits:0}).format(cents/100)}
-
 // A taster child marked present gets the "Join the term" link the same
 // day (brief 12). Staff send it by hand on WhatsApp; nothing is sent
 // automatically.
@@ -357,7 +355,7 @@ export function CoachRoster({
 
       {failedCount > 0 && (
         <div className="coach-unsaved-banner">
-          {failedCount} {failedCount === 1 ? "change" : "changes"} not saved — will retry automatically when you're back online.
+          {failedCount} {failedCount === 1 ? "change" : "changes"} not saved — will retry automatically when you&apos;re back online.
         </div>
       )}
 

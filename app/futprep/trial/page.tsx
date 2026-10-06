@@ -51,7 +51,7 @@ export default async function FutprepTrialPage() {
           <div className="eyebrow">Free taster Saturday</div>
           <h1>No taster Saturday open right now.</h1>
           <p className="confirmation-lead">The free taster runs on a Saturday before each term starts. You can still register for the term now.</p>
-          <a className="primary-button" href="/futprep/register">Register for the term →</a>
+          <Link className="primary-button" href="/futprep/register">Register for the term →</Link>
         </section>
       ) : (
         <Suspense fallback={null}>

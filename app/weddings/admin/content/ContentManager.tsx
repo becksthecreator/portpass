@@ -45,12 +45,12 @@ export function ContentManager({ initialSettings }: { initialSettings: WeddingSi
         <label><span>Review count</span><input inputMode="numeric" value={reviewCount} onChange={(e) => setReviewCount(e.target.value)} /></label>
         <label><span>Recommended % of couples</span><input inputMode="numeric" value={reviewRecommendPct} onChange={(e) => setReviewRecommendPct(e.target.value)} /></label>
         <label><span>Years of experience</span><input inputMode="numeric" value={yearsExperience} onChange={(e) => setYearsExperience(e.target.value)} /></label>
-        <label><span>Couples' Choice award years (comma-separated)</span><input value={awardYears} onChange={(e) => setAwardYears(e.target.value)} placeholder="2019, 2020, 2021, 2022, 2023, 2026" /></label>
+        <label><span>Couples&apos; Choice award years (comma-separated)</span><input value={awardYears} onChange={(e) => setAwardYears(e.target.value)} placeholder="2019, 2020, 2021, 2022, 2023, 2026" /></label>
       </div>
       <h2 style={{ marginTop: 24 }}>WeddingWire widgets</h2>
       <p style={{ color: "var(--muted)", fontSize: ".82rem" }}>
-        Sign in at WeddingPro.com → Reviews tab to copy each widget's embed HTML, then paste it into the matching field below.
-        This is trusted staff-entered content and renders directly on the public page — never paste anything you didn't get from WeddingPro yourself.
+        Sign in at WeddingPro.com → Reviews tab to copy each widget&apos;s embed HTML, then paste it into the matching field below.
+        This is trusted staff-entered content and renders directly on the public page — never paste anything you didn&apos;t get from WeddingPro yourself.
       </p>
       <label style={{ display: "block", marginTop: 14, fontSize: ".82rem", fontWeight: 600 }}>Rating badge</label>
       <textarea rows={4} value={ratingBadgeHtml} onChange={(e) => setRatingBadgeHtml(e.target.value)} placeholder="<div>...WeddingWire rating badge embed HTML...</div>" style={{ width: "100%", border: "1px solid var(--line)", padding: 10, fontFamily: "monospace", fontSize: ".78rem" }} />

@@ -98,6 +98,7 @@ export function CoachPayManager({
       <section className="pay-section" aria-labelledby="pay-by-month">
         <div className="pay-section-head">
           <h2 id="pay-by-month">By month</h2>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a CSV file from a route handler, not a page */}
           <a className="secondary-button" href="/api/futprep/staff/pay/csv">Download CSV ↓</a>
         </div>
         {summaries.length === 0 && <div className="dashboard-empty"><h3>No sessions recorded yet.</h3><p>Coaches are recorded under &ldquo;Coaches today&rdquo; on each session&apos;s roster.</p></div>}

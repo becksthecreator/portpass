@@ -21,12 +21,10 @@ export function BrandLogo({ className = "", markQuery = MARK_QUERY }: { classNam
     <>
       <picture className="brand-logo-light">
         <source media={markQuery} srcSet="/brand/logo/portpass-mark-light.svg" width={34} height={34} />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className={`brand-logo ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-light.svg" alt="PortPass Bahamas" width={166} height={36} />
       </picture>
       <picture className="brand-logo-dark">
         <source media={markQuery} srcSet="/brand/logo/portpass-mark-dark.svg" width={34} height={34} />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className={`brand-logo ${className}`.trim()} src="/brand/logo/portpass-logo-horizontal-dark.svg" alt="PortPass Bahamas" width={166} height={36} />
       </picture>
     </>

@@ -70,6 +70,7 @@ export function ProwMoment() {
     } catch {
       // As above.
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- placed from the header's measured logo and sessionStorage, both only known after hydration
     setHost(brand);
     setBox(place);
   }, []);

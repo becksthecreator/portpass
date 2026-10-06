@@ -87,6 +87,7 @@ export function RequestEditor({
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- cleared here, after the cleanup aborted the last search, so a late answer can't show
       setMatches([]);
       return;
     }

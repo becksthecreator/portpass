@@ -22,7 +22,7 @@ export default async function FutprepChangePinPage() {
       <section className="staff-workspace-content change-pin-page">
         <div className="staff-page-intro">
           <div><span className="section-kicker">Account security</span><h1>Change your PIN.</h1></div>
-          <p>Replace the shared demo PIN with one only you know. You'll need your current PIN to confirm it's really you.</p>
+          <p>Replace the shared demo PIN with one only you know. You&apos;ll need your current PIN to confirm it&apos;s really you.</p>
         </div>
         <ChangePinForm />
       </section>

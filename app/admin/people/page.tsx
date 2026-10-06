@@ -32,6 +32,8 @@ const failed = (what: string) => (error: unknown) => {
 export default async function AdminPeoplePage() {
   const session = await requireAdmin("/admin/people");
   const [people, invites, pins] = await Promise.all([listAdminPeople(), listOpenInvites().catch(failed("invitations")), listStaffPinStatus().catch(failed("staff logins"))]);
+  // eslint-disable-next-line react-hooks/purity -- a server component, rendered once per request
+  const now = Date.now();
 
   return (
     <AdminShell session={session} current="/admin/people" title="People & access" lede={`${people.length} account${people.length === 1 ? "" : "s"}. Every change here is logged.`}>
@@ -76,7 +78,7 @@ export default async function AdminPeoplePage() {
                   <td data-label="Business">{invite.organizationName}</td>
                   <td data-label="Role">{invite.role.replace("org_", "")}</td>
                   <td data-label="Sent">{day(invite.createdAt)}</td>
-                  <td data-label="Expires">{new Date(invite.expiresAt).getTime() < Date.now() ? <span className="admin-pill rejected">expired</span> : day(invite.expiresAt)}</td>
+                  <td data-label="Expires">{new Date(invite.expiresAt).getTime() < now ? <span className="admin-pill rejected">expired</span> : day(invite.expiresAt)}</td>
                   <td data-label="Send again"><ResendInvite inviteId={invite.id} email={invite.email} /></td>
                 </tr>
               ))}

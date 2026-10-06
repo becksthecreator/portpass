@@ -21,7 +21,7 @@ export default async function AdminGuidesPage() {
   const guides = await listAllGuides();
 
   return (
-    <AdminShell session={session} current="/admin/guides" title="Guides" lede="Guides people find on Google, written by you, each linking to businesses they can book. A guide can't be published while an [Antonio: …] note is left in it." actions={<><Link className="admin-bar-link" href="/admin/guides/new">New guide</Link><a className="admin-bar-link" href="/guides">The public page</a></>}>
+    <AdminShell session={session} current="/admin/guides" title="Guides" lede="Guides people find on Google, written by you, each linking to businesses they can book. A guide can't be published while an [Antonio: …] note is left in it." actions={<><Link className="admin-bar-link" href="/admin/guides/new">New guide</Link><Link className="admin-bar-link" href="/guides">The public page</Link></>}>
       {guides.length === 0 ? (
         <p className="admin-empty">No guides yet.</p>
       ) : (

@@ -66,6 +66,7 @@ export function EventSignupForm({ event, sections }: { event: string; sections: 
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sends what was waiting in this browser's storage, on load
     void flush();
     const onOnline = () => {
       void flush().then((left) => {
