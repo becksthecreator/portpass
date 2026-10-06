@@ -144,15 +144,20 @@ describe("after verification", () => {
     expect(shop.sellerDeliveryZones).toEqual([{ zone: "Cable Beach", feeCents: 1000, leadDays: 2 }]);
     expect(await getPublicShop(slug)).toBeNull();
     expect(await anonProducts()).toBe(0);
+    // Its page is the storefront, so it leaves the lists too (no 404 links).
+    const { data: org } = await admin.from("organizations").select("is_published,is_directory_listed").eq("id", orgId).single();
+    expect(org).toEqual({ is_published: false, is_directory_listed: false });
   });
 
   it("a suspension takes it off with a reason; lifting it goes back to the queue, not straight back on", async () => {
-    await verifySeller(orgId, userId, seen(`BL-TEST-${tag}-2`));
+    expect(await verifySeller(orgId, userId, seen(`BL-TEST-${tag}-2`))).toEqual({ wentLive: true });
     expect(await getPublicShop(slug)).not.toBeNull();
     await expect(suspendSeller(orgId, " ", userId)).rejects.toThrow("NEEDS_REASON");
     await suspendSeller(orgId, "TEST — paused while we talk", userId);
     expect(await getShop(orgId)).toMatchObject({ sellerStatus: "suspended", sellerStatusReason: "TEST — paused while we talk", sellerVerifiedAt: null });
     expect(await getPublicShop(slug)).toBeNull();
+    const { data: org } = await admin.from("organizations").select("is_published,is_directory_listed").eq("id", orgId).single();
+    expect(org).toEqual({ is_published: false, is_directory_listed: false });
     await expect(verifySeller(orgId, userId, seen(`BL-TEST-${tag}-2`))).rejects.toThrow("SELLER_SUSPENDED");
     await expect(saveSellerProfile(orgId, { marketCategory: "home", whatTheySell: "", contactPerson: "TEST — delete Contact", licenceNumber: `BL-TEST-${tag}-2`, pickupNote: "TEST", deliveryZones: [], acceptsCashOnPickup: true, requestVerification: true }, userId)).rejects.toThrow("SUSPENDED");
     await unsuspendSeller(orgId, userId);

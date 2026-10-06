@@ -47,6 +47,11 @@ async function setBusinessLicence(orgId: number, number: string | null, actorUse
   await setOrganizationLicences(orgId, next, actorUserId);
 }
 
+export function sameRecord(a: string | null | undefined, b: string | null | undefined): boolean {
+  const norm = (value: string | null | undefined) => (value ?? "").trim().replace(/\s+/g, " ");
+  return norm(a) === norm(b);
+}
+
 async function setContactPerson(orgId: number, contactPerson: string | null): Promise<void> {
   const { error } = await db().from("organizations").update({ primary_contact: contactPerson }).eq("id", orgId);
   throwIfSupabaseError(error, "Could not save the contact person");
@@ -64,9 +69,11 @@ export async function saveSellerProfile(orgId: number, input: SellerProfileInput
   if (input.requestVerification && before.sellerStatus === "suspended") throw new Error("SUSPENDED");
 
   const records = await getSellerRecords(orgId);
-  if ((input.licenceNumber ?? null) !== records.licenceNumber) await setBusinessLicence(orgId, input.licenceNumber, actorUserId);
+  // Compared as the form writes them (spaces collapsed), so saving the
+  // pickup note never looks like a changed record and re-queues a seller.
+  if (!sameRecord(input.licenceNumber, records.licenceNumber)) await setBusinessLicence(orgId, input.licenceNumber, actorUserId);
   const contact = input.contactPerson.trim() || null;
-  if (contact !== records.contactPerson) await setContactPerson(orgId, contact);
+  if (!sameRecord(contact, records.contactPerson)) await setContactPerson(orgId, contact);
 
   const patch: Record<string, unknown> = {
     seller_pickup_note: input.pickupNote,

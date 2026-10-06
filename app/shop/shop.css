@@ -292,3 +292,4 @@
 .seller-zones li{display:grid;grid-template-columns:minmax(0,1fr) 72px 64px 44px;gap:6px;align-items:center}
 .seller-zones input{min-height:44px!important;padding:8px!important}
 .seller-zones .admin-mini{min-height:44px}
+.seller-fieldset>.admin-mini{min-height:44px;padding:0 14px}

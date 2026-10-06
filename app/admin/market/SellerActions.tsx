@@ -14,14 +14,16 @@ export function SellerActions({ orgId, name, status, licenceNumber, contactPerso
   const [error, setError] = useState("");
   const [suspending, setSuspending] = useState(false);
   const [reason, setReason] = useState("");
+  const [note, setNote] = useState("");
 
   async function act(action: "verify" | "suspend" | "unsuspend") {
     setBusy(true);
     setError("");
     try {
       const r = await fetch(`/api/admin/market/sellers/${orgId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(action === "suspend" ? { action, reason } : action === "verify" ? { action, licenceNumber, contactPerson } : { action }) });
-      const data = (await r.json().catch(() => ({}))) as { error?: string };
+      const data = (await r.json().catch(() => ({}))) as { error?: string; wentLive?: boolean };
       if (!r.ok) throw new Error(data.error ?? "That didn't save.");
+      if (action === "verify") setNote(data.wentLive ? "Verified, and the business is live." : "Verified. Its page goes live once it has a published product, a phone or WhatsApp number and a way to be paid, and its shop is open.");
       setSuspending(false);
       setReason("");
       router.refresh();
@@ -50,6 +52,7 @@ export function SellerActions({ orgId, name, status, licenceNumber, contactPerso
           <button type="button" className="admin-mini" disabled={busy} onClick={() => setSuspending(false)}>Cancel</button>
         </form>
       )}
+      {note && <p className="admin-prices-note" role="status">{note}</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
     </div>
   );

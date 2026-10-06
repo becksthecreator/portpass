@@ -115,6 +115,9 @@ export async function saveShop(orgId: number, input: ShopInput, actorUserId: str
   if (error?.code === "23505") throw new Error("PREFIX_TAKEN");
   throwIfSupabaseError(error, "Could not save shop");
   await logAudit({ actorUserId, organizationId: orgId, action: "shop.saved", targetTable: "shops", targetId: orgId, after: { reference_prefix: input.referencePrefix, hold_hours: input.holdHours, is_published: input.isPublished } });
+  // A verified seller reopening their shop: a Shop Bahamian business whose
+  // page is that storefront comes back live with it.
+  if (input.isPublished) await takeBusinessLiveOnFirstProduct(orgId, actorUserId);
   bumpListings();
   return toShop(data!);
 }
@@ -327,9 +330,22 @@ async function saveVariants(productId: number, variants: VariantInput[]): Promis
 // business that has something to sell goes live.
 async function takeBusinessLiveOnFirstProduct(orgId: number, actorUserId: string): Promise<void> {
   const business = await getBusiness(orgId);
-  if (!business || business.status !== "approved" || business.isPublished) return;
-  // Only from "approved": a page suspended a moment ago stays hidden.
-  const { data: live, error } = await getSupabaseAdmin().from("organizations").update({ is_published: true, is_directory_listed: true, status: "live" }).eq("id", orgId).eq("status", "approved").select("id").maybeSingle();
+  if (!business || business.isPublished) return;
+  const shopSection = business.primaryCategory === "shop";
+  // From "approved" (a page suspended a moment ago stays hidden); a Shop
+  // Bahamian business also from "live", after its storefront went dark.
+  if (business.status !== "approved" && !(shopSection && business.status === "live")) return;
+  // A Shop Bahamian business's page is its storefront (/shop/<slug>), which
+  // is public only for a verified seller with an open shop (brief 25): it
+  // goes live with that storefront, never before, or its links would 404.
+  if (shopSection) {
+    const shop = await getShop(orgId);
+    if (!shop || !shop.isPublished || shop.sellerStatus !== "verified") return;
+    const { count, error: productsError } = await getSupabaseAdmin().from("products").select("id", { count: "exact", head: true }).eq("organization_id", orgId).eq("is_published", true);
+    throwIfSupabaseError(productsError, "Could not check products");
+    if (!count) return;
+  }
+  const { data: live, error } = await getSupabaseAdmin().from("organizations").update({ is_published: true, is_directory_listed: true, status: "live" }).eq("id", orgId).in("status", shopSection ? ["approved", "live"] : ["approved"]).eq("is_published", false).select("id").maybeSingle();
   if (!error && live) {
     await logAudit({ actorUserId, organizationId: orgId, action: "business.went_live", targetTable: "organizations", targetId: orgId });
     await markLeadsLive(orgId, actorUserId);

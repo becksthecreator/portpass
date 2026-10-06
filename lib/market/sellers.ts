@@ -145,13 +145,17 @@ export type SellerProfileInput = {
   requestVerification: boolean;
 };
 
-export function parseSellerProfile(body: Record<string, unknown>): Parsed<SellerProfileInput> {
+// currentLicence: the number on file. It is accepted as it is even if it
+// was recorded before this check existed (an admin may have typed a # or
+// a comma); only a new or changed number must look like a licence number.
+export function parseSellerProfile(body: Record<string, unknown>, currentLicence: string | null = null): Parsed<SellerProfileInput> {
   const rawCategory = body.category;
   const blank = rawCategory === null || rawCategory === "" || rawCategory === undefined;
   if (!blank && !isMarketCategory(rawCategory)) return { ok: false, error: "Choose what kind of things you sell." };
   const category: MarketCategorySlug | null = blank ? null : (rawCategory as MarketCategorySlug);
   const licenceRaw = str(body, "licenceNumber", 60);
-  const licenceNumber = licenceRaw ? cleanLicenceNumber(licenceRaw) : null;
+  const unchanged = currentLicence !== null && licenceRaw === currentLicence.trim().replace(/\s+/g, " ");
+  const licenceNumber = !licenceRaw ? null : unchanged ? currentLicence : cleanLicenceNumber(licenceRaw);
   if (licenceRaw && !licenceNumber) return { ok: false, error: "That licence number looks off. Type it as it is printed: letters, numbers, dashes." };
   const zones = parseDeliveryZones(body.deliveryZones);
   if (!zones.ok) return zones;
