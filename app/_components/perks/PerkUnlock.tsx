@@ -19,6 +19,7 @@ export function PerkUnlock({ path, className = "perk-unlock" }: { path?: string;
 
   useEffect(() => {
     const host = window.location.hostname;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the host is only known in the browser; the page is built once for everyone
     if (!(host === "portpassbahamas.com" || host.endsWith(".portpassbahamas.com") || host.endsWith(".vercel.app") || host === "localhost" || host === "127.0.0.1")) setBase("https://portpassbahamas.com");
   }, []);
 

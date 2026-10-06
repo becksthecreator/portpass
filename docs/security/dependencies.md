@@ -11,12 +11,15 @@ What stops a bad dependency or a leaked key reaching PortPass, and who does what
 | CodeQL | `.github/workflows/codeql.yml` | GitHub's scanner reads the JavaScript and TypeScript for the security-and-quality query set and files findings under the repository's **Security → Code scanning** tab. Also on every push to main and weekly. | No. A founder reads the findings; the aim is zero open ones. |
 | Secrets scan (gitleaks) | `.github/workflows/gitleaks.yml` | Reads the whole git history, every PR and weekly, for anything shaped like a key, token or password. Reports rule, file, commit and line; the match is redacted. `.gitleaks.toml` allows the known TEST values, each with its reason. | Yes |
 | Unit tests, type-check, integration tests | `.github/workflows/ci.yml` | As before; the type-check covers every `.ts` file, tests and scripts included. | Yes |
+| `npm run lint` | `.github/workflows/ci.yml` (the `lint` job) | ESLint with `eslint-config-next`'s rules (Core Web Vitals and TypeScript). An error fails the job; a warning is shown and doesn't. A rule switched off on one line says why, after `--`. | Yes |
 
 Every GitHub Action the workflows use is pinned to a commit SHA, with the version it corresponds to in a comment beside it. A tag can be moved to different code; a SHA cannot. Dependabot keeps the SHAs current.
 
 ## Dependabot
 
 `.github/dependabot.yml`: once a week (Mondays, 07:00 Nassau) one PR for Next.js and React together and one for everything else, plus one for the GitHub Actions. CI checks each like any other PR; a founder merges when green.
+
+**Held back:** `eslint` stays on 9.x and `typescript` on 5.9.x (6 Oct 2026). With ESLint 10, `eslint-plugin-react` (inside `eslint-config-next` 16.3.8, with `eslint-plugin-import` and `eslint-plugin-jsx-a11y`) stops lint with `contextOrFilename.getFilename is not a function`: the three accept ESLint 9 at most. With TypeScript 7, `typescript-eslint` refuses to load ("does not support TS 7.0"); it accepts below 6.1. 5.9.3 is what ran before #164: TypeScript 6.0, which `typescript-eslint` would accept, is a major upgrade of its own, so it gets a PR of its own (change `typescript` in `package.json` there; the build and lint jobs show whether it holds). The build's own type-check runs either way. `.github/dependabot.yml` skips major updates of the two until then. Move when `eslint-config-next` ships plugins that accept ESLint 10 and `typescript-eslint` accepts TypeScript 7: delete the `ignore` entries, and the lint job on Dependabot's next PR shows whether it holds. ESLint 9 is past its end of support; it never ships in the site.
 
 **Antonio's click:** repository **Settings → Code security → Dependabot → Dependabot security updates: Enable.** That makes Dependabot open a PR the day an advisory is published for a dependency we use, not only on Mondays. Version updates (the weekly PRs) work from the file alone.
 

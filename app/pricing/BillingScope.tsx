@@ -13,6 +13,7 @@ export function BillingToggle() {
   const [billing, setBilling] = useState<Billing>("monthly");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the page is cached, so the query is read in the browser (see above)
     if (new URLSearchParams(window.location.search).get("billing") === "annual") setBilling("annual");
   }, []);
 
@@ -32,8 +33,10 @@ export function BillingToggle() {
   return (
     <>
       <nav className="pricing-toggle" aria-label="Billing period">
+        {/* eslint-disable @next/next/no-html-link-for-pages -- an in-page toggle: choose() handles the click; the href is for shared links and no JavaScript */}
         <a href="/pricing" aria-current={billing === "monthly" ? "page" : undefined} onClick={(e) => choose(e, "monthly")}>Monthly</a>
         <a href="/pricing?billing=annual" aria-current={billing === "annual" ? "page" : undefined} onClick={(e) => choose(e, "annual")}>Annual</a>
+        {/* eslint-enable @next/next/no-html-link-for-pages */}
       </nav>
       <span className="pricing-toggle-note" aria-live="polite">{billing === "annual" ? "Annual: 2 months free and setup waived." : "Pay month to month. Cancel before the end of any month."}</span>
     </>

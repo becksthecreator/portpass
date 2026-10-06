@@ -51,8 +51,15 @@ function DesktopNav({ sections, types }: { sections: NavSection[]; types?: strin
   const closeTimer = useRef<number | null>(null);
   const rootRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
+  const lastPath = useRef(pathname);
 
-  useEffect(() => setOpen(null), [pathname]);
+  // A new page closes any open panel, as the Browse sheet does below.
+  useEffect(() => {
+    if (lastPath.current !== pathname) {
+      lastPath.current = pathname;
+      setOpen(null);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -228,6 +235,7 @@ function BrowseSheet({ sections, types }: { sections: NavSection[]; types?: stri
 
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the sheet has closed and unmounted: reset for the next opening
       setDragY(0);
       return;
     }

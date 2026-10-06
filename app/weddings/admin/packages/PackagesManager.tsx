@@ -87,7 +87,7 @@ function PackageEditor({ id, initial, onSaved }: { id: number | null; initial: D
         <label><span>Name</span><input value={draft.name} onChange={(e) => set("name", e.target.value)} /></label>
         <label className="wedding-admin-field-full"><span>Tagline</span><input value={draft.tagline} onChange={(e) => set("tagline", e.target.value)} /></label>
         <label className="wedding-admin-field-full"><span>Description</span><textarea rows={2} value={draft.description} onChange={(e) => set("description", e.target.value)} /></label>
-        <label className="wedding-admin-field-full"><span>What's included (one per line)</span><textarea rows={4} value={draft.includes} onChange={(e) => set("includes", e.target.value)} /></label>
+        <label className="wedding-admin-field-full"><span>What&apos;s included (one per line)</span><textarea rows={4} value={draft.includes} onChange={(e) => set("includes", e.target.value)} /></label>
         <label className="wedding-admin-field-full"><span>Image (path under /weddings/bahamas-by-the-sea/, blank = no image)</span><input value={draft.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="/weddings/bahamas-by-the-sea/catalogue-01.webp" /></label>
         <label><span>Price (BSD, blank = ask the Wedding Desk)</span><input inputMode="decimal" value={draft.priceDollars} onChange={(e) => set("priceDollars", e.target.value)} placeholder="e.g. 450" /></label>
         <label><span>Price wording</span>

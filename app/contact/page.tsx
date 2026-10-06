@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { PORTPASS_PHONE_DISPLAY, PORTPASS_PHONE_E164, PORTPASS_SUPPORT_EMAIL, PORTPASS_WHATSAPP_URL } from "@/lib/contact";
@@ -37,7 +38,7 @@ export default function ContactPage() {
         <p>If your question is about a specific booking &mdash; a Futprep program or a Bahamas Weddings By The Sea ceremony &mdash; that business&rsquo;s own page has the fastest way to reach them directly.</p>
 
         <h2>Listing your business</h2>
-        <p>If you run a Bahamian business and want to list with PortPass, start on our <a href="/apply">apply page</a> instead of here &mdash; it goes straight to the right form.</p>
+        <p>If you run a Bahamian business and want to list with PortPass, start on our <Link href="/apply">apply page</Link> instead of here &mdash; it goes straight to the right form.</p>
 
         <h2>Where we&rsquo;re based</h2>
         <p>PortPass Bahamas Technologies, Nassau, The Bahamas.</p>

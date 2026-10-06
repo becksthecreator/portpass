@@ -41,7 +41,7 @@ function Notice({ title, body }: { title: string; body: string }) {
       <div className="eyebrow">Early access</div>
       <h1>{title}</h1>
       <p className="confirmation-lead">{body}</p>
-      <a className="primary-button" href="/futprep/register">Go to registration →</a>
+      <Link className="primary-button" href="/futprep/register">Go to registration →</Link>
     </section>
   );
 }

@@ -117,6 +117,7 @@ export function PhoneInput({ value, onChange, required, name, id, autoComplete =
   useEffect(() => {
     if (value === composeE164(dial, digits)) return;
     const next = splitE164(value);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- runs only when the parent changes the value, never while typing
     setDial(next.dial);
     setDigits(next.digits);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only external value changes matter here

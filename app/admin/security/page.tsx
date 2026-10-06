@@ -75,7 +75,7 @@ export default async function AdminSecurityPage() {
             })}
           </tbody>
         </table>
-        <p className="admin-lede">Vercel's firewall (Attack Challenge Mode, the rate-limit rules, bot protection) is switched on in Vercel itself: <code>docs/security/README.md</code> has the clicks.</p>
+        <p className="admin-lede">Vercel&apos;s firewall (Attack Challenge Mode, the rate-limit rules, bot protection) is switched on in Vercel itself: <code>docs/security/README.md</code> has the clicks.</p>
       </section>
 
       <section className="admin-section">

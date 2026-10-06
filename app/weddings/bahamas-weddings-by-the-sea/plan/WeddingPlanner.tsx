@@ -167,7 +167,7 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
     ["Venue style", form.venuePreference || "Still deciding"],
     ["Services", form.servicesWanted.length ? form.servicesWanted.join(", ") : "None selected"],
     ["Consultation", form.consultationMethod || "Not specified"],
-  ], [form]);
+  ], [form, packages]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();

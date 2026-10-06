@@ -17,6 +17,7 @@ export function InstallPrompt({ heading = "Add PortPass to your home screen", le
   const [done, setDone] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the device is only known in the browser, after hydration
     setGuide(isStandalone() ? "installed" : installGuide(navigator.userAgent, navigator.platform, navigator.maxTouchPoints));
     // PwaRegister (root layout) catches the browser's prompt, often before
     // this is on screen, and keeps it for whoever asks.

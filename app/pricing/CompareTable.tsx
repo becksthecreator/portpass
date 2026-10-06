@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 export function CompareTable({ title, children }: { title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- folds after hydration on a narrow screen (see above)
     if (window.matchMedia("(max-width: 767px)").matches) setOpen(false);
   }, []);
   return (

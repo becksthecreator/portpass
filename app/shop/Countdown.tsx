@@ -15,6 +15,7 @@ export function Countdown({ target, label, fallback }: { target: string; label: 
   const refreshed = useRef(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the server renders the opening time; the clock starts in the browser
     setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);

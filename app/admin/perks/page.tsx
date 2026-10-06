@@ -25,6 +25,7 @@ export default async function AdminPerksPage({ searchParams }: { searchParams: P
   const session = await requireAdmin("/admin/perks");
   const { status } = await searchParams;
   const filter = STATUS.find((s) => s === status) ?? null;
+  // eslint-disable-next-line react-hooks/purity -- a server component, rendered once per request
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const [perks, stats] = await Promise.all([listAllPerks(), getPerkStats(since)]);
   const today = nassauToday();
@@ -36,7 +37,7 @@ export default async function AdminPerksPage({ searchParams }: { searchParams: P
   const top = [...byBusiness.entries()].filter(([, count]) => count > 0).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5);
 
   return (
-    <AdminShell session={session} current="/admin/perks" title="Member perks" lede="What businesses offer PortPass members. Each business funds and applies its own perk: PortPass never changes what a customer is charged." actions={<a className="admin-bar-link" href="/perks">The public page</a>}>
+    <AdminShell session={session} current="/admin/perks" title="Member perks" lede="What businesses offer PortPass members. Each business funds and applies its own perk: PortPass never changes what a customer is charged." actions={<Link className="admin-bar-link" href="/perks">The public page</Link>}>
       <div className="admin-tiles">
         <div className="admin-tile"><strong>{liveToday}</strong><span>Perks running today</span><small>{liveToday < 3 ? "The homepage row shows from three" : "Shown on the homepage row"}</small></div>
         <div className="admin-tile"><strong>{stats.redemptions}</strong><span>Perks used, last 7 days</span></div>

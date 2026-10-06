@@ -32,6 +32,7 @@ export function BusinessArrivalPlate({ mark, word, sub }: { mark: string; word: 
     // Reduced motion, or the kill switch in Admin -> Content (brief 22).
     if (seen || !motionEnabled()) {
       document.documentElement.removeAttribute("data-bws-arriving");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage and the motion setting are only known in the browser
       setState("gone");
       try {
         sessionStorage.setItem(SESSION_KEY, "1");

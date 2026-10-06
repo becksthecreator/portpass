@@ -451,7 +451,7 @@ export async function listPrivateSessionRequests():Promise<{schemaReady:boolean;
   const names=new Map((profiles??[]).map((row:{id:number;display_name:string})=>[Number(row.id),row.display_name]));
   const paid=new Map<number,number>();
   for(const p of (payments??[]) as Array<{private_session_request_id:number;amount_cents:number}>) paid.set(Number(p.private_session_request_id),(paid.get(Number(p.private_session_request_id))??0)+Number(p.amount_cents));
-  return {schemaReady:true,requests:(requests??[]).map((row:any)=>({...row,paid_cents:paid.get(Number(row.id))??0,preferred_coach_name:row.preferred_coach_id?names.get(Number(row.preferred_coach_id))??null:null,assigned_coach_name:row.assigned_coach_id?names.get(Number(row.assigned_coach_id))??null:null})) as PrivateSessionRequest[]};
+  return {schemaReady:true,requests:(requests??[]).map((row:Omit<PrivateSessionRequest,"paid_cents"|"preferred_coach_name"|"assigned_coach_name">)=>({...row,paid_cents:paid.get(Number(row.id))??0,preferred_coach_name:row.preferred_coach_id?names.get(Number(row.preferred_coach_id))??null:null,assigned_coach_name:row.assigned_coach_id?names.get(Number(row.assigned_coach_id))??null:null})) as PrivateSessionRequest[]};
 }
 
 // Coach side (brief 06 v2, Part B): "every Wednesday, 4-4:45 pm, for 6

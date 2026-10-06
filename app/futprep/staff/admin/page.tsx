@@ -44,7 +44,7 @@ export default async function FutprepStaffAdminPage() {
           <p>Send parents the registration link, confirm children, and keep payment status current. Coaches see those updates automatically in their own areas.</p>
         </div>
         <MoneySummary summary={moneySummary} />
-        <p className="coach-export"><a className="secondary-button" href="/futprep/staff/import">Import families from TeamSnap →</a></p>
+        <p className="coach-export"><Link className="secondary-button" href="/futprep/staff/import">Import families from TeamSnap →</Link></p>
         {/* The list never shows a child's health details (the detail page
             loads them one child at a time), so they are not sent to the
             browser with it. */}
