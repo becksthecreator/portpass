@@ -15,7 +15,9 @@ PortPass holds children's registrations, families' contact details and businesse
 | `access-control.md` | Roles, what each may do, the joiner and leaver checklist | Antonio | Quarterly |
 | `restore-drill.md` | How a backup is restored, and the last drill's time | Antonio | After every drill (at least twice a year) |
 
-Review dates are kept in each file's own header once it exists; the first review of each is due three months after it lands.
+Review dates are kept in each file's own header; the first review of each is due three months after it landed (6 Oct 2026 for all of them, so 6 January 2027, except `incident-response.md`, which is twice a year: 6 April 2027).
+
+The live site publishes `/.well-known/security.txt` (RFC 9116: a contact for anyone who finds a problem, an expiry under a year away, and a link to this file), made by `lib/securityTxt.ts`. A business can have everything PortPass holds for it as one file: Admin → Businesses → **Export data** (`db/businessExport.ts`; a signed link that works for 24 hours, logged as `business.exported`; children's health details are never in it).
 
 ## Who may do what
 
