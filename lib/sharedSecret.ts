@@ -1,11 +1,13 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
 // A shared secret in an Authorization header, as Vercel Cron and the backup
-// machine send theirs: "Authorization: Bearer <secret>". Nothing here logs
-// or returns the secret or what was given.
+// machine send theirs: "Authorization: Bearer <secret>". Anything else in
+// the header (no scheme, another scheme, two tokens) is no token at all.
+// Nothing here logs or returns the secret or what was given.
 
 export function bearerToken(request: Request): string {
-  return (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const match = /^Bearer\s+(\S+)\s*$/i.exec(request.headers.get("authorization") ?? "");
+  return match ? match[1] : "";
 }
 
 const digest = (value: string) => createHash("sha256").update(value).digest();
