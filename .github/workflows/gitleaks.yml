@@ -62,8 +62,16 @@ jobs:
           name: gitleaks-report
           path: gitleaks-report.json
           if-no-files-found: ignore
-      - name: Fail when something was found
-        if: steps.scan.outputs.status == '2'
+      # Brief 24, part B: any exit but 0 fails the job. 2 is "something was
+      # found" (--exit-code 2 above); anything else means the scan did not
+      # complete (a missing binary, a bad config, a crash), which is not a
+      # pass either.
+      - name: Fail on any non-zero exit
+        if: steps.scan.outputs.status != '0'
         run: |
-          echo "::error::gitleaks found something that looks like a secret. Read the report above; if it is a TEST value, allow it in .gitleaks.toml with the reason."
+          if [ "${{ steps.scan.outputs.status }}" = "2" ]; then
+            echo "::error::gitleaks found something that looks like a secret (exit 2). Read the report above; if it is a TEST value, allow it in .gitleaks.toml with the reason."
+          else
+            echo "::error::gitleaks did not complete (exit ${{ steps.scan.outputs.status }}), so this scan is not a pass. Read the log above."
+          fi
           exit 1
