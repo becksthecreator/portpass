@@ -40,4 +40,4 @@ The first run of the Secrets scan workflow on `main` is the one-time scan of the
 
 ## Adding a dependency
 
-No machine here runs Node, so `package-lock.json` is written by the **Lockfile** workflow: push a branch named `chore/lockfile-<name>` with the `package.json` change, download the `lockfile` artifact from the run, and commit both files on the feature branch. `npm ci` in CI then installs exactly that.
+`package-lock.json` is committed (Brief 24, part C) and every CI job installs with `npm ci`, so a job builds exactly the versions written in it and fails if `package.json` and the lockfile disagree; Vercel does the same once it sees the lockfile. No machine here runs Node, so the file is written by the **Lockfile** workflow: push a branch named `chore/lockfile-<name>` with the `package.json` change, download the `lockfile` artifact from the run, and commit both files on the feature branch. Dependabot updates both files in its PRs.
