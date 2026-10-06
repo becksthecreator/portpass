@@ -18,7 +18,14 @@ function storedSnippets(): Record<WeddingWireWidget, string> {
   return { rating: column("rating_badge_html"), award: column("award_badge_html"), reviews: column("reviews_widget_html") };
 }
 
-const scripts = (html: string) => [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)].map((m) => ({ attributes: m[1], body: m[2] }));
+// Every <script> in a snippet, in any case and with any closing tag; a
+// "<script" opening that this did not read fails the test, so none can
+// slip past the checks below.
+const scripts = (html: string) => {
+  const found = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script[^>]*>/gi)].map((m) => ({ attributes: m[1], body: m[2] }));
+  expect(found).toHaveLength((html.match(/<script\b/gi) ?? []).length);
+  return found;
+};
 
 describe("the WeddingWire snippets", () => {
   it("are, for Antonio's member ID, exactly the embed code the page rendered before", () => {
