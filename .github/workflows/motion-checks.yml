@@ -46,7 +46,7 @@ jobs:
           node-version: "22"
       - name: Install dependencies
         run: npm install
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
       - name: Start local Supabase
