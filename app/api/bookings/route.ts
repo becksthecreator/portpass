@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { createBooking, getBookableOffering } from "@/db/bookingRequests";
 import { listOwnerEmails } from "@/db/business";
 import { getPaymentSettings } from "@/db/paymentRequests";
@@ -26,8 +27,13 @@ const perEmail = createRateLimiter(5, 10 * 60_000);
 
 const refuse = (error: string, status = 400, field?: string) => NextResponse.json(field ? { error, field } : { error }, { status });
 
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["organizationSlug", "offeringSlug", "requestedDate", "requestedTime", "durationOrQty", "locationText", "notes", "customerName", "customerPhone", "customerEmail", "childFirstName", "guardianConfirmed", "attribution"]);
+
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const read = await readJson(request, Body);
+  if (!read.ok) return read.response;
+  const body: Record<string, unknown> | null = read.value;
   if (!body) return refuse("Invalid request.");
 
   const typedEmail = typeof body.customerEmail === "string" ? body.customerEmail.trim().toLowerCase().slice(0, 254) : "";

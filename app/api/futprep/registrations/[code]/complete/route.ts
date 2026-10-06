@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { completeFutprepRegistration, getFutprepPendingRegistration } from "@/db/registrations";
 import { normalizePhoneE164 } from "@/lib/phone";
 
@@ -40,6 +41,9 @@ export async function GET(request: Request, context: { params: Promise<{ code: s
   return NextResponse.json({ registration });
 }
 
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["childDob", "gender", "relationship", "parentName", "parentEmail", "parentPhone", "emergencyContactName", "emergencyContactPhone", "authorizedPickup", "allergies", "medicalConditions", "medications", "specialNeeds", "photoConsent", "paymentFrequency", "paymentMethod", "signatureName", "consentAccepted"]);
+
 export async function POST(request: Request, context: { params: Promise<{ code: string }> }) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   if (rateLimited(ip)) {
@@ -47,7 +51,9 @@ export async function POST(request: Request, context: { params: Promise<{ code: 
   }
 
   const { code } = await context.params;
-  const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  const read = await readJson(request, Body);
+  if (!read.ok) return read.response;
+  const body: Record<string, unknown> | null = read.value;
   if (!body) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
 
   const childDob = clean(body, "childDob");

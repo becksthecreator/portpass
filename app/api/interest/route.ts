@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { createInterestSubmission } from "@/db/interest";
 import { isInterestCategory } from "@/lib/interestCategories";
 
@@ -30,13 +31,18 @@ function utmRecord(value: unknown): Record<string, string> {
   return out;
 }
 
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["category", "name", "email", "phone", "note", "utm"]);
+
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   if (rateLimited(ip)) {
     return NextResponse.json({ error: "Too many attempts. Try again in a minute." }, { status: 429 });
   }
 
-  const body = await request.json().catch(() => null);
+  const read = await readJson(request, Body);
+  if (!read.ok) return read.response;
+  const body: Record<string, unknown> | null = read.value;
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }

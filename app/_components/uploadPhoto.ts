@@ -38,7 +38,7 @@ async function send<T>(endpoint: string, body: FormData): Promise<{ ok: boolean;
   return { ok: response.ok, status: response.status, data };
 }
 
-const TOO_BIG = "That photo is over 24 MB. Try a smaller one.";
+const TOO_BIG = "That photo is over 10 MB. Try a smaller one.";
 
 export async function uploadImage<T>(endpoint: string, kind: "logo" | "photo", file: File, onProgress: Progress = () => undefined): Promise<T> {
   // A small file goes as it is; a logo keeps its transparency.

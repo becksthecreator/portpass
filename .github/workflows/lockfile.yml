@@ -1,0 +1,34 @@
+name: Lockfile (add a dependency)
+
+# No Node is installed on the founders' machines, so a dependency is added
+# here: push a branch named chore/lockfile-<name> with the package.json
+# change, and this job writes the matching package-lock.json and uploads
+# both as an artifact to commit. It never pushes (workflow permissions are
+# read-only) and never runs install scripts.
+on:
+  push:
+    branches: ["chore/lockfile-*"]
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Write package-lock.json for the current package.json
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Show what changed
+        run: git --no-pager diff --stat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lockfile
+          path: |
+            package.json
+            package-lock.json
+          if-no-files-found: error

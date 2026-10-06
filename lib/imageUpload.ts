@@ -63,9 +63,10 @@ export function sniffUpload(bytes: Uint8Array): UploadKind | null {
 export const UPLOAD_CHUNK_BYTES = 3 * 1024 * 1024;
 // One request carries a whole photo up to this size.
 export const SINGLE_UPLOAD_BYTES = 3_500_000;
-export const MAX_UPLOAD_CHUNKS = 8;
-// 24 MB: twice the largest photo a current phone saves.
-export const MAX_ORIGINAL_BYTES = UPLOAD_CHUNK_BYTES * MAX_UPLOAD_CHUNKS;
+export const MAX_UPLOAD_CHUNKS = 4;
+// 10 MB (Brief 21, part E): the largest photo a current phone saves; the
+// browser shrinks what it can before sending, so almost nothing reaches this.
+export const MAX_ORIGINAL_BYTES = 10 * 1024 * 1024;
 // Where the pieces wait: a private bucket only the server can read.
 export const INCOMING_BUCKET = "org-uploads";
 

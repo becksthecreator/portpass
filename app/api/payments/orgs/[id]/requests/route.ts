@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { getBooking, linkBookingPaymentRequest } from "@/db/bookingRequests";
 import { createPaymentRequest, getPaymentSettings } from "@/db/paymentRequests";
 import { orgIdFrom, paymentRouteError, paymentsApiAccess } from "@/lib/paymentRequests/access";
@@ -10,11 +11,16 @@ type Ctx = { params: Promise<{ id: string }> };
 // New request (brief 17, §2). Saved as a draft: nothing reaches the
 // customer until a person presses WhatsApp, Send by email, Copy link or
 // Handed over on the next screen.
+// Per address, per server instance (Brief 21, part E): a stuck button or a
+// script cannot hammer this.
+const limited = createRateLimiter(30, 10 * 60_000);
+
 export async function POST(request: Request, ctx: Ctx) {
   const orgId = await orgIdFrom(ctx);
   if (!orgId) return NextResponse.json({ error: "Not found." }, { status: 404 });
   const auth = await paymentsApiAccess(orgId);
   if (!auth.ok) return auth.response;
+  if (limited(`${orgId}:${clientIp(request)}`)) return NextResponse.json({ error: "Too many payment requests in a short time. Wait a few minutes." }, { status: 429 });
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: "Invalid request." }, { status: 400 });

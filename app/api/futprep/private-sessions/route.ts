@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { createPrivateSessionRequest } from "@/db/coaches";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 
 // @public-route: parents request a private session or party here.
 const limited = createRateLimiter(8, 10 * 60_000);
 
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["requestType", "serviceSlug", "childrenCount", "preferredCoachId", "availabilityId", "parentName", "parentEmail", "parentPhone", "childName", "childAge", "requestedDate", "requestedStartTime", "durationMinutes", "locationPreference", "sessionGoal", "notes"]);
+
 export async function POST(request:Request){
   if(limited(clientIp(request))) return NextResponse.json({error:"Too many requests. Try again in a few minutes."},{status:429});
-  const body=await request.json().catch(()=>({})) as Record<string,unknown>;
+  const read=await readJson(request,Body);
+  if(!read.ok) return read.response;
+  const body:Record<string,unknown>=read.value;
   const requestType=body.requestType==="birthday"?"birthday":"private_lesson";
   const parentName=String(body.parentName??"").trim().slice(0,120);
   const parentEmail=String(body.parentEmail??"").trim().slice(0,180);

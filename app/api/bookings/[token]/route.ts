@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { cancelBookingByCustomer, getBookingBusiness, isBookingToken } from "@/db/bookingRequests";
 import { listOwnerEmails } from "@/db/business";
 import { afterResponse } from "@/lib/afterResponse";
@@ -14,11 +15,16 @@ const limited = createRateLimiter(6, 10 * 60_000);
 // The customer cancels a booking request the business hasn't answered yet
 // (brief 19, A5). After that the page offers the business's contact
 // details instead. The business's owners are told by email.
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["action"]);
+
 export async function POST(request: Request, ctx: Ctx) {
   const { token } = await ctx.params;
   if (!isBookingToken(token)) return NextResponse.json({ error: "This link isn't valid." }, { status: 404 });
   if (limited(`${clientIp(request)}|${token}`)) return NextResponse.json({ error: "Too many tries. Wait a few minutes and try again." }, { status: 429 });
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const read = await readJson(request, Body);
+  if (!read.ok) return read.response;
+  const body: Record<string, unknown> = read.value;
   if (body.action !== "cancel") return NextResponse.json({ error: "Invalid request." }, { status: 400 });
 
   try {

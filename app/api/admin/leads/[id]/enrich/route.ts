@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { listSections } from "@/db/categories";
 import { getLead, recordLookup, saveLeadEnrichment, sectionsWeAreFilling } from "@/db/leads";
 import { requireAdminApi } from "@/lib/auth/admin";
@@ -15,9 +16,14 @@ type Ctx = { params: Promise<{ id: string }> };
 // booking or availability (lib/scout/enrich.ts). The result is stored with when it was
 // generated and from which pages, so a founder can check it. Nothing is
 // sent to the business.
-export async function POST(_request: Request, ctx: Ctx) {
+// Per address, per server instance (Brief 21, part E): a stuck button or a
+// script cannot hammer this.
+const limited = createRateLimiter(60, 10 * 60_000);
+
+export async function POST(request: Request, ctx: Ctx) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
+  if (limited(clientIp(request))) return NextResponse.json({ error: "Too many lookups in a short time. Wait a few minutes." }, { status: 429 });
   const id = Number((await ctx.params).id);
   if (!Number.isInteger(id) || id <= 0) return NextResponse.json({ error: "Not found." }, { status: 404 });
   if (!enrichmentConfigured()) return NextResponse.json({ error: "The AI step isn't set up yet (ANTHROPIC_API_KEY)." }, { status: 503 });

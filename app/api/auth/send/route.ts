@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { createAuthClient } from "@/lib/auth/server";
 import { clientIp, createRateLimiterWithRetry } from "@/lib/auth/rateLimit";
 import { appLimitFailure, supabaseSendFailure, type SendFailure } from "@/lib/auth/sendErrors";
@@ -29,12 +30,17 @@ function fail(f: SendFailure, reason: string) {
 // account and links to sign-up instead. What they typed at sign-up (name,
 // phone, business intent) rides along as user_metadata and is read back
 // once the code is verified (lib/auth/bootstrap.ts).
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["email", "mode", "intent", "fullName", "phone", "source", "businessName", "section"]);
+
 export async function POST(request: Request) {
   const ip = clientIp(request);
   const ipHit = ipLimit(ip);
   if (ipHit.limited) return fail(appLimitFailure("ip", ipHit.retryAfter), "ip_limit");
 
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const read = await readJson(request, Body);
+  if (!read.ok) return read.response;
+  const body: Record<string, unknown> | null = read.value;
   if (!body) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
 
   const email = str(body, "email", 254).toLowerCase();

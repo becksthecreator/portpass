@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { getProgramAudience, getRegistrationBusiness } from "@/db/registrationBusiness";
 import { createFutprepRegistration, type FutprepRegistrationInput } from "@/db/registrations";
 import { afterResponse } from "@/lib/afterResponse";
@@ -46,10 +47,15 @@ function phone(body: Record<string, unknown>, field: string): string {
 
 const refuse = (error: string, status = 400) => NextResponse.json({ error }, { status });
 
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["parentName", "parentEmail", "parentPhone", "relationship", "childName", "childDob", "gender", "authorizedPickup", "emergencyContactName", "emergencyContactPhone", "allergies", "medicalConditions", "medications", "specialNeeds", "additionalNotes", "offerKey", "participant", "paymentFrequency", "paymentMethod", "photoConsent", "signatureName", "consentAccepted", "heardAboutUs", "referralCode", "organizationSlug", "programSlug", "termId", "participantIsAdult", "mode", "utmSource", "utmMedium", "utmCampaign", "referrerHost", "viaPortpass"]);
+
 export async function POST(request: Request) {
   let body: Record<string, unknown>;
   try {
-    body = (await request.json()) as Record<string, unknown>;
+    const read = await readJson(request, Body);
+    if (!read.ok) return read.response;
+    body = read.value;
   } catch {
     return refuse("Invalid request.");
   }

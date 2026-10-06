@@ -31,9 +31,16 @@ beforeEach(() => {
 
 describe("POST /api/events", () => {
   it("records a view of a public page with how the visitor arrived, and nothing else", async () => {
-    const response = await send({ path: "/sports-fitness/futprep-athletics?utm_source=portpass", event: "view", name: "TEST Parent", email: "test@test.portpass.local" }, { cookie: attribution({ s: "portpass", m: "qr" }) });
+    const response = await send({ path: "/sports-fitness/futprep-athletics?utm_source=portpass", event: "view" }, { cookie: attribution({ s: "portpass", m: "qr" }) });
     expect(response.status).toBe(204);
     expect(saved.events).toEqual([{ organizationId: 7, path: "/sports-fitness/futprep-athletics", event: "view", sourceChannel: "qr" }]);
+  });
+
+  it("refuses a beacon carrying anything but the path and the event, and records nothing (Brief 21, part E)", async () => {
+    const response = await send({ path: "/sports-fitness/futprep-athletics", event: "view", name: "TEST Parent", email: "test@test.portpass.local" });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Invalid request.", unknownFields: ["email", "name"] });
+    expect(saved.events).toEqual([]);
   });
 
   it("records a tap with no cookie as an unknown source", async () => {

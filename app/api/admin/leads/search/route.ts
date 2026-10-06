@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { existingForPlaces, lookupUsage, PLACES_DAILY_CAP, recordLookup } from "@/db/leads";
 import { requireAdminApi } from "@/lib/auth/admin";
 import { PLACES_SEARCH_COST_MILLICENTS, placesConfigured, searchPlaces } from "@/lib/scout/places";
@@ -7,9 +8,14 @@ import { PLACES_SEARCH_COST_MILLICENTS, placesConfigured, searchPlaces } from "@
 // Official API only. Capped at 200 searches a day (a Nassau day); every
 // search is counted so the spend can be shown. Results are shown, not saved: a founder keeps
 // the ones worth keeping.
+// Per address, per server instance (Brief 21, part E): a stuck button or a
+// script cannot hammer this.
+const limited = createRateLimiter(30, 10 * 60_000);
+
 export async function POST(request: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
+  if (limited(clientIp(request))) return NextResponse.json({ error: "Too many searches in a short time. Wait a few minutes." }, { status: 429 });
 
   if (!placesConfigured()) return NextResponse.json({ error: "Google Places isn't set up yet (GOOGLE_PLACES_API_KEY)." }, { status: 503 });
   const body = (await request.json().catch(() => null)) as { query?: unknown } | null;

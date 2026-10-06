@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { bodyOf, readJson } from "@/lib/api/body";
 import { createReservation, getPublicDrop } from "@/db/shop";
 import { parseAttributionCookie, shopAttributionCookie } from "@/lib/attribution";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
@@ -20,9 +21,14 @@ function str(value: unknown, max: number): string {
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+// The fields this route reads, and no others (lib/api/body.ts).
+const Body = bodyOf(["org", "drop", "key", "items", "buyerName", "buyerPhone", "buyerEmail", "fulfilment", "zone", "deliveryNote", "paymentMethod"]);
+
 export async function POST(request: NextRequest) {
   if (limited(clientIp(request))) return NextResponse.json({ error: "Too many attempts. Try again in a minute." }, { status: 429 });
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const read = await readJson(request, Body);
+  if (!read.ok) return read.response;
+  const body: Record<string, unknown> | null = read.value;
   if (!body) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
 
   const orgSlug = str(body.org, 80);
