@@ -20,6 +20,14 @@ updates:
       everything-else:
         patterns: ["*"]
         exclude-patterns: ["next", "react", "react-dom", "eslint-config-next", "@types/react", "@types/react-dom"]
+    # Held back (docs/security/dependencies.md): eslint-config-next's plugins
+    # stop on ESLint 10, and typescript-eslint refuses TypeScript 7. Delete
+    # these once they accept them.
+    ignore:
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "deps"
   - package-ecosystem: "github-actions"
