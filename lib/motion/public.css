@@ -45,6 +45,11 @@
    changes) and a 1 px --line rule fades in under it. The border the
    header already has keeps its space and goes transparent, so there is no
    jump either way. Anchors scroll to just under it. */
+/* The home theme wrapper clipped sideways overflow with overflow-x:hidden,
+   which makes the wrapper a scroll container and pins a sticky header to
+   it instead of to the screen; clip crops the same overflow without that
+   (globals.css does the same on html). */
+.home-theme{overflow-x:clip}
 .home-theme .site-shell-header{position:sticky;top:0;border-bottom-color:transparent}
 .home-theme .site-shell-header::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--line);opacity:0;transition:opacity var(--dur-base) var(--ease-in-out)}
 .home-theme .site-shell-header[data-condensed]::after{opacity:1}
