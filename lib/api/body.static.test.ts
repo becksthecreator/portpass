@@ -93,7 +93,6 @@ const STILL_READS_JSON_ITSELF = new Set<string>([
   "app/api/payments/orgs/[id]/team/route.ts",
   "app/api/weddings/admin/accounts/route.ts",
   "app/api/weddings/admin/availability/route.ts",
-  "app/api/weddings/admin/content/route.ts",
   "app/api/weddings/admin/gallery/route.ts",
   "app/api/weddings/admin/leads/[id]/complete/route.ts",
   "app/api/weddings/admin/leads/[id]/notes/route.ts",

@@ -1,0 +1,145 @@
+name: Wedding page screenshots (TEST data)
+
+# Bahamas Weddings By The Sea's page and the Wedding Desk's content screen
+# at 375px, before and after the WeddingWire widgets became a member ID and
+# three switches (security review of PR #183). The job runs the site on
+# this machine against a throwaway local Supabase stack, never the real
+# database, in the order the change reaches production:
+#   1. main's code on the database as it is live today (the new migration
+#      held back),
+#   2. main's code once migration 202610190002 is applied, as production
+#      runs between applying it and merging,
+#   3. this branch's code.
+# scripts/screenshots/compare-weddings.mjs then checks the page sends and
+# injects exactly the same thing in all three, and the screenshots are saved
+# as the weddings-screenshots artifact. The Desk sign-in uses a TEST account
+# whose PIN is generated for this run only (masked, never printed). Not a
+# required check.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/weddings/bahamas-weddings-by-the-sea/**"
+      - "app/weddings/admin/content/**"
+      - "app/api/weddings/admin/content/**"
+      - "app/_components/blocks/ExternalWidget.tsx"
+      - "app/_components/blocks/ReviewsPanel.tsx"
+      - "app/_components/blocks/ProofBlock.tsx"
+      - "lib/weddingWire.ts"
+      - "lib/weddingSiteContent.ts"
+      - "db/weddingSite.ts"
+      - "supabase/migrations/202610190002_weddingwire_widgets_structured.sql"
+      - "scripts/screenshots/*weddings*"
+      - ".github/workflows/weddings-screenshots.yml"
+
+concurrency:
+  group: weddings-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      MIGRATION: supabase/migrations/202610190002_weddingwire_widgets_structured.sql
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm ci
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v1
+        with:
+          version: latest
+      - name: Hold the new migration back
+        # So the stack starts as the live database is today.
+        run: mv "$MIGRATION" "$RUNNER_TEMP/"
+      - name: Start local Supabase
+        # The Supabase CLI pulls its images from public.ecr.aws, which at times
+        # rate-limits GitHub's runners ("toomanyrequests"). When that happens
+        # the same images are pulled from GitHub's own registry instead.
+        run: |
+          supabase start || {
+            echo "The default image registry refused the pull; trying ghcr.io."
+            supabase stop --no-backup || true
+            SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io supabase start
+          }
+      - name: Export local Supabase credentials
+        run: |
+          supabase status -o env > supabase-status.env
+          API_URL=$(grep -E '^(API_URL|SUPABASE_URL)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          SERVICE_ROLE_KEY=$(grep -E '^(SERVICE_ROLE_KEY|SUPABASE_SERVICE_ROLE_KEY|SECRET_KEY|SUPABASE_SECRET_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          ANON_KEY=$(grep -E '^(ANON_KEY|SUPABASE_ANON_KEY|PUBLISHABLE_KEY|SUPABASE_PUBLISHABLE_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          PIN=$(shuf -i 10000000-99999999 -n 1)
+          echo "::add-mask::$PIN"
+          echo "SCREENSHOT_PIN=$PIN" >> "$GITHUB_ENV"
+          rm supabase-status.env
+      - name: Seed test data
+        run: |
+          npx tsx scripts/seed-test-data.ts
+          npx tsx scripts/screenshots/seed-weddings-fixture.ts
+      - name: Install Playwright (Chromium)
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Check out main beside this branch
+        run: |
+          git worktree add "$RUNNER_TEMP/main" origin/main
+          cd "$RUNNER_TEMP/main" && npm ci
+      # Each run builds first, so the page is rendered from the database as
+      # it is at that point, and stops its server before the next.
+      - name: "1 of 3: main's code, the database as it is today"
+        run: |
+          cd "$RUNNER_TEMP/main"
+          npx next build --webpack || npx next build --webpack
+          ./node_modules/.bin/next start -p 3000 > "$RUNNER_TEMP/next-before.log" 2>&1 &
+          SERVER=$!
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/weddings/bahamas-weddings-by-the-sea > /dev/null && break; sleep 2; done
+          cd "$GITHUB_WORKSPACE"
+          SCREENSHOT_PHASE=before node scripts/screenshots/capture-weddings.mjs
+          kill "$SERVER"; for i in $(seq 1 30); do curl -s http://localhost:3000 > /dev/null || break; sleep 1; done
+      - name: Apply 202610190002 to the stack
+        run: |
+          mv "$RUNNER_TEMP/$(basename "$MIGRATION")" "$MIGRATION"
+          supabase migration up
+      - name: "2 of 3: main's code after the migration"
+        run: |
+          cd "$RUNNER_TEMP/main"
+          npx next build --webpack || npx next build --webpack
+          ./node_modules/.bin/next start -p 3000 > "$RUNNER_TEMP/next-window.log" 2>&1 &
+          SERVER=$!
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/weddings/bahamas-weddings-by-the-sea > /dev/null && break; sleep 2; done
+          cd "$GITHUB_WORKSPACE"
+          SCREENSHOT_PHASE=window node scripts/screenshots/capture-weddings.mjs
+          kill "$SERVER"; for i in $(seq 1 30); do curl -s http://localhost:3000 > /dev/null || break; sleep 1; done
+      - name: "3 of 3: this branch"
+        run: |
+          npx next build --webpack || npx next build --webpack
+          ./node_modules/.bin/next start -p 3000 > "$RUNNER_TEMP/next-after.log" 2>&1 &
+          SERVER=$!
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/weddings/bahamas-weddings-by-the-sea > /dev/null && break; sleep 2; done
+          SCREENSHOT_PHASE=after node scripts/screenshots/capture-weddings.mjs
+          kill "$SERVER"
+      - name: Compare the three
+        run: node scripts/screenshots/compare-weddings.mjs
+      - name: Server logs on failure
+        if: failure()
+        run: tail -n 60 "$RUNNER_TEMP"/next-*.log || true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: weddings-screenshots
+          path: screenshots/
+          if-no-files-found: warn
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop

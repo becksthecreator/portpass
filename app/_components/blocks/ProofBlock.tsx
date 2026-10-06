@@ -1,3 +1,4 @@
+import type { WeddingWireSettings } from "@/lib/weddingWire";
 import { ExternalWidget } from "./ExternalWidget";
 
 // Block 2 of 8 -- renders only when at least one value is true. Never
@@ -11,8 +12,9 @@ import { ExternalWidget } from "./ExternalWidget";
 // N of the *same* named award should pass that name N times; this block
 // pluralizes it once, correctly, in one place.
 //
-// ratingBadgeHtml/awardBadgeHtml are optional real third-party widget
-// embeds (e.g. WeddingWire) -- when supplied, each one REPLACES the
+// weddingWire optionally shows the business's real WeddingWire rating and
+// award badges, built from its member ID (lib/weddingWire.ts; no HTML is
+// passed or stored) -- when switched on, each one REPLACES the
 // corresponding hand-entered figure rather than sitting alongside it, so a
 // business's real rating/award badge is never shown next to (and possibly
 // contradicting) a stale manually-entered number for the same fact. Both
@@ -25,8 +27,7 @@ export function ProofBlock({
   awards,
   reviewsUrl,
   reviewsPlatform,
-  ratingBadgeHtml,
-  awardBadgeHtml,
+  weddingWire,
 }: {
   yearsInBusiness: number | null;
   rating: number | null;
@@ -34,9 +35,10 @@ export function ProofBlock({
   awards: string[];
   reviewsUrl?: string | null;
   reviewsPlatform?: string | null;
-  ratingBadgeHtml?: string | null;
-  awardBadgeHtml?: string | null;
+  weddingWire?: WeddingWireSettings | null;
 }) {
+  const ratingBadgeId = weddingWire?.ratingBadge ? weddingWire.memberId : null;
+  const awardBadgeId = weddingWire?.awardBadge ? weddingWire.memberId : null;
   const items: { value: string; label: string; href?: string }[] = [];
   if (yearsInBusiness) items.push({ value: `${yearsInBusiness}+`, label: "Years in business" });
 
@@ -46,7 +48,7 @@ export function ProofBlock({
   // five-star reviews on WeddingWire" is. The label is generated from the
   // same data the hand-entered branch below would have used.
   let ratingBadgeLabel: string | null = null;
-  if (ratingBadgeHtml) {
+  if (ratingBadgeId) {
     const platform = reviewsPlatform ? ` on ${reviewsPlatform}` : "";
     ratingBadgeLabel = reviewCount ? `${reviewCount} five-star reviews${platform}` : reviewsPlatform ? `Reviews on ${reviewsPlatform}` : "Reviews";
   } else if (reviewsUrl && reviewCount) {
@@ -63,7 +65,7 @@ export function ProofBlock({
   }
 
   let awardBadgeLabel: string | null = null;
-  if (awardBadgeHtml) {
+  if (awardBadgeId) {
     const allSameAward = awards.length > 0 && awards.every((award) => award === awards[0]);
     awardBadgeLabel = awards.length === 1 ? awards[0] : awards.length > 1 ? (allSameAward ? `${awards.length} ${awards[0]}s` : "Awards & recognition") : "Awards";
   } else if (awards.length === 1) {
@@ -73,7 +75,7 @@ export function ProofBlock({
     items.push({ value: String(awards.length), label: allSameAward ? `${awards[0]}s` : "Awards & recognition" });
   }
 
-  if (items.length === 0 && !ratingBadgeHtml && !awardBadgeHtml) return null;
+  if (items.length === 0 && !ratingBadgeId && !awardBadgeId) return null;
 
   return (
     <section className="tpl-proof" aria-label="Trust and experience">
@@ -90,15 +92,15 @@ export function ProofBlock({
           </div>
         )
       )}
-      {ratingBadgeHtml && (
+      {ratingBadgeId && (
         <div>
-          <ExternalWidget className="tpl-proof-widget" html={ratingBadgeHtml} />
+          <ExternalWidget className="tpl-proof-widget" widget="rating" memberId={ratingBadgeId} />
           <span>{ratingBadgeLabel}</span>
         </div>
       )}
-      {awardBadgeHtml && (
+      {awardBadgeId && (
         <div>
-          <ExternalWidget className="tpl-proof-widget" html={awardBadgeHtml} />
+          <ExternalWidget className="tpl-proof-widget" widget="award" memberId={awardBadgeId} />
           <span>{awardBadgeLabel}</span>
         </div>
       )}
