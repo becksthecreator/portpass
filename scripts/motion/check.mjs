@@ -91,11 +91,14 @@ const settledWithin = (page, selector, timeout = 2500) =>
   );
 
 // The worst-case contrast of a piece of hero text against what is behind
-// it (WCAG's ratio). The hero's words are hidden, the area under the
-// element photographed, and the 5th percentile of that background (its
-// darkest 5% under dark text, its lightest 5% under light text) compared
-// with the text's colour, an rgba colour blended over that background
-// first. `hide` takes more selectors to leave out of the photograph.
+// it (WCAG's ratio). The hero's letters are made transparent, with their
+// colour's own transition switched off so they are gone at once; anything
+// drawn behind them, such as the lede's paper wash, stays. The area under
+// the element is photographed, and the 5th percentile of that background
+// (its darkest 5% under dark text, its lightest 5% under light text) is
+// compared with the text's colour, an rgba colour blended over that
+// background first. `hide` takes more selectors to leave out of the
+// photograph.
 async function heroTextContrast(page, selector, { hide = [] } = {}) {
   const box = await page.evaluate((sel) => {
     const el = document.querySelector(sel);
@@ -104,7 +107,7 @@ async function heroTextContrast(page, selector, { hide = [] } = {}) {
     return { x: Math.max(0, r.left), y: Math.max(0, r.top), width: r.width, height: r.height, color: getComputedStyle(el).color };
   }, selector);
   if (!box || box.width < 1 || box.height < 1) return null;
-  const tag = await page.addStyleTag({ content: [".pp-hero-centre{visibility:hidden!important}", ...hide.map((s) => `${s}{visibility:hidden!important}`)].join("") });
+  const tag = await page.addStyleTag({ content: [".pp-hero-centre,.pp-hero-centre *{color:transparent!important;text-shadow:none!important;transition:none!important}", ...hide.map((s) => `${s}{visibility:hidden!important}`)].join("") });
   await page.waitForTimeout(80);
   const png = await page.screenshot({ clip: { x: box.x, y: box.y, width: box.width, height: box.height } });
   await tag.evaluate((node) => node.remove());
@@ -444,11 +447,13 @@ try {
   }
 
   // 5. The hero's words against what is behind them, once everything in
-  // the hero that ends has ended (brief 22, M2 step 4: Sun Drift ships only
-  // if the headline's contrast still passes). The headline is large text,
-  // so WCAG AA asks 3:1 of it; the lede is reported against 4.5:1.
-  {
-    const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 1 });
+  // the hero that ends has ended, at 375px and at 1440px. The headline is
+  // large text, so WCAG AA asks 3:1 of it (Sun Drift shipped only because
+  // it still passes, with and without the sun); the lede and the kicker are
+  // body-size text and must reach 4.5:1, with and without the sun.
+  for (const viewport of [PHONE, { width: 1440, height: 900 }]) {
+    const at = `at ${viewport.width}px`;
+    const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
     const page = await context.newPage();
     await page.goto(`${BASE}/`, { waitUntil: "load" });
     await page
@@ -459,13 +464,21 @@ try {
       .catch(() => null);
     await settledWithin(page, ".pp-hero", 4000);
     // The settled frame first, before any pass hides or shows anything.
-    await page.screenshot({ path: `${OUT}/frames/hero-settled-375.png` });
+    await page.screenshot({ path: `${OUT}/frames/hero-settled-${viewport.width}.png` });
+    // The hero's text has a colour transition; while it is measured, every
+    // hide and every restore must be instant, or a later measurement reads
+    // letters still fading back in. Off for the whole section.
+    await page.addStyleTag({ content: ".pp-hero-centre,.pp-hero-centre *{transition:none!important}" });
     const hasSun = await page.evaluate(() => Boolean(document.querySelector(".pp-hero-sun")));
     const headline = await heroTextContrast(page, ".pp-hero h1");
-    const lede = await heroTextContrast(page, ".pp-hero-lede");
     const without = hasSun ? await heroTextContrast(page, ".pp-hero h1", { hide: [".pp-hero-sun"] }) : null;
-    check(headline !== null && headline >= 3, "the hero headline against what is behind it passes WCAG AA for large text (3:1)", `${headline}:1${without !== null ? `; ${without}:1 without the sun` : ""}`);
-    lines.push(`- Hero lede against what is behind it: ${lede}:1 (WCAG AA for body text asks 4.5:1).`);
+    const lede = await heroTextContrast(page, ".pp-hero-lede");
+    const ledeWithout = hasSun ? await heroTextContrast(page, ".pp-hero-lede", { hide: [".pp-hero-sun"] }) : null;
+    const kicker = await heroTextContrast(page, ".pp-hero-kicker");
+    const kickerWithout = hasSun ? await heroTextContrast(page, ".pp-hero-kicker", { hide: [".pp-hero-sun"] }) : null;
+    check(headline !== null && headline >= 3, `the hero headline against what is behind it passes WCAG AA for large text (3:1) ${at}`, `${headline}:1${without !== null ? `; ${without}:1 without the sun` : ""}`);
+    check(lede !== null && lede >= 4.5 && (ledeWithout === null || ledeWithout >= 4.5), `the hero lede against what is behind it passes WCAG AA for body text (4.5:1) ${at}`, `${lede}:1${ledeWithout !== null ? `; ${ledeWithout}:1 without the sun` : ""}`);
+    check(kicker !== null && kicker >= 4.5 && (kickerWithout === null || kickerWithout >= 4.5), `the hero kicker against what is behind it passes WCAG AA for body text (4.5:1) ${at}`, `${kicker}:1${kickerWithout !== null ? `; ${kickerWithout}:1 without the sun` : ""}`);
     await context.close();
   }
 
