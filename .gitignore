@@ -40,3 +40,8 @@ work/
 
 # Session scratch files (never committed)
 /scratchpad/
+
+# Claude Code: CLAUDE.md, .claude/agents and .claude/commands are shared
+# with the repo; a session's worktrees and one person's local settings are not.
+/.claude/worktrees/
+/.claude/settings.local.json
