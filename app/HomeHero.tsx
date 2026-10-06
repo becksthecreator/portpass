@@ -24,6 +24,9 @@ export function HomeHero({ openSentence = "" }: { openSentence?: string }) {
       <div className="pp-hero-frame pp-hero-frame-on" data-frame-world="portpass" aria-hidden="true">
         <Image src="/weddings/bahamas-by-the-sea/hero.jpg" alt="" fill priority sizes="100vw" quality={70} />
       </div>
+      {/* Sun Drift (brief 22, M2 step 4): a glow that rises behind the
+          words once, in CSS (lib/motion/public.css). Decorative. */}
+      <div className="pp-hero-sun" aria-hidden="true" />
       <div className="pp-hero-scrim" />
       <div className="pp-hero-centre">
         <p className="pp-hero-kicker">The Bahamas, one pass at a time</p>

@@ -143,6 +143,11 @@ try {
     check(running === 0, "reduced motion: no animation runs on / after load", `${running} running`);
     const attr = await page.evaluate(() => document.documentElement.getAttribute("data-motion"));
     check(attr === "on" || attr === "off", "the kill switch is on <html>", `data-motion="${attr}"`);
+    const sunAtRest = await page.evaluate(() => {
+      const sun = document.querySelector(".pp-hero-sun");
+      return sun ? getComputedStyle(sun).opacity : null;
+    });
+    if (sunAtRest !== null) check(sunAtRest === "1", "reduced motion: the sun is already up (its final state)", `opacity ${sunAtRest}`);
     await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
     await page.waitForTimeout(600);
     const later = await page.evaluate(() => document.getAnimations().length);
@@ -330,6 +335,33 @@ try {
     check(headline !== null && headline >= 3, "the hero headline against what is behind it passes WCAG AA for large text (3:1)", `${headline}:1${without !== null ? `; ${without}:1 without the sun` : ""}`);
     lines.push(`- Hero lede against what is behind it: ${lede}:1 (WCAG AA for body text asks 4.5:1).`);
     await page.screenshot({ path: `${OUT}/frames/hero-settled-375.png` });
+    await context.close();
+  }
+
+  // 6. Sun Drift (brief 22, M2 step 4): one animation that plays once and
+  // stays risen, nothing that loops; a filmstrip of it at 375px.
+  {
+    const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2 });
+    const page = await context.newPage();
+    const started = Date.now();
+    await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
+    if (await page.$(".pp-hero-sun")) {
+      const runs = await page.evaluate(() =>
+        document
+          .getAnimations()
+          .filter((a) => a.effect && a.effect.target && a.effect.target.classList && a.effect.target.classList.contains("pp-hero-sun"))
+          .map((a) => a.effect.getComputedTiming().iterations),
+      );
+      check(runs.length === 1 && runs[0] === 1, "the sunrise is one animation that plays once", `iterations ${JSON.stringify(runs)}`);
+      for (const t of [200, 600, 1000, 1400, 2000]) {
+        const wait = started + t - Date.now();
+        if (wait > 0) await page.waitForTimeout(wait);
+        await page.screenshot({ path: `${OUT}/frames/sun-${pad(t)}ms-375.png`, clip: { x: 0, y: 0, width: PHONE.width, height: 640 } });
+      }
+      const risen = await settledWithin(page, ".pp-hero-sun", 3000);
+      const opacity = await page.evaluate(() => getComputedStyle(document.querySelector(".pp-hero-sun")).opacity);
+      check(risen && opacity === "1", "the sun is up and still within 3 s of load", `opacity ${opacity}`);
+    }
     await context.close();
   }
 } finally {

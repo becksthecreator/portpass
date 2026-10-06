@@ -8,16 +8,19 @@ Brief 22 (6 Oct 2026). PortPass should feel motion designed: smooth scroll revea
 
 | Token | Value | Used for |
 | --- | --- | --- |
-| `--dur-fast` | 150ms | press feedback, a menu opening |
+| `--dur-step` | 60ms | one step of a stagger: `calc(var(--dur-step) * n)` |
+| `--dur-fast` | 150ms | press feedback, a quick fade |
+| `--dur-menu` | 200ms | a menu or sheet opening |
 | `--dur-base` | 300ms | a card lifting, a chip, a cross-fade between pages |
 | `--dur-slow` | 600ms | a scroll reveal |
 | `--dur-hero` | 900ms | the hero's own entrance |
-| `--dur-menu` | 200ms | a menu or sheet opening |
+| `--dur-sun` | 1600ms | the Sun Drift, once |
+| `--dur-failsafe` | 2.5s | how long a held reveal waits for its script before it shows anyway |
 | `--dur-drift` | 20s | the hero photo's slow drift, the one looping animation |
 | `--ease-out` | `cubic-bezier(.22,1,.36,1)` | arrives and settles: reveals, menus, anything entering |
 | `--ease-in-out` | `cubic-bezier(.65,0,.35,1)` | leaves and returns: a condensing header, a colour ease |
 
-Staggers step 60ms apart and never stagger more than six children.
+Staggers step `--dur-step` apart and never stagger more than six children.
 
 ## The rules
 
@@ -67,6 +70,10 @@ In JavaScript, `motionEnabled()` from `lib/motion/client.ts` answers the first t
 - **The Prow moment** (`ProwMoment.tsx`): once per session on the first load of `/`, a copy of the supplied mark sits over the header logo's mark and its two red stripes slide in behind the hull over `--dur-slow`, then it fades over `--dur-fast`. A layer over one 36px mark, never over content; remembered in `sessionStorage` (inside try/catch) and once per page load whatever storage says, so it never replays on navigation.
 - **The header** (`HeaderMotion.tsx`): sticky on the home theme. Past 24px of scroll it gets `data-condensed`: the logo scales from 36 to 30px by a transform (so the row's height never changes) and a 1px `--line` rule fades in under it. Anchors scroll to just under it (`scroll-margin-top`).
 - **The category menu**: on the home theme and the directory pages, the desktop panel opens with a `--dur-menu` fade and an 8px rise, and the phone's Browse sheet uses the same tokens; a business's own page keeps its header still.
+
+### Sun Drift (M2 step 4, tested before it shipped)
+
+Once per page view a soft glow, white at its heart and the perks' flag gold at its edge, rises behind the hero's words over `--dur-sun` (1.6s), by transform and opacity, and stays. It is one radial gradient between the photo and the scrim: no clouds, no waves, nothing that loops (the photo's drift stays the one loop on screen). Its resting state is the risen sun, so reduced motion, the kill switch and a page without script show it already up. It went in only after the motion check measured `/` both ways on the same runner: Lighthouse mobile on the branch's build without the sun, then with it, and the headline's contrast over the photo with and without it (the numbers are in the PR that added it).
 
 ## Adding an effect
 
