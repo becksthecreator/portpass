@@ -1,15 +1,13 @@
 import { bumpListings } from "@/lib/revalidate";
+import { isWeddingWireMemberId, NO_WEDDINGWIRE } from "@/lib/weddingWire";
+import { siteContentChanges, type SiteContent } from "@/lib/weddingSiteContent";
+import { logAudit } from "./audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
-export type WeddingSiteSettings = {
-  reviewCount: number;
-  reviewRecommendPct: number;
-  yearsExperience: number;
-  awardYears: number[];
-  reviewsWidgetHtml: string | null;
-  ratingBadgeHtml: string | null;
-  awardBadgeHtml: string | null;
-};
+// The trust numbers and the WeddingWire widgets. The widgets are a member
+// ID and which ones to show, never HTML: lib/weddingWire.ts builds each one
+// (supabase/migrations/202610190002).
+export type WeddingSiteSettings = SiteContent;
 
 // Exported so a caller that can't afford to have this fetch throw (e.g. a
 // category page, where these numbers are decoration, not content) has a
@@ -19,16 +17,14 @@ export const DEFAULT_SETTINGS: WeddingSiteSettings = {
   reviewRecommendPct: 100,
   yearsExperience: 26,
   awardYears: [2026, 2023, 2022, 2021, 2020, 2019],
-  reviewsWidgetHtml: null,
-  ratingBadgeHtml: null,
-  awardBadgeHtml: null,
+  weddingWire: NO_WEDDINGWIRE,
 };
 
 export async function getWeddingSiteSettings(): Promise<WeddingSiteSettings> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("wedding_site_settings")
-    .select("review_count,review_recommend_pct,years_experience,award_years,reviews_widget_html,rating_badge_html,award_badge_html")
+    .select("review_count,review_recommend_pct,years_experience,award_years,weddingwire_member_id,show_rating_badge,show_award_badge,show_reviews_widget")
     .eq("id", 1)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load wedding site settings");
@@ -38,23 +34,35 @@ export async function getWeddingSiteSettings(): Promise<WeddingSiteSettings> {
     reviewRecommendPct: Number(data.review_recommend_pct),
     yearsExperience: Number(data.years_experience),
     awardYears: Array.isArray(data.award_years) ? data.award_years.filter((v): v is number => typeof v === "number") : [],
-    reviewsWidgetHtml: data.reviews_widget_html,
-    ratingBadgeHtml: (data.rating_badge_html as string | null) ?? null,
-    awardBadgeHtml: (data.award_badge_html as string | null) ?? null,
+    weddingWire: {
+      memberId: isWeddingWireMemberId(data.weddingwire_member_id) ? data.weddingwire_member_id : null,
+      ratingBadge: data.show_rating_badge === true,
+      awardBadge: data.show_award_badge === true,
+      reviews: data.show_reviews_widget === true,
+    },
   };
 }
 
-export type WeddingSiteSettingsInput = {
-  reviewCount: number;
-  reviewRecommendPct: number;
-  yearsExperience: number;
-  awardYears: number[];
-  reviewsWidgetHtml: string | null;
-  ratingBadgeHtml: string | null;
-  awardBadgeHtml: string | null;
-};
+export type WeddingSiteSettingsInput = WeddingSiteSettings;
 
-export async function updateWeddingSiteSettings(input: WeddingSiteSettingsInput): Promise<void> {
+async function weddingOrganizationId(): Promise<number | null> {
+  const { data, error } = await getSupabaseAdmin().from("organizations").select("id").eq("slug", "bahamas-weddings").maybeSingle();
+  throwIfSupabaseError(error, "Could not find Bahamas Weddings By The Sea");
+  return data ? Number(data.id) : null;
+}
+
+// Saves the content and records what changed, and which Desk account
+// changed it (`actor`), in the audit log. The entry is written after the
+// update, as for the other audited actions: if it can't be written the save
+// is answered as failed, though the change itself stands. The member ID is
+// checked here as well as in the route, and the database holds the same
+// rule.
+export async function updateWeddingSiteSettings(input: WeddingSiteSettingsInput, actor: string): Promise<void> {
+  const { memberId, ratingBadge, awardBadge, reviews } = input.weddingWire;
+  if (memberId !== null && !isWeddingWireMemberId(memberId)) throw new Error("INVALID_MEMBER_ID");
+  if (memberId === null && (ratingBadge || awardBadge || reviews)) throw new Error("MEMBER_ID_REQUIRED");
+
+  const before = await getWeddingSiteSettings();
   const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from("wedding_site_settings")
@@ -63,14 +71,25 @@ export async function updateWeddingSiteSettings(input: WeddingSiteSettingsInput)
       review_recommend_pct: input.reviewRecommendPct,
       years_experience: input.yearsExperience,
       award_years: input.awardYears,
-      reviews_widget_html: input.reviewsWidgetHtml?.trim() || null,
-      rating_badge_html: input.ratingBadgeHtml?.trim() || null,
-      award_badge_html: input.awardBadgeHtml?.trim() || null,
+      weddingwire_member_id: memberId,
+      show_rating_badge: ratingBadge,
+      show_award_badge: awardBadge,
+      show_reviews_widget: reviews,
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1);
   throwIfSupabaseError(error, "Could not update wedding site settings");
   bumpListings();
+
+  const changes = siteContentChanges(before, input);
+  await logAudit({
+    organizationId: await weddingOrganizationId(),
+    action: "wedding_site.updated",
+    targetTable: "wedding_site_settings",
+    targetId: 1,
+    before: changes.before,
+    after: { ...changes.after, by: actor },
+  });
 }
 
 export type WeddingGalleryImage = {
