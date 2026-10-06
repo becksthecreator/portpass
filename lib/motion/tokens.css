@@ -1,8 +1,8 @@
 /* Motion tokens (brief 22, M1). Every animation and transition on the
    public site takes its time and its curve from here; none writes a number
-   of its own. Four durations, two curves:
+   of its own. Six durations, two curves:
 
-     --dur-fast   press feedback, a menu opening
+     --dur-fast   press feedback, a quick fade (the Prow moment leaving)
      --dur-base   a card lifting, a chip, a cross-fade between pages
      --dur-slow   a scroll reveal
      --dur-hero   the hero's own entrance

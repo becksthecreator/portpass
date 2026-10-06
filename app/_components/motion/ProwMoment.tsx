@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type AnimationEvent } from "react";
 import { createPortal } from "react-dom";
 import { motionEnabled } from "@/lib/motion/client";
 
@@ -15,13 +15,12 @@ import { motionEnabled } from "@/lib/motion/client";
 // The markup is the supplied file public/brand/logo/portpass-mark-light.svg
 // as delivered, with one extra group around the stripes to carry the
 // slide (the clip stays on the outer group, so the hull always clips
-// them). Nothing is redrawn and no colour is changed.
+// them). Nothing is redrawn and no colour is changed. The timing is all in
+// lib/motion/public.css; the overlay leaves when its fade-out ends.
 const SESSION_KEY = "portpass_prow_seen";
 // The mark's own box, from its viewBox.
 const MARK_W = 101;
 const MARK_H = 95;
-// The slide (--dur-slow), the fade after it (--dur-fast), and a little slack.
-const TOTAL_MS = 600 + 150 + 80;
 
 let shownThisLoad = false;
 
@@ -51,27 +50,37 @@ export function ProwMoment() {
 
   useEffect(() => {
     if (shownThisLoad || !motionEnabled()) return;
+    // A page opened already scrolled (an anchor link) has a condensing
+    // header under way; the moment waits for the next session.
+    if (window.scrollY > 24) return;
     try {
       if (sessionStorage.getItem(SESSION_KEY) === "1") return;
-      sessionStorage.setItem(SESSION_KEY, "1");
     } catch {
-      // Private browsing can refuse storage: the once-per-load guard above
+      // Private browsing can refuse storage: the once-per-load guard below
       // still stops a replay on navigation.
     }
     const brand = document.querySelector<HTMLElement>(".site-shell-header .site-shell-brand");
     if (!brand) return;
     const place = markBox(brand);
     if (!place) return;
+    // Remembered only once it is really about to play.
     shownThisLoad = true;
+    try {
+      sessionStorage.setItem(SESSION_KEY, "1");
+    } catch {
+      // As above.
+    }
     setHost(brand);
     setBox(place);
-    const timer = window.setTimeout(() => setHost(null), TOTAL_MS);
-    return () => window.clearTimeout(timer);
   }, []);
+
+  function onAnimationEnd(event: AnimationEvent<HTMLSpanElement>) {
+    if (event.animationName === "prow-moment-out") setHost(null);
+  }
 
   if (!host || !box) return null;
   return createPortal(
-    <span className="prow-moment" aria-hidden="true" style={{ left: box.left, top: box.top, width: box.width, height: box.height }}>
+    <span className="prow-moment" aria-hidden="true" style={{ left: box.left, top: box.top, width: box.width, height: box.height }} onAnimationEnd={onAnimationEnd}>
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 101.00 95.00" width="101" height="95" role="presentation" focusable="false">
         <g transform="translate(0.000 0.000) scale(1.00000) translate(-12 -11)">
           <defs>

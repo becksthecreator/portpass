@@ -66,7 +66,7 @@ In JavaScript, `motionEnabled()` from `lib/motion/client.ts` answers the first t
 - **The hero**: the kicker, the headline's two lines, the lede and the buttons rise in 60ms apart (`--dur-hero`, `--ease-out`), CSS only, on text that is in the HTML at its final size. The photo drifts from scale 1 to 1.04 over `--dur-drift`, alternating, the one looping animation on the site; `HeroMotion` pauses it and drops its layer (`will-change`) while the hero is off screen.
 - **The Prow moment** (`ProwMoment.tsx`): once per session on the first load of `/`, a copy of the supplied mark sits over the header logo's mark and its two red stripes slide in behind the hull over `--dur-slow`, then it fades over `--dur-fast`. A layer over one 36px mark, never over content; remembered in `sessionStorage` (inside try/catch) and once per page load whatever storage says, so it never replays on navigation.
 - **The header** (`HeaderMotion.tsx`): sticky on the home theme. Past 24px of scroll it gets `data-condensed`: the logo scales from 36 to 30px by a transform (so the row's height never changes) and a 1px `--line` rule fades in under it. Anchors scroll to just under it (`scroll-margin-top`).
-- **The category menu**: the desktop panel opens with a `--dur-menu` fade and an 8px rise; the phone's Browse sheet uses the same tokens.
+- **The category menu**: on the home theme and the directory pages, the desktop panel opens with a `--dur-menu` fade and an 8px rise, and the phone's Browse sheet uses the same tokens; a business's own page keeps its header still.
 
 ## Adding an effect
 

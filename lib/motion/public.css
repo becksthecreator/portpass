@@ -20,11 +20,15 @@
 .pp-hero-line:first-child{animation-delay:60ms}
 .pp-hero-line+.pp-hero-line{animation-delay:120ms}
 .pp-hero-lede{animation-delay:180ms}
-.pp-hero-actions{animation-delay:300ms}
+.pp-hero-actions{animation-delay:240ms}
 @keyframes pp-hero-rise{from{opacity:0;transform:translateY(16px)}}
 .pp-hero-frame img{animation:pp-hero-drift var(--dur-drift) var(--ease-in-out) infinite alternate;transform-origin:50% 50%;will-change:transform}
 @keyframes pp-hero-drift{to{transform:scale(1.04)}}
 .pp-hero[data-offscreen] .pp-hero-frame img{animation-play-state:paused;will-change:auto}
+/* No drift means no layer either: the photo is the largest thing on the
+   page and a compositor layer for it is only worth having while it moves. */
+@media (prefers-reduced-motion: reduce){.pp-hero-frame img{will-change:auto}}
+html[data-motion="off"] .pp-hero-frame img{will-change:auto}
 
 /* ---- the Prow moment (ProwMoment.tsx) -----------------------------------
    Once per session on the homepage: a copy of the mark, the supplied SVG
@@ -58,7 +62,11 @@
 /* Under 1200px the logo is already 30px (globals.css), so only the rule fades in. */
 @media(max-width:1199px){.home-theme .site-shell-header[data-condensed] .site-shell-brand .brand-logo{transform:none}}
 .home-theme section[id],.home-theme [id="open-now"]{scroll-margin-top:84px}
+/* /business and /pricing carry the "back" row under the header's top row. */
+.home-theme .site-shell-header:has(.site-shell-breadcrumb)~section[id]{scroll-margin-top:124px}
 
-/* ---- the category menu ------------------------------------------------- */
-.nav-item.is-open .nav-panel{animation:nav-panel-in var(--dur-menu) var(--ease-out) both}
+/* ---- the category menu -------------------------------------------------
+   On the home theme and the directory pages, where the public site moves;
+   a business's own page keeps its header still. */
+.home-theme .nav-item.is-open .nav-panel,.tpl-page .nav-item.is-open .nav-panel{animation:nav-panel-in var(--dur-menu) var(--ease-out) both}
 @keyframes nav-panel-in{from{opacity:0;transform:translateY(8px)}}
