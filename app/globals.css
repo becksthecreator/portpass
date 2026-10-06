@@ -4421,6 +4421,19 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .pp-hero-centre h1{color:var(--hero-ink);font-family:var(--hp-font-display);font-weight:700;font-size:clamp(2.3rem,5.6vw,4.4rem);line-height:1.04;letter-spacing:-.02em;margin:0;max-width:16ch;transition:color .9s ease}
 .pp-hero-centre h1 em{font-style:italic;color:inherit}
 .pp-hero-lede{max-width:52ch;margin:18px auto 0;font-size:1.02rem;line-height:1.55;color:var(--hero-ink-soft);transition:color .9s ease}
+/* The lede sits lower than the headline, over the photo's sea, which is
+   darker than the sky behind the words above it: at the soft ink it
+   measured 2.4 to 2.8:1, under the 4.5:1 WCAG AA asks of body text. So on
+   the light hero it is full ink, on a soft paper wash that follows it
+   wherever it wraps (the warm paper of the scrim above, solid under the
+   words and feathered outside them). The kicker, small capitals, is full
+   ink too, and the headline sits above the wash's soft edge.
+   scripts/motion/check.mjs holds all three to WCAG AA at 375px and
+   1440px. */
+.pp-hero[data-world="portpass"] .pp-hero-kicker{color:var(--hero-ink)}
+.pp-hero[data-world="portpass"] .pp-hero-centre h1{position:relative;z-index:1}
+.pp-hero[data-world="portpass"] .pp-hero-lede{position:relative;color:var(--hero-ink)}
+.pp-hero[data-world="portpass"] .pp-hero-lede::before{content:"";position:absolute;inset:-4px -10px;z-index:-1;border-radius:24px;background:rgba(255,253,248,.42);box-shadow:0 0 22px 16px rgba(255,253,248,.42);pointer-events:none}
 .pp-hero-bottom{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:0 5vw 34px}
 .pp-hero-name{color:var(--hero-ink);font-family:var(--hp-font-display);font-weight:600;font-size:1rem;transition:color .9s ease}
 .pp-hero-meta{color:var(--hero-ink-soft);font-size:.82rem;transition:color .9s ease}
