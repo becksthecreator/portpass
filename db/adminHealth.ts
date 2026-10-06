@@ -134,12 +134,14 @@ export type DatabaseCheck = { name: string; problems: number };
 
 export const DATABASE_CHECK_LABEL: Record<string, string> = {
   tables_without_rls: "Tables with row level security off",
+  tables_with_rls_but_no_policy: "Tables with no row level security policy",
+  tables_browser_roles_can_write: "Tables a browser could write to",
   functions_without_search_path: "Functions without a fixed search path",
   definer_functions_open_to_browser_roles: "Privileged functions a browser could call",
 };
 
-// The first three things Supabase's security advisor warns about, checked
-// against the live database (supabase/migrations/202610080001).
+// What Supabase's security advisor warns about, checked against the live
+// database (supabase/migrations/202610080001, extended by 202610180001).
 export async function databaseChecks(): Promise<DatabaseCheck[]> {
   const { data, error } = await getSupabaseAdmin().rpc("admin_database_checks");
   throwIfSupabaseError(error, "Could not run the database checks");
