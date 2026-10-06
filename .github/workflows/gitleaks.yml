@@ -1,0 +1,69 @@
+name: Secrets scan (gitleaks)
+
+# Brief 21, part F: every PR, every push to main and once a week, gitleaks
+# reads the whole git history for anything that looks like a key, a token
+# or a password. The report names the rule, the file, the commit and the
+# line; the matched text is redacted, so the log itself never holds a
+# secret. The first run on main is the one-time history scan the brief
+# asks for; after that it is the net under the pre-commit hook
+# (scripts/git-hooks/pre-commit), which runs the same tool on the
+# developer's machine when it is installed there.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "30 12 * * 1" # Mondays 08:30 Nassau
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GITLEAKS_VERSION: "8.30.1"
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks (pinned release, checksum verified)
+        run: |
+          set -euo pipefail
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          curl -fsSLO "${base}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSLO "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
+          tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+      - name: Scan the whole history
+        id: scan
+        run: |
+          set +e
+          gitleaks detect --source . --redact --no-banner --config .gitleaks.toml --report-format json --report-path gitleaks-report.json --exit-code 2
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+      - name: Report (rule, file, commit and line only; the match is redacted)
+        if: always()
+        run: |
+          if [ ! -s gitleaks-report.json ] || [ "$(cat gitleaks-report.json)" = "[]" ]; then
+            echo "gitleaks: nothing found in the history"
+            exit 0
+          fi
+          echo "gitleaks: findings"
+          jq -r '.[] | "  - \(.RuleID)  \(.File):\(.StartLine)  commit \(.Commit[0:8])  \(.Date[0:10])"' gitleaks-report.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          if-no-files-found: ignore
+      - name: Fail when something was found
+        if: steps.scan.outputs.status == '2'
+        run: |
+          echo "::error::gitleaks found something that looks like a secret. Read the report above; if it is a TEST value, allow it in .gitleaks.toml with the reason."
+          exit 1

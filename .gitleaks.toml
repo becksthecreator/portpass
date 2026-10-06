@@ -1,0 +1,26 @@
+# gitleaks configuration (Brief 21, part F). Starts from gitleaks' own
+# rules and allows only what is known not to be a secret: the TEST values
+# the tests and fixtures use, and the places that hold names of settings
+# rather than values. Every allow has a reason. Never allow a file that
+# could hold a real value.
+
+title = "PortPass"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known non-secrets"
+paths = [
+  # The lockfile holds package integrity hashes, which look like keys and are not.
+  '''package-lock\.json$''',
+  # Hashes of brand assets and screenshots are not secrets.
+  '''\.(png|jpg|jpeg|webp|avif|svg|ico|woff2?)$''',
+]
+regexes = [
+  # The tests' own made-up values say so in their names.
+  '''not-real''',
+  '''test\.portpass\.local''',
+  # The example env files hold names and placeholders only.
+  '''REPLACE_WITH_THE_SAME_VALUE_AS_IN_VERCEL''',
+]

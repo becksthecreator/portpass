@@ -1,0 +1,28 @@
+#!/bin/sh
+# PortPass pre-commit hook (Brief 21, part F): refuses a commit that stages
+# something that looks like a key, a token or a password.
+#
+# Install once per clone:   git config core.hooksPath scripts/git-hooks
+# Needs gitleaks on the PATH (https://github.com/gitleaks/gitleaks/releases;
+# `winget install gitleaks` on Windows, `brew install gitleaks` on a Mac).
+# Where it is not installed the hook says so and lets the commit through:
+# the Secrets scan workflow runs the same check on every PR regardless.
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks is not installed, so the staged files were not scanned here. CI will scan them." >&2
+  exit 0
+fi
+
+root="$(git rev-parse --show-toplevel)"
+if gitleaks protect --staged --redact --no-banner --config "$root/.gitleaks.toml" --exit-code 2; then
+  exit 0
+fi
+status=$?
+if [ "$status" -eq 2 ]; then
+  echo "" >&2
+  echo "pre-commit: something staged looks like a secret (redacted above). Take it out of the commit." >&2
+  echo "If it is a TEST value, allow it in .gitleaks.toml with the reason, then commit again." >&2
+  exit 1
+fi
+echo "pre-commit: gitleaks could not run (exit $status); the commit goes through and CI will scan it." >&2
+exit 0

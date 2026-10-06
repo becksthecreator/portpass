@@ -1,3 +1,4 @@
 # Shell scripts run on the Linux OptiPlex; a CRLF shebang line breaks them.
 *.sh text eol=lf
 *.env.example text eol=lf
+scripts/git-hooks/* text eol=lf
