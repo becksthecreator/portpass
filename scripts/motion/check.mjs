@@ -14,6 +14,7 @@
 //
 // Writes motion-checks/report.md and motion-checks/frames/*.png, and exits
 // 1 when a check fails.
+import { createHmac } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { chromium } from "playwright";
 
@@ -35,6 +36,23 @@ function check(ok, label, detail = "") {
   if (!ok) failed += 1;
 }
 const pad = (ms) => String(ms).padStart(4, "0");
+// RFC 6238: the six-digit code an authenticator app would show right now
+// (the TEST platform owner's step-up in section 11; never printed).
+function totp(base32Secret, now = Date.now()) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "";
+  for (const char of base32Secret.replace(/=+$/, "").toUpperCase()) {
+    const value = alphabet.indexOf(char);
+    if (value >= 0) bits += value.toString(2).padStart(5, "0");
+  }
+  const key = Buffer.from((bits.match(/.{8}/g) ?? []).map((byte) => parseInt(byte, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(now / 1000 / 30)));
+  const digest = createHmac("sha1", key).update(counter).digest();
+  const offset = digest[digest.length - 1] & 0x0f;
+  const code = (digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000;
+  return String(code).padStart(6, "0");
+}
 // The hero's entrance is CSS and finishes on its own; this waits for it
 // (not for the photo's drift, which never ends), 2.5 s at most.
 const heroSettled = (page) =>
@@ -171,6 +189,58 @@ try {
     await context.close();
   }
 
+  // 1b. The kill switch (Admin, Content, "Motion on the public site"). When
+  // it is off the server writes data-motion="off" on <html>; here the
+  // homepage's own HTML is served with that one attribute changed, so every
+  // effect is held to the switch without touching the stored setting. The
+  // page must come to rest exactly as it does under reduced motion.
+  {
+    const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, serviceWorkers: "block" });
+    const page = await context.newPage();
+    await page.route(`${BASE}/`, async (route) => {
+      const response = await route.fetch();
+      const body = (await response.text()).replace('data-motion="on"', 'data-motion="off"');
+      await route.fulfill({ response, body });
+    });
+    await page.addInitScript(() => {
+      window.__flaps = 0;
+      new MutationObserver((list) => {
+        for (const m of list) if (m.type === "characterData" && m.target.parentElement && m.target.parentElement.classList.contains("board-cell")) window.__flaps += 1;
+      }).observe(document, { subtree: true, characterData: true });
+    });
+    await page.goto(`${BASE}/`, { waitUntil: "load" });
+    const attr = await page.evaluate(() => document.documentElement.getAttribute("data-motion"));
+    check(attr === "off", "the kill switch: the page is served switched off", `data-motion="${attr}"`);
+    await page.waitForTimeout(1000);
+    const running = await page.evaluate(() => document.getAnimations().length);
+    check(running === 0, "the kill switch: no animation runs on / after load", `${running} running`);
+    const sun = await page.evaluate(() => {
+      const el = document.querySelector(".pp-hero-sun");
+      return el ? getComputedStyle(el).opacity : null;
+    });
+    if (sun !== null) check(sun === "1", "the kill switch: the sun is already up", `opacity ${sun}`);
+    await page.evaluate(() => document.querySelector(".board")?.scrollIntoView({ behavior: "instant", block: "center" }));
+    await page.waitForTimeout(1500);
+    const board = await page.evaluate(() => {
+      const cells = Array.from(document.querySelectorAll(".board-cell"));
+      return cells.length ? { flaps: window.__flaps, settled: cells.every((cell) => cell.textContent === cell.getAttribute("data-final")) } : null;
+    });
+    if (board) check(board.flaps === 0 && board.settled, "the kill switch: the board shows its true values and never flickers", `${board.flaps} swaps`);
+    await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
+    await page.waitForTimeout(600);
+    const later = await page.evaluate(() => document.getAnimations().length);
+    check(later === 0, "the kill switch: nothing animates after scrolling to the end", `${later} running`);
+    const hidden = await page.evaluate(notAtFullOpacity);
+    check(hidden === 0, "the kill switch: every reveal shows its final state", `${hidden} not at full opacity`);
+    const bar = await page.evaluate(() => {
+      const el = document.querySelector(".route-progress");
+      return el ? getComputedStyle(el).display : null;
+    });
+    if (bar !== null) check(bar === "none", "the kill switch: the Ferry Route is left out", `display ${bar}`);
+    await page.screenshot({ path: `${OUT}/frames/kill-switch-end-375.png` });
+    await context.close();
+  }
+
   // 2. Without JavaScript.
   {
     const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, javaScriptEnabled: false });
@@ -197,12 +267,28 @@ try {
   // 2b. The app's script fails after the inline line has run (a chunk that
   // never arrives, an old phone): the page is held as if the script were on
   // its way, and every hold has a failsafe, so within --dur-failsafe
-  // everything shows, the step numbers and the ink band (M3) included.
+  // everything shows, the step numbers and the ink band (M3) included. The
+  // held state is read first, so the pass cannot succeed by the hold never
+  // having applied (a blocked stylesheet, say). Under reduced motion, with
+  // the same script blocked, the final state shows at once, with no
+  // failsafe to wait for.
   {
+    const heldStates = (page) =>
+      page.evaluate(() => {
+        const band = document.querySelector(".home-business[data-reveal]");
+        const path = document.querySelector(".home-how-line path");
+        return {
+          numbers: Array.from(document.querySelectorAll(".home-how-num")).filter((el) => getComputedStyle(el).opacity !== "1").length,
+          ink: band ? getComputedStyle(band, "::before").opacity : null,
+          line: path ? parseFloat(getComputedStyle(path).strokeDashoffset) : null,
+        };
+      });
     const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, serviceWorkers: "block" });
     const page = await context.newPage();
     await page.route("**/_next/static/chunks/**", (route) => route.abort());
-    await page.goto(`${BASE}/`, { waitUntil: "load" });
+    await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
+    const early = await heldStates(page);
+    check(early.numbers > 0 && early.ink === "0", "with the app's script blocked, the step numbers and the ink band start held", JSON.stringify(early));
     await page.waitForTimeout(3000);
     const held = await page.evaluate(() => document.documentElement.hasAttribute("data-motion-js") && !document.documentElement.hasAttribute("data-motion-ready"));
     check(held, "with the app's script blocked, the page is held as before its script runs", "data-motion-js set, data-motion-ready not");
@@ -210,17 +296,19 @@ try {
       await page.evaluate((s) => document.querySelector(s)?.scrollIntoView({ behavior: "instant", block: "center" }), selector);
       await page.waitForTimeout(300);
     }
-    const shown = await page.evaluate(() => {
-      const band = document.querySelector(".home-business[data-reveal]");
-      return {
-        numbers: Array.from(document.querySelectorAll(".home-how-num")).filter((el) => getComputedStyle(el).opacity !== "1").length,
-        ink: band ? getComputedStyle(band, "::before").opacity : null,
-      };
-    });
+    const shown = await heldStates(page);
     const hidden = await page.evaluate(notAtFullOpacity);
-    check(shown.numbers === 0 && (shown.ink === null || shown.ink === "1") && hidden === 0, "with the app's script blocked, the step numbers, the ink band and every reveal show within --dur-failsafe", JSON.stringify({ ...shown, reveals: hidden }));
+    check(shown.numbers === 0 && (shown.ink === null || shown.ink === "1") && hidden === 0, "with the app's script blocked, the step numbers, the ink band and every reveal show within --dur-failsafe", JSON.stringify({ numbers: shown.numbers, ink: shown.ink, reveals: hidden }));
     await page.screenshot({ path: `${OUT}/frames/script-blocked-375.png` });
     await context.close();
+
+    const calm = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, serviceWorkers: "block", reducedMotion: "reduce" });
+    const quiet = await calm.newPage();
+    await quiet.route("**/_next/static/chunks/**", (route) => route.abort());
+    await quiet.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
+    const atOnce = await heldStates(quiet);
+    check(atOnce.numbers === 0 && (atOnce.ink === null || atOnce.ink === "1") && (atOnce.line === null || atOnce.line < 0.5), "reduced motion, with the app's script blocked: the step numbers, the line and the ink band show at once", JSON.stringify(atOnce));
+    await calm.close();
   }
 
   // 3. A phone with the CPU slowed 4x: the filmstrip, the reveals, CLS.
@@ -460,8 +548,8 @@ try {
     await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
     await page.waitForTimeout(700);
     const stillArrived = await page.evaluate(() => document.querySelectorAll("[data-reveal][data-in]").length);
-    // The hero's drift and the scroll-linked line are the two that may run.
-    const replaying = await page.evaluate(() => document.getAnimations().filter((a) => a.playState === "running" && a.effect && a.effect.target && a.effect.target.closest && !a.effect.target.closest(".pp-hero") && !a.effect.target.closest(".home-how-line")).length);
+    // The hero's drift and the scroll-linked line and ferry may run.
+    const replaying = await page.evaluate(() => document.getAnimations().filter((a) => a.playState === "running" && a.effect && a.effect.target && a.effect.target.closest && !a.effect.target.closest(".pp-hero") && !a.effect.target.closest(".home-how-steps-wrap")).length);
     check(stillArrived === arrivedBefore && replaying === 0, "nothing re-triggers on scrolling back up and down again", `${arrivedBefore} arrived, then ${stillArrived}; ${replaying} running outside the hero and the line`);
     await context.close();
 
@@ -480,14 +568,23 @@ try {
       check(lifted.endsWith(", -4)"), "an Open now card lifts 4px on hover", lifted);
       check(nudged.endsWith("4, 0)"), "and its arrow nudges 4px", nudged);
       await wide.screenshot({ path: `${OUT}/frames/open-now-hover-1440.png` });
-      // A card that leads to a child's details never lifts.
+      // A card that leads to a child's details never lifts. With none in
+      // this stack, the last card is marked still the way those cards are
+      // (data-still on the card), and must not lift either.
+      const marked = await wide.evaluate(() => {
+        if (document.querySelector(".open-now-card[data-still]")) return false;
+        const cards = document.querySelectorAll(".open-now-card");
+        if (cards.length < 2) return null;
+        cards[cards.length - 1].setAttribute("data-still", "");
+        return true;
+      });
       const stillCard = wide.locator(".open-now-card[data-still]").first();
       if ((await stillCard.count()) > 0) {
         await stillCard.scrollIntoViewIfNeeded();
         await stillCard.hover();
         await wide.waitForTimeout(450);
         const held = await stillCard.evaluate((node) => getComputedStyle(node).transform);
-        check(held === "none", "a card that leads to a child's details never lifts", held);
+        check(held === "none", "a card that leads to a child's details never lifts", `${held}${marked ? " (a card marked still here; none in this stack)" : ""}`);
       }
     } else {
       lines.push("- No Open now card on / (nothing live in the seeded stack), so the hover lift was not exercised.");
@@ -587,6 +684,16 @@ try {
       return board ? { box: board.getBoundingClientRect().toJSON(), label: board.getAttribute("aria-label") } : null;
     });
     await page.waitForLoadState("load");
+    // With no card that leads to a child's details in this stack, the last
+    // Open now card is marked still the way those cards are, before its
+    // section is revealed, so the held chip below is exercised.
+    const markedChip = await page.evaluate(() => {
+      if (document.querySelector(".open-now-card[data-still]")) return false;
+      const cards = document.querySelectorAll(".open-now-card");
+      if (cards.length < 2) return null;
+      cards[cards.length - 1].setAttribute("data-still", "");
+      return true;
+    });
     await page.evaluate(() => document.querySelector(".board")?.scrollIntoView({ behavior: "instant", block: "center" }));
     await page.waitForTimeout(250);
     await page.screenshot({ path: `${OUT}/frames/board-flicker-375.png` });
@@ -624,7 +731,7 @@ try {
       const popping = pops.filter((pop) => !pop.still);
       const held = pops.filter((pop) => pop.still);
       check(popping.length > 0 && popping.every((pop) => pop.runs === 1 && pop.done && pop.opacity === "1"), "each Open now chip pops in once with the spring and settles", JSON.stringify(popping));
-      check(held.every((pop) => pop.runs === 0 && pop.opacity === "1"), "a chip on a card that leads to a child's details never pops", held.length ? JSON.stringify(held) : "no such card in this stack");
+      check((held.length > 0 || markedChip === null) && held.every((pop) => pop.runs === 0 && pop.opacity === "1"), "a chip on a card that leads to a child's details never pops", held.length ? `${JSON.stringify(held)}${markedChip ? " (a card marked still here; none in this stack)" : ""}` : "no such card in this stack");
       await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
       await page.waitForTimeout(300);
       await grid.scrollIntoViewIfNeeded();
@@ -858,6 +965,247 @@ try {
       lines.push("- The TEST venue's own page or its header logo link was not found, so leaving a business page was not exercised.");
     }
     await business.close();
+  }
+
+  // 10. Loading and feedback (brief 22, M5): the Ferry Route on a slow
+  // move between main pages and never into a page that keeps still, the
+  // ferry on the How-it-works line, the skeletons' shimmer, and the Pass
+  // Stamp on a TEST enquiry; and each of them under reduced motion.
+  {
+    const transformY = (value) => {
+      const m = /matrix\(([^)]+)\)/.exec(value || "");
+      return m ? Number(m[1].split(",")[5]) : 0;
+    };
+
+    // The Ferry Route, at 1440px, with the network slowed so the move
+    // takes well over --dur-fast.
+    const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const wide = await desktop.newPage();
+    await wide.goto(`${BASE}/`, { waitUntil: "load" });
+    await heroSettled(wide);
+    const cdp = await desktop.newCDPSession(wide);
+    const trigger = wide.locator(".nav-trigger").first();
+    if ((await trigger.count()) > 0) {
+      // Slow the network before the panel opens, so the link's prefetch is
+      // slow as well: a page fetched ahead of the click arrives at once
+      // and, rightly, shows no bar.
+      await cdp.send("Network.enable");
+      await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 1500, downloadThroughput: -1, uploadThroughput: -1 });
+      await trigger.click();
+      await wide.waitForTimeout(300);
+      const link = wide.locator(".nav-item.is-open .nav-panel-all").first();
+      const href = await link.getAttribute("href");
+      await link.click();
+      // The bar's own box has no height (the rule and the ferry hang from
+      // it), so wait for its state, not for it to be visible.
+      const shown = await wide.waitForSelector('.route-progress[data-state="on"]', { state: "attached", timeout: 2500 }).then(() => true).catch(() => false);
+      // Without a bar, say whether the page had arrived meanwhile (one fetched
+      // ahead of the click arrives at once and, rightly, shows none).
+      const early = shown ? false : await wide.evaluate((to) => window.location.pathname === to, href);
+      const ferry = await wide.evaluate(() => {
+        const track = document.querySelector(".route-ferry-track");
+        return track ? { transform: getComputedStyle(track).transform, opacity: getComputedStyle(document.querySelector(".route-progress")).opacity } : null;
+      });
+      await wide.screenshot({ path: `${OUT}/frames/ferry-route-1440.png`, clip: { x: 0, y: 0, width: 1440, height: 120 } });
+      await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+      await wide.waitForURL((url) => url.pathname === href, { timeout: 15000 });
+      await wide.waitForTimeout(1500);
+      const after = await wide.evaluate(() => document.querySelector(".route-progress")?.getAttribute("data-state"));
+      check(shown, "a slow move between main pages shows the Ferry Route", early ? "no bar, and the page had already arrived" : ferry ? `ferry track ${ferry.transform}` : "no bar");
+      check(after === "off", "and it leaves once the page has arrived", `state ${after}`);
+      // Into a page that keeps still: no bar, however slow.
+      await wide.goto(`${BASE}/`, { waitUntil: "load" });
+      await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 1500, downloadThroughput: -1, uploadThroughput: -1 });
+      const signIn = wide.locator('.site-shell-header a[href^="/login"]').first();
+      if ((await signIn.count()) > 0) {
+        await signIn.click();
+        const quiet = await wide.waitForSelector('.route-progress[data-state="on"]', { state: "attached", timeout: 1500 }).then(() => true).catch(() => false);
+        check(!quiet, "a move into sign-in never shows the bar");
+      } else {
+        lines.push("- No sign-in link in the header here, so a move into sign-in was not exercised.");
+      }
+      await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+      // A link to the same path is not a new page: no bar, ever. The
+      // pricing page's Monthly and Annual links only change the query, and
+      // a visitor who arrived with one (a campaign tag) and follows the
+      // logo back to the same path stays on it.
+      const barAfter = async (page, act) => {
+        await act();
+        return page.waitForSelector('.route-progress[data-state="on"]', { state: "attached", timeout: 1200 }).then(() => true).catch(() => false);
+      };
+      await wide.goto(`${BASE}/pricing`, { waitUntil: "load" });
+      const annual = wide.locator('.pricing-toggle a[href*="billing=annual"]').first();
+      if ((await annual.count()) > 0) {
+        const toggled = await barAfter(wide, () => annual.click());
+        const monthly = await barAfter(wide, () => wide.locator('.pricing-toggle a[href="/pricing"]').first().click());
+        check(!toggled && !monthly, "switching Monthly and Annual on /pricing never shows the bar", `${toggled ? "on" : "off"} then ${monthly ? "on" : "off"}`);
+      } else {
+        lines.push("- No billing switch on /pricing here, so the same-path links were not exercised.");
+      }
+      await wide.goto(`${BASE}/?utm_source=motion-check`, { waitUntil: "load" });
+      const home = wide.locator('.site-shell-header a[href="/"]').first();
+      if ((await home.count()) > 0) {
+        const back = await barAfter(wide, () => home.click());
+        check(!back, "a link back to the same path with a query dropped never shows the bar", back ? "on" : "off");
+      } else {
+        lines.push("- No logo link in the header here, so a link back to the same path was not exercised.");
+      }
+    }
+    await desktop.close();
+
+    // The ferry on How it works, and the skeleton's shimmer. Before the
+    // steps come near, the ferry waits at the first stop, so the sailing
+    // read after them is the scroll's doing.
+    const phone = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2 });
+    const page = await phone.newPage();
+    await page.goto(`${BASE}/`, { waitUntil: "load" });
+    const docked = await page.evaluate(() => {
+      const ferry = document.querySelector(".home-how-ferry");
+      return ferry ? getComputedStyle(ferry).transform : null;
+    });
+    await page.evaluate(() => document.querySelector(".home-how-steps")?.scrollIntoView({ behavior: "instant", block: "center" }));
+    await page.waitForTimeout(1200);
+    const sail = await page.evaluate(() => {
+      const ferry = document.querySelector(".home-how-ferry");
+      return ferry ? { transform: getComputedStyle(ferry).transform, height: ferry.getBoundingClientRect().height } : null;
+    });
+    if (sail && docked !== null) {
+      check(transformY(docked) === 0, "the How-it-works ferry waits at the first stop before its steps come near", docked);
+      check(transformY(sail.transform) > 0, "the ferry has sailed down the How-it-works line as it drew", sail.transform);
+    } else {
+      lines.push("- No How-it-works ferry on / here, so its sailing was not exercised.");
+    }
+    await page.screenshot({ path: `${OUT}/frames/how-ferry-375.png` });
+    const shimmer = await page.evaluate(() => {
+      const probe = document.createElement("span");
+      probe.className = "sk-text";
+      probe.textContent = "Loading";
+      document.body.appendChild(probe);
+      const running = document.getAnimations().filter((a) => a.effect && a.effect.target === probe && a.effect.pseudoElement === "::after").length;
+      probe.remove();
+      return running;
+    });
+    check(shimmer === 1, "a skeleton box carries its soft shimmer", `${shimmer} animation(s)`);
+    await phone.close();
+
+    // The Pass Stamp, on a TEST enquiry that never leaves this browser: the
+    // submission is answered here, so no enquiry is filed and no email is
+    // sent, wherever the check is run.
+    const stampOn = async (contextOptions) => {
+      const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, ...contextOptions });
+      const form = await context.newPage();
+      await form.route("**/api/applications", (route) => route.fulfill({ status: 201, json: { ok: true, id: 0 } }));
+      await form.goto(`${BASE}/apply`, { waitUntil: "load" });
+      await form.fill('input[name="name"]', "TEST — delete Stamp");
+      await form.fill('input[name="businessName"]', `TEST Stamp Co (delete) ${Date.now().toString(36)}`);
+      const option = await form.evaluate(() => Array.from(document.querySelectorAll('select[name="section"] option')).map((o) => o.value).find(Boolean));
+      if (option) await form.selectOption('select[name="section"]', option);
+      await form.fill('input[name="whatsapp"]', "2425550123");
+      await form.click('.application-form button[type="submit"]');
+      const stamped = await form.waitForSelector(".pass-stamp", { timeout: 10000 }).then(() => true).catch(() => false);
+      return { context, form, stamped };
+    };
+    {
+      const { context, form, stamped } = await stampOn({});
+      if (stamped) {
+        const started = Date.now();
+        for (const t of [0, 150, 300, 450]) {
+          const wait = started + t - Date.now();
+          if (wait > 0) await form.waitForTimeout(wait);
+          const box = await form.locator(".confirmation").boundingBox();
+          if (box) await form.screenshot({ path: `${OUT}/frames/pass-stamp-${pad(t)}ms-375.png`, clip: { x: 0, y: Math.max(0, box.y - 10), width: PHONE.width, height: Math.min(420, box.height + 20) } });
+        }
+        await settledWithin(form, ".confirmation", 2000);
+        const stamp = await form.evaluate(() => {
+          const node = document.querySelector(".pass-stamp");
+          const card = document.querySelector(".confirmation");
+          const runs = node.getAnimations().filter((a) => a.animationName === "pass-stamp");
+          const thud = card.getAnimations().filter((a) => a.animationName === "pass-thud");
+          return { text: node.textContent, runs: runs.length, iterations: runs[0] ? runs[0].effect.getComputedTiming().iterations : null, thud: thud.length, opacity: getComputedStyle(node).opacity, transform: getComputedStyle(node).transform };
+        });
+        check(stamp.text === "Received", "the Pass Stamp says Received, nothing more", stamp.text);
+        check(stamp.runs === 1 && stamp.iterations === 1 && stamp.thud === 1 && stamp.opacity === "1", "it slams down once, with one thud of the card, and stays", JSON.stringify(stamp));
+      } else {
+        lines.push("- The TEST enquiry did not reach its confirmation here, so the Pass Stamp was not exercised.");
+      }
+      await context.close();
+    }
+    {
+      const { context, form, stamped } = await stampOn({ reducedMotion: "reduce" });
+      if (stamped) {
+        await form.waitForTimeout(50);
+        const stamp = await form.evaluate(() => {
+          const node = document.querySelector(".pass-stamp");
+          return { running: node.getAnimations().length, opacity: getComputedStyle(node).opacity, transform: getComputedStyle(node).transform };
+        });
+        check(stamp.running === 0 && stamp.opacity === "1" && stamp.transform !== "none", "reduced motion: the stamp is already in place", JSON.stringify(stamp));
+        const bar = await form.evaluate(() => getComputedStyle(document.querySelector(".route-progress")).display);
+        check(bar === "none", "reduced motion: the Ferry Route is left out", `display ${bar}`);
+      } else {
+        lines.push("- The TEST enquiry under reduced motion did not reach its confirmation here, so the stamp's resting state was not exercised.");
+      }
+      await context.close();
+    }
+  }
+
+  // 11. The switch in Admin (Content, "Motion on the public site"), end to
+  // end on this local stack: the TEST platform owner signs in through the
+  // real routes (a sign-in code issued by the local stack, then an
+  // authenticator code computed here from the secret enrolment returns),
+  // saves motion off, and a visitor's next load of / is switched off;
+  // saved on again, it moves again. Neither code is ever printed. Last,
+  // so no other check runs while the switch is off.
+  {
+    const adminEmail = (process.env.PLATFORM_OWNER_EMAILS ?? "").split(",")[0].trim();
+    const supabaseUrl = process.env.SUPABASE_URL ?? "";
+    if (!adminEmail || !process.env.SUPABASE_SECRET_KEY || !/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/.test(supabaseUrl)) {
+      lines.push("- No TEST platform owner on a local stack here, so the switch in Admin was not driven end to end.");
+    } else {
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabase = createClient(supabaseUrl, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+      const admin = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, serviceWorkers: "block" });
+      const adminPage = await admin.newPage();
+      const call = (method, url, body) =>
+        adminPage.evaluate(
+          async ({ method, url, body }) => {
+            const response = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+            return { status: response.status, data: await response.json().catch(() => ({})) };
+          },
+          { method, url, body },
+        );
+      const visitor = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, serviceWorkers: "block" });
+      const motionOnHome = async () => {
+        const page = await visitor.newPage();
+        await page.goto(`${BASE}/`, { waitUntil: "load" });
+        const attr = await page.evaluate(() => document.documentElement.getAttribute("data-motion"));
+        await page.close();
+        return attr;
+      };
+      let signedIn = false;
+      try {
+        const link = await supabase.auth.admin.generateLink({ type: "magiclink", email: adminEmail });
+        const code = link.data?.properties?.email_otp;
+        await adminPage.goto(`${BASE}/login`, { waitUntil: "load" });
+        const verified = code ? await call("POST", "/api/auth/verify", { email: adminEmail, token: code }) : { status: 0 };
+        const enrolled = verified.status === 200 ? await call("POST", "/api/admin/mfa/enroll", {}) : { status: 0, data: {} };
+        const stepUp = enrolled.status === 200 && enrolled.data.secret ? await call("POST", "/api/admin/mfa/verify", { factorId: enrolled.data.factorId, code: totp(enrolled.data.secret) }) : { status: 0 };
+        signedIn = verified.status === 200 && enrolled.status === 200 && stepUp.status === 200;
+        check(signedIn, "the TEST platform owner signs in to Admin (code, then the authenticator step)", `${verified.status} / ${enrolled.status} / ${stepUp.status}`);
+        if (signedIn) {
+          const off = await call("PUT", "/api/admin/content", { motion: { enabled: false } });
+          const whenOff = await motionOnHome();
+          check(off.status === 200 && whenOff === "off", "saving motion off in Admin switches a visitor's next / off", `save ${off.status}, data-motion="${whenOff}"`);
+        }
+      } finally {
+        if (signedIn) {
+          const on = await call("PUT", "/api/admin/content", { motion: { enabled: true } });
+          const whenOn = await motionOnHome();
+          check(on.status === 200 && whenOn === "on", "and saving it on again turns motion back on", `save ${on.status}, data-motion="${whenOn}"`);
+        }
+        await visitor.close();
+        await admin.close();
+      }
+    }
   }
 } finally {
   await browser.close();

@@ -13,7 +13,9 @@
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.SUPABASE_URL ?? "";
-if (!url.includes("127.0.0.1") && !url.includes("localhost")) throw new Error("Refusing to seed anything but a local Supabase stack.");
+// The host itself, not a substring of the address: this script creates an
+// auth user, so it refuses anything but a local stack.
+if (!/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/.test(url)) throw new Error("Refusing to seed anything but a local Supabase stack.");
 const db = createClient(url, process.env.SUPABASE_SECRET_KEY ?? "", { auth: { persistSession: false, autoRefreshToken: false } });
 
 const SLUG = "test-delete-motion-venue";
@@ -52,7 +54,15 @@ async function main() {
   const { error: spotlightError } = await db.from("site_content").upsert({ key: "home_spotlight", value: { order: [SLUG, ...order] } }, { onConflict: "key" });
   if (spotlightError) throw new Error(`Could not put the TEST venue first in the homepage order: ${spotlightError.message}`);
 
-  console.log("Seeded the TEST motion venue (Entertainment, featured, vector logo).");
+  // A TEST platform owner (the workflow puts this address in
+  // PLATFORM_OWNER_EMAILS for the run), who saves the motion switch in
+  // Admin -> Content during the check (brief 22, M5). A .local address: no
+  // mail can reach it, and none is sent (the check asks the local stack
+  // for a sign-in code directly).
+  const { error: adminError } = await db.auth.admin.createUser({ email: "test-delete-motion-admin@test.portpass.local", email_confirm: true });
+  if (adminError) throw new Error(`Could not seed the TEST platform owner: ${adminError.message}`);
+
+  console.log("Seeded the TEST motion venue (Entertainment, featured, vector logo) and the TEST platform owner.");
 }
 
 main().catch((error) => {

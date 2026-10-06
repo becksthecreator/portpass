@@ -8,6 +8,8 @@ import { SectionGrid } from "./_components/SectionGrid";
 import { Reveal } from "./_components/motion/Reveal";
 import { DepartureBoard, type BoardCount } from "./_components/motion/DepartureBoard";
 import { PageTransition } from "./_components/motion/PageTransition";
+import { OpenNowSkeleton } from "./_components/motion/Skeleton";
+import { Suspense } from "react";
 import { getSectionTiles } from "@/lib/navSections";
 import { HomePerksRow } from "./_components/perks/HomePerksRow";
 import { DEFAULT_BRAND } from "./_components/blocks/brand";
@@ -88,19 +90,152 @@ export const revalidate = 300;
 const CAROUSEL_FROM = 4;
 
 export default async function Home() {
-  const [availability, weddingSettings, listed, content] = await Promise.all([
-    safeAvailability(),
-    safeWeddingSettings(),
-    safeDirectory(),
-    getSiteContent(),
-  ]);
+  // Brief 22 (M5): the wedding desk's live numbers (years, reviews) are the
+  // one read the page's shape does not depend on, so the "Open now" strip
+  // waits for them behind a skeleton with exactly as many cards as it will
+  // hold; everything else, the Departure Board included, is read up front.
+  const weddingSettings = safeWeddingSettings();
+  const [availability, listed, content] = await Promise.all([safeAvailability(), safeDirectory(), getSiteContent()]);
   // The order the founders chose in Admin -> Content; the rest follow.
   const directory = orderBySpotlight(listed, content.spotlight);
+  const liveSlugs = await safeLiveSections(directory);
+  const carousel = directory.length >= CAROUSEL_FROM;
+  const campsOpen = availability.filter((offer) => offer.programType === "camp");
+  const futprepListed = directory.some((biz) => biz.slug === "futprep");
+  // The camps that get their own card: only while Futprep is listed.
+  const campCards = futprepListed ? campsOpen.length : 0;
+  // One card per dated offer, and one per business unless the carousel shows them.
+  const openNowCount = campCards + (carousel ? 0 : directory.length);
+
+  // The Departure Board (brief 22, M3): counts this page already reads, and
+  // only those. Businesses open is the directory (the demo business can
+  // never be listed); categories open are the top-level sections with a
+  // live business; camps open are the camp offers taking sign-ups, the
+  // same ones that get their own card above.
+  const sectionsOpen = (await getSectionTiles()).filter((tile) => liveSlugs.has(tile.slug)).length;
+  const boardCounts: BoardCount[] = [
+    { value: directory.length, label: ["Business open", "Businesses open"] },
+    { value: sectionsOpen, label: ["Category open", "Categories open"] },
+    { value: campCards, label: ["Camp open", "Camps open"] },
+  ];
+
+  return (
+    <PageTransition>
+    <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`} data-world="portpass">
+      {/* Who PortPass is, and the site search (brief 11). */}
+      <JsonLd data={homeJsonLd()} />
+      <ProwMoment />
+      <a className="home-skip-link" href="#chooser">Skip to browse</a>
+
+      <SiteHeader tide />
+      <HomeHero openSentence={openCountSentence(directory.length)} />
+      <DepartureBoard counts={boardCounts} />
+
+      <Suspense fallback={openNowCount > 0 ? <OpenNowSkeleton cards={openNowCount} camps={campCards} /> : null}>
+        <OpenNowSection directory={directory} availability={availability} weddingSettings={weddingSettings} carousel={carousel} />
+      </Suspense>
+      {carousel && <BusinessCarousel businesses={directory} />}
+
+      {/* Member perks (brief 10): hidden until three are live. */}
+      <HomePerksRow />
+
+      {/* Brief 22 (M1): the section headings rise in as they come into
+          view. The sections' own contents follow in M3. */}
+      <section className="home-chooser" id="chooser">
+        <Reveal className="home-section-heading" variant="rise">
+          <span className="home-eyebrow">What PortPass covers</span>
+          <h2>Where do you want to go?</h2>
+        </Reveal>
+        <SectionGrid liveSlugs={liveSlugs} />
+      </section>
+
+      <section className="home-how" id="how-it-works">
+        <Reveal className="home-section-heading" variant="rise">
+          <span className="home-eyebrow">How PortPass works</span>
+          <h2>Two ways to use it.</h2>
+        </Reveal>
+        {/* Brief 22 (M3): each track is a stagger; a line down its left
+            draws as it scrolls into view and each number counts in. */}
+        <div className="home-how-grid">
+          <div className="home-how-track">
+            <h3>If you&rsquo;re booking</h3>
+            <div className="home-how-steps-wrap">
+              <Reveal as="ol" className="home-how-steps" variant="rise" stagger>
+                <li><span className="home-how-num">1</span><span>Find what you&rsquo;re looking for — sessions, ceremonies, venues</span></li>
+                <li><span className="home-how-num">2</span><span>Book online, no phone tag. Pay the way the business accepts, and keep one record of it</span></li>
+                <li><span className="home-how-num">3</span><span>Your confirmation and details live in one place</span></li>
+              </Reveal>
+              <svg className="home-how-line" viewBox="0 0 2 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 0 V100" pathLength="100" /></svg>
+              <HowFerry />
+            </div>
+          </div>
+          <div className="home-how-track">
+            <h3>If you run a business</h3>
+            <div className="home-how-steps-wrap">
+              <Reveal as="ol" className="home-how-steps" variant="rise" stagger>
+                <li><span className="home-how-num">1</span><span>Your listing goes live with real availability and prices</span></li>
+                <li><span className="home-how-num">2</span><span>Customers register themselves, and you see who&rsquo;s paid</span></li>
+                <li><span className="home-how-num">3</span><span>You see who&rsquo;s coming and what&rsquo;s been collected, on one screen</span></li>
+              </Reveal>
+              <svg className="home-how-line" viewBox="0 0 2 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 0 V100" pathLength="100" /></svg>
+              <HowFerry />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Brief 22 (M3): deck until it enters, then the ink layer eases in
+          and the words and the button arrive after it, the button last. */}
+      <Reveal as="section" className="home-business" variant="rise" stagger>
+        <div>
+          <span className="home-eyebrow">Run a club or a business?</span>
+          <h2>List with PortPass.</h2>
+          <p>Bring your organization onto the same system powering Futprep and Bahamas Weddings By The Sea.</p>
+        </div>
+        <div className="home-business-action">
+          <Link className="home-button home-button-light" href="/business">Learn more →</Link>
+        </div>
+      </Reveal>
+
+      <SiteFooter tide />
+    </main>
+    </PageTransition>
+  );
+}
+
+// The Ferry Route's ferry on a How-it-works line (brief 22, M5): it rides
+// from the first step to the last as the line draws, behind the step
+// numbers (lib/motion/public.css). Decorative.
+function HowFerry() {
+  return (
+    <span className="home-how-ferry" aria-hidden="true">
+      <svg viewBox="0 0 16 10" width="14" height="9" focusable="false">
+        <path d="M0 6H16L13.5 10H2.5Z" />
+        <path d="M3 3H11V6H3Z" />
+        <path d="M8 0H10V3H8Z" />
+      </svg>
+    </span>
+  );
+}
+
+// The "Open now" strip once the wedding desk's numbers are in (brief 22,
+// M5: it streams in behind OpenNowSkeleton while they are read).
+async function OpenNowSection({
+  directory,
+  availability,
+  weddingSettings: weddingPromise,
+  carousel,
+}: {
+  directory: OrganizationDirectoryEntry[];
+  availability: FutprepAvailability[];
+  weddingSettings: Promise<WeddingSiteSettings>;
+  carousel: boolean;
+}) {
+  const weddingSettings = await weddingPromise;
   // The Saturday-class line: camps have their own page and card.
   const termClasses = availability.filter((offer) => offer.programType === "term");
   const futprepProgram = termClasses[0];
   const spotsThisWeek = termClasses.reduce((sum, program) => sum + program.spotsRemaining, 0);
-  const liveSlugs = await safeLiveSections(directory);
 
   // The two businesses that are live today get their real numbers; anyone
   // who joins later gets their one-liner and an "Explore" button until
@@ -148,98 +283,7 @@ export default async function Home() {
         }))
     : [];
   // Soonest to close first, then the businesses in the founders' order.
+  // With a carousel of businesses, the dated offers still get their cards.
   const cards = orderOpenNow([...datedCards, ...businessCards]);
-  const carousel = directory.length >= CAROUSEL_FROM;
-
-  // The Departure Board (brief 22, M3): counts this page already reads, and
-  // only those. Businesses open is the directory (the demo business can
-  // never be listed); categories open are the top-level sections with a
-  // live business; camps open are the camp offers taking sign-ups, the
-  // same ones that get their own card above.
-  const sectionsOpen = (await getSectionTiles()).filter((tile) => liveSlugs.has(tile.slug)).length;
-  const boardCounts: BoardCount[] = [
-    { value: directory.length, label: ["Business open", "Businesses open"] },
-    { value: sectionsOpen, label: ["Category open", "Categories open"] },
-    { value: datedCards.length, label: ["Camp open", "Camps open"] },
-  ];
-
-  return (
-    <PageTransition>
-    <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`} data-world="portpass">
-      {/* Who PortPass is, and the site search (brief 11). */}
-      <JsonLd data={homeJsonLd()} />
-      <ProwMoment />
-      <a className="home-skip-link" href="#chooser">Skip to browse</a>
-
-      <SiteHeader tide />
-      <HomeHero openSentence={openCountSentence(directory.length)} />
-      <DepartureBoard counts={boardCounts} />
-
-      {/* With a carousel of businesses, the dated offers still get their cards. */}
-      <OpenNowCards cards={carousel ? orderOpenNow(datedCards) : cards} />
-      {carousel && <BusinessCarousel businesses={directory} />}
-
-      {/* Member perks (brief 10): hidden until three are live. */}
-      <HomePerksRow />
-
-      {/* Brief 22 (M1): the section headings rise in as they come into
-          view. The sections' own contents follow in M3. */}
-      <section className="home-chooser" id="chooser">
-        <Reveal className="home-section-heading" variant="rise">
-          <span className="home-eyebrow">What PortPass covers</span>
-          <h2>Where do you want to go?</h2>
-        </Reveal>
-        <SectionGrid liveSlugs={liveSlugs} />
-      </section>
-
-      <section className="home-how" id="how-it-works">
-        <Reveal className="home-section-heading" variant="rise">
-          <span className="home-eyebrow">How PortPass works</span>
-          <h2>Two ways to use it.</h2>
-        </Reveal>
-        {/* Brief 22 (M3): each track is a stagger; a line down its left
-            draws as it scrolls into view and each number counts in. */}
-        <div className="home-how-grid">
-          <div className="home-how-track">
-            <h3>If you&rsquo;re booking</h3>
-            <div className="home-how-steps-wrap">
-              <Reveal as="ol" className="home-how-steps" variant="rise" stagger>
-                <li><span className="home-how-num">1</span><span>Find what you&rsquo;re looking for — sessions, ceremonies, venues</span></li>
-                <li><span className="home-how-num">2</span><span>Book online, no phone tag. Pay the way the business accepts, and keep one record of it</span></li>
-                <li><span className="home-how-num">3</span><span>Your confirmation and details live in one place</span></li>
-              </Reveal>
-              <svg className="home-how-line" viewBox="0 0 2 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 0 V100" pathLength="100" /></svg>
-            </div>
-          </div>
-          <div className="home-how-track">
-            <h3>If you run a business</h3>
-            <div className="home-how-steps-wrap">
-              <Reveal as="ol" className="home-how-steps" variant="rise" stagger>
-                <li><span className="home-how-num">1</span><span>Your listing goes live with real availability and prices</span></li>
-                <li><span className="home-how-num">2</span><span>Customers register themselves, and you see who&rsquo;s paid</span></li>
-                <li><span className="home-how-num">3</span><span>You see who&rsquo;s coming and what&rsquo;s been collected, on one screen</span></li>
-              </Reveal>
-              <svg className="home-how-line" viewBox="0 0 2 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 0 V100" pathLength="100" /></svg>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Brief 22 (M3): deck until it enters, then the ink layer eases in
-          and the words and the button arrive after it, the button last. */}
-      <Reveal as="section" className="home-business" variant="rise" stagger>
-        <div>
-          <span className="home-eyebrow">Run a club or a business?</span>
-          <h2>List with PortPass.</h2>
-          <p>Bring your organization onto the same system powering Futprep and Bahamas Weddings By The Sea.</p>
-        </div>
-        <div className="home-business-action">
-          <Link className="home-button home-button-light" href="/business">Learn more →</Link>
-        </div>
-      </Reveal>
-
-      <SiteFooter tide />
-    </main>
-    </PageTransition>
-  );
+  return <OpenNowCards cards={carousel ? orderOpenNow(datedCards) : cards} />;
 }

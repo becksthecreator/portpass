@@ -27,6 +27,13 @@ on:
       - "app/_components/SectionGrid.tsx"
       - "app/_components/CategoryPage.tsx"
       - "app/[category]/**"
+      - "app/_components/SiteFooter.tsx"
+      - "app/_components/SubsectionPicker.tsx"
+      - "app/_components/blocks/FeatureCard.tsx"
+      - "app/weddings/page.tsx"
+      - "app/pricing/**"
+      - "app/about/**"
+      - "app/apply/**"
       - "scripts/motion/**"
       - ".github/workflows/motion-checks.yml"
 
@@ -68,6 +75,9 @@ jobs:
           echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
           echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
           echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          # The TEST platform owner seeded by seed-motion-fixture.ts (local stack
+          # only), who saves the motion switch in Admin during the check.
+          echo "PLATFORM_OWNER_EMAILS=test-delete-motion-admin@test.portpass.local" >> "$GITHUB_ENV"
       - name: Seed test data
         run: |
           npx tsx scripts/seed-test-data.ts
@@ -102,6 +112,12 @@ jobs:
         run: |
           export CHROME_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())")
           mkdir -p motion-checks/lighthouse
+          # The motion check's last section saves the switch in Admin off and
+          # on again; if motion did not come back on, say so rather than pass
+          # off a still homepage as this branch's.
+          if ! curl -s http://localhost:3000/ | grep -o '<html[^>]*>' | grep -q 'data-motion="on"'; then
+            echo "- NOTE: / is served with motion off (the switch was not restored), so the Lighthouse runs below measure a still page." >> motion-checks/report.md
+          fi
           for i in 1 2 3; do
             npx --yes lighthouse@12.8.2 http://localhost:3000/ --quiet --only-categories=performance \
               --form-factor=mobile --screenEmulation.mobile --screenEmulation.width=375 --screenEmulation.height=812 --screenEmulation.deviceScaleFactor=2 \

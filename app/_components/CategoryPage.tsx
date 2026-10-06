@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import type { Category, Section } from "@/db/categories";
-import { leadPerk, livePerksBySlug } from "@/db/memberPerks";
+import { leadPerk, livePerksBySlug, type PublicPerk } from "@/db/memberPerks";
 import { getOrganizationListingBySlug, listPublishedOrganizations, listSectionBusinesses, liveCountsByCategory, type OrganizationListing, type SectionBusiness } from "@/db/organizations";
 import { withOneRetry } from "@/db/supabase";
 import { isInterestCategory, type InterestCategory } from "@/lib/interestCategories";
@@ -16,6 +17,7 @@ import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 import { SubsectionChips } from "./SubsectionChips";
 import { SectionIcon } from "./SectionGrid";
+import { FeatureCardSkeleton } from "./motion/Skeleton";
 import { PageTransition, SharedElement } from "./motion/PageTransition";
 import { getSiteContent } from "@/db/siteContent";
 import "./perks/perks.css";
@@ -111,29 +113,133 @@ async function bookableNow(exceptSlug: string): Promise<{ label: string; href: s
   }
 }
 
-export async function CategoryPage({ section, subcategory = null }: { section: Section; subcategory?: Category | null }) {
+// The cards (brief 22, M5). Each live business's listing (its offerings
+// and prices), the members' perks and the homepage order are the slow
+// part of a section page, so the cards stream in behind a skeleton of
+// exactly as many cards while the header, the heading and the counts
+// above are already in place. That keeps a homepage section card's icon
+// and title on the first frame of a move here, so they morph (M4), and a
+// slow move stays slow until the page has its heading, so the Ferry Route
+// sees it. A page served from the cache arrives whole and shows no
+// skeleton at all.
+async function SectionCards({ published, comingSoon }: { published: SectionBusiness[]; comingSoon: SectionBusiness[] }) {
+  const [loaded, perksBySlug, { spotlight }] = await Promise.all([
+    Promise.all(published.map((b) => safeListing(b.slug))),
+    // Member perks (brief 10): a labelled chip on the card. It never
+    // changes the order of the cards, and a failed read shows no chips
+    // rather than taking the cards down with it.
+    livePerksBySlug().catch((error: unknown): Map<string, PublicPerk[]> => {
+      console.error("category page: member perks failed, cards show no perk chips", error);
+      return new Map();
+    }),
+    // Brief 22 (M4): a listing is featured when the founders put it in the
+    // homepage order (Admin -> Content); its vector logo mark may idle here.
+    getSiteContent(),
+  ]);
+  // One card per live business, as the heading counts them: a business
+  // whose listing could not be read still gets its card, from the section
+  // list's own row (name, photo, logo, its line and its link) and with no
+  // price, rather than vanishing under a count that includes it.
+  const cardCount = published.length + comingSoon.length;
+  if (cardCount === 0) return null;
+  return (
+    <div className={`feature-card-grid${cardCount === 1 ? " feature-card-grid-solo" : ""}`}>
+      {published.map((business, cardIndex) => {
+        const listing = loaded[cardIndex];
+        if (!listing) {
+          const { brand, brandText } = computeBrandTokens(business.brandColor);
+          return (
+            <FeatureCard
+              key={business.slug}
+              photoUrl={business.heroImageUrl}
+              photoAlt={business.name}
+              label="Open now"
+              name={business.name}
+              logoUrl={business.logoUrl}
+              brand={brand}
+              brandText={brandText}
+              description={business.oneLiner ?? ""}
+              priceLabel={null}
+              // Its real card most likely shows a price, so it holds still
+              // as that card would (M3).
+              still
+              actionHref={directoryHref(business.slug, business.primaryCategory)}
+              actionLabel={`Explore ${business.name} →`}
+              wide={cardCount === 1}
+              priority={cardIndex === 0}
+              featured={spotlight.includes(business.slug)}
+            />
+          );
+        }
+        const { organization: org, offerings } = listing;
+        const cheapest = offerings
+          .filter((offering) => offering.priceCents !== null)
+          .sort((a, b) => (a.priceCents as number) - (b.priceCents as number))[0];
+        const { brand, brandText } = computeBrandTokens(org.brandColor);
+        const perk = leadPerk(perksBySlug.get(org.slug) ?? []);
+        // Both prices, both real: the business's own price and what a
+        // member pays with its perk.
+        const memberCents = cheapest && perk && (perk.offeringId === null || perk.offeringId === cheapest.id) ? memberPriceCents(cheapest.priceCents as number, perk, cheapest.priceUnit) : null;
+        const fromLabel = cheapest ? `From ${formatPrice(cheapest.priceCents as number, cheapest.priceUnit)}` : null;
+        return (
+          <FeatureCard
+            key={org.slug}
+            photoUrl={org.heroImageUrl}
+            photoAlt={org.name}
+            label="Open now"
+            name={org.name}
+            logoUrl={org.logoUrl}
+            brand={brand}
+            brandText={brandText}
+            description={org.oneLiner ?? ""}
+            priceLabel={fromLabel && memberCents !== null && memberCents !== cheapest?.priceCents ? `${fromLabel} · Members ${formatPriceCents(memberCents, { currency: false })}` : fromLabel}
+            perkLabel={perk ? perkChip(perk) : null}
+            actionHref={directoryHref(org.slug, org.primaryCategory)}
+            actionLabel={`Explore ${org.name} →`}
+            wide={cardCount === 1}
+            priority={cardIndex === 0}
+            featured={spotlight.includes(org.slug)}
+          />
+        );
+      })}
+      {comingSoon.map((b) => (
+        <ComingSoonCard key={b.slug} name={b.name} logoUrl={b.logoUrl} brand={b.brandColor ?? DEFAULT_BRAND} notifyHref="#notify" />
+      ))}
+    </div>
+  );
+}
+
+// The same grid while the cards are on their way: a box for each live
+// business at its card's size, and the coming-soon cards as themselves,
+// since they need nothing more.
+function SectionCardsSkeleton({ published, comingSoon }: { published: SectionBusiness[]; comingSoon: SectionBusiness[] }) {
+  const cardCount = published.length + comingSoon.length;
+  return (
+    <div className={`feature-card-grid${cardCount === 1 ? " feature-card-grid-solo" : ""}`} aria-busy="true">
+      {published.map((b) => <FeatureCardSkeleton key={b.slug} wide={cardCount === 1} />)}
+      {comingSoon.map((b) => (
+        <ComingSoonCard key={b.slug} name={b.name} logoUrl={b.logoUrl} brand={b.brandColor ?? DEFAULT_BRAND} notifyHref="#notify" />
+      ))}
+    </div>
+  );
+}
+
+export async function CategoryPage({ section, subcategory = null, streamCards = true }: { section: Section; subcategory?: Category | null; streamCards?: boolean }) {
   const current = subcategory ?? section;
-  let businesses: SectionBusiness[] = [];
-  try {
-    businesses = await withOneRetry(() => listSectionBusinesses(section.slug, subcategory?.slug ?? null));
-  } catch (error) {
-    console.error(`category page: business list failed for ${section.slug}/${subcategory?.slug ?? ""}`, error);
-  }
+  // The one quick read the page waits for: which businesses are in this
+  // section. The heading's count, the chips, the coming-soon panel and the
+  // structured data all come from it; the cards' details stream below.
+  const [businesses, counts] = await Promise.all([
+    withOneRetry(() => listSectionBusinesses(section.slug, subcategory?.slug ?? null)).catch((error: unknown): SectionBusiness[] => {
+      console.error(`category page: business list failed for ${section.slug}/${subcategory?.slug ?? ""}`, error);
+      return [];
+    }),
+    safeCounts(),
+  ]);
   const published = businesses.filter((b) => b.isPublished);
   const comingSoon = businesses.filter((b) => !b.isPublished);
-  const [listings, counts, perksBySlug] = await Promise.all([
-    Promise.all(published.map((b) => safeListing(b.slug))).then((all) => all.filter((l): l is OrganizationListing => l !== null)),
-    safeCounts(),
-    // Member perks (brief 10): a labelled chip on the card. It never
-    // changes the order of the cards.
-    livePerksBySlug(),
-  ]);
-  const liveCount = listings.length;
-  // Brief 22 (M4): a listing is featured when the founders put it in the
-  // homepage order (Admin -> Content); its vector logo mark may idle here.
-  const { spotlight } = await getSiteContent();
+  const liveCount = published.length;
   const belowThreshold = liveCount < current.comingSoonThreshold;
-  const cardCount = listings.length + comingSoon.length;
   const bookable = belowThreshold ? await bookableNow(section.slug) : [];
   const ownerNoun = OWNER_NOUN[current.slug] ?? `a ${current.name.toLowerCase()} business`;
 
@@ -147,8 +253,8 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
   const structured = sectionJsonLd({
     name: subcategory ? `${subcategory.name} · ${section.name}` : section.name,
     path: pagePath,
-    description: sectionDescription(current.name, listings.map(({ organization }) => organization.name)),
-    businesses: listings.map(({ organization }) => ({ name: organization.name, path: directoryHref(organization.slug, organization.primaryCategory) })),
+    description: sectionDescription(current.name, published.map((b) => b.name)),
+    businesses: published.map((b) => ({ name: b.name, path: directoryHref(b.slug, b.primaryCategory) })),
   });
 
   return (
@@ -212,44 +318,17 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
         </section>
       )}
 
-      {liveCount > 0 && cardCount > 0 && (
-        <div className={`feature-card-grid${cardCount === 1 ? " feature-card-grid-solo" : ""}`}>
-          {listings.map(({ organization: org, offerings }, cardIndex) => {
-            const cheapest = offerings
-              .filter((offering) => offering.priceCents !== null)
-              .sort((a, b) => (a.priceCents as number) - (b.priceCents as number))[0];
-            const { brand, brandText } = computeBrandTokens(org.brandColor);
-            const perk = leadPerk(perksBySlug.get(org.slug) ?? []);
-            // Both prices, both real: the business's own price and what a
-            // member pays with its perk.
-            const memberCents = cheapest && perk && (perk.offeringId === null || perk.offeringId === cheapest.id) ? memberPriceCents(cheapest.priceCents as number, perk, cheapest.priceUnit) : null;
-            const fromLabel = cheapest ? `From ${formatPrice(cheapest.priceCents as number, cheapest.priceUnit)}` : null;
-            return (
-              <FeatureCard
-                key={org.slug}
-                photoUrl={org.heroImageUrl}
-                photoAlt={org.name}
-                label="Open now"
-                name={org.name}
-                logoUrl={org.logoUrl}
-                brand={brand}
-                brandText={brandText}
-                description={org.oneLiner ?? ""}
-                priceLabel={fromLabel && memberCents !== null && memberCents !== cheapest?.priceCents ? `${fromLabel} · Members ${formatPriceCents(memberCents, { currency: false })}` : fromLabel}
-                perkLabel={perk ? perkChip(perk) : null}
-                actionHref={directoryHref(org.slug, org.primaryCategory)}
-                actionLabel={`Explore ${org.name} →`}
-                wide={cardCount === 1}
-                priority={cardIndex === 0}
-                featured={spotlight.includes(org.slug)}
-              />
-            );
-          })}
-          {comingSoon.map((b) => (
-            <ComingSoonCard key={b.slug} name={b.name} logoUrl={b.logoUrl} brand={b.brandColor ?? DEFAULT_BRAND} notifyHref="#notify" />
-          ))}
-        </div>
-      )}
+      {/* A page rendered on every request (the shop's subsections) waits
+          for its cards instead of streaming them: there the skeleton would
+          show on every visit, and without JavaScript, which React needs to
+          swap streamed content in, it would never give way to the cards. */}
+      {liveCount > 0 && (streamCards ? (
+        <Suspense fallback={<SectionCardsSkeleton published={published} comingSoon={comingSoon} />}>
+          <SectionCards published={published} comingSoon={comingSoon} />
+        </Suspense>
+      ) : (
+        <SectionCards published={published} comingSoon={comingSoon} />
+      ))}
 
       {liveCount > 0 && (
       <section className="category-notify" id="notify">

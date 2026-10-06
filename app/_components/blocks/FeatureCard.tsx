@@ -25,6 +25,7 @@ export function FeatureCard({
   wide,
   priority = false,
   featured = false,
+  still: holdStill = false,
 }: {
   // The first card on the page: its photo is the page's largest paint, so
   // it is fetched straight away instead of when it scrolls into view.
@@ -50,11 +51,14 @@ export function FeatureCard({
   // In the founders' homepage order (Admin -> Content): its vector logo
   // mark may idle on the category list (brief 22, M4).
   featured?: boolean;
+  // Held still whatever it shows (a stand-in for a card that would show a
+  // price; see CategoryPage).
+  still?: boolean;
 }) {
   // Brief 22 (M3): a card that shows a price or a perk holds still, its
   // button and its "Open now" label alike: no squish or spring next to
   // money (lib/motion/public.css reads data-still).
-  const still = Boolean(priceLabel || perkLabel);
+  const still = holdStill || Boolean(priceLabel || perkLabel);
   return (
     <div className={`feature-card${wide ? " feature-card-wide" : ""}`} data-still={still ? "" : undefined} style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}>
       {photoUrl ? (
