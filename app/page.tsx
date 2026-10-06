@@ -7,6 +7,7 @@ import { OpenNowCards, type OpenNowCard } from "./_components/OpenNowCards";
 import { SectionGrid } from "./_components/SectionGrid";
 import { Reveal } from "./_components/motion/Reveal";
 import { DepartureBoard, type BoardCount } from "./_components/motion/DepartureBoard";
+import { PageTransition } from "./_components/motion/PageTransition";
 import { getSectionTiles } from "@/lib/navSections";
 import { HomePerksRow } from "./_components/perks/HomePerksRow";
 import { DEFAULT_BRAND } from "./_components/blocks/brand";
@@ -163,13 +164,14 @@ export default async function Home() {
   ];
 
   return (
+    <PageTransition>
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`} data-world="portpass">
       {/* Who PortPass is, and the site search (brief 11). */}
       <JsonLd data={homeJsonLd()} />
       <ProwMoment />
       <a className="home-skip-link" href="#chooser">Skip to browse</a>
 
-      <SiteHeader />
+      <SiteHeader tide />
       <HomeHero openSentence={openCountSentence(directory.length)} />
       <DepartureBoard counts={boardCounts} />
 
@@ -236,7 +238,8 @@ export default async function Home() {
         </div>
       </Reveal>
 
-      <SiteFooter />
+      <SiteFooter tide />
     </main>
+    </PageTransition>
   );
 }

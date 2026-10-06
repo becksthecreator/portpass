@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { isOptimisableSrc } from "@/lib/images";
 import { BusinessLogo } from "./BusinessLogo";
+import { IdleLogo } from "../motion/IdleLogo";
 
 // A category page lists businesses, not programs: one of these per live
 // business, photograph filling the top half -- that's what keeps the page
@@ -23,6 +24,7 @@ export function FeatureCard({
   actionLabel,
   wide,
   priority = false,
+  featured = false,
 }: {
   // The first card on the page: its photo is the page's largest paint, so
   // it is fetched straight away instead of when it scrolls into view.
@@ -45,6 +47,9 @@ export function FeatureCard({
   actionHref: string;
   actionLabel: string;
   wide?: boolean;
+  // In the founders' homepage order (Admin -> Content): its vector logo
+  // mark may idle on the category list (brief 22, M4).
+  featured?: boolean;
 }) {
   // Brief 22 (M3): a card that shows a price or a perk holds still, its
   // button and its "Open now" label alike: no squish or spring next to
@@ -69,7 +74,16 @@ export function FeatureCard({
       <div className="feature-card-body">
         <span className="feature-card-label">{label}</span>
         <div className="feature-card-heading">
-          <BusinessLogo logoUrl={logoUrl} name={name} brand={brand} size="sm" />
+          {/* Brief 22 (M4): a featured listing's vector mark idles now and
+              then (one at a time on the page, only while in view). A raster
+              logo, or a listing that is not featured, stays still. */}
+          {featured && logoUrl && /\.svg(\?|$)/i.test(logoUrl) ? (
+            <IdleLogo>
+              <BusinessLogo logoUrl={logoUrl} name={name} brand={brand} size="sm" />
+            </IdleLogo>
+          ) : (
+            <BusinessLogo logoUrl={logoUrl} name={name} brand={brand} size="sm" />
+          )}
           <h2>{name}</h2>
         </div>
         {description && <p className="feature-card-description">{description}</p>}

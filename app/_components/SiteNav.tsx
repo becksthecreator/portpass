@@ -18,11 +18,16 @@ export type NavSection = { slug: string; name: string; href: string; live: numbe
 //    rows, each expanding to its subsections with "All <section> →" first.
 //    It closes on the X, a swipe down, Esc, or the Back button: opening
 //    pushes a history entry, so Back pops it instead of leaving the page.
-export function SiteNav({ sections }: { sections: NavSection[] }) {
+// `tide` (brief 22, M4): on a main public page the links to the sections,
+// Pricing and About carry the "tide" transition type (the Tide Wipe).
+const TIDE_TYPES = ["tide"];
+
+export function SiteNav({ sections, tide = false }: { sections: NavSection[]; tide?: boolean }) {
+  const types = tide ? TIDE_TYPES : undefined;
   return (
     <>
-      <DesktopNav sections={sections} />
-      <BrowseSheet sections={sections} />
+      <DesktopNav sections={sections} types={types} />
+      <BrowseSheet sections={sections} types={types} />
     </>
   );
 }
@@ -41,7 +46,7 @@ function liveTag(live: number | null): string | null {
 // panel stays until a click elsewhere, Esc, another trigger or navigation.
 type OpenPanel = { slug: string; by: "hover" | "click" } | null;
 
-function DesktopNav({ sections }: { sections: NavSection[] }) {
+function DesktopNav({ sections, types }: { sections: NavSection[]; types?: string[] }) {
   const [open, setOpen] = useState<OpenPanel>(null);
   const closeTimer = useRef<number | null>(null);
   const rootRef = useRef<HTMLElement>(null);
@@ -89,6 +94,7 @@ function DesktopNav({ sections }: { sections: NavSection[] }) {
         <NavItem
           key={section.slug}
           section={section}
+          types={types}
           isOpen={open?.slug === section.slug}
           onHoverOpen={() => {
             cancelClose();
@@ -109,7 +115,7 @@ function DesktopNav({ sections }: { sections: NavSection[] }) {
   );
 }
 
-function NavItem({ section, isOpen, onHoverOpen, onHoverLeave, onToggle }: { section: NavSection; isOpen: boolean; onHoverOpen: () => void; onHoverLeave: () => void; onToggle: () => void }) {
+function NavItem({ section, isOpen, onHoverOpen, onHoverLeave, onToggle, types }: { section: NavSection; isOpen: boolean; onHoverOpen: () => void; onHoverLeave: () => void; onToggle: () => void; types?: string[] }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const panelId = `nav-panel-${section.slug}`;
@@ -152,14 +158,14 @@ function NavItem({ section, isOpen, onHoverOpen, onHoverLeave, onToggle }: { sec
         {section.name} <span className="nav-caret" aria-hidden="true">▾</span>
       </button>
       <div className="nav-panel" id={panelId} ref={panelRef} hidden={!isOpen}>
-        <Link className="nav-panel-all" href={section.href} tabIndex={isOpen ? 0 : -1}>
+        <Link className="nav-panel-all" href={section.href} tabIndex={isOpen ? 0 : -1} transitionTypes={types}>
           All {section.name} <span aria-hidden="true">→</span>
         </Link>
         {section.subsections.length > 0 && (
           <ul className="nav-panel-list">
             {section.subsections.map((sub) => (
               <li key={sub.slug}>
-                <Link href={sub.href} tabIndex={isOpen ? 0 : -1}>
+                <Link href={sub.href} tabIndex={isOpen ? 0 : -1} transitionTypes={types}>
                   {sub.name}
                   {liveTag(sub.live) && <small>{liveTag(sub.live)}</small>}
                 </Link>
@@ -181,7 +187,7 @@ function sheetInHistory(): boolean {
   return Boolean(state && state[SHEET_STATE_KEY]);
 }
 
-function BrowseSheet({ sections }: { sections: NavSection[] }) {
+function BrowseSheet({ sections, types }: { sections: NavSection[]; types?: string[] }) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [dragY, setDragY] = useState(0);
@@ -299,11 +305,11 @@ function BrowseSheet({ sections }: { sections: NavSection[] }) {
                       <span className="sheet-caret" aria-hidden="true">▾</span>
                     </button>
                     <div className="sheet-subs" id={`sheet-${section.slug}`} hidden={!isExpanded}>
-                      <Link className="sheet-all" href={section.href}>
+                      <Link className="sheet-all" href={section.href} transitionTypes={types}>
                         All {section.name} <span aria-hidden="true">→</span>
                       </Link>
                       {section.subsections.map((sub) => (
-                        <Link key={sub.slug} href={sub.href}>
+                        <Link key={sub.slug} href={sub.href} transitionTypes={types}>
                           {sub.name}
                           {liveTag(sub.live) && <small>{liveTag(sub.live)}</small>}
                         </Link>
@@ -316,9 +322,9 @@ function BrowseSheet({ sections }: { sections: NavSection[] }) {
             <div className="sheet-foot">
               <Link href="/login">Sign in</Link>
               <Link href="/signup">Sign up</Link>
-              <Link href="/pricing">Pricing</Link>
+              <Link href="/pricing" transitionTypes={types}>Pricing</Link>
               <Link href="/business">For business</Link>
-              <Link href="/about">About</Link>
+              <Link href="/about" transitionTypes={types}>About</Link>
               <Link href="/contact">Contact</Link>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
+import { PageTransition } from "@/app/_components/motion/PageTransition";
 import { PORTPASS_PHONE_DISPLAY, PORTPASS_PHONE_E164, PORTPASS_SUPPORT_EMAIL } from "@/lib/contact";
 
 const TITLE = "About | PortPass Bahamas";
@@ -18,8 +19,9 @@ export const metadata = {
 
 export default function AboutPage() {
   return (
-    <main className="form-page">
-      <SiteHeader breadcrumb={[{ label: "About", href: "/about" }]} />
+    <PageTransition>
+    <main className="form-page about-page">
+      <SiteHeader breadcrumb={[{ label: "About", href: "/about" }]} tide />
       <section className="form-intro">
         <div className="eyebrow"><span className="eyebrow-dot" />About</div>
         <h1>Built in Nassau, for Bahamian businesses.</h1>
@@ -41,7 +43,8 @@ export default function AboutPage() {
           Phone: <a href={`tel:${PORTPASS_PHONE_E164}`}>{PORTPASS_PHONE_DISPLAY}</a>
         </p>
       </article>
-      <SiteFooter />
+      <SiteFooter tide />
     </main>
+    </PageTransition>
   );
 }

@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { getSectionTiles } from "@/lib/navSections";
 import { Reveal } from "./motion/Reveal";
+import { CARD, SharedElement } from "./motion/PageTransition";
 
 // "Where do you want to go?" (brief 18, A1): the sections with something
 // to book as full cards, and every section that isn't open yet in one
 // "Coming next" row with a single "Tell us what you need" link. Sections
 // come from the categories table (same fail-soft fallback as the nav); a
 // section moves up to a card on its own when its first business goes live.
-function SectionIcon({ slug }: { slug: string }) {
+export function SectionIcon({ slug }: { slug: string }) {
   const common = { width: 28, height: 28, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
   switch (slug) {
     case "sports-fitness":
@@ -82,10 +83,11 @@ export async function SectionGrid({ liveSlugs }: { liveSlugs: Set<string> }) {
     <>
       <Reveal className={`home-sections-grid${known ? " home-sections-live" : ""}`} variant="rise" stagger>
         {live.map((tile) => (
-          <div className="home-section-slot" key={tile.slug}><Link className={`home-section-card${known ? " is-live" : ""}`} href={tile.href}>
-            <SectionIcon slug={tile.slug} />
+          <div className="home-section-slot" key={tile.slug}><Link className={`home-section-card${known ? " is-live" : ""}`} href={tile.href} transitionTypes={CARD}>
+            {/* Brief 22 (M4): the icon and the title morph into the section page's. */}
+            <SharedElement name={`section-icon-${tile.slug}`}><SectionIcon slug={tile.slug} /></SharedElement>
             {known && <span className="home-section-chip is-live">Open now</span>}
-            <h3>{tile.name}</h3>
+            <SharedElement name={`section-title-${tile.slug}`}><h3>{tile.name}</h3></SharedElement>
             {tile.line && <p>{tile.line}</p>}
             <b>Browse →</b>
           </Link></div>

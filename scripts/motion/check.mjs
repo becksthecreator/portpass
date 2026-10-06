@@ -682,6 +682,183 @@ try {
     await category.close();
   }
 
+  // 9. Moving between pages (brief 22, M4). A section card to its page
+  // cross-fades and morphs its icon and title; a header link between main
+  // pages runs the Tide Wipe; Back runs neither and restores the scroll;
+  // under reduced motion every transition takes no time.
+  {
+    // Every view-transition animation seen while a navigation runs, with
+    // its duration.
+    const watch = (page) =>
+      page.evaluate(() => {
+        window.__vtSeen = [];
+        clearInterval(window.__vtTimer);
+        window.__vtTimer = setInterval(() => {
+          for (const a of document.getAnimations()) {
+            const pseudo = a.effect && a.effect.pseudoElement;
+            if (pseudo && pseudo.startsWith("::view-transition")) window.__vtSeen.push(`${pseudo}|${a.effect.getComputedTiming().duration}`);
+          }
+        }, 20);
+      });
+    const seenBy = (page) =>
+      page.evaluate(() => {
+        clearInterval(window.__vtTimer);
+        return Array.from(new Set(window.__vtSeen));
+      });
+
+    const phone = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2 });
+    const page = await phone.newPage();
+    await page.goto(`${BASE}/`, { waitUntil: "load" });
+    await heroSettled(page);
+    const supported = await page.evaluate(() => typeof document.startViewTransition === "function");
+    const card = page.locator(`.home-section-card.is-live[href="/${MOTION_SECTION}"]`).first();
+    if ((await card.count()) === 0) {
+      lines.push("- No live section card on / in this stack, so the card move was not exercised.");
+    } else {
+      await card.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(1500);
+      const href = await card.getAttribute("href");
+      const scrolledTo = await page.evaluate(() => window.scrollY);
+      await watch(page);
+      await card.click();
+      await page.waitForURL((url) => url.pathname === href, { timeout: 10000 });
+      await page.waitForTimeout(900);
+      const seen = await seenBy(page);
+      check(await page.locator(".category-hero h1").first().isVisible(), "the section page's heading is there after a card move");
+      if (supported) {
+        // A real morph pairs the card's element with the page's: the browser
+        // builds a group for the name with a new image in it. An old image
+        // alone only means the card faded out where it was.
+        const paired = (name) => seen.some((s) => s.startsWith(`::view-transition-group(${name}`)) && seen.some((s) => s.startsWith(`::view-transition-new(${name}`));
+        check(paired("section-title-") && paired("section-icon-"), "the card's icon and title morph into the section page's", seen.filter((s) => s.includes("section-")).slice(0, 6).join(" ") || "none observed");
+        check(!seen.some((s) => s.includes("tide-panel")), "a card move does not run the Tide Wipe", `${seen.length} transition animations`);
+      } else {
+        lines.push("- This browser has no View Transitions API, so the navigation was plain, as designed.");
+      }
+      await page.screenshot({ path: `${OUT}/frames/section-page-after-card-375.png` });
+      await watch(page);
+      await page.goBack({ waitUntil: "load" });
+      await page.waitForTimeout(900);
+      const back = await seenBy(page);
+      const restored = await page.evaluate(() => window.scrollY);
+      check(!back.some((s) => s.includes("tide-panel")), "Back runs no Tide Wipe", `${back.length} transition animations`);
+      check(Math.abs(restored - scrolledTo) < 200, "Back returns to where the visitor was on /", `${scrolledTo} then ${restored}`);
+      // Focus is on the page itself or on something in the page now shown,
+      // never on an element that left with the old page.
+      const liveFocus = await page.evaluate(() => {
+        const el = document.activeElement;
+        return { ok: !el || el === document.body || Boolean(document.querySelector("main")?.contains(el)), on: el ? `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.split(" ")[0] : ""}` : "none" };
+      });
+      check(liveFocus.ok, "focus is on the page shown after Back", liveFocus.on);
+    }
+    await phone.close();
+
+    // The Tide Wipe: from / to a section by the header's menu, at 1440px.
+    const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const wide = await desktop.newPage();
+    await wide.goto(`${BASE}/`, { waitUntil: "load" });
+    await heroSettled(wide);
+    const trigger = wide.locator(".nav-trigger").first();
+    if (supported && (await trigger.count()) > 0) {
+      await trigger.click();
+      await wide.waitForTimeout(400);
+      const link = wide.locator(".nav-item.is-open .nav-panel-all").first();
+      const href = await link.getAttribute("href");
+      await watch(wide);
+      await link.click();
+      await wide.waitForURL((url) => url.pathname === href, { timeout: 10000 });
+      await wide.waitForTimeout(400);
+      await wide.screenshot({ path: `${OUT}/frames/tide-after-1440.png` });
+      await wide.waitForTimeout(500);
+      const seen = await seenBy(wide);
+      const tide = seen.filter((s) => s.includes("tide-panel"));
+      check(tide.length > 0 && tide.every((s) => Number(s.split("|")[1]) > 0), "a header link between main pages runs the Tide Wipe", tide.join(" ") || "none observed");
+      check(!seen.some((s) => s.includes("section-title-")), "and no morph with it", `${seen.length} transition animations`);
+      await watch(wide);
+      await wide.goBack({ waitUntil: "load" });
+      await wide.waitForTimeout(900);
+      const back = await seenBy(wide);
+      check(!back.some((s) => s.includes("tide-panel")), "Back from it runs no Tide Wipe", `${back.length} transition animations`);
+    } else {
+      lines.push("- No View Transitions API or no header menu here, so the Tide Wipe was not exercised.");
+    }
+    await desktop.close();
+
+    // Reduced motion: the same move takes no time at all.
+    const calm = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+    const still = await calm.newPage();
+    await still.goto(`${BASE}/`, { waitUntil: "load" });
+    const calmTrigger = still.locator(".nav-trigger").first();
+    if (supported && (await calmTrigger.count()) > 0) {
+      await calmTrigger.click();
+      await still.waitForTimeout(300);
+      const link = still.locator(".nav-item.is-open .nav-panel-all").first();
+      const href = await link.getAttribute("href");
+      await watch(still);
+      await link.click();
+      await still.waitForURL((url) => url.pathname === href, { timeout: 10000 });
+      await still.waitForTimeout(700);
+      const seen = await seenBy(still);
+      check(seen.every((s) => Number(s.split("|")[1]) === 0), "reduced motion: a move between main pages takes no time", seen.slice(0, 3).join(" ") || "no transition animations");
+    }
+    await calm.close();
+
+    // Featured logos (M4): on a category list a featured listing's vector
+    // mark gives one small bounce every --dur-idle while half of it is in
+    // view, one mark at a time; under reduced motion nothing is scheduled.
+    // The fixture's venue is featured and its logo is a vector file.
+    const idleBounces = async (options) => {
+      const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, ...options });
+      const page = await context.newPage();
+      await page.addInitScript(() => {
+        window.__idle = 0;
+        new MutationObserver((list) => {
+          for (const m of list) if (m.type === "attributes" && m.attributeName === "data-idle" && m.target.hasAttribute("data-idle")) window.__idle += 1;
+        }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-idle"] });
+      });
+      await page.goto(`${BASE}/${MOTION_SECTION}`, { waitUntil: "load" });
+      const mark = page.locator(".idle-logo").first();
+      let result = null;
+      if ((await mark.count()) > 0) {
+        await mark.scrollIntoViewIfNeeded();
+        // One --dur-idle (5 s) and a little more.
+        await page.waitForTimeout(6500);
+        result = await page.evaluate(() => ({ bounces: window.__idle, marks: document.querySelectorAll(".idle-logo").length }));
+      }
+      await context.close();
+      return result;
+    };
+    const idling = await idleBounces({});
+    if (idling) {
+      check(idling.bounces >= 1 && idling.bounces <= 2, "a featured listing's vector logo mark idles on the category list, once each --dur-idle", `${idling.bounces} bounce(s) in 6.5 s, ${idling.marks} mark(s)`);
+      const calmIdle = await idleBounces({ reducedMotion: "reduce" });
+      check(calmIdle && calmIdle.bounces === 0, "reduced motion: the featured logo stays still", calmIdle ? `${calmIdle.bounces} bounce(s) in 6.5 s` : "no mark");
+    } else {
+      lines.push(`- No featured vector logo on /${MOTION_SECTION} in this stack, so the idle bounce was not exercised.`);
+    }
+
+    // A business's own page is not a main page: its header carries no
+    // transition type, so leaving it (here by the logo, back to /) swaps
+    // at once, with no Tide Wipe and no fade.
+    const business = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2 });
+    const bizPage = await business.newPage();
+    const bizResponse = await bizPage.goto(`${BASE}/${MOTION_SECTION}/test-delete-motion-venue`, { waitUntil: "load" });
+    const brand = bizPage.locator('.site-shell-header a[href="/"]').first();
+    if (bizResponse && bizResponse.ok() && (await brand.count()) > 0) {
+      const tidePanel = await bizPage.locator(".tide-panel").count();
+      await watch(bizPage);
+      await brand.click();
+      await bizPage.waitForURL((url) => url.pathname === "/", { timeout: 10000 });
+      await bizPage.waitForTimeout(900);
+      const left = await seenBy(bizPage);
+      // React may still start a view transition for this move; whatever it
+      // shows must take no time, the same test as under reduced motion.
+      check(tidePanel === 0 && left.every((s) => Number(s.split("|")[1]) === 0), "leaving a business's own page swaps at once", `${tidePanel} tide panel(s); ${left.join(" ") || "no transition animations"}`);
+    } else {
+      lines.push("- The TEST venue's own page or its header logo link was not found, so leaving a business page was not exercised.");
+    }
+    await business.close();
+  }
 } finally {
   await browser.close();
 }

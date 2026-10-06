@@ -6,6 +6,7 @@ import { announcementVisible, nassauDay } from "@/lib/siteContent";
 import { HeaderAccount } from "./HeaderAccount";
 import { SiteNav } from "./SiteNav";
 import { HeaderMotion } from "./motion/HeaderMotion";
+import { TIDE } from "./motion/PageTransition";
 import { jsonLdString } from "@/lib/seo/jsonLd";
 
 export type Crumb = { label: string; href: string };
@@ -29,7 +30,12 @@ const HEADER_MARK_QUERY = "(max-width: 519px)";
 // Pricing left to the Browse sheet and footer under 375px -- and the
 // "← back" row is desktop-only (round 4, item 4). The BreadcrumbList
 // JSON-LD is unchanged, so search results still get the trail.
-export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
+// `tide` (brief 22, M4): on the main public pages (home, the sections,
+// pricing, about) the brand, the section links, Pricing and a "back" link to
+// another main page carry the "tide" transition type, and the invisible
+// panel the Tide Wipe slides across is rendered (lib/motion/public.css).
+// Everywhere else the header's links carry no type and move nothing.
+export async function SiteHeader({ breadcrumb, tide = false }: { breadcrumb?: Crumb[]; tide?: boolean }) {
   // The announcement bar (Admin -> Content): one line above the header on
   // every PortPass page, until its last day or until it is switched off.
   // Its link is never prefetched: it is on every page, and a prefetch of a
@@ -48,6 +54,9 @@ export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
         : { label: "PortPass", href: "/" }
       : null;
 
+  const tideTypes = tide ? TIDE : undefined;
+  const backTypes = tide && back && (back.href === "/" || sections.some((section) => section.href === back.href)) ? TIDE : undefined;
+
   const schemaTrail = breadcrumb && breadcrumb.length > 0 ? [{ label: "PortPass", href: "/" }, ...breadcrumb] : [];
 
   return (
@@ -58,20 +67,21 @@ export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
         {announce.href && (announce.href.startsWith("/") ? <Link href={announce.href} prefetch={false}>{announce.linkLabel}</Link> : <a href={announce.href} rel="noopener">{announce.linkLabel}</a>)}
       </p>
     )}
+    {tide && <div className="tide-panel" aria-hidden="true" />}
     <header className="site-shell-header">
       <HeaderMotion />
       <div className="site-shell-header-top">
-        <Link className="site-shell-brand" href="/"><BrandLogo markQuery={HEADER_MARK_QUERY} /></Link>
-        <SiteNav sections={sections} />
+        <Link className="site-shell-brand" href="/" transitionTypes={tideTypes}><BrandLogo markQuery={HEADER_MARK_QUERY} /></Link>
+        <SiteNav sections={sections} tide={tide} />
         <div className="site-shell-header-actions">
           <HeaderAccount />
-          <Link className="site-shell-for-business site-shell-pricing" href="/pricing">Pricing</Link>
+          <Link className="site-shell-for-business site-shell-pricing" href="/pricing" transitionTypes={tideTypes}>Pricing</Link>
           <Link className="site-shell-for-business" href="/apply">For business</Link>
         </div>
       </div>
       {back && (
         <nav className="site-shell-breadcrumb" aria-label="Breadcrumb">
-          <Link href={back.href}><span aria-hidden="true">←</span> {back.label}</Link>
+          <Link href={back.href} transitionTypes={backTypes}><span aria-hidden="true">←</span> {back.label}</Link>
         </nav>
       )}
       {schemaTrail.length > 0 && (

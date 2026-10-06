@@ -15,6 +15,9 @@ import { InterestForm } from "./InterestForm";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 import { SubsectionChips } from "./SubsectionChips";
+import { SectionIcon } from "./SectionGrid";
+import { PageTransition, SharedElement } from "./motion/PageTransition";
+import { getSiteContent } from "@/db/siteContent";
 import "./perks/perks.css";
 import { JsonLd } from "./seo/JsonLd";
 import { sectionJsonLd } from "@/lib/seo/jsonLd";
@@ -126,6 +129,9 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
     livePerksBySlug(),
   ]);
   const liveCount = listings.length;
+  // Brief 22 (M4): a listing is featured when the founders put it in the
+  // homepage order (Admin -> Content); its vector logo mark may idle here.
+  const { spotlight } = await getSiteContent();
   const belowThreshold = liveCount < current.comingSoonThreshold;
   const cardCount = listings.length + comingSoon.length;
   const bookable = belowThreshold ? await bookableNow(section.slug) : [];
@@ -146,16 +152,23 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
   });
 
   return (
+    <PageTransition>
     <main className={`tpl-page category-page ${ppDisplay.variable} ${ppSans.variable}`}>
       <JsonLd data={structured} />
-      <SiteHeader breadcrumb={breadcrumb} />
+      <SiteHeader breadcrumb={breadcrumb} tide />
       <section className={`category-hero category-hero-plain${nightHero ? " category-hero-night" : ""}`}>
         <div className="category-hero-inner">
           {/* "Coming soon" only when there is nothing to book; below the
               threshold but with a live business, the page is open (the
               threshold still drives the reassurance block further down). */}
-          <span className="category-hero-eyebrow">{subcategory ? section.name : "PortPass"}{liveCount === 0 ? " · Coming soon" : ""}</span>
-          <h1>{current.name} in The Bahamas.</h1>
+          {/* Brief 22 (M4): a homepage section card's icon and title morph into
+              this icon and heading (the same names on both); a subsection
+              page has no card of its own and only cross-fades. */}
+          <span className="category-hero-eyebrow">
+            {!subcategory && <SharedElement name={`section-icon-${section.slug}`}><span className="category-hero-icon" aria-hidden="true"><SectionIcon slug={section.slug} /></span></SharedElement>}
+            {subcategory ? section.name : "PortPass"}{liveCount === 0 ? " · Coming soon" : ""}
+          </span>
+          {subcategory ? <h1>{current.name} in The Bahamas.</h1> : <SharedElement name={`section-title-${section.slug}`}><h1>{current.name} in The Bahamas.</h1></SharedElement>}
           <p>
             {liveCount > 0
               ? `${liveCount} ${liveCount === 1 ? "business" : "businesses"} you can book right now.`
@@ -228,6 +241,7 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
                 actionLabel={`Explore ${org.name} →`}
                 wide={cardCount === 1}
                 priority={cardIndex === 0}
+                featured={spotlight.includes(org.slug)}
               />
             );
           })}
@@ -261,7 +275,8 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
       </section>
       )}
 
-      <SiteFooter />
+      <SiteFooter tide />
     </main>
+    </PageTransition>
   );
 }

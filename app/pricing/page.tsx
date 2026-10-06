@@ -5,6 +5,7 @@ import { BillingToggle } from "./BillingScope";
 import { ppDisplay, ppSans } from "@/app/fonts";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
+import { PageTransition } from "@/app/_components/motion/PageTransition";
 import { cheapestSubscription, listAddons, listPlans } from "@/db/pricing";
 import { portpassWhatsAppUrl } from "@/lib/contact";
 import { addedFeatures, annualCents, dollars, percentFromBps, UNIT_LABEL, type PricingAddon, type PricingPlan } from "@/lib/pricingFormat";
@@ -73,8 +74,9 @@ export default async function PricingPage() {
   for (const plan of plans) for (const f of plan.features) if (!featureRows.includes(f)) featureRows.push(f);
 
   return (
+    <PageTransition>
     <main className={`home-theme pricing-page ${ppDisplay.variable} ${ppSans.variable}`}>
-      <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }, { label: "Pricing", href: "/pricing" }]} />
+      <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }, { label: "Pricing", href: "/pricing" }]} tide />
 
       <section className="pricing-hero">
         <span className="home-eyebrow">Pricing</span>
@@ -208,7 +210,8 @@ export default async function PricingPage() {
         </div>
       </section>
 
-      <SiteFooter />
+      <SiteFooter tide />
     </main>
+    </PageTransition>
   );
 }
