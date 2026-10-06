@@ -6,6 +6,7 @@ import "@/lib/motion/motion.css";
 import "@/lib/motion/public.css";
 import { getSiteContent } from "@/db/siteContent";
 import { GrowthBeacon } from "./_components/GrowthBeacon";
+import { RouteProgress } from "./_components/motion/RouteProgress";
 import { PwaRegister } from "./_components/PwaRegister";
 import { analyticsRedactionScript } from "@/lib/analyticsRedact";
 import { ppDisplay, ppSans } from "./fonts";
@@ -75,6 +76,10 @@ export default async function RootLayout({
             running". A scroll reveal starts hidden only when this is set,
             so a page without script shows everything at once. */}
         <script dangerouslySetInnerHTML={{ __html: "document.documentElement.setAttribute('data-motion-js','')" }} />
+        {/* The Ferry Route (brief 22, M5): a navigation from a main public
+            page that takes longer than --dur-fast shows a slim progress rule;
+            never into the pages that keep still. */}
+        <RouteProgress />
         {children}
         <PwaRegister />
         <GrowthBeacon />

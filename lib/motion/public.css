@@ -92,7 +92,9 @@ html[data-motion="off"] .pp-hero-frame img{will-change:auto}
    the card its own hover). On a pointer device the card lifts 4px and the
    arrow nudges 4px; on touch a 100 ms press scale answers the tap. A card
    that leads to a child's details ("Register a child", a children's camp)
-   carries data-still and never moves at all. */
+   carries data-still and never lifts, presses or pops its chip (its slot
+   still rises in with the section's stagger, which is neither spring nor
+   squish). */
 .open-now-slot{display:flex}
 .open-now-slot>.open-now-card{flex:1 1 auto}
 .open-now-card:not([data-still]){transition:transform var(--dur-base) var(--ease-out)}
@@ -317,3 +319,87 @@ html[data-motion="off"]::view-transition-old(*),html[data-motion="off"]::view-tr
 .idle-logo>*{transform-origin:50% 100%}
 .idle-logo[data-idle]>*{animation:idle-logo-bounce var(--dur-hero) var(--ease-out) both}
 @keyframes idle-logo-bounce{0%{transform:none}30%{transform:translateY(-4px) scale(1.04)}55%{transform:translateY(0) scale(.98)}75%{transform:translateY(-1px)}100%{transform:none}}
+
+/* ---- loading and feedback (brief 22, M5) ------------------------------- */
+
+/* The Ferry Route (app/_components/motion/RouteProgress.tsx): a 2px rule
+   of --signal at the very top for a navigation from a main page that takes
+   longer than --dur-fast, with a tiny red ferry riding its leading edge.
+   The rule grows from the left by scaleX and the ferry's track slides by
+   translateX in step with it, to most of the width while the page is on
+   its way; when the page arrives both run to the end and fade. No space,
+   no layout, no loop. Reduced motion and the kill switch leave it out
+   entirely: the browser's own loading indicator is the one that stays. */
+.route-progress{position:fixed;top:0;left:0;right:0;height:0;z-index:210;pointer-events:none;opacity:0;transition:opacity var(--dur-fast) var(--ease-in-out)}
+.route-progress-bar{position:absolute;top:0;left:0;right:0;height:2px;background:var(--signal);transform:scaleX(0);transform-origin:left center;transition:transform var(--dur-hero) var(--ease-out)}
+.route-ferry-track{position:absolute;top:0;left:0;right:0;height:0;transform:translateX(-100%);transition:transform var(--dur-hero) var(--ease-out)}
+.route-ferry{position:absolute;top:3px;right:-7px;width:14px;height:9px;fill:var(--signal)}
+.route-progress[data-state="on"]{opacity:1}
+.route-progress[data-state="on"] .route-progress-bar{transform:scaleX(.85)}
+.route-progress[data-state="on"] .route-ferry-track{transform:translateX(-15%)}
+.route-progress[data-state="done"]{opacity:0;transition:opacity var(--dur-base) var(--ease-in-out) var(--dur-fast)}
+.route-progress[data-state="done"] .route-progress-bar{transform:scaleX(1);transition-duration:var(--dur-fast)}
+.route-progress[data-state="done"] .route-ferry-track{transform:translateX(0);transition-duration:var(--dur-fast)}
+/* Back to rest at once: from "done" it is already faded out, and from "on"
+   (arriving anywhere but a main page) it simply goes, without fading,
+   shrinking or sailing back over the page that has arrived. */
+.route-progress[data-state="off"],.route-progress[data-state="off"] *{transition:none}
+@media (prefers-reduced-motion: reduce){.route-progress{display:none}}
+html[data-motion="off"] .route-progress{display:none}
+
+/* The same ferry crosses How it works: it rides the line from the first
+   step to the last as the line draws (scroll-driven where the browser has
+   it, once on reveal where it does not), and passes behind the step
+   numbers, which sit above it. Its box spans the line, so moving it down by
+   its own height (translateY(100%)) carries the ferry from the top stop to
+   the bottom one. */
+.home-how-ferry{position:absolute;left:7px;top:16px;bottom:16px;width:14px;z-index:0;pointer-events:none}
+.home-how-ferry svg{position:absolute;top:-5px;left:0;width:14px;height:9px;fill:var(--signal);transform:rotate(90deg)}
+.home-how-steps-wrap{view-timeline-name:--how-steps}
+@supports (animation-timeline: view()){
+  html[data-motion="on"] .home-how-line path{animation-timeline:--how-steps}
+  html[data-motion="on"] .home-how-ferry{animation:home-how-sail var(--ease-linear) both;animation-timeline:--how-steps;animation-range:entry 20% cover 45%}
+}
+@supports not (animation-timeline: view()){
+  .home-how-ferry{transform:translateY(100%);transition:transform var(--dur-hero) var(--ease-in-out) calc(var(--dur-step) * 2)}
+  html[data-motion="on"][data-motion-js] .home-how-steps:not([data-in])~.home-how-ferry{transform:none}
+  /* As the line's own hold: if the script never takes charge, the ferry
+     is at the last stop by --dur-failsafe. */
+  html[data-motion="on"][data-motion-js]:not([data-motion-ready]) .home-how-steps:not([data-in])~.home-how-ferry{animation:home-how-ferry-failsafe 0s var(--ease-linear) var(--dur-failsafe,2.5s) forwards}
+}
+@keyframes home-how-sail{from{transform:none}to{transform:translateY(100%)}}
+@keyframes home-how-ferry-failsafe{to{transform:translateY(100%)}}
+@media (prefers-reduced-motion: reduce){.home-how-ferry{transform:translateY(100%)!important}}
+.home-how-ferry{transform:translateY(100%)}
+
+/* Skeletons (app/_components/motion/Skeleton.tsx): grey boxes at the
+   loaded content's own sizes, with a soft sweep by transform across each
+   while the list is on its way; still boxes under reduced motion and the
+   kill switch (the global rules stop the sweep). */
+.sk{display:block;position:relative;overflow:hidden;background:var(--tint);border-radius:8px}
+/* A text-shaped box: the loaded element with its own type and spacing, its
+   neutral words invisible (in forced colours too), so the box is the size
+   the real text will be. */
+.sk-text{position:relative;overflow:hidden;color:transparent!important;background:var(--tint)!important;border-color:transparent!important;border-radius:8px;box-shadow:none!important;forced-color-adjust:none}
+.sk::after,.sk-text::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent 0%,color-mix(in srgb,var(--paper) 55%,transparent) 50%,transparent 100%)}
+/* The sweep runs only where script runs: without it React cannot swap the
+   loaded cards in, so the boxes stay, and stay still. */
+html[data-motion-js] :is(.sk,.sk-text)::after{animation:sk-sweep var(--dur-shimmer) var(--ease-in-out) infinite}
+@keyframes sk-sweep{to{transform:translateX(100%)}}
+.sk-card{pointer-events:none}
+.sk-logo{width:44px;height:44px;border-radius:10px;flex:0 0 auto}
+.sk-logo-sm{width:32px;height:32px}
+.sk-photo{border-radius:0}
+
+/* The Pass Stamp (app/apply/ApplicationForm.tsx): when a "List your
+   business" enquiry is received, a red RECEIVED stamp slams onto the
+   confirmation card (from 2.6 times its size and turned a little more,
+   over --dur-stamp with the spring) and the card gives one 3px thud as it
+   lands. Once, no sound, no confetti; the word says received, nothing
+   about paid or approved. Its resting state is the stamp in place, so
+   reduced motion and the kill switch show it already there. */
+.confirmation-stamped{position:relative}
+.pass-stamp{position:absolute;top:22px;right:18px;display:inline-block;padding:6px 12px;border:3px double var(--signal);border-radius:8px;color:var(--signal);font-size:.78rem;font-weight:900;letter-spacing:.18em;line-height:1;text-transform:uppercase;transform:rotate(-8deg);animation:pass-stamp var(--dur-stamp) var(--ease-spring) both}
+@keyframes pass-stamp{from{opacity:0;transform:scale(2.6) rotate(-14deg)}}
+.confirmation-stamped{animation:pass-thud var(--dur-fast) var(--ease-out) calc(var(--dur-stamp) * .55) both}
+@keyframes pass-thud{40%{transform:translateY(3px)}}

@@ -66,7 +66,9 @@ export default async function ShopPage({ params }: { params: Params }) {
   const { org: slug } = await params;
   const section = await shopSection();
   const subsection = section?.subcategories.find((c) => c.slug === slug);
-  if (section && subsection) return <CategoryPage section={section} subcategory={subsection} />;
+  // Rendered on every request, so its cards come with the page rather
+  // than behind a skeleton (brief 22, M5).
+  if (section && subsection) return <CategoryPage section={section} subcategory={subsection} streamCards={false} />;
 
   const shop = await loadShop(slug);
   if (!shop) notFound();

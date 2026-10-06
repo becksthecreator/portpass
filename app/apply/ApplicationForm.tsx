@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { PhoneInput } from "@/app/_components/PhoneInput";
 import { track } from "@/lib/analytics";
 import { portpassWhatsAppUrl } from "@/lib/contact";
+import { motionEnabled } from "@/lib/motion/client";
 
 type FormState = { name: string; businessName: string; section: string; whatsapp: string; instagram: string; note: string; referralCode: string };
 type SectionOption = { slug: string; name: string };
@@ -57,7 +58,9 @@ export function ApplicationForm({ sections, plans }: { sections: SectionOption[]
       if (!response.ok) throw new Error(data.error ?? "We couldn’t send that. Please try again.");
       track("apply_submitted", { section: form.section, plan: picked?.code ?? "", source: searchParams.get("utm_source") ?? "" });
       setSubmitted(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      // Smooth only where motion is allowed (brief 22: reduced motion and
+      // the kill switch turn every scroll effect off).
+      window.scrollTo({ top: 0, behavior: motionEnabled() ? "smooth" : "auto" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "We couldn’t send that. Please try again.");
     } finally {
@@ -67,7 +70,12 @@ export function ApplicationForm({ sections, plans }: { sections: SectionOption[]
 
   if (submitted) {
     return (
-      <section className="confirmation" aria-live="polite">
+      <section className="confirmation confirmation-stamped" aria-live="polite">
+        {/* The Pass Stamp (brief 22, M5): slams down once, in CSS
+            (lib/motion/public.css); already in place when nothing may move.
+            Received, nothing more: not paid, not approved. Decorative, since
+            the heading below says it. */}
+        <span className="pass-stamp" aria-hidden="true">Received</span>
         <span className="confirmation-mark">✓</span>
         <div className="eyebrow"><span className="eyebrow-dot" />Got it</div>
         <h2>We&rsquo;ll message you on WhatsApp.</h2>

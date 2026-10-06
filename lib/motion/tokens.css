@@ -12,11 +12,14 @@
      --dur-menu        a menu or sheet opening (200 ms)
      --dur-page        the cross-fade between pages and the morph (250 ms)
      --dur-base        a card lifting, a chip
+     --dur-stamp       the Pass Stamp slamming down (450 ms)
      --dur-tide        the Tide Wipe across a main-page move (500 ms)
      --dur-pop         a Bounce Badge popping in (550 ms)
      --dur-slow        a scroll reveal
      --dur-hero        the hero's own entrance
      --dur-board       the Departure Board's flicker before it settles
+     --dur-shimmer     one sweep of a skeleton's shimmer, which repeats only
+                       while its list is on its way
      --dur-sun         the Sun Drift: the glow rising behind the hero, once
      --dur-failsafe    how long a held reveal waits for its script before
                        it shows anyway (motion.css)
@@ -43,11 +46,13 @@
   --dur-menu:200ms;
   --dur-page:250ms;
   --dur-base:300ms;
+  --dur-stamp:450ms;
   --dur-tide:500ms;
   --dur-pop:550ms;
   --dur-slow:600ms;
   --dur-hero:900ms;
   --dur-board:900ms;
+  --dur-shimmer:1800ms;
   --dur-sun:1600ms;
   --dur-failsafe:2.5s;
   --dur-idle:5s;
