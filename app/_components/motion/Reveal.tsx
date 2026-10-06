@@ -71,6 +71,15 @@ export function Reveal({
       el.setAttribute("data-in", "");
       return;
     }
+    // Anything on screen when the script arrives is released now, before
+    // the observer's first report, so it never blinks between the CSS
+    // failsafe and the hold; the rest wait for 15% in view.
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom < 0 || (rect.top < window.innerHeight && rect.bottom > 0)) el.setAttribute("data-in", "");
+    // From here the observer is in charge and the 2.5 s failsafe stands
+    // down (lib/motion/motion.css).
+    document.documentElement.setAttribute("data-motion-ready", "");
+    if (el.hasAttribute("data-in")) return;
     const io = observer();
     io.observe(el);
     return () => io.unobserve(el);

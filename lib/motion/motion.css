@@ -24,12 +24,14 @@
   transition:opacity var(--dur-slow) var(--ease-out),transform var(--dur-slow) var(--ease-out);
 }
 html[data-motion="on"][data-motion-js] [data-reveal]:not([data-stagger]):not([data-in]),
-html[data-motion="on"][data-motion-js] [data-reveal][data-stagger]:not([data-in])>*{
-  opacity:0;
-  /* If the script that marks "in view" never runs (an error, a very slow
-     phone), nothing stays hidden: 2.5 s after being hidden the final state
-     is shown. Adding [data-in] removes this rule, so a reveal that does
-     run is unaffected. */
+html[data-motion="on"][data-motion-js] [data-reveal][data-stagger]:not([data-in])>*{opacity:0}
+/* If the script that marks "in view" never runs (an error on the page, a
+   very slow phone), nothing stays hidden: until the first Reveal has
+   mounted and set data-motion-ready on <html>, a held element shows its
+   final state 2.5 s after the hold began. Once the observer is in charge
+   this rule no longer matches, so a reveal reached later still rises. */
+html[data-motion="on"][data-motion-js]:not([data-motion-ready]) [data-reveal]:not([data-stagger]):not([data-in]),
+html[data-motion="on"][data-motion-js]:not([data-motion-ready]) [data-reveal][data-stagger]:not([data-in])>*{
   animation:motion-reveal-failsafe 0s linear 2.5s forwards;
 }
 html[data-motion="on"][data-motion-js] [data-reveal="rise"]:not([data-stagger]):not([data-in]),
@@ -67,3 +69,8 @@ html[data-motion="on"][data-motion-js] [data-reveal="scale"][data-stagger]:not([
 html[data-motion="off"]{scroll-behavior:auto!important}
 html[data-motion="off"] *,html[data-motion="off"] *::before,html[data-motion="off"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 html[data-motion="off"] [data-reveal],html[data-motion="off"] [data-reveal][data-stagger]>*{opacity:1!important;transform:none!important}
+/* Older effects whose resting style is hidden and whose own final-state
+   rule exists only under prefers-reduced-motion (app/globals.css): the
+   same final state here. The booking-sent steamer on /futprep/coaches. */
+html[data-motion="off"] .request-mail-card{opacity:0}
+html[data-motion="off"] .request-mail-steamer{left:50%;opacity:1;transform:translateX(-50%)}

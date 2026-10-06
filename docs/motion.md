@@ -40,7 +40,7 @@ Staggers step 60ms apart and never stagger more than six children.
 | `html[data-motion]` | written by `app/layout.tsx` from the site setting | the kill switch |
 | `html[data-motion-js]` | one inline line at the top of `<body>` | JavaScript is running |
 
-A scroll reveal starts hidden only when all three say yes; otherwise the page shows its final state. If the script that marks "in view" never runs, a 2.5 s CSS failsafe shows the final state anyway.
+A scroll reveal starts hidden only when all three say yes; otherwise the page shows its final state. If the script that marks "in view" never runs (an error on the page), a 2.5 s CSS failsafe shows the final state anyway; the first `<Reveal>` to mount sets `html[data-motion-ready]`, which stands the failsafe down so a reveal reached later still rises.
 
 In JavaScript, `motionEnabled()` from `lib/motion/client.ts` answers the first two questions, so a script and the stylesheet never disagree.
 
@@ -72,7 +72,9 @@ In JavaScript, `motionEnabled()` from `lib/motion/client.ts` answers the first t
 
 - Reduced motion: `document.getAnimations().length` on `/` is 0 after load and after scrolling to the end; every reveal is at full opacity.
 - No JavaScript: the hero headline, image and both buttons are on the first screen; no reveal is held hidden.
-- A slow phone (CPU slowed 4x): a filmstrip of the first 1.8 s and of the first section revealing (the `motion-checks` artifact, `frames/`), every reveal has arrived after one scroll through the page, and the layout shift measured in the page is under 0.05.
+- A slow phone (CPU slowed 4x): a filmstrip of the first 1.8 s and of the first section revealing (the `motion-checks` artifact, `frames/`), a reveal below the fold is still held 3 s after load and is on its way in once scrolled to, every reveal has arrived after one scroll through the page, and the layout shift measured in the page is under 0.05.
+
+The script reads one optional env var, `MOTION_BASE_URL` (default `http://localhost:3000`), and refuses any host but localhost.
 
 The kill switch is covered by unit tests (`lib/siteContent.test.ts`) and by reading `<html data-motion>` on the live site after a save in Admin → Content.
 

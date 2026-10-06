@@ -57,7 +57,7 @@ export default async function RootLayout({
   // who asked for reduced motion gets off whatever this says.
   const { motion } = await getSiteContent();
   return (
-    <html lang="en" data-motion={motion ? "on" : "off"}>
+    <html lang="en" data-motion={motion ? "on" : "off"} suppressHydrationWarning>
       {/* Poppins + Inter on <body>, so every page -- sign-in, account, admin,
           staff, the offline page, the install banner -- has the brand type
           without setting it itself. Business listing pages put their own

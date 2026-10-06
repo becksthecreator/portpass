@@ -108,10 +108,25 @@ try {
     const headline = await page.locator(".pp-hero h1").first().evaluate((node) => getComputedStyle(node).opacity);
     check(headline === "1", "the hero headline is at full opacity once loaded");
     const total = await page.evaluate(() => document.querySelectorAll("[data-reveal]").length);
+    // A visitor who reads the hero for a while must still see the first
+    // section rise: well after the failsafe window, a reveal below the
+    // fold is still held, and arrives only once it is scrolled to.
+    await page.waitForTimeout(3200);
+    const held = await page.evaluate(() => {
+      const el = document.querySelector("#chooser [data-reveal]");
+      return el ? { below: el.getBoundingClientRect().top >= window.innerHeight, arrived: el.hasAttribute("data-in"), opacity: getComputedStyle(el).opacity } : null;
+    });
+    check(Boolean(held && held.below && !held.arrived && held.opacity === "0"), "a reveal below the fold is still held 3 s after load, so it can rise when reached", JSON.stringify(held));
     await page.evaluate(() => document.querySelector("#chooser")?.scrollIntoView({ behavior: "instant", block: "start" }));
-    for (const t of [0, 150, 300, 450, 600, 900]) {
-      if (t) await page.waitForTimeout(150);
+    await page.waitForTimeout(100);
+    const rising = await page.evaluate(() => {
+      const el = document.querySelector("#chooser [data-reveal]");
+      return el ? { arrived: el.hasAttribute("data-in"), opacity: Number(getComputedStyle(el).opacity) } : null;
+    });
+    check(Boolean(rising && rising.arrived && rising.opacity < 1), "that reveal is on its way in 100 ms after being scrolled to", JSON.stringify(rising));
+    for (const t of [100, 250, 400, 550, 700, 1000]) {
       await page.screenshot({ path: `${OUT}/frames/home-chooser-${pad(t)}ms-375.png` });
+      await page.waitForTimeout(150);
     }
     // One scroll through the page, a screen at a time, so every reveal has
     // had its chance to come into view.
