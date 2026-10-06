@@ -73,7 +73,7 @@ export function ContentManager({ initialSettings }: { initialSettings: WeddingSi
       <h2 style={{ marginTop: 24 }}>WeddingWire widgets</h2>
       <p style={{ color: "var(--muted)", fontSize: ".82rem" }}>
         PortPass builds the rating badge, the award badge and the reviews from your WeddingWire member ID, so there is no code to paste.
-        The member ID is the number in each embed code on WeddingPro.com → Reviews tab.
+        The member ID is the number in brackets at the end of each embed code on WeddingPro.com → Reviews tab.
       </p>
       <div className="wedding-admin-field-grid">
         <label className="wedding-admin-field-full"><span>WeddingWire member ID</span><input inputMode="numeric" autoComplete="off" maxLength={12} value={memberId} onChange={(e) => setMemberId(e.target.value)} /></label>

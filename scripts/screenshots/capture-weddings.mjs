@@ -56,6 +56,24 @@ await context.addInitScript(() => {
   });
 });
 
+// WeddingWire's reviews widget is never loaded here: its content is real
+// couples' names and words, which must not be copied into an artifact (the
+// PR #26 rule). Its loader is refused, so the reviews panel shows the
+// snippet's own fallback in every run alike; the badges load as on the site.
+// Which WeddingWire requests were answered is noted for the summary.
+await context.route(/^https:\/\/cdn1\.weddingwire\.com\/js\/wp-widget\.js/, (route) => route.abort());
+const weddingWire = new Set();
+const where = (url) => {
+  const { host, pathname } = new URL(url);
+  return `${host}${pathname}`;
+};
+context.on("response", (response) => {
+  if (/(^|\.)weddingwire\.com$/.test(new URL(response.url()).hostname)) weddingWire.add(`${response.status()} ${where(response.url())}`);
+});
+context.on("requestfailed", (request) => {
+  if (/(^|\.)weddingwire\.com$/.test(new URL(request.url()).hostname)) weddingWire.add(`not loaded ${where(request.url())}`);
+});
+
 const page = await context.newPage();
 const failures = [];
 try {
@@ -89,6 +107,7 @@ try {
   }
   writeFileSync(`${OUT}/injected.json`, JSON.stringify((await page.evaluate(() => window.__weddingWireInjected)).sort(), null, 2));
   checks.pageWiderThanPhone = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  checks.weddingWireRequests = [...weddingWire].sort();
   console.log(`captured the wedding page (${PHASE})`);
 
   // The Wedding Desk's content screen, as the TEST Desk account.

@@ -12,9 +12,10 @@ import { ExternalWidget } from "./ExternalWidget";
 // N of the *same* named award should pass that name N times; this block
 // pluralizes it once, correctly, in one place.
 //
-// weddingWire optionally shows the business's real WeddingWire rating and
-// award badges, built from its member ID (lib/weddingWire.ts; no HTML is
-// passed or stored) -- when switched on, each one REPLACES the
+// weddingWire optionally shows the real WeddingWire rating and award
+// badges, built from a member ID (lib/weddingWire.ts; no HTML is passed or
+// stored). Bahamas Weddings By The Sea only: the badges link to its own
+// WeddingWire listing. When switched on, each one REPLACES the
 // corresponding hand-entered figure rather than sitting alongside it, so a
 // business's real rating/award badge is never shown next to (and possibly
 // contradicting) a stale manually-entered number for the same fact. Both
