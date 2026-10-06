@@ -10,7 +10,9 @@ import { sessionForUser } from "@/lib/auth/session";
 
 // @public-route: exchanging a code for a session is, by definition, unauthenticated.
 const ipLimited = createRateLimiter(20, 10 * 60_000);
-const emailLimited = createRateLimiter(8, 10 * 60_000);
+// Five tries per email per ten minutes (Brief 21, part C): a six-digit code
+// guessed at that rate is a one-in-200,000 chance before the code expires.
+const emailLimited = createRateLimiter(5, 10 * 60_000);
 
 function str(body: Record<string, unknown>, key: string, max: number): string {
   return typeof body[key] === "string" ? body[key].trim().slice(0, max) : "";

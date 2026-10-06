@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { issueStaffToken, readStaffToken, STAFF_SESSION_MAX_AGE_SECONDS, staffTokenValid } from "./staffSession";
 
 // The staff session cookie: only a token this server signed, for this
-// staff area and this account as it is now, within 12 hours, is accepted.
+// staff area and this account as it is now, within 8 hours, is accepted.
 const PIN_HASH = createHash("sha256").update("482913").digest("hex");
 const ACCOUNT = { accountKey: "bex", role: "coach", pinHash: PIN_HASH };
 const NOW = Date.UTC(2026, 9, 3, 14, 0, 0);
@@ -59,7 +59,7 @@ describe("staff session tokens", () => {
     expect(valid(token, { ...ACCOUNT, pinHash: createHash("sha256").update("111111").digest("hex") })).toBe(false);
   });
 
-  it("expires on the server after 12 hours, and rejects a date from the future", () => {
+  it("expires on the server after 8 hours, and rejects a date from the future", () => {
     const token = issueStaffToken("futprep", ACCOUNT, NOW);
     expect(valid(token, ACCOUNT, "futprep", NOW + (STAFF_SESSION_MAX_AGE_SECONDS - 60) * 1000)).toBe(true);
     expect(valid(token, ACCOUNT, "futprep", NOW + (STAFF_SESSION_MAX_AGE_SECONDS + 60) * 1000)).toBe(false);

@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { authEnv } from "./env";
+import { authEnv, SESSION_COOKIE_MAX_AGE_SECONDS } from "./env";
 
 // The only Supabase client in this codebase that runs as the signed-in
 // user rather than the service role, and it exists solely for Supabase
@@ -13,6 +13,7 @@ export async function createAuthClient() {
   if (!env) throw new Error("Auth is not configured: set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY.");
   const cookieStore = await cookies();
   return createServerClient(env.url, env.key, {
+    cookieOptions: { maxAge: SESSION_COOKIE_MAX_AGE_SECONDS },
     cookies: {
       getAll() {
         return cookieStore.getAll();

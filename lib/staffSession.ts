@@ -8,13 +8,14 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 // own cookie expiry ever ended a session.
 //
 // Now: "<account>.<role>.<issued at, seconds>.<HMAC>", keyed with a secret
-// only the server has, and refused once it is older than 12 hours.
+// only the server has, and refused once it is older than 8 hours.
 // Changing a PIN still signs everyone on that account out, because the PIN
 // hash is part of what is signed.
 
 export type StaffArea = "futprep" | "weddings";
 
-export const STAFF_SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
+// A shift, not a day (Brief 21, part C): staff sessions end after 8 hours.
+export const STAFF_SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 // A token dated slightly ahead of this server's clock is fine; further
 // than this and it wasn't issued by us.
 const CLOCK_SKEW_SECONDS = 5 * 60;
