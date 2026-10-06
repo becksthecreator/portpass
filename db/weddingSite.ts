@@ -52,9 +52,11 @@ async function weddingOrganizationId(): Promise<number | null> {
 }
 
 // Saves the content and records what changed, and which Desk account
-// changed it (`actor`), in the audit log. A failed audit write fails the
-// save, as for every audited action (db/audit.ts). The member ID is checked
-// here as well as in the route, and the database holds the same rule.
+// changed it (`actor`), in the audit log. The entry is written after the
+// update, as for the other audited actions: if it can't be written the save
+// is answered as failed, though the change itself stands. The member ID is
+// checked here as well as in the route, and the database holds the same
+// rule.
 export async function updateWeddingSiteSettings(input: WeddingSiteSettingsInput, actor: string): Promise<void> {
   const { memberId, ratingBadge, awardBadge, reviews } = input.weddingWire;
   if (memberId !== null && !isWeddingWireMemberId(memberId)) throw new Error("INVALID_MEMBER_ID");

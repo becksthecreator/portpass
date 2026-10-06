@@ -36,7 +36,16 @@ row("Desk screen shows the member ID and three switches, no HTML box (this branc
 row("A Desk save is written to the audit log (this branch)", runs.after.checks.auditEntries >= 1, `${runs.after.checks.auditEntries} entries`);
 row("main's save, which writes HTML, is refused once the migration is applied", Boolean(runs.window.checks.oldSaveRefused), runs.window.checks.oldSaveRefused ?? "");
 
-const summary = ["## The wedding page before and after (375px)", "", "| Check | Holds | |", "|---|---|---|", ...rows, "", "Screenshots: the `weddings-screenshots` artifact.", ""].join("\n");
+// Not a check: what WeddingWire answered in each run, so the screenshots
+// can be read. The reviews widget is never loaded in this job (the PR #26
+// rule: no review text in an artifact), so its panel shows the snippet's own
+// fallback in all three.
+const answered = PHASES.map((phase) => `| ${phase} | ${(runs[phase].checks.weddingWireRequests ?? []).join("<br>") || "none"} |`);
+const summary = [
+  "## The wedding page before and after (375px)", "", "| Check | Holds | |", "|---|---|---|", ...rows, "",
+  "What WeddingWire answered in each run:", "", "| Run | Requests |", "|---|---|", ...answered, "",
+  "Screenshots: the `weddings-screenshots` artifact.", "",
+].join("\n");
 console.log(summary);
 if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
 if (problems.length) {

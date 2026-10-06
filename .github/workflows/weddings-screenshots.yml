@@ -16,23 +16,21 @@ name: Wedding page screenshots (TEST data)
 # whose PIN is generated for this run only (masked, never printed). Not a
 # required check.
 
+# A one-off for the PR that brings 202610190002: once that is on main,
+# "main's code before the migration" no longer exists, so the job runs only
+# for a PR that changes that file (and by hand). The follow-up that drops the
+# read-only columns removes this job and its scripts.
 on:
   workflow_dispatch:
   pull_request:
     branches: [main]
     paths:
-      - "app/weddings/bahamas-weddings-by-the-sea/**"
-      - "app/weddings/admin/content/**"
-      - "app/api/weddings/admin/content/**"
-      - "app/_components/blocks/ExternalWidget.tsx"
-      - "app/_components/blocks/ReviewsPanel.tsx"
-      - "app/_components/blocks/ProofBlock.tsx"
-      - "lib/weddingWire.ts"
-      - "lib/weddingSiteContent.ts"
-      - "db/weddingSite.ts"
       - "supabase/migrations/202610190002_weddingwire_widgets_structured.sql"
-      - "scripts/screenshots/*weddings*"
-      - ".github/workflows/weddings-screenshots.yml"
+
+# It runs this branch's code and main's: the token can read the repository
+# and nothing more, and isn't left on disk after checkout.
+permissions:
+  contents: read
 
 concurrency:
   group: weddings-screenshots-${{ github.ref }}
@@ -48,6 +46,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
@@ -110,7 +109,9 @@ jobs:
       - name: Apply 202610190002 to the stack
         run: |
           mv "$RUNNER_TEMP/$(basename "$MIGRATION")" "$MIGRATION"
-          supabase migration up
+          # --include-all: a migration merged to main after this one was
+          # numbered may already be applied, and this one then sorts before it.
+          supabase migration up --include-all
       - name: "2 of 3: main's code after the migration"
         run: |
           cd "$RUNNER_TEMP/main"

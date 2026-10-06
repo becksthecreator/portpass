@@ -77,9 +77,12 @@ What they count is in `security_events` (kept 90 days) and `admin_devices`; both
 
 Every public table has row level security on and a policy (`supabase/migrations/202610180001_rls_policies.sql`): the public site's own rows are readable by a browser key, nothing else is, and no browser role can write anywhere. `admin_database_checks()` keeps five counts at zero and CI fails when one moves (`db/adminHealth.integration.test.ts`): tables without RLS, tables with RLS but no policy, tables a browser role could write, functions without a fixed search path, privileged functions a browser could call. Admin → Health shows the same five.
 
+No page stores or runs HTML a business supplies. Bahamas Weddings By The Sea's WeddingWire rating badge, award badge and reviews are built in `lib/weddingWire.ts` from a member ID, digits only (a CHECK on `wedding_site_settings`), and three show/hide switches. The old `*_html` columns are read-only, generated from those, kept only until the code deployed before `202610190002` is gone (security review of #183).
+
 ## Where the records are
 
 - **Audit log**: `audit_log`, read in Admin → Audit. Every admin action and settings change on a business, with who, what, before and after.
+  A Wedding Desk save of the trust numbers or the WeddingWire widgets is `wedding_site.updated`, with the Desk account in `after.by` (`desk:<account>`); staff PIN accounts have no user id, so `actor_user_id` is empty.
 - **Messages log**: `message_log`, Admin → Messages. Every email PortPass tried to send, never the body.
 - **Site errors**: `site_errors`, Admin → Health. Route pattern, error kind and digest only.
 - **Sign-in attempts (staff PIN)**: `staff_login_attempts`, pruned after a day.
