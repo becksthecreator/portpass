@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { authEnv } from "./env";
+import { authEnv, SESSION_COOKIE_MAX_AGE_SECONDS } from "./env";
 
 // Edge runtime: refreshes the auth cookies on every request that passes
 // through middleware and answers exactly one question -- is there a
@@ -12,6 +12,7 @@ export async function updateSession(request: NextRequest): Promise<{ response: N
   if (!env) return { response, hasSession: false };
 
   const supabase = createServerClient(env.url, env.key, {
+    cookieOptions: { maxAge: SESSION_COOKIE_MAX_AGE_SECONDS },
     cookies: {
       getAll() {
         return request.cookies.getAll();

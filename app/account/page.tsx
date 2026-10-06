@@ -9,6 +9,7 @@ import { getMemberCard, listMemberRedemptions, type MemberRedemption } from "@/d
 import { requireSignedIn } from "@/lib/auth/guards";
 import { destinationsFor } from "@/lib/auth/routing";
 import { NameForm } from "./NameForm";
+import { SignOutEverywhere } from "./SignOutEverywhere";
 import "@/app/_components/perks/perks.css";
 import "./account.css";
 
@@ -113,6 +114,12 @@ export default async function AccountPage() {
               </ul>
             </>
           )}
+        </section>
+
+        <section className="account-section" aria-labelledby="account-security">
+          <h2 id="account-security">Security</h2>
+          <p className="auth-lead">You stay signed in on this device for 30 days after your last visit. If you signed in on a phone or computer you no longer use, sign out of all of them at once.</p>
+          <SignOutEverywhere />
         </section>
 
         <div className="account-section">

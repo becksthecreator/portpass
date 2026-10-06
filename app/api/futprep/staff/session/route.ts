@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     secure: true,
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 12,
+    maxAge: STAFF_SESSION_MAX_AGE_SECONDS,
   });
   return response;
 }

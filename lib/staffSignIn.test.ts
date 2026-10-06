@@ -80,6 +80,20 @@ describe("staff PIN sign-in limits", () => {
     if (!last.ok) expect(last.response.status).toBe(429);
   });
 
+  it("never writes a PIN to the log or into an answer, right or wrong", async () => {
+    const spies = [vi.spyOn(console, "log"), vi.spyOn(console, "error"), vi.spyOn(console, "warn"), vi.spyOn(console, "info")].map((spy) => spy.mockImplementation(() => {}));
+    const WRONG_PIN = "731904";
+    const wrong = await staffSignIn(attempt("bex", WRONG_PIN), "futprep", makeToken);
+    const right = await staffSignIn(attempt("bex", RIGHT_PIN), "futprep", makeToken);
+    const answers = [wrong.ok ? "" : await wrong.response.text(), JSON.stringify(right)].join("\n");
+    const logged = spies.flatMap((spy) => spy.mock.calls.map((call) => call.map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg))).join(" "))).join("\n");
+    for (const pin of [WRONG_PIN, RIGHT_PIN]) {
+      expect(logged).not.toContain(pin);
+      expect(answers).not.toContain(pin);
+    }
+    spies.forEach((spy) => spy.mockRestore());
+  });
+
   it("asks for an account name, and treats a null body as none", async () => {
     const empty = await staffSignIn(attempt("", RIGHT_PIN), "futprep", makeToken);
     expect(empty.ok).toBe(false);
