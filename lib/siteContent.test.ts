@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { announcementVisible, cleanAnnouncement, cleanHref, cleanSpotlight, EMPTY_ANNOUNCEMENT, nassauDay, orderBySpotlight, readAnnouncement } from "./siteContent";
+import { announcementVisible, cleanAnnouncement, cleanHref, cleanMotion, cleanSpotlight, EMPTY_ANNOUNCEMENT, nassauDay, orderBySpotlight, readAnnouncement, readMotion } from "./siteContent";
 import { cleanSponsor } from "./sponsors";
 import { leadsFunnel, type FunnelLead } from "./scout/leads";
 
@@ -126,5 +126,24 @@ describe("the leads funnel", () => {
 
   it("has no rates before anyone was contacted", () => {
     expect(leadsFunnel([lead(1, {})], [], weekAgo)).toMatchObject({ replyRate: null, closeRate: null });
+  });
+});
+
+describe("the motion switch (brief 22)", () => {
+  it("is on unless it was switched off, whatever is stored", () => {
+    expect(readMotion(undefined)).toBe(true);
+    expect(readMotion(null)).toBe(true);
+    expect(readMotion({ enabled: true })).toBe(true);
+    expect(readMotion({ enabled: false })).toBe(false);
+    expect(readMotion({ enabled: "no" })).toBe(true);
+    expect(readMotion("off")).toBe(true);
+  });
+
+  it("takes only on or off from Admin", () => {
+    expect(cleanMotion({ enabled: false })).toEqual({ ok: true, value: { enabled: false } });
+    expect(cleanMotion({ enabled: true })).toEqual({ ok: true, value: { enabled: true } });
+    expect(cleanMotion({ enabled: "off" })).toMatchObject({ ok: false });
+    expect(cleanMotion({})).toMatchObject({ ok: false });
+    expect(cleanMotion(null)).toMatchObject({ ok: false });
   });
 });

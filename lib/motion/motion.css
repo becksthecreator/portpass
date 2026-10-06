@@ -1,0 +1,76 @@
+/* Motion on the public site (brief 22, M1). The tokens are in tokens.css;
+   the rules are in docs/motion.md. Only transform and opacity ever move.
+
+   Three switches decide whether anything moves, and a reveal starts hidden
+   only when all three say yes:
+
+     prefers-reduced-motion   the visitor's own choice; always wins
+     html[data-motion]        the kill switch, "on" or "off", from the
+                              motion setting in Admin -> Content, written
+                              by the root layout on the server
+     html[data-motion-js]     JavaScript is running: one line in the root
+                              layout sets it before the body is parsed, so
+                              a page without script (or before it) shows
+                              everything at once, never a blank
+
+   Whatever the switches say, the final state is what the page shows. */
+
+/* ---- scroll reveals (app/_components/motion/Reveal.tsx) ----------------
+   <Reveal variant="rise"> renders [data-reveal="rise"] and the observer
+   adds [data-in] once 15% of it is in view. With [data-stagger] the
+   element itself stays put and its direct children arrive 60 ms apart. */
+[data-reveal]:not([data-stagger]),
+[data-reveal][data-stagger]>*{
+  transition:opacity var(--dur-slow) var(--ease-out),transform var(--dur-slow) var(--ease-out);
+}
+html[data-motion="on"][data-motion-js] [data-reveal]:not([data-stagger]):not([data-in]),
+html[data-motion="on"][data-motion-js] [data-reveal][data-stagger]:not([data-in])>*{opacity:0}
+/* If the script that marks "in view" never runs (an error on the page, a
+   very slow phone), nothing stays hidden: until the first Reveal has
+   mounted and set data-motion-ready on <html>, a held element shows its
+   final state 2.5 s after the hold began. Once the observer is in charge
+   this rule no longer matches, so a reveal reached later still rises. */
+html[data-motion="on"][data-motion-js]:not([data-motion-ready]) [data-reveal]:not([data-stagger]):not([data-in]),
+html[data-motion="on"][data-motion-js]:not([data-motion-ready]) [data-reveal][data-stagger]:not([data-in])>*{
+  animation:motion-reveal-failsafe 0s linear 2.5s forwards;
+}
+html[data-motion="on"][data-motion-js] [data-reveal="rise"]:not([data-stagger]):not([data-in]),
+html[data-motion="on"][data-motion-js] [data-reveal="rise"][data-stagger]:not([data-in])>*{transform:translateY(16px)}
+html[data-motion="on"][data-motion-js] [data-reveal="scale"]:not([data-stagger]):not([data-in]),
+html[data-motion="on"][data-motion-js] [data-reveal="scale"][data-stagger]:not([data-in])>*{transform:scale(.96)}
+@keyframes motion-reveal-failsafe{to{opacity:1;transform:none}}
+
+/* Delays: 60 ms a step, six steps at most. In a stagger the seventh child
+   and beyond arrive with the sixth. */
+[data-reveal][data-delay="1"]{transition-delay:60ms}
+[data-reveal][data-delay="2"]{transition-delay:120ms}
+[data-reveal][data-delay="3"]{transition-delay:180ms}
+[data-reveal][data-delay="4"]{transition-delay:240ms}
+[data-reveal][data-delay="5"]{transition-delay:300ms}
+[data-reveal][data-delay="6"]{transition-delay:360ms}
+[data-reveal][data-stagger]>:nth-child(2){transition-delay:60ms}
+[data-reveal][data-stagger]>:nth-child(3){transition-delay:120ms}
+[data-reveal][data-stagger]>:nth-child(4){transition-delay:180ms}
+[data-reveal][data-stagger]>:nth-child(5){transition-delay:240ms}
+[data-reveal][data-stagger]>:nth-child(n+6){transition-delay:300ms}
+
+/* ---- reduced motion: everything off, the final state shown -------------
+   Every animation, transition and smooth scroll on the site, not only the
+   ones this file adds. An effect whose final state is not its resting
+   state (a fade-in, say) must say so here or in its own reduced-motion
+   rule, as the reveals do below. */
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto!important}
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  [data-reveal],[data-reveal][data-stagger]>*{opacity:1!important;transform:none!important}
+}
+
+/* ---- the kill switch: the same, from Admin -> Content ------------------ */
+html[data-motion="off"]{scroll-behavior:auto!important}
+html[data-motion="off"] *,html[data-motion="off"] *::before,html[data-motion="off"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+html[data-motion="off"] [data-reveal],html[data-motion="off"] [data-reveal][data-stagger]>*{opacity:1!important;transform:none!important}
+/* Older effects whose resting style is hidden and whose own final-state
+   rule exists only under prefers-reduced-motion (app/globals.css): the
+   same final state here. The booking-sent steamer on /futprep/coaches. */
+html[data-motion="off"] .request-mail-card{opacity:0}
+html[data-motion="off"] .request-mail-steamer{left:50%!important;opacity:1!important;transform:translateX(-50%)!important}

@@ -104,3 +104,19 @@ export function orderBySpotlight<T extends { slug: string }>(items: T[], order: 
     .sort((a, b) => (rank.get(a.item.slug) ?? order.length + a.index) - (rank.get(b.item.slug) ?? order.length + b.index))
     .map((entry) => entry.item);
 }
+
+// The motion kill switch (brief 22, M1): one stored row, { enabled }. On
+// unless it was switched off; anything odd in storage reads as on, since
+// a page that moves is the site's normal state and a page that does not
+// move is still a whole page either way.
+export type MotionSetting = { enabled: boolean };
+
+export function cleanMotion(input: unknown): { ok: true; value: MotionSetting } | { ok: false; error: string } {
+  if (!input || typeof input !== "object" || typeof (input as { enabled?: unknown }).enabled !== "boolean") return { ok: false, error: "The motion switch is on or off." };
+  return { ok: true, value: { enabled: (input as { enabled: boolean }).enabled } };
+}
+
+export function readMotion(stored: unknown): boolean {
+  const cleaned = cleanMotion(stored);
+  return cleaned.ok ? cleaned.value.enabled : true;
+}

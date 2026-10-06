@@ -1,0 +1,83 @@
+# Motion on the public site
+
+Brief 22 (6 Oct 2026). PortPass should feel motion designed: smooth scroll reveals, a few big moments, still fast on a phone. This page is the whole system: the tokens, the rules, how an effect is added and how it is tested. Scope: the public site and the homepage. Business pages, booking and registration, sign-in, `/account`, `/business/*`, `/admin/*` and anything about money never move.
+
+## The tokens
+
+`lib/motion/tokens.css`, loaded by the root layout on every page. Every animation and transition takes its time and curve from here; none writes a number of its own.
+
+| Token | Value | Used for |
+| --- | --- | --- |
+| `--dur-fast` | 150ms | press feedback, a menu opening |
+| `--dur-base` | 300ms | a card lifting, a chip, a cross-fade between pages |
+| `--dur-slow` | 600ms | a scroll reveal |
+| `--dur-hero` | 900ms | the hero's own entrance |
+| `--ease-out` | `cubic-bezier(.22,1,.36,1)` | arrives and settles: reveals, menus, anything entering |
+| `--ease-in-out` | `cubic-bezier(.65,0,.35,1)` | leaves and returns: a condensing header, a colour ease |
+
+Staggers step 60ms apart and never stagger more than six children.
+
+## The rules
+
+1. **Speed is the product.** Lighthouse mobile performance on `/` stays at or above 85 (brief 03's number); CLS stays under 0.05. Report both before and after. If an effect drops either, fix the effect, not the target.
+2. **Move only `transform` and `opacity`.** Never width, height, top, left, margin or box-shadow. Zero layout shift.
+3. **Never hide the first screen behind an animation.** The hero headline, the hero image (the largest paint) and its two buttons are visible and clickable without waiting for any script. Motion may enhance them; it may not gate them.
+4. **Reduced motion is a first-class mode.** `@media (prefers-reduced-motion: reduce)` turns every animation, transition and scroll effect off and shows the final state. It is tested, not assumed.
+5. **CSS first.** Transitions, `@keyframes`, scroll-driven animations inside `@supports`, the View Transitions API. Where a browser lacks one, the page shows the end state. A library only if truly needed (`motion` with `LazyMotion` and `domAnimation`, its KB cost reported). No GSAP, no Lottie, no video backgrounds, no sound, no autoplay media.
+6. **Phone first.** Every effect works at 375px on a mid-range Android, tested with the CPU slowed 4x. Anything off-screen is paused or skipped.
+7. **Brand does not change.** Harbour Signal tokens, the Prow logo files exactly as supplied, Archivo headings, Inter body. Red stays for action only. Business accent colours do not change.
+8. **Copy rules still apply.** No money words, no "platform" or "solution". Motion never makes a claim the product cannot keep.
+9. **One kill switch.** `<html data-motion="on|off">`, from the motion switch in Admin → Content (stored in `site_content` under `motion`, default on). Off turns every animation and transition on the site off from the next request, with no deploy. Reduced-motion visitors always get off.
+10. **Never:** motion on `/futprep/register`, any form that holds a child's details, booking and payment-request flows, sign-in, `/account`, `/business/*` or `/admin/*`; an animation that loops forever (the hero drift is the one exception; featured logos move one at a time); parallax that moves text faster than the scroll; an effect that needs a click to dismiss.
+
+## How it is built
+
+`lib/motion/motion.css` (loaded after the tokens) holds the reveal rules, the reduced-motion block and the kill switch. Three switches decide whether anything moves:
+
+| Switch | Where | Says |
+| --- | --- | --- |
+| `prefers-reduced-motion` | the visitor's device | the visitor's own choice; always wins |
+| `html[data-motion]` | written by `app/layout.tsx` from the site setting | the kill switch |
+| `html[data-motion-js]` | one inline line at the top of `<body>` | JavaScript is running |
+
+A scroll reveal starts hidden only when all three say yes; otherwise the page shows its final state. If the script that marks "in view" never runs (an error on the page), a 2.5 s CSS failsafe shows the final state anyway; the first `<Reveal>` to mount sets `html[data-motion-ready]`, which stands the failsafe down so a reveal reached later still rises.
+
+In JavaScript, `motionEnabled()` from `lib/motion/client.ts` answers the first two questions, so a script and the stylesheet never disagree.
+
+### `<Reveal>`
+
+`app/_components/motion/Reveal.tsx`. A client component that renders one element with `data-reveal="<variant>"` and, through one shared `IntersectionObserver`, adds `data-in` once 15% of it is in view. Once: nothing replays on the way back up.
+
+```tsx
+<Reveal variant="rise">…</Reveal>                 // fade | rise (16px) | scale (.96)
+<Reveal variant="rise" delay={2}>…</Reveal>       // 0 to 6 steps of 60ms
+<Reveal as="ul" variant="rise" stagger>…</Reveal> // the children arrive 60ms apart, six steps at most
+<Reveal as="section" className="…" id="…">…</Reveal>
+```
+
+`stagger` leaves the element itself still and moves its direct children; the seventh child and beyond arrive with the sixth. Never stagger more than one level at once. The hero is not a `<Reveal>`: it is visible before any script runs (rule 3) and has its own CSS entrance.
+
+## Adding an effect
+
+1. Decide what moves: `transform` and `opacity` only. If the effect needs a layout property, it is a different effect.
+2. Write it in CSS with the tokens. Scroll reveals use `<Reveal>`; a hover lift is a transition; an entrance is `@keyframes`; a scroll-linked effect goes inside `@supports (animation-timeline: view())` with a plain reveal as the fallback.
+3. Say what the final state is under `prefers-reduced-motion` and `html[data-motion="off"]`. The global block turns the animation off; if the resting state is not the final state (a fade-in from 0, say), add a rule that sets the final state there, as `motion.css` does for reveals.
+4. Keep the first screen visible without script. Anything above the fold renders in its final state in the HTML and animates from it, never to it from hidden.
+5. Pause or skip it off-screen: a `will-change` only while in view, an infinite animation only on the hero drift.
+6. Put the CSS in a file the pages import (never the end of `globals.css`), check its class prefix against `app/*.css` first.
+
+## Testing it
+
+`.github/workflows/motion-checks.yml` runs `scripts/motion/check.mjs` on every PR that touches the public site's motion: the app on localhost against the local Supabase stack with TEST data, Chromium at 375px.
+
+- Reduced motion: `document.getAnimations().length` on `/` is 0 after load and after scrolling to the end; every reveal is at full opacity.
+- No JavaScript: the hero headline, image and both buttons are on the first screen; no reveal is held hidden.
+- A slow phone (CPU slowed 4x): a filmstrip of the first 1.8 s and of the first section revealing (the `motion-checks` artifact, `frames/`), a reveal below the fold is still held 3 s after load and is on its way in once scrolled to, every reveal has arrived after one scroll through the page, and the layout shift measured in the page is under 0.05.
+
+The script reads one optional env var, `MOTION_BASE_URL` (default `http://localhost:3000`), and refuses any host but localhost.
+
+The kill switch is covered by unit tests (`lib/siteContent.test.ts`) and by reading `<html data-motion>` on the live site after a save in Admin → Content.
+
+Lighthouse mobile runs against production after each merge (`.github/workflows/lighthouse.yml`); the `/` score and CLS come from its `lighthouse-indexed` artifact (`lhr-*.json`, `categories.performance.score`, `audits.cumulative-layout-shift.numericValue`). Report the run before the merge and the run after.
+
+For a phone in hand: Android Chrome → Settings → Accessibility → "Remove animations" (or iOS → Accessibility → Motion → Reduce Motion) must leave every page still and complete.

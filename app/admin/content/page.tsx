@@ -23,7 +23,7 @@ export default async function AdminContentPage() {
 
   return (
     <AdminShell session={session} current="/admin/content" title="Content" lede="Change what the public site says without a deploy. Every change is logged and is live at once.">
-      <ContentManager announcement={content.announcement} businesses={businesses} announcementMax={ANNOUNCEMENT_MAX} linkLabelMax={LINK_LABEL_MAX} />
+      <ContentManager announcement={content.announcement} businesses={businesses} announcementMax={ANNOUNCEMENT_MAX} linkLabelMax={LINK_LABEL_MAX} motion={content.motion} />
       <section className="admin-group" aria-labelledby="content-prices">
         <h2 id="content-prices">Prices on /business and /pricing</h2>
         <p className="admin-form-note">Plan prices, features and badges are edited in <Link className="admin-inline-link" href="/admin/settings/prices">Prices</Link>. The pricing block on /business and the /pricing page both read from there.</p>

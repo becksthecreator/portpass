@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motionEnabled } from "@/lib/motion/client";
 
 // Carried over verbatim from the old bahamas-by-the-sea bespoke page
 // (BwsArrival.tsx, deleted in the 25 Sept Part 2 cleanup) -- same session
@@ -28,14 +29,8 @@ export function BusinessArrivalPlate({ mark, word, sub }: { mark: string; word: 
       seen = false;
     }
 
-    let reduced = false;
-    try {
-      reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    } catch {
-      // ignore
-    }
-
-    if (seen || reduced) {
+    // Reduced motion, or the kill switch in Admin -> Content (brief 22).
+    if (seen || !motionEnabled()) {
       document.documentElement.removeAttribute("data-bws-arriving");
       setState("gone");
       try {
