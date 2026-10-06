@@ -7,7 +7,7 @@ import { SiteHeader } from "@/app/_components/SiteHeader";
 import { ppDisplay, ppSans } from "@/app/fonts";
 import { getPublicDrop } from "@/db/shop";
 import { canReserve, countdownTarget, dropPhase, formatNassau, formatReadyOn, licenceLabel, publicOpensAt, SHOP_PAYMENT_METHODS } from "@/lib/shop/rules";
-import { MADE_IN_BAHAMAS } from "@/lib/market/sellers";
+import { MadeBadge } from "@/app/_components/market/MadeBadge";
 import { Countdown } from "../../../Countdown";
 import { DropReserve, type DropProductView } from "./DropReserve";
 import "../../../shop.css";
@@ -79,7 +79,7 @@ export default async function DropPage({ params, searchParams }: { params: Param
           <span className={`shop-phase shop-phase-${phase}`}>{phaseLabel}</span>
           <p className="shop-eyebrow"><Link href={`/shop/${orgSlug}`}>{org.name}</Link> · Drop</p>
           <h1>{drop.title}</h1>
-          <p className="shop-badge shop-badge-hero">{MADE_IN_BAHAMAS}</p>
+          <MadeBadge variant="hero" as="p" />
           {drop.description && <p className="shop-lede">{drop.description}</p>}
           {target && (
             <Countdown

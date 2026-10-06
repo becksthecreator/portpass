@@ -5,6 +5,7 @@ import { getOrganizationListingBySlug, listSectionBusinesses, liveCountsByCatego
 import { directoryHref } from "@/app/_components/blocks/directoryHref";
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/lib/legal";
 import { listPublishedGuides } from "@/db/guides";
+import { listMarketProductPaths } from "@/db/market";
 
 const PLATFORM_HOST = "portpassbahamas.com";
 
@@ -31,6 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `https://${PLATFORM_HOST}/pricing` },
     { url: `https://${PLATFORM_HOST}/apply` },
     { url: `https://${PLATFORM_HOST}/sell` },
+    { url: `https://${PLATFORM_HOST}/market` },
     { url: `https://${PLATFORM_HOST}/about` },
     { url: `https://${PLATFORM_HOST}/contact` },
     { url: `https://${PLATFORM_HOST}/app` },
@@ -51,6 +53,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (guides.length) {
     entries.push({ url: `https://${PLATFORM_HOST}/guides`, lastModified: new Date(Math.max(...guides.map((guide) => new Date(guide.updatedAt).getTime()))) });
     for (const guide of guides) entries.push({ url: `https://${PLATFORM_HOST}/guides/${guide.slug}`, lastModified: new Date(guide.updatedAt) });
+  }
+
+  // PortPass Market (brief 25, B4): every product page and every category
+  // with something in it. The market_products view lists only verified
+  // sellers' published products and never the demo business.
+  try {
+    const products = await listMarketProductPaths();
+    const categories = new Map<string, string[]>();
+    for (const product of products) {
+      entries.push({ url: `https://${PLATFORM_HOST}/market/p/${product.sellerSlug}/${product.slug}`, lastModified: newest([product.createdAt]) });
+      if (product.marketCategory) categories.set(product.marketCategory, [...(categories.get(product.marketCategory) ?? []), product.createdAt]);
+    }
+    for (const [category, dates] of categories) entries.push({ url: `https://${PLATFORM_HOST}/market/${category}`, lastModified: newest(dates) });
+  } catch {
+    // The rest of the sitemap stands without the Market's pages.
   }
 
   try {

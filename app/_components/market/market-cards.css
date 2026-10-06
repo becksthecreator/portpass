@@ -1,0 +1,30 @@
+/* PortPass Market's shared pieces (brief 25): the "Made in The Bahamas"
+   badge and the product card, on the storefront, /market and the
+   homepage strip. Its own file, imported by the components that use it. */
+.mib-badge{display:inline-flex;align-items:center;gap:6px;background:#FFC72C;color:#0D1B3D;border-radius:999px;padding:4px 11px;font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;line-height:1.2;white-space:nowrap}
+.mib-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:#00778B;flex:none}
+.mib-badge-hero{margin:0 0 12px}
+.mib-badge-card{position:absolute;right:10px;bottom:10px}
+.mib-badge-inline{margin:0}
+
+.mkt-grid{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr));margin:0;padding:0;list-style:none}
+.mkt-card{display:flex;flex-direction:column;height:100%;background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden;color:var(--ink);text-decoration:none}
+.mkt-card:hover{border-color:var(--ink)}
+.mkt-card:focus-visible{outline:2px solid var(--harbour);outline-offset:2px}
+.mkt-card-photo{position:relative;aspect-ratio:4/5;background:var(--tint);display:flex;align-items:center;justify-content:center}
+.mkt-card-photo img{width:100%;height:100%;object-fit:cover}
+.mkt-card-photo>span[aria-hidden]{font-size:2.6rem;font-weight:800;color:var(--muted)}
+.mkt-card-photo .mib-badge-card{left:8px;right:auto;bottom:8px;font-size:.58rem;padding:3px 8px}
+.mkt-card-body{display:flex;flex-direction:column;gap:3px;padding:10px 12px 14px}
+.mkt-card-body strong{font-size:.95rem;line-height:1.3}
+.mkt-card-price{font-weight:800;font-size:.95rem}
+.mkt-card-seller{color:var(--muted);font-size:.8rem}
+@media(min-width:760px){.mkt-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}}
+@media(min-width:1080px){.mkt-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* The homepage's "From the Market" strip (brief 25, B3). */
+.home-market{padding:56px 5vw 20px;background:var(--deck)}
+.home-market-grid{max-width:1080px;margin:0 auto}
+.home-market-more{text-align:center;margin:24px 0 0}
+@media(max-width:760px){.home-market{padding:36px 16px 12px}}
+@media(min-width:1080px){.home-market-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}

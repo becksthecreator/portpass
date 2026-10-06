@@ -111,6 +111,8 @@ function DesktopNav({ sections, types }: { sections: NavSection[]; types?: strin
           }}
         />
       ))}
+      {/* PortPass Market (brief 25, B3): its own link, after the sections. */}
+      <Link className="nav-trigger nav-market" href="/market" transitionTypes={types}>Market</Link>
     </nav>
   );
 }
@@ -294,6 +296,13 @@ function BrowseSheet({ sections, types }: { sections: NavSection[]; types?: stri
               </div>
             </div>
             <ul className="sheet-list">
+              <li className="sheet-market">
+                <Link href="/market" transitionTypes={types}>
+                  <span className="sheet-section-name">PortPass Market</span>
+                  <small>Things to buy and do</small>
+                  <span aria-hidden="true">→</span>
+                </Link>
+              </li>
               {sections.map((section) => {
                 const isExpanded = expanded === section.slug;
                 const tag = section.live === null ? null : section.live > 0 ? `${section.live} open` : "Coming soon";

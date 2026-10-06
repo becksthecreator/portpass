@@ -183,19 +183,19 @@ html[data-motion="on"][data-motion-js]:not([data-motion-ready]) .home-business[d
    hovered or held, an invisible margin above and below keeps the spot a
    press began on inside it, so a click that started at its edge still
    lands. The focus ring is an outline and does not change. */
-:is(.home-theme,.category-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button):not([data-still]){position:relative;transition:transform var(--dur-squish) var(--ease-spring)}
-:is(.home-theme,.category-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button):not([data-still]):is(:hover,:active)::after{content:"";position:absolute;inset:-12px 0}
+:is(.home-theme,.category-page,.market-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button):not([data-still]){position:relative;transition:transform var(--dur-squish) var(--ease-spring)}
+:is(.home-theme,.category-page,.market-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button):not([data-still]):is(:hover,:active)::after{content:"";position:absolute;inset:-12px 0}
 @media (hover:hover) and (pointer:fine){
-  :is(.home-theme,.category-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button):not([data-still]):hover{transform:translateY(-2px)}
+  :is(.home-theme,.category-page,.market-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button):not([data-still]):hover{transform:translateY(-2px)}
 }
-:is(.home-theme,.category-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button):not([data-still]):active{transform:translateY(4px) scale(1.04,.92)}
+:is(.home-theme,.category-page,.market-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button):not([data-still]):active{transform:translateY(4px) scale(1.04,.92)}
 
 /* With motion off (reduced motion, the kill switch) nothing lifts, nudges
    or squashes, not even at once. */
 @media (prefers-reduced-motion: reduce){
-  :is(.home-theme,.category-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button),.open-now-card,.open-now-card .home-button span,.home-section-card{transform:none!important}
+  :is(.home-theme,.category-page,.market-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button),.open-now-card,.open-now-card .home-button span,.home-section-card{transform:none!important}
 }
-html[data-motion="off"] :is(.home-theme,.category-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button),html[data-motion="off"] .open-now-card,html[data-motion="off"] .open-now-card .home-button span,html[data-motion="off"] .home-section-card{transform:none!important}
+html[data-motion="off"] :is(.home-theme,.category-page,.market-page) :is(.home-button,.feature-card-button,.nav-trigger,.site-shell-browse-button),html[data-motion="off"] .open-now-card,html[data-motion="off"] .open-now-card .home-button span,html[data-motion="off"] .home-section-card{transform:none!important}
 
 /* ---- Bounce Badges (M3) ------------------------------------------------
    The "Open now" and "Closes in..." chips, the live section chips and, on
@@ -212,6 +212,8 @@ html[data-motion="off"] :is(.home-theme,.category-page) :is(.home-button,.featur
 @keyframes badge-pop-visible{from{transform:translateY(8px) scale(.6)}}
 .open-now-grid[data-in] .open-now-card:not([data-still]) .open-now-chip,.home-sections-grid[data-in] .home-section-chip.is-live{animation:badge-pop var(--dur-pop) var(--ease-spring) both;animation-delay:calc(var(--dur-base) + var(--dur-badge-step) * var(--badge-i,0))}
 .category-page .subsection-chip{animation:badge-pop-visible var(--dur-pop) var(--ease-spring) both;animation-delay:calc(var(--dur-badge-step) * var(--badge-i,0))}
+/* PortPass Market (brief 25): its category chips pop the same way. */
+.market-page .subsection-chip{animation:badge-pop-visible var(--dur-pop) var(--ease-spring) both;animation-delay:calc(var(--dur-badge-step) * var(--badge-i,0))}
 .category-page .feature-card:not([data-still]) .feature-card-label{animation:badge-pop-visible var(--dur-pop) var(--ease-spring) both;animation-delay:calc(var(--dur-pop) + var(--dur-badge-step) * var(--badge-i,0))}
 :is(.open-now-grid,.home-sections-grid,.subsection-chips,.feature-card-grid)>:nth-child(2){--badge-i:1}
 :is(.open-now-grid,.home-sections-grid,.subsection-chips,.feature-card-grid)>:nth-child(3){--badge-i:2}

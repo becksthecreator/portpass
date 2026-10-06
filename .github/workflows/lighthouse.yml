@@ -4,7 +4,8 @@ name: Lighthouse (production)
 # against production after each deploy. Previews are SSO-gated so
 # Lighthouse cannot load them; production is what visitors get anyway.
 #
-# Brief 19, part C: the nine pages a stranger meets, each to a number
+# Brief 19, part C: the nine pages a stranger meets (ten with PortPass
+# Market, brief 25: /market to the same numbers), each to a number
 # (lighthouserc.json): Performance 85, Accessibility 95, Best Practices 95,
 # SEO 95. Five of them are deliberately kept out of search (the sign-up
 # and registration forms, /demo, /own and a customer's /pay page), and
@@ -39,6 +40,7 @@ jobs:
             https://portpassbahamas.com/sports-fitness/futprep-athletics
             https://portpassbahamas.com/business
             https://portpassbahamas.com/pricing
+            https://portpassbahamas.com/market
           configPath: ./lighthouserc.json
           uploadArtifacts: true
           artifactName: lighthouse-indexed

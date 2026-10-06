@@ -1,0 +1,96 @@
+/* PortPass Market (brief 25, part B): /market, /market/<category> and the
+   product pages. Light, the Harbour Signal tokens, phone first (one column
+   until 760px). The product card and the badge are in
+   app/_components/market/market-cards.css. Motion comes only from the
+   shared system: <Reveal>, the Bounce Badges on the chips and the Squish
+   Buttons (lib/motion/public.css lists .market-page). */
+.market-page{background:var(--deck);color:var(--ink);font-family:var(--font-pp-sans),Inter,Arial,sans-serif;overflow-x:clip}
+.market-page h1,.market-page h2{font-family:var(--font-pp-display),Archivo,sans-serif;letter-spacing:-.01em}
+.mkt-visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.mkt-hero{background:var(--ink);color:#fff;padding:30px 16px 26px}
+.mkt-hero-inner{max-width:1080px;margin:0 auto}
+.mkt-eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--sky);margin:0 0 10px}
+.mkt-hero h1{font-size:clamp(1.9rem,8vw,3.2rem);line-height:1.04;margin:0 0 10px;color:#fff}
+.mkt-lede{max-width:58ch;line-height:1.55;margin:0 0 18px;color:rgba(255,255,255,.88)}
+.mkt-search{max-width:1080px;margin:0 auto;display:flex;gap:8px}
+.mkt-search input{flex:1 1 auto;min-width:0;min-height:48px;background:#fff;color:var(--ink);border:0;border-radius:999px;padding:0 18px;font-size:1rem}
+.mkt-search input:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+.mkt-search .home-button{flex:none;padding:13px 20px;min-height:48px;border:0;cursor:pointer;font:inherit;font-weight:700}
+
+.mkt-body{max-width:1080px;margin:0 auto;padding:18px 16px 8px}
+.mkt-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 14px}
+.mkt-tabs a{padding:12px 14px;min-height:44px;font-weight:800;color:var(--muted);text-decoration:none;border-bottom:3px solid transparent;margin-bottom:-1px}
+.mkt-tabs a[aria-current=page]{color:var(--ink);border-bottom-color:var(--signal)}
+.mkt-chips{margin:0 0 12px}
+.mkt-filter{margin:0 0 12px}
+.mkt-toggle{display:inline-flex;align-items:center;gap:10px;min-height:44px;font-weight:700;color:var(--ink);text-decoration:none}
+.mkt-toggle-box{width:20px;height:20px;border:2px solid var(--ink);border-radius:5px;flex:none;background:var(--paper)}
+.mkt-toggle.is-on .mkt-toggle-box{background:var(--ink);box-shadow:inset 0 0 0 3px var(--paper)}
+.mkt-results-head{margin:6px 0 14px}
+.mkt-results-head h2{font-size:1.3rem;margin:0 0 4px}
+.mkt-results-head p{margin:0;color:var(--muted);font-size:.88rem}
+.mkt-results-head a{color:var(--harbour);font-weight:700}
+.mkt-note{margin-top:6px!important}
+.mkt-empty{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px;line-height:1.55;color:var(--muted)}
+.mkt-empty a,.mkt-more a,.mkt-product-seller a{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+
+.mkt-things{display:grid;gap:12px;margin:0;padding:0;list-style:none;grid-template-columns:minmax(0,1fr)}
+.mkt-thing{display:flex;gap:12px;height:100%;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px;color:var(--ink);text-decoration:none}
+.mkt-thing:hover{border-color:var(--ink)}
+.mkt-thing:focus-visible{outline:2px solid var(--harbour);outline-offset:2px}
+.mkt-thing-pic{flex:none;width:72px;height:72px;border-radius:12px;overflow:hidden;background:var(--tint);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--muted)}
+.mkt-thing-pic img{width:100%;height:100%;object-fit:cover}
+.mkt-thing-body{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mkt-thing-body strong{font-size:1rem;line-height:1.3}
+.mkt-thing-org{font-size:.84rem;font-weight:700;color:var(--harbour)}
+.mkt-thing-summary{font-size:.86rem;color:var(--muted);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mkt-thing-facts{font-size:.8rem;color:var(--muted)}
+.mkt-thing-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:4px}
+.mkt-thing-foot b{font-size:.92rem}
+
+.mkt-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:20px 0 0;font-size:.9rem;color:var(--muted)}
+.mkt-pager a{color:var(--harbour);font-weight:800;min-height:44px;display:inline-flex;align-items:center}
+.mkt-sell{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px;margin:28px 0 0}
+.mkt-sell h2{font-size:1.2rem;margin:0 0 6px}
+.mkt-sell p{margin:0 0 14px;color:var(--muted);line-height:1.5}
+.mkt-tagline{text-align:center;font-weight:800;margin:28px 16px 34px;letter-spacing:.02em;color:var(--ink)}
+
+/* ---- the product page ---------------------------------------------------- */
+.mkt-product{max-width:1080px;margin:0 auto;padding:16px 16px 0;display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+.mkt-product-main{position:relative;aspect-ratio:4/5;background:var(--tint);border-radius:18px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.mkt-product-main img{width:100%;height:100%;object-fit:cover}
+.mkt-product-main>span[aria-hidden]{font-size:4rem;font-weight:800;color:var(--muted)}
+.mkt-edition{position:absolute;left:12px;top:12px;background:var(--ink);color:#fff;border-radius:999px;padding:4px 10px;font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.mkt-product-thumbs{display:flex;gap:8px;overflow-x:auto;padding:10px 0 0}
+.mkt-product-thumbs img{width:72px;height:72px;object-fit:cover;border-radius:10px;flex:none}
+.mkt-product-info h1{font-size:clamp(1.7rem,7vw,2.6rem);line-height:1.08;margin:10px 0 6px}
+.mkt-product-seller{margin:0 0 10px;color:var(--muted)}
+.mkt-product-price{font-size:1.5rem;font-weight:800;margin:0 0 12px}
+.mkt-product-desc{white-space:pre-line;line-height:1.6;margin:0 0 16px}
+.mkt-sizes h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 8px}
+.mkt-sizes ul{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.mkt-sizes li{min-width:64px;min-height:48px;border:1.5px solid var(--line);border-radius:10px;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 10px}
+.mkt-sizes li strong{font-size:.95rem}
+.mkt-sizes li small{font-size:.66rem;font-weight:700;color:var(--muted)}
+.mkt-sizes li.is-out strong{text-decoration:line-through;color:var(--muted)}
+.mkt-product-action{display:grid;gap:8px;margin:0 0 18px}
+.mkt-product-action .primary-button{text-align:center;width:100%}
+.mkt-muted{margin:0;color:var(--muted)}
+.mkt-pay-direct{margin:0;font-size:.86rem;color:var(--muted)}
+.mkt-getting{display:grid;gap:10px;margin:0 0 14px}
+.mkt-getting>div{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.mkt-getting dt{font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.mkt-getting dd{margin:0;font-size:.92rem;line-height:1.5;white-space:pre-line}
+.mkt-getting ul{margin:0;padding:0 0 0 18px;display:grid;gap:4px}
+.mkt-returns{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px}
+.mkt-returns summary{font-weight:800;cursor:pointer;min-height:24px}
+.mkt-returns p{white-space:pre-line;line-height:1.55;margin:10px 0 0}
+.mkt-more{margin:0}
+
+@media(min-width:760px){
+  .mkt-hero{padding:46px 5vw 34px}
+  .mkt-body{padding:22px 5vw 8px}
+  .mkt-things{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mkt-product{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:34px;padding:26px 5vw 0;align-items:start}
+}
