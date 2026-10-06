@@ -1,0 +1,42 @@
+name: Security headers (production)
+
+# Brief 21, part D: the live site must carry every security header
+# (lib/securityHeaders.ts). Checked after each deploy to main (with a few
+# retries while Vercel finishes deploying), weekly, and by hand against
+# any URL. Previews are behind Vercel's sign-in, so production is checked.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "30 11 * * 1" # Mondays 07:30 Nassau
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Which copy of the site to check"
+        required: false
+        default: "https://portpassbahamas.com"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  headers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the live site's headers (retrying while a deploy finishes)
+        env:
+          HEADERS_CHECK_URL: ${{ inputs.url || 'https://portpassbahamas.com' }}
+        run: |
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if node scripts/security/headers-check.mjs "$HEADERS_CHECK_URL"; then exit 0; fi
+            echo "attempt $attempt failed; waiting a minute for the deploy"
+            sleep 60
+          done
+          echo "::error::The live site is missing a security header after ten tries."
+          exit 1
