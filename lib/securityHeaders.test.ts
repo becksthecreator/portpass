@@ -16,8 +16,9 @@ describe("the security headers", () => {
     expect(headers.size).toBe(6);
   });
 
-  it("sends the policy as report-only until the switch is flipped, then enforces the same policy", () => {
-    expect(CSP_MODE).toBe("report-only");
+  it("enforces the policy (brief 26), and report-only sends the very same policy for a rollback", () => {
+    expect(CSP_MODE).toBe("enforce");
+    expect(byName().get("content-security-policy")).toBe(contentSecurityPolicy());
     expect(byName("report-only").get("content-security-policy-report-only")).toBe(contentSecurityPolicy());
     expect(byName("report-only").has("content-security-policy")).toBe(false);
     expect(byName("enforce").get("content-security-policy")).toBe(contentSecurityPolicy());
@@ -39,6 +40,22 @@ describe("the security headers", () => {
     expect(directive("report-uri")).toBe(`report-uri ${CSP_REPORT_PATH}`);
     // Every directive is well formed: a name and its sources, no stray punctuation.
     for (const part of csp.split("; ")) expect(part).toMatch(/^[a-z-]+( [^;]+)?$/);
+  });
+
+  it("lets the WeddingWire review widget run by its exact hosts, and nothing broader", () => {
+    const csp = contentSecurityPolicy();
+    const sources = (name: string) => (csp.split("; ").find((d) => d.startsWith(`${name} `)) ?? "").split(" ").slice(1);
+    // What the report-only run showed the widget loading (brief 26).
+    expect(sources("script-src")).toEqual(expect.arrayContaining(["https://www.weddingwire.com", "https://cdn1.weddingwire.com"]));
+    expect(sources("style-src")).toEqual(expect.arrayContaining(["https://www.weddingwire.com", "https://cdn1.weddingwire.com"]));
+    expect(sources("connect-src")).toEqual(expect.arrayContaining(["https://www.weddingwire.com"]));
+    // No wildcards and no scheme-wide sources where code runs or styles load.
+    for (const name of ["script-src", "style-src", "connect-src", "frame-src"]) {
+      for (const source of sources(name)) {
+        expect(source, `${name} ${source}`).not.toContain("*");
+        expect(source, `${name} ${source}`).not.toBe("https:");
+      }
+    }
   });
 
   it("is what next.config.ts sends on every path, and what the live-site check looks for", () => {

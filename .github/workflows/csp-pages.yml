@@ -1,0 +1,105 @@
+name: CSP on the key pages (TEST data)
+
+# Brief 26: the content security policy is enforced (lib/securityHeaders.ts),
+# so every PR that touches it, or the pages' headers, opens the pages the
+# brief names on this branch's own build: the homepage, a section, a
+# business page, the Futprep registration, sign-in, a payment request and
+# its receipt, the business area and Admin, signed in with TEST accounts on
+# a throwaway local Supabase stack. scripts/security/csp-pages.mjs fails on
+# any page served without the enforced header or raising a single
+# violation, and saves a 375px screenshot of each as an artifact. Previews
+# are behind Vercel's sign-in, so this is the pre-merge test; the live site
+# is checked by headers-check.yml after each deploy.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "lib/securityHeaders.ts"
+      - "lib/cspReport.ts"
+      - "next.config.ts"
+      - "app/api/security/**"
+      - "app/_components/blocks/ExternalWidget.tsx"
+      - "app/layout.tsx"
+      - "scripts/security/**"
+      - ".github/workflows/csp-pages.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: csp-pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  csp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm ci
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: latest
+      - name: Start local Supabase
+        # The Supabase CLI pulls its images from public.ecr.aws, which at times
+        # rate-limits GitHub's runners ("toomanyrequests"). When that happens
+        # the same images are pulled from GitHub's own registry instead.
+        run: |
+          supabase start || {
+            echo "The default image registry refused the pull; trying ghcr.io."
+            supabase stop --no-backup || true
+            SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io supabase start
+          }
+      - name: Export local Supabase credentials
+        run: |
+          supabase status -o env > supabase-status.env
+          API_URL=$(grep -E '^(API_URL|SUPABASE_URL)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          SERVICE_ROLE_KEY=$(grep -E '^(SERVICE_ROLE_KEY|SUPABASE_SERVICE_ROLE_KEY|SECRET_KEY|SUPABASE_SECRET_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          ANON_KEY=$(grep -E '^(ANON_KEY|SUPABASE_ANON_KEY|PUBLISHABLE_KEY|SUPABASE_PUBLISHABLE_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          # The TEST platform owner seeded by seed-motion-fixture.ts (local
+          # stack only), who opens Admin during the check.
+          echo "PLATFORM_OWNER_EMAILS=test-delete-motion-admin@test.portpass.local" >> "$GITHUB_ENV"
+          # Where seed-payments-fixture.ts writes its TEST payment links.
+          echo "PAYMENTS_FIXTURE=$RUNNER_TEMP/payments-fixture.json" >> "$GITHUB_ENV"
+      - name: Seed test data
+        run: |
+          npx tsx scripts/seed-test-data.ts
+          npx tsx scripts/motion/seed-motion-fixture.ts
+          SCREENSHOT_FIXTURE="$PAYMENTS_FIXTURE" npx tsx scripts/screenshots/seed-payments-fixture.ts
+      - name: Build
+        # One retry: next/font's Google Fonts fetch occasionally fails in CI
+        # (a known upstream flake, see ci.yml).
+        run: npx next build --webpack || npx next build --webpack
+      - name: Start the app on localhost
+        run: |
+          npx next start -p 3000 > next.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/ > /dev/null && break; sleep 2; done
+          curl -sf http://localhost:3000/ > /dev/null
+      - name: Install Playwright (Chromium)
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Open the pages with the policy enforced
+        run: node scripts/security/csp-pages.mjs
+      - name: Server log on failure
+        if: failure()
+        run: tail -n 80 next.log || true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: csp-pages
+          path: csp-pages/
+          if-no-files-found: warn
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop
