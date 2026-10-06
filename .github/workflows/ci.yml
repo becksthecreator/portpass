@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# Read-only, as in the other workflows: no job here writes to the
+# repository, and the install and lint run third-party code.
+permissions:
+  contents: read
+
 concurrency:
   group: portpass-ci-${{ github.ref }}
   cancel-in-progress: true
