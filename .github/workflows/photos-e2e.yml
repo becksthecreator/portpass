@@ -52,7 +52,7 @@ jobs:
           # On newer Ubuntu the HEVC encoder is a separate plugin.
           sudo apt-get install -y libheif-plugin-x265 || true
           heif-enc --version || true
-      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v1
         with:
           version: latest
       - name: Switch file storage on for this job
