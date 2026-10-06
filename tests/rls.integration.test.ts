@@ -1,3 +1,4 @@
+replaced
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -22,7 +23,8 @@ const OWNER_ONLY = [
   "attendance", "audit_log", "booking_requests", "coach_availability", "coach_profiles", "drop_waitlist", "futprep_return_links", "guardianships",
   "member_pass_checks", "member_perks", "message_log", "organization_invites", "organization_payment_settings", "page_events", "payment_requests",
   "payments", "people", "perk_redemptions", "private_session_events", "private_session_requests", "program_terms", "programs", "registration_edits",
-  "registrations", "reservations", "session_staff", "sessions", "shops", "staff_members", "wedding_lead_notes", "wedding_leads", "wedding_site_settings",
+  "registrations", "reservations", "session_plans", "session_staff", "sessions", "shops", "staff_members", "staff_work_logs",
+  "wedding_lead_notes", "wedding_leads", "wedding_site_settings",
   "wedding_unavailable_dates",
 ];
 const PLATFORM_ONLY = [
