@@ -37,6 +37,10 @@ const PUBLIC_READ = [
 ];
 
 const ids: Record<"published" | "draft" | "demo", number> = { published: 0, draft: 0, demo: 0 };
+// The database allows one demo business (organizations_one_demo). If the
+// stack already has it, the test reads through it and leaves it alone;
+// otherwise it makes one and removes it afterwards.
+let madeDemo = false;
 
 async function nothingComesBack(table: string, columns = "*") {
   const { data, error } = await anon.from(table).select(columns).limit(5);
@@ -47,7 +51,14 @@ async function nothingComesBack(table: string, columns = "*") {
 
 describe.skipIf(!anonKey)("row level security, seen through a browser key", () => {
   beforeAll(async () => {
+    const existingDemo = await admin.from("organizations").select("id").eq("is_demo", true).maybeSingle();
+    if (existingDemo.error) throw new Error(`could not look for the demo business: ${existingDemo.error.message}`);
+    if (existingDemo.data) ids.demo = Number(existingDemo.data.id);
     for (const kind of ["published", "draft", "demo"] as const) {
+      if (kind === "demo") {
+        if (ids.demo) continue;
+        madeDemo = true;
+      }
       // The database itself keeps a demo business unpublished and in draft
       // (202610150001), so the demo row here is a draft as well; the policy
       // says "not is_demo" on top of that.
@@ -81,11 +92,12 @@ describe.skipIf(!anonKey)("row level security, seen through a browser key", () =
   });
 
   afterAll(async () => {
-    const all = Object.values(ids).filter(Boolean);
-    await admin.from("organization_faqs").delete().in("organization_id", all);
-    await admin.from("offerings").delete().in("organization_id", all);
-    await admin.from("audit_log").delete().in("organization_id", all);
-    await admin.from("organizations").delete().in("id", all);
+    // Only what this test made: never the stack's own demo business.
+    const made = [ids.published, ids.draft, ...(madeDemo ? [ids.demo] : [])].filter(Boolean);
+    await admin.from("organization_faqs").delete().in("organization_id", made);
+    await admin.from("offerings").delete().in("organization_id", made);
+    await admin.from("audit_log").delete().in("organization_id", made);
+    await admin.from("organizations").delete().in("id", made);
   });
 
   it("every owner-only and platform-only table gives a browser key nothing", async () => {
