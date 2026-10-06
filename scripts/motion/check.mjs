@@ -23,6 +23,9 @@ if (!["localhost", "127.0.0.1"].includes(new URL(BASE).hostname)) throw new Erro
 const OUT = "motion-checks";
 mkdirSync(`${OUT}/frames`, { recursive: true });
 const PHONE = { width: 375, height: 812 };
+// The section scripts/motion/seed-motion-fixture.ts makes live with a TEST
+// business (featured, with a vector logo), so it is a live category page.
+const MOTION_SECTION = "entertainment";
 const CLS_LIMIT = 0.05;
 
 const lines = [];
@@ -154,6 +157,16 @@ try {
     check(later === 0, "reduced motion: nothing animates after scrolling to the end", `${later} running`);
     const hidden = await page.evaluate(notAtFullOpacity);
     check(hidden === 0, "reduced motion: every reveal shows its final state", `${hidden} not at full opacity`);
+    const m3 = await page.evaluate(() => {
+      const band = document.querySelector(".home-business[data-reveal]");
+      const path = document.querySelector(".home-how-line path");
+      return {
+        numbers: Array.from(document.querySelectorAll(".home-how-num")).filter((el) => getComputedStyle(el).opacity !== "1").length,
+        ink: band ? getComputedStyle(band, "::before").opacity : null,
+        line: path ? parseFloat(getComputedStyle(path).strokeDashoffset) : null,
+      };
+    });
+    check(m3.numbers === 0 && (m3.ink === null || m3.ink === "1") && (m3.line === null || m3.line < 0.5), "reduced motion: the step numbers, the line and the ink band show their final state", JSON.stringify(m3));
     await page.screenshot({ path: `${OUT}/frames/reduced-motion-end-375.png` });
     await context.close();
   }
@@ -178,6 +191,35 @@ try {
     const hidden = await page.evaluate(notAtFullOpacity);
     check(hidden === 0, "without JavaScript: every reveal is visible", `${hidden} not at full opacity`);
     await page.screenshot({ path: `${OUT}/frames/no-javascript-375.png` });
+    await context.close();
+  }
+
+  // 2b. The app's script fails after the inline line has run (a chunk that
+  // never arrives, an old phone): the page is held as if the script were on
+  // its way, and every hold has a failsafe, so within --dur-failsafe
+  // everything shows, the step numbers and the ink band (M3) included.
+  {
+    const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, serviceWorkers: "block" });
+    const page = await context.newPage();
+    await page.route("**/_next/static/chunks/**", (route) => route.abort());
+    await page.goto(`${BASE}/`, { waitUntil: "load" });
+    await page.waitForTimeout(3000);
+    const held = await page.evaluate(() => document.documentElement.hasAttribute("data-motion-js") && !document.documentElement.hasAttribute("data-motion-ready"));
+    check(held, "with the app's script blocked, the page is held as before its script runs", "data-motion-js set, data-motion-ready not");
+    for (const selector of [".home-how-steps", ".home-business"]) {
+      await page.evaluate((s) => document.querySelector(s)?.scrollIntoView({ behavior: "instant", block: "center" }), selector);
+      await page.waitForTimeout(300);
+    }
+    const shown = await page.evaluate(() => {
+      const band = document.querySelector(".home-business[data-reveal]");
+      return {
+        numbers: Array.from(document.querySelectorAll(".home-how-num")).filter((el) => getComputedStyle(el).opacity !== "1").length,
+        ink: band ? getComputedStyle(band, "::before").opacity : null,
+      };
+    });
+    const hidden = await page.evaluate(notAtFullOpacity);
+    check(shown.numbers === 0 && (shown.ink === null || shown.ink === "1") && hidden === 0, "with the app's script blocked, the step numbers, the ink band and every reveal show within --dur-failsafe", JSON.stringify({ ...shown, reveals: hidden }));
+    await page.screenshot({ path: `${OUT}/frames/script-blocked-375.png` });
     await context.close();
   }
 
@@ -365,6 +407,281 @@ try {
     }
     await context.close();
   }
+
+  // 7. The sections (brief 22, M3).
+  {
+    const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2 });
+    const page = await context.newPage();
+    await page.goto(`${BASE}/`, { waitUntil: "load" });
+    await heroSettled(page);
+    const staggered = await page.evaluate(() => {
+      const grid = document.querySelector(".open-now-grid[data-stagger]");
+      return grid && grid.children.length > 1 ? getComputedStyle(grid.children[1]).transitionDelay : null;
+    });
+    check(staggered === null || staggered === "0.06s", "Open now cards are staggered 60 ms apart", staggered ?? "fewer than two cards, so no stagger to read");
+    // Before the steps come near, the line is not drawn yet, so the draw
+    // below is the scroll's doing.
+    const undrawn = await page.evaluate(() => {
+      const path = document.querySelector(".home-how-line path");
+      return path ? parseFloat(getComputedStyle(path).strokeDashoffset) : null;
+    });
+    check(undrawn === null || undrawn > 90, "the How-it-works line is undrawn before its steps come into view", undrawn === null ? "no line" : `dashoffset ${undrawn}`);
+    // The line is as long as the steps: an <svg> does not stretch between
+    // a top and a bottom on its own.
+    const reach = await page.evaluate(() => {
+      const line = document.querySelector(".home-how-line");
+      const steps = document.querySelector(".home-how-steps");
+      return line && steps ? { line: line.getBoundingClientRect().height, steps: steps.getBoundingClientRect().height } : null;
+    });
+    if (reach) check(reach.line >= reach.steps - 40, "the How-it-works line runs the length of its steps", `${Math.round(reach.line)}px line, ${Math.round(reach.steps)}px of steps`);
+    // The line draws with the scroll: bring the first track's steps to the middle
+    // of the screen, past the end of its draw range.
+    await page.evaluate(() => document.querySelector(".home-how-steps")?.scrollIntoView({ behavior: "instant", block: "center" }));
+    await page.waitForTimeout(1200);
+    const line = await page.evaluate(() => {
+      const path = document.querySelector(".home-how-line path");
+      return path ? getComputedStyle(path).strokeDashoffset : null;
+    });
+    check(line !== null && parseFloat(line) < 0.5, "the How-it-works line is fully drawn once its steps are in the middle of the screen", line ?? "no line");
+    const numbers = await page.evaluate(() => Array.from(document.querySelectorAll(".home-how-num")).filter((el) => getComputedStyle(el).opacity !== "1").length);
+    check(numbers === 0, "every step number has counted in", `${numbers} still faded`);
+    await page.evaluate(() => document.querySelector(".home-business")?.scrollIntoView({ behavior: "instant", block: "center" }));
+    await page.waitForTimeout(1300);
+    const ink = await page.evaluate(() => {
+      const section = document.querySelector(".home-business");
+      return section ? { arrived: section.hasAttribute("data-in"), layer: getComputedStyle(section, "::before").opacity, button: getComputedStyle(section.querySelector(".home-business-action")).opacity } : null;
+    });
+    check(Boolean(ink && ink.arrived && ink.layer === "1" && ink.button === "1"), "the List-with-PortPass section has eased to ink and its button has arrived", JSON.stringify(ink));
+    await page.screenshot({ path: `${OUT}/frames/list-with-portpass-375.png` });
+    // Nothing re-triggers on the way back up and down again.
+    const arrivedBefore = await page.evaluate(() => document.querySelectorAll("[data-reveal][data-in]").length);
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await page.waitForTimeout(700);
+    await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
+    await page.waitForTimeout(700);
+    const stillArrived = await page.evaluate(() => document.querySelectorAll("[data-reveal][data-in]").length);
+    // The hero's drift and the scroll-linked line are the two that may run.
+    const replaying = await page.evaluate(() => document.getAnimations().filter((a) => a.playState === "running" && a.effect && a.effect.target && a.effect.target.closest && !a.effect.target.closest(".pp-hero") && !a.effect.target.closest(".home-how-line")).length);
+    check(stillArrived === arrivedBefore && replaying === 0, "nothing re-triggers on scrolling back up and down again", `${arrivedBefore} arrived, then ${stillArrived}; ${replaying} running outside the hero and the line`);
+    await context.close();
+
+    const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const wide = await desktop.newPage();
+    await wide.goto(`${BASE}/`, { waitUntil: "load" });
+    await heroSettled(wide);
+    const card = wide.locator(".open-now-card:not([data-still])").first();
+    if ((await card.count()) > 0) {
+      await card.scrollIntoViewIfNeeded();
+      await wide.waitForTimeout(1000);
+      await card.hover();
+      await wide.waitForTimeout(450);
+      const lifted = await card.evaluate((node) => getComputedStyle(node).transform);
+      const nudged = await card.locator(".home-button span").evaluate((node) => getComputedStyle(node).transform);
+      check(lifted.endsWith(", -4)"), "an Open now card lifts 4px on hover", lifted);
+      check(nudged.endsWith("4, 0)"), "and its arrow nudges 4px", nudged);
+      await wide.screenshot({ path: `${OUT}/frames/open-now-hover-1440.png` });
+      // A card that leads to a child's details never lifts.
+      const stillCard = wide.locator(".open-now-card[data-still]").first();
+      if ((await stillCard.count()) > 0) {
+        await stillCard.scrollIntoViewIfNeeded();
+        await stillCard.hover();
+        await wide.waitForTimeout(450);
+        const held = await stillCard.evaluate((node) => getComputedStyle(node).transform);
+        check(held === "none", "a card that leads to a child's details never lifts", held);
+      }
+    } else {
+      lines.push("- No Open now card on / (nothing live in the seeded stack), so the hover lift was not exercised.");
+    }
+    await desktop.close();
+  }
+
+  // 8. Squish Buttons, Bounce Badges and the Departure Board (brief 22, M3).
+  {
+    // Squish: the hero's "Browse what's on" (an anchor on the page) lifts
+    // 2px on hover, squashes on press and springs back; a pricing plan's
+    // button, which is about money, never moves.
+    const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const wide = await desktop.newPage();
+    await wide.goto(`${BASE}/`, { waitUntil: "load" });
+    await heroSettled(wide);
+    const transformOf = (locator) => locator.evaluate((node) => getComputedStyle(node).transform);
+    const button = wide.locator('.pp-hero-actions .home-button[href="#open-now"]').first();
+    if ((await button.count()) > 0) {
+      const box = await button.boundingBox();
+      await wide.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await wide.waitForTimeout(400);
+      const hovered = await transformOf(button);
+      await wide.mouse.down();
+      await wide.waitForTimeout(400);
+      const pressed = await transformOf(button);
+      await wide.mouse.up();
+      await wide.waitForTimeout(400);
+      check(hovered === "matrix(1, 0, 0, 1, 0, -2)", "a Squish Button lifts 2px on hover", hovered);
+      check(pressed === "matrix(1.04, 0, 0, 0.92, 0, 4)", "and squashes 4px down on press", pressed);
+      // A press begun at the button's very top edge still clicks it, though
+      // the button drops away under the pointer (the invisible margin).
+      await wide.goto(`${BASE}/`, { waitUntil: "load" });
+      await heroSettled(wide);
+      const edge = await button.boundingBox();
+      await wide.mouse.move(edge.x + edge.width / 2, edge.y + 1);
+      await wide.waitForTimeout(400);
+      await wide.mouse.down();
+      await wide.waitForTimeout(400);
+      await wide.mouse.up();
+      await wide.waitForTimeout(300);
+      const hash = await wide.evaluate(() => window.location.hash);
+      check(hash === "#open-now", "a press begun at a Squish Button's top edge still clicks it", `hash ${hash || "(none)"}`);
+    }
+    await wide.goto(`${BASE}/pricing`, { waitUntil: "load" });
+    const plan = wide.locator(".home-button[data-still]").first();
+    if ((await plan.count()) > 0) {
+      await plan.scrollIntoViewIfNeeded();
+      const box = await plan.boundingBox();
+      await wide.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await wide.waitForTimeout(400);
+      const hovered = await transformOf(plan);
+      await wide.mouse.down();
+      await wide.waitForTimeout(400);
+      const pressed = await transformOf(plan);
+      // Let go off the button, so nothing is followed.
+      await wide.mouse.move(2, 2);
+      await wide.mouse.up();
+      check(hovered === "none" && pressed === "none", "a pricing plan's button (about money) never lifts or squishes", `${hovered} then ${pressed}`);
+    } else {
+      lines.push("- No pricing plan button in this stack, so the still buttons were not exercised.");
+    }
+    // Under reduced motion nothing lifts or squashes, not even at once.
+    const calmDesk = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+    const calmPage = await calmDesk.newPage();
+    await calmPage.goto(`${BASE}/`, { waitUntil: "load" });
+    const calmButton = calmPage.locator('.pp-hero-actions .home-button[href="#open-now"]').first();
+    if ((await calmButton.count()) > 0) {
+      const box = await calmButton.boundingBox();
+      await calmPage.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      const hovered = await transformOf(calmButton);
+      await calmPage.mouse.down();
+      const pressed = await transformOf(calmButton);
+      await calmPage.mouse.move(2, 2);
+      await calmPage.mouse.up();
+      check(hovered === "none" && pressed === "none", "reduced motion: a Squish Button never lifts or squashes", `${hovered} then ${pressed}`);
+    }
+    await calmDesk.close();
+    await desktop.close();
+
+    // Bounce Badges on the homepage: each pops once when its section is
+    // revealed, and nothing pops again on the way back.
+    const phone = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2 });
+    const page = await phone.newPage();
+    await page.addInitScript(() => {
+      window.__flaps = 0;
+      new MutationObserver((list) => {
+        for (const m of list) if (m.type === "characterData" && m.target.parentElement && m.target.parentElement.classList.contains("board-cell")) window.__flaps += 1;
+      }).observe(document, { subtree: true, characterData: true, childList: true });
+    });
+    await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
+    // Measured once the fonts are in, so a font swap is not taken for the
+    // flicker.
+    const boardBefore = await page.evaluate(async () => {
+      await document.fonts.ready;
+      const board = document.querySelector(".board");
+      return board ? { box: board.getBoundingClientRect().toJSON(), label: board.getAttribute("aria-label") } : null;
+    });
+    await page.waitForLoadState("load");
+    await page.evaluate(() => document.querySelector(".board")?.scrollIntoView({ behavior: "instant", block: "center" }));
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: `${OUT}/frames/board-flicker-375.png` });
+    await page.waitForTimeout(1500);
+    if (boardBefore) {
+      const board = await page.evaluate(() => {
+        const node = document.querySelector(".board");
+        const cells = Array.from(node.querySelectorAll(".board-cell"));
+        return {
+          box: node.getBoundingClientRect().toJSON(),
+          settled: cells.every((cell) => cell.textContent === cell.getAttribute("data-final")),
+          flaps: window.__flaps,
+          values: Array.from(node.querySelectorAll(".board-value")).map((v) => Array.from(v.querySelectorAll(".board-cell")).map((c) => c.textContent).join("")),
+        };
+      });
+      check(board.flaps > 0, "the Departure Board flickers when it comes into view", `${board.flaps} character swaps`);
+      check(board.settled, "and settles on its true values", board.values.join(", "));
+      const spoken = (boardBefore.label.match(/\d+/g) ?? []).map(Number);
+      check(JSON.stringify(spoken) === JSON.stringify(board.values.map(Number)), "the board's aria-label carries the same true values, in order", `${boardBefore.label} / ${board.values.join(", ")}`);
+      check(Math.abs(board.box.width - boardBefore.box.width) < 0.5 && Math.abs(board.box.height - boardBefore.box.height) < 0.5, "the flicker never changes the board's size", `${boardBefore.box.width}x${boardBefore.box.height} then ${board.box.width}x${board.box.height}`);
+      await page.screenshot({ path: `${OUT}/frames/board-settled-375.png` });
+    } else {
+      lines.push("- No Departure Board on / (no counts above 0 in this stack).");
+    }
+    const grid = page.locator(".open-now-grid").first();
+    if ((await grid.count()) > 0) {
+      await grid.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(1600);
+      const pops = await page.evaluate(() =>
+        Array.from(document.querySelectorAll(".open-now-chip")).map((chip) => {
+          const runs = chip.getAnimations().filter((a) => a.animationName === "badge-pop");
+          return { still: Boolean(chip.closest(".open-now-card[data-still]")), runs: runs.length, done: runs.every((a) => a.playState === "finished"), opacity: getComputedStyle(chip).opacity };
+        }),
+      );
+      const popping = pops.filter((pop) => !pop.still);
+      const held = pops.filter((pop) => pop.still);
+      check(popping.length > 0 && popping.every((pop) => pop.runs === 1 && pop.done && pop.opacity === "1"), "each Open now chip pops in once with the spring and settles", JSON.stringify(popping));
+      check(held.every((pop) => pop.runs === 0 && pop.opacity === "1"), "a chip on a card that leads to a child's details never pops", held.length ? JSON.stringify(held) : "no such card in this stack");
+      await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+      await page.waitForTimeout(300);
+      await grid.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      const again = await page.evaluate(() => Array.from(document.querySelectorAll(".open-now-chip")).flatMap((chip) => chip.getAnimations()).filter((a) => a.playState === "running").length);
+      check(again === 0, "and none pops again on the way back", `${again} running`);
+    }
+    await phone.close();
+
+    // Reduced motion: the board shows its true values and never flickers.
+    const still = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, reducedMotion: "reduce" });
+    const quiet = await still.newPage();
+    await quiet.addInitScript(() => {
+      window.__flaps = 0;
+      new MutationObserver((list) => {
+        for (const m of list) if (m.type === "characterData" && m.target.parentElement && m.target.parentElement.classList.contains("board-cell")) window.__flaps += 1;
+      }).observe(document, { subtree: true, characterData: true });
+    });
+    await quiet.goto(`${BASE}/`, { waitUntil: "load" });
+    await quiet.evaluate(() => document.querySelector(".board")?.scrollIntoView({ behavior: "instant", block: "center" }));
+    await quiet.waitForTimeout(1500);
+    const quietBoard = await quiet.evaluate(() => {
+      const cells = Array.from(document.querySelectorAll(".board-cell"));
+      return cells.length ? { flaps: window.__flaps, settled: cells.every((cell) => cell.textContent === cell.getAttribute("data-final")) } : null;
+    });
+    if (quietBoard) check(quietBoard.flaps === 0 && quietBoard.settled, "reduced motion: the board shows its true values and never flickers", `${quietBoard.flaps} swaps`);
+    await still.close();
+
+    // Bounce Badges on a category page pop on load, chips then labels. The
+    // motion job seeds a TEST business in Entertainment
+    // (scripts/motion/seed-motion-fixture.ts), so that section's page is a
+    // live category page here.
+    const category = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2 });
+    const cat = await category.newPage();
+    await cat.goto(`${BASE}/${MOTION_SECTION}`, { waitUntil: "load" });
+    if (await cat.$(".category-page .feature-card")) {
+      // Its first screen: nothing starts hidden, however far into its pop.
+      const early = await cat.evaluate(() => Array.from(document.querySelectorAll(".category-page :is(.subsection-chip,.feature-card-label)")).filter((el) => getComputedStyle(el).opacity !== "1").length);
+      await cat.waitForTimeout(2200);
+      const badges = await cat.evaluate(() =>
+        Array.from(document.querySelectorAll(".category-page :is(.subsection-chip,.feature-card-label)")).map((el) => {
+          const runs = el.getAnimations().filter((a) => a.animationName === "badge-pop-visible");
+          return { kind: el.classList.contains("subsection-chip") ? "chip" : "label", still: Boolean(el.closest("[data-still]")), runs: runs.length, opacity: getComputedStyle(el).opacity };
+        }),
+      );
+      const chips = badges.filter((badge) => badge.kind === "chip");
+      const labels = badges.filter((badge) => badge.kind === "label");
+      check(early === 0, "on a category page no chip or label starts hidden", `${early} below full opacity right after load`);
+      check(chips.length > 0 && chips.every((badge) => badge.runs === 1 && badge.opacity === "1"), "its subsection chips pop in once from a visible start and settle", `${chips.length} chips`);
+      check(labels.every((badge) => (badge.still ? badge.runs === 0 : badge.runs === 1) && badge.opacity === "1"), "a card that shows a price holds its Open now label still; any other label pops once", JSON.stringify(labels));
+      await cat.screenshot({ path: `${OUT}/frames/category-badges-375.png` });
+    } else {
+      lines.push(`- /${MOTION_SECTION} has no live business in this stack, so the category page's badges were not exercised.`);
+    }
+    await category.close();
+  }
+
 } finally {
   await browser.close();
 }

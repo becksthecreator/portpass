@@ -14,3 +14,17 @@ export function motionEnabled(): boolean {
   }
   return true;
 }
+
+// A duration token from lib/motion/tokens.css, in milliseconds, for the
+// few effects a script has to time (the Departure Board's flicker). The
+// stylesheet is the one place the numbers live; `fallback` is used only if
+// the token cannot be read.
+export function tokenMs(name: string, fallback: number): number {
+  if (typeof document === "undefined") return fallback;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const value = parseFloat(raw);
+  if (!Number.isFinite(value)) return fallback;
+  if (raw.endsWith("ms")) return value;
+  if (raw.endsWith("s")) return value * 1000;
+  return value;
+}

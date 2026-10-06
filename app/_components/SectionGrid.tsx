@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSectionTiles } from "@/lib/navSections";
+import { Reveal } from "./motion/Reveal";
 
 // "Where do you want to go?" (brief 18, A1): the sections with something
 // to book as full cards, and every section that isn't open yet in one
@@ -79,17 +80,17 @@ export async function SectionGrid({ liveSlugs }: { liveSlugs: Set<string> }) {
   const next = known ? tiles.filter((tile) => !liveSlugs.has(tile.slug)) : [];
   return (
     <>
-      <div className={`home-sections-grid${known ? " home-sections-live" : ""}`}>
+      <Reveal className={`home-sections-grid${known ? " home-sections-live" : ""}`} variant="rise" stagger>
         {live.map((tile) => (
-          <Link className={`home-section-card${known ? " is-live" : ""}`} href={tile.href} key={tile.slug}>
+          <div className="home-section-slot" key={tile.slug}><Link className={`home-section-card${known ? " is-live" : ""}`} href={tile.href}>
             <SectionIcon slug={tile.slug} />
             {known && <span className="home-section-chip is-live">Open now</span>}
             <h3>{tile.name}</h3>
             {tile.line && <p>{tile.line}</p>}
             <b>Browse →</b>
-          </Link>
+          </Link></div>
         ))}
-      </div>
+      </Reveal>
       {next.length > 0 && (
         <p className="home-coming-next">
           <b>Coming next:</b>{" "}

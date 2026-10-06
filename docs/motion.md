@@ -9,23 +9,31 @@ Brief 22 (6 Oct 2026). PortPass should feel motion designed: smooth scroll revea
 | Token | Value | Used for |
 | --- | --- | --- |
 | `--dur-step` | 60ms | one step of a stagger: `calc(var(--dur-step) * n)` |
-| `--dur-fast` | 150ms | press feedback, a quick fade |
+| `--dur-flap` | 60ms | one flicker of a Departure Board cell |
+| `--dur-badge-step` | 90ms | one step of the Bounce Badges' stagger |
+| `--dur-press` | 100ms | a card's press on a touch screen |
+| `--dur-fast` | 150ms | a quick fade |
+| `--dur-squish` | 180ms | a Squish Button's press and spring back |
 | `--dur-menu` | 200ms | a menu or sheet opening |
 | `--dur-base` | 300ms | a card lifting, a chip, a cross-fade between pages |
+| `--dur-pop` | 550ms | a Bounce Badge popping in |
 | `--dur-slow` | 600ms | a scroll reveal |
 | `--dur-hero` | 900ms | the hero's own entrance |
+| `--dur-board` | 900ms | the Departure Board's flicker before it settles |
 | `--dur-sun` | 1600ms | the Sun Drift, once |
 | `--dur-failsafe` | 2.5s | how long a held reveal waits for its script before it shows anyway |
 | `--dur-drift` | 20s | the hero photo's slow drift, the one looping animation |
 | `--ease-out` | `cubic-bezier(.22,1,.36,1)` | arrives and settles: reveals, menus, anything entering |
 | `--ease-in-out` | `cubic-bezier(.65,0,.35,1)` | leaves and returns: a condensing header, a colour ease |
+| `--ease-linear` | `linear` | constant speed: a line drawn with the scroll, a board cell's fold, a held reveal's failsafe |
+| `--ease-spring` | `cubic-bezier(.34,1.56,.64,1)` | overshoots and springs back: Bounce Badges, Squish Buttons and the Pass Stamp only, never near money, a child's details, sign-in or admin |
 
-Staggers step `--dur-step` apart and never stagger more than six children.
+Staggers step `--dur-step` apart and never stagger more than six children. The look is "Harbour Motion": playful where it is free, precise where it is serious. Public discovery pages get a little mischief; anything near money, children or sign-in stays still.
 
 ## The rules
 
 1. **Speed is the product.** Lighthouse mobile performance on `/` stays at or above 85 (brief 03's number); CLS stays under 0.05. Report both before and after. If an effect drops either, fix the effect, not the target.
-2. **Move only `transform` and `opacity`.** Never width, height, top, left, margin or box-shadow. Zero layout shift.
+2. **Move only `transform` and `opacity`.** Never width, height, top, left, margin or box-shadow. Zero layout shift. The brief names two exceptions, neither of which moves anything: the How-it-works line's `stroke-dashoffset` and the Departure Board's character swap.
 3. **Never hide the first screen behind an animation.** The hero headline, the hero image (the largest paint) and its two buttons are visible and clickable without waiting for any script. Motion may enhance them; it may not gate them.
 4. **Reduced motion is a first-class mode.** `@media (prefers-reduced-motion: reduce)` turns every animation, transition and scroll effect off and shows the final state. It is tested, not assumed.
 5. **CSS first.** Transitions, `@keyframes`, scroll-driven animations inside `@supports`, the View Transitions API. Where a browser lacks one, the page shows the end state. A library only if truly needed (`motion` with `LazyMotion` and `domAnimation`, its KB cost reported). No GSAP, no Lottie, no video backgrounds, no sound, no autoplay media.
@@ -75,6 +83,19 @@ In JavaScript, `motionEnabled()` from `lib/motion/client.ts` answers the first t
 
 Once per page view a soft white glow (Harbour Signal's own `--paper`, no new colour) rises behind the hero's words like morning light over `--dur-sun` (1.6s), by transform and opacity, and stays. It is one radial gradient between the photo and the scrim: no clouds, no waves, nothing that loops (the photo's drift stays the one loop on screen). Its resting state is the risen sun, so reduced motion and the kill switch show it already up; without script it still rises, in CSS. It went in only after the motion check measured `/` both ways on the same runner: Lighthouse mobile on the branch's build without the sun, then with it, and the headline's contrast over the photo with and without it (the numbers are in the PR that added it).
 
+### The sections (M3)
+
+Also in `lib/motion/public.css`; the Departure Board in `app/_components/motion/DepartureBoard.tsx` and `BoardFlicker.tsx`.
+
+- **Open now**: the grid is a `<Reveal stagger>`, each card in its own slot, so the slot carries the reveal and the card its own hover (`transition` on a stagger's children would otherwise beat the card's). On a pointer device (`hover: hover`, `pointer: fine`) the card lifts 4px and the arrow nudges 4px; on touch (`hover: none`) a `--dur-press` scale to .98 answers the tap. A card that leads to a child's details ("Register a child", a children's camp) carries `data-still` on the whole card and never lifts, presses or pops its chip.
+- **Where do you want to go**: a live section card lifts 4px on hover. The sections not open yet are the "Coming next" line under the grid, which stays still in the muted colour, so the live ones read as live.
+- **How it works**: each track is a `<Reveal as="ol" stagger>` of numbered steps with a line (`<svg class="home-how-line">`, a path with `pathLength="100"`) down its left, given its steps' height (an `<svg>` does not stretch between a top and a bottom on its own). Where the browser has scroll-driven animations the line draws with the scroll (`animation-timeline: view()`, inside `@supports`); elsewhere it draws once on reveal (`stroke-dashoffset` transition). Each number counts in with a `--dur-base` fade and scale after its step, and screen readers hear it. The brief names `stroke-dashoffset` for this line: with the Departure Board's character swap, one of the two exceptions to transform and opacity, and it causes no layout.
+- **List with PortPass**: the homepage's band is a `<Reveal as="section" stagger>`; it is `--deck` until it enters, when an `--ink` layer (`::before`, opacity) eases in over `--dur-slow`, and the words and then the button arrive after it. Only the revealed band does this (`.home-business[data-reveal]`); the bands of the same class on `/pricing` and `/business` keep their own colour.
+- **Held states end shown.** The step numbers, the fallback line and the ink layer start hidden, so each carries the reveals' failsafe (its final state at `--dur-failsafe` if the script never takes charge) and a reduced-motion rule that shows it at once.
+- **Squish Buttons**: on the home theme (`/`, `/business`, `/pricing`, `/app`) and the category pages, a button that is not about money, a child's details or signing in gets a physical press: on `:active` it moves down 4px and squashes (`scale(1.04, .92)`) over `--dur-squish` with `--ease-spring`, and springs back; on a pointer device it lifts 2px on hover. It is opt-in by class (`.home-button`, `.feature-card-button`, the menu triggers and Browse) and opt-out by `data-still`: the pricing plans' buttons, "Register a child", the camp cards, every category card that shows a price or a perk, and every sign-in link never move. The press moves the button, not the place it can be pressed: while it is hovered or held, an invisible 12px margin above and below (`::after`) keeps the spot a press began on inside it, so a click begun at its edge still lands. Under reduced motion and the kill switch nothing lifts or squashes, not even at once. The focus ring is an outline and is unchanged.
+- **Bounce Badges**: the "Open now" and "Closes in…" chips, the live section chips and the category page's subsection chips and "Open now" labels pop in once per page view with the spring, over `--dur-pop`, `--dur-badge-step` apart, six at most (the seventh and beyond come with the sixth). On the homepage they pop when their section is revealed, from `scale(.2)` and 8px down. A category page's are on its first screen, so they pop on load from a visible start (`scale(.6)`, 8px down, never hidden), the chips first and the labels after. A card that holds still holds its chip or label still too: a category card with a price (today, every live one, Futprep's on `/sports-fitness` among them) keeps its label still. Perk chips stay still (they are about money).
+- **Departure Board**: a numbers strip under the hero with the real counts the homepage already reads (businesses open, categories open, the camps that have their own card above), each digit in a fixed-width cell. When most of it (60%) first comes into view the digits flicker like a split-flap board, one `--dur-flap` at a time, for `--dur-board`, and settle. The true numbers are in the server HTML and in the strip's `aria-label`, so it is right without script and for screen readers; a count of 0 is left out rather than shown. The flicker swaps characters inside fixed-width cells, one of the two exceptions to "transform and opacity only", with no layout shift; it does not run under reduced motion or the kill switch. The cells are the board's own `--ink` lit by a tenth of `--paper`, with an ink seam: Harbour Signal and nothing else. The demo business is never counted (the database keeps it unpublished and unlisted).
+
 ## Adding an effect
 
 1. Decide what moves: `transform` and `opacity` only. If the effect needs a layout property, it is a different effect.
@@ -86,12 +107,14 @@ Once per page view a soft white glow (Harbour Signal's own `--paper`, no new col
 
 ## Testing it
 
-`.github/workflows/motion-checks.yml` runs `scripts/motion/check.mjs` on every PR that touches the public site's motion: the app on localhost against the local Supabase stack with TEST data, Chromium at 375px.
+`.github/workflows/motion-checks.yml` runs `scripts/motion/check.mjs` on every PR that touches the public site's motion: the app on localhost against the local Supabase stack with TEST data, Chromium at 375px. Besides the usual TEST seed it runs `scripts/motion/seed-motion-fixture.ts` (local stacks only): one TEST business live in Entertainment, first in the homepage order and with a vector logo, so that section is a live category page with something to pop, morph and idle.
 
-- Reduced motion: `document.getAnimations().length` on `/` is 0 after load and after scrolling to the end; every reveal is at full opacity.
+- Reduced motion: `document.getAnimations().length` on `/` is 0 after load and after scrolling to the end; every reveal is at full opacity, and the step numbers, the line and the ink band show their final state.
 - No JavaScript: the hero headline, image and both buttons are on the first screen; no reveal is held hidden.
+- The app's script blocked (its chunks never arrive, after the inline line has run): the page is held as before its script, and within `--dur-failsafe` the step numbers, the ink band and every reveal show.
 - A slow phone (CPU slowed 4x): a filmstrip of the first 1.8 s and of the first section revealing (the `motion-checks` artifact, `frames/`), a reveal below the fold is still held 3 s after load and is on its way in once scrolled to, every reveal has arrived after one scroll through the page, and the layout shift measured in the page is under 0.05.
 
+- The sections (M3): the Open now cards carry a 60ms stagger; the How-it-works line is undrawn before its steps come near, runs the length of its steps, and is fully drawn with every number counted in once the steps are in the middle of the screen; the List-with-PortPass band has eased to ink with its button arrived; nothing re-triggers on scrolling back up and down again; and at 1440px a card lifts 4px and its arrow nudges 4px on hover, while a card that leads to a child's details never lifts. A Squish Button lifts 2px on hover and squashes 4px down on press, a press begun at its very top edge still clicks it, and under reduced motion it never moves; a pricing plan's button never moves. Each Open now chip pops once and not again on the way back, and a still card's chip never pops. On a category page no chip or label starts hidden, the subsection chips pop once from a visible start, and a card with a price keeps its "Open now" label still. The Departure Board flickers when it comes into view, settles on its true values (the same numbers, in order, as its `aria-label`) and never changes size; under reduced motion it never flickers.
 - The Prow moment, the drift and the header (M2): the moment plays on the first load and not on the second in the same session; the drift runs on screen and is paused off screen; the header is condensed, at the top, and the same height after scrolling; at 1440px the logo condenses by a transform to 30px and the category menu fades in.
 - The hero's words against the photo: once everything in the hero that ends has ended, the area behind the headline is photographed with the words hidden and its darkest 5% compared with the headline's colour; the headline must reach WCAG AA for large text (3:1), and the lede's ratio is reported against 4.5:1. A new layer behind the words (the Sun Drift) is measured with and without itself.
 

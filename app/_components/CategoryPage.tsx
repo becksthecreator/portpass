@@ -146,7 +146,7 @@ export async function CategoryPage({ section, subcategory = null }: { section: S
   });
 
   return (
-    <main className={`tpl-page ${ppDisplay.variable} ${ppSans.variable}`}>
+    <main className={`tpl-page category-page ${ppDisplay.variable} ${ppSans.variable}`}>
       <JsonLd data={structured} />
       <SiteHeader breadcrumb={breadcrumb} />
       <section className={`category-hero category-hero-plain${nightHero ? " category-hero-night" : ""}`}>

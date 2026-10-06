@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BusinessLogo } from "./blocks/BusinessLogo";
+import { Reveal } from "./motion/Reveal";
 
 export type OpenNowCard = {
   // One per card: a business has one, and so does each dated offer of its.
@@ -17,6 +18,9 @@ export type OpenNowCard = {
   line: string;
   cta: string;
   href: string;
+  // Brief 22 (M3): a card that leads to a child's details (registering a
+  // child, a children's camp) never squishes, lifts or pops its chip.
+  still?: boolean;
 };
 
 // What is genuinely bookable, as equal cards: logo, name, one live line
@@ -24,6 +28,10 @@ export type OpenNowCard = {
 // Anything with a closing date says how long is left (brief 18, A2).
 // Replaces the hero's rotating Futprep block and, below four businesses,
 // the carousel -- two tiles in a carousel look like a broken carousel.
+//
+// Brief 22 (M3): the grid is a stagger, so the cards rise in 60 ms apart
+// as it comes into view. Each card sits in its own slot: the slot carries
+// the reveal, the card its own hover lift (lib/motion/public.css).
 export function OpenNowCards({ cards }: { cards: OpenNowCard[] }) {
   if (cards.length === 0) return null;
   return (
@@ -31,22 +39,24 @@ export function OpenNowCards({ cards }: { cards: OpenNowCard[] }) {
       <div className="carousel-header">
         <h2>Open now on PortPass.</h2>
       </div>
-      <div className="open-now-grid">
+      <Reveal className="open-now-grid" variant="rise" stagger>
         {cards.map((card) => (
-          <article className="open-now-card" key={card.key}>
-            <div className="open-now-head">
-              <BusinessLogo logoUrl={card.logoUrl} name={card.name} brand={card.brand} size="md" initialsOnly />
-              <div>
-                <span className={`open-now-chip${card.chip ? " open-now-chip-closing" : ""}`}>{card.chip ?? "Open now"}</span>
-                <h3>{card.name}</h3>
-                {card.by && <span className="open-now-by">{card.by}</span>}
+          <div className="open-now-slot" key={card.key}>
+            <article className="open-now-card" data-still={card.still ? "" : undefined}>
+              <div className="open-now-head">
+                <BusinessLogo logoUrl={card.logoUrl} name={card.name} brand={card.brand} size="md" initialsOnly />
+                <div>
+                  <span className={`open-now-chip${card.chip ? " open-now-chip-closing" : ""}`}>{card.chip ?? "Open now"}</span>
+                  <h3>{card.name}</h3>
+                  {card.by && <span className="open-now-by">{card.by}</span>}
+                </div>
               </div>
-            </div>
-            <p className="open-now-line">{card.line}</p>
-            <Link className="home-button" href={card.href}>{card.cta} <span aria-hidden="true">→</span></Link>
-          </article>
+              <p className="open-now-line">{card.line}</p>
+              <Link className="home-button" href={card.href} data-still={card.still ? "" : undefined}>{card.cta} <span aria-hidden="true">→</span></Link>
+            </article>
+          </div>
         ))}
-      </div>
+      </Reveal>
     </section>
   );
 }
