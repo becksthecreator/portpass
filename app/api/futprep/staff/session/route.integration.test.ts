@@ -14,6 +14,7 @@ const TAG = Date.now().toString(36);
 const ACCOUNT = `test-delete-pin-${TAG}`;
 const pin = String(randomInt(100000, 999999));
 const wrongPin = String((Number(pin) + 1) % 1000000).padStart(6, "0");
+const startedAt = new Date().toISOString();
 let rowId = 0;
 
 const signIn = (accountKey: string, value: string) =>
@@ -33,6 +34,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await db().from("staff_login_attempts").delete().eq("account_key", ACCOUNT);
+  // The wrong PIN below is also counted for the failed-sign-ins alert.
+  await db().from("security_events").delete().eq("kind", "pin_failed").gte("created_at", startedAt);
   if (rowId) await db().from("staff_members").delete().eq("id", rowId);
 });
 

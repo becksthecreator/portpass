@@ -5,8 +5,9 @@
 //
 // The staff PIN comes from the SCREENSHOT_PIN environment variable, which
 // the workflow generates at random for this one run and masks in the logs.
-// Only its SHA-256 hash is stored, exactly as app/futprep/staff-auth.ts
-// stores a real PIN.
+// Only a hash is stored, deliberately in the OLD unsalted SHA-256 form:
+// the job's first sign-in then exercises the upgrade to the salted scrypt
+// form that app/futprep/staff-auth.ts does for a real account (Brief 24 D).
 //
 // Writes the ids the capture script needs to $SCREENSHOT_FIXTURE (JSON).
 import { createHash } from "node:crypto";

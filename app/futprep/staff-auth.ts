@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { logAudit } from "@/db/audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "@/db/supabase";
-import { hashPin, verifyPin } from "@/lib/pinHash";
+import { burnPinCheck, hashPin, verifyPin } from "@/lib/pinHash";
 import { issueStaffToken, readStaffToken, staffTokenValid } from "@/lib/staffSession";
 
 // Accounts are created dynamically by an admin (see createStaffAccount below)
@@ -93,22 +93,35 @@ async function accountByKey(accountKey: string): Promise<CachedAccount | null> {
 // goes through on the old hash and the next sign-in tries again.
 async function upgradeStoredPin(account: CachedAccount, pin: string): Promise<string> {
   const newHash = await hashPin(pin);
-  const { error } = await getSupabaseAdmin()
+  // Only the row that still holds the hash this check saw: two sign-ins of
+  // one account at the same moment then agree on one new hash, the first
+  // to write it, and the other signs its token over what is stored.
+  const db = getSupabaseAdmin();
+  const { data, error } = await db
     .from("staff_members")
     .update({ pin_hash: newHash })
     .eq("id", account.id)
-    .eq("organization_id", FUTPREP_ORG_ID);
+    .eq("organization_id", FUTPREP_ORG_ID)
+    .eq("pin_hash", account.pinHash)
+    .select("id");
   if (error) {
     console.error("staff pin upgrade failed", error.message);
     return account.pinHash;
   }
   invalidateAccountCache();
-  return newHash;
+  if ((data ?? []).length === 1) return newHash;
+  const { data: fresh } = await db.from("staff_members").select("pin_hash").eq("id", account.id).maybeSingle();
+  return (fresh?.pin_hash as string | null) ?? account.pinHash;
 }
 
 export async function makeStaffToken(accountKey: string, pin: string) {
   const account = await accountByKey(accountKey);
-  if (!account) return null;
+  if (!account) {
+    // The same work as a real check, so the answer's timing does not say
+    // whether the account name exists.
+    await burnPinCheck(pin);
+    return null;
+  }
   const check = await verifyPin(pin, account.pinHash);
   if (!check.ok) return null;
   const pinHash = check.upgrade ? await upgradeStoredPin(account, pin) : account.pinHash;
@@ -126,7 +139,13 @@ export async function currentFutprepStaffAccount(): Promise<string | null> {
   if (!account) return null;
 
   // Our signature, this account as it is now, and no older than 12 hours.
-  return staffTokenValid("futprep", parts, { role: account.role, pinHash: account.pinHash }) ? parts.accountKey : null;
+  if (staffTokenValid("futprep", parts, { role: account.role, pinHash: account.pinHash })) return parts.accountKey;
+  // The stored hash may have just changed on another server (a PIN change,
+  // or the upgrade on sign-in) while this one's 30 s cache still holds the
+  // old one: read it fresh once before refusing.
+  invalidateAccountCache();
+  const current = await accountByKey(parts.accountKey);
+  return current && staffTokenValid("futprep", parts, { role: current.role, pinHash: current.pinHash }) ? parts.accountKey : null;
 }
 
 export async function currentFutprepStaffRole(): Promise<FutprepStaffRole | null> {

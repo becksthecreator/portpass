@@ -21,14 +21,16 @@ const PARALLEL = 1;
 const KEY_BYTES = 32;
 const SALT_BYTES = 16;
 
-// What a stored value may ask for. A value that asks for more is not one
-// this code wrote, and is refused rather than run (a crafted row must not
-// be able to make a check eat the server's memory or time).
-const MAX_COST = 1 << 20;
-const MAX_BLOCK = 32;
-const MAX_PARALLEL = 16;
-const MAX_KEY_BYTES = 128;
-const MAX_SALT_BYTES = 64;
+// What a stored value may ask for: what this code writes, with room for
+// one step up later. A value that asks for more is not one this code
+// wrote, and is refused rather than run, so a crafted row can never make
+// a check eat the server's memory (64 MB at most) or its time.
+const MAX_COST = 1 << 16;
+const MAX_BLOCK = 8;
+const MAX_PARALLEL = 2;
+const MAX_KEY_BYTES = 64;
+const MAX_SALT_BYTES = 32;
+const MAX_MEMORY = 64 * 1024 * 1024 + 1024 * 1024;
 
 const LEGACY = /^[0-9a-f]{64}$/;
 
@@ -43,7 +45,7 @@ type Cost = { N: number; r: number; p: number };
 
 function derive(pin: string, salt: Buffer, keyLength: number, cost: Cost): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    scrypt(pin, salt, keyLength, { N: cost.N, r: cost.r, p: cost.p, maxmem: 2 * 128 * cost.N * cost.r + 1024 * 1024 }, (error, key) => {
+    scrypt(pin, salt, keyLength, { N: cost.N, r: cost.r, p: cost.p, maxmem: MAX_MEMORY }, (error, key) => {
       if (error) reject(error);
       else resolve(key);
     });
@@ -58,6 +60,15 @@ export async function hashPin(pin: string): Promise<string> {
 
 export function isLegacyPinHash(stored: string): boolean {
   return LEGACY.test(stored);
+}
+
+// For an account name that does not exist: the same work a real check
+// does, against a hash of nothing in particular, so the time an answer
+// takes says nothing about whether the name is known.
+let decoy: Promise<string> | null = null;
+export async function burnPinCheck(pin: string): Promise<void> {
+  decoy ??= hashPin(randomBytes(8).toString("hex"));
+  await verifyPin(pin, await decoy);
 }
 
 function isPowerOfTwo(value: number): boolean {

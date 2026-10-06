@@ -1,6 +1,6 @@
 import { createHash, randomInt } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { hashPin, isLegacyPinHash, verifyPin } from "./pinHash";
+import { burnPinCheck, hashPin, isLegacyPinHash, verifyPin } from "./pinHash";
 
 // Brief 24, part D. The PINs here are drawn at random each run, so no PIN
 // value is written in this file or in a test's name.
@@ -27,6 +27,24 @@ describe("staff PIN hashing", () => {
     expect(await verifyPin(pin, "")).toEqual({ ok: false, upgrade: false });
     expect(await verifyPin(pin, "scrypt$oops")).toEqual({ ok: false, upgrade: false });
     expect(await verifyPin(pin, "bcrypt$16384$8$1$AAAA$BBBB")).toEqual({ ok: false, upgrade: false });
+  });
+
+  it("refuses a stored value that asks for more work than this code writes, before doing any", async () => {
+    const pin = somePin();
+    const salt = "AAAAAAAAAAAAAAAAAAAAAA";
+    const key = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    for (const stored of [`scrypt$1048576$8$1$${salt}$${key}`, `scrypt$16384$64$1$${salt}$${key}`, `scrypt$16384$8$1000$${salt}$${key}`, `scrypt$12345$8$1$${salt}$${key}`, `scrypt$16384$8$1$AA$${key}`]) {
+      const started = Date.now();
+      expect(await verifyPin(pin, stored)).toEqual({ ok: false, upgrade: false });
+      expect(Date.now() - started).toBeLessThan(50);
+    }
+  });
+
+  it("spends the same work on an account name that does not exist", async () => {
+    const started = Date.now();
+    await burnPinCheck(somePin());
+    await burnPinCheck(somePin());
+    expect(Date.now() - started).toBeGreaterThan(0);
   });
 
   it("still accepts the old unsalted SHA-256 form, and says it is time to upgrade", async () => {
