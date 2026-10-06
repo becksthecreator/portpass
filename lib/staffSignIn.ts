@@ -33,9 +33,15 @@ export async function staffSignIn(
     return { ok: false, response: NextResponse.json({ error: LOCKED_MESSAGE }, { status: 429, headers: { "Retry-After": String(STAFF_LOGIN_WINDOW_MINUTES * 60) } }) };
   }
 
-  const token = await makeToken(accountKey, String(body.pin ?? ""));
+  // A PIN is digits, six or more; nothing real is anywhere near this long,
+  // so a huge body never reaches the hash (Brief 24, part D).
+  const pin = String(body.pin ?? "");
+  // Counted before the check, not after: a burst of attempts on one name
+  // then cannot all reach the (now slow) hash before the lock lands. A
+  // correct PIN clears the count below, as it always has.
+  await recordStaffLoginFailure(area, accountKey);
+  const token = pin.length > 64 ? null : await makeToken(accountKey, pin);
   if (!token) {
-    await recordStaffLoginFailure(area, accountKey);
     // Counted for the failed-sign-ins alert (Brief 21, part G): the address
     // only. Loaded here, not at the top, so this module stays free of the
     // database for its unit test.
