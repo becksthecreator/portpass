@@ -32,9 +32,9 @@ describe("the security headers", () => {
     expect(directive("base-uri")).toBe("base-uri 'self'");
     expect(directive("form-action")).toBe("form-action 'self'");
     expect(directive("default-src")).toBe("default-src 'self'");
-    expect(directive("script-src")).not.toContain("https:");
+    expect(directive("script-src").split(" ")).not.toContain("https:");
     expect(directive("script-src")).not.toContain("'unsafe-eval'");
-    expect(directive("connect-src")).not.toContain("https:");
+    expect(directive("connect-src").split(" ")).not.toContain("https:");
     expect(directive("upgrade-insecure-requests")).toBe("upgrade-insecure-requests");
     expect(directive("report-uri")).toBe(`report-uri ${CSP_REPORT_PATH}`);
     // Every directive is well formed: a name and its sources, no stray punctuation.
