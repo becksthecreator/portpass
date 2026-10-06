@@ -6,6 +6,8 @@
      --dur-base   a card lifting, a chip, a cross-fade between pages
      --dur-slow   a scroll reveal
      --dur-hero   the hero's own entrance
+     --dur-menu   a menu or sheet opening (brief 22, M2: 200 ms)
+     --dur-drift  the hero photo's slow drift, the one looping animation
 
      --ease-out     arrives and settles (reveals, menus, anything entering)
      --ease-in-out  leaves and returns (a condensing header, a colour ease)
@@ -16,6 +18,8 @@
   --dur-base:300ms;
   --dur-slow:600ms;
   --dur-hero:900ms;
+  --dur-menu:200ms;
+  --dur-drift:20s;
   --ease-out:cubic-bezier(.22,1,.36,1);
   --ease-in-out:cubic-bezier(.65,0,.35,1);
 }

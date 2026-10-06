@@ -32,6 +32,20 @@ function check(ok, label, detail = "") {
   if (!ok) failed += 1;
 }
 const pad = (ms) => String(ms).padStart(4, "0");
+// The hero's entrance is CSS and finishes on its own; this waits for it
+// (not for the photo's drift, which never ends), 2.5 s at most.
+const heroSettled = (page) =>
+  page.evaluate(() =>
+    Promise.race([
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((a) => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest(".pp-hero-centre"))
+          .map((a) => a.finished.catch(() => null)),
+      ).then(() => true),
+      new Promise((resolve) => setTimeout(() => resolve(false), 2500)),
+    ]),
+  );
 const notAtFullOpacity = () => Array.from(document.querySelectorAll("[data-reveal], [data-reveal][data-stagger] > *")).filter((el) => getComputedStyle(el).opacity !== "1").length;
 
 // Layout shifts, summed the way Lighthouse's CLS sums them (shifts that
@@ -72,6 +86,7 @@ try {
     const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto(`${BASE}/`, { waitUntil: "load" });
+    check(await heroSettled(page), "without JavaScript: the hero's CSS entrance finishes within 2.5 s of load");
     const visible = async (selector) => {
       const el = page.locator(selector).first();
       const box = await el.boundingBox().catch(() => null);
@@ -104,9 +119,9 @@ try {
       await page.screenshot({ path: `${OUT}/frames/home-load-${pad(t)}ms-375.png` });
     }
     await page.waitForLoadState("load");
-    await page.waitForTimeout(500);
+    check(await heroSettled(page), "on a slow phone the hero's entrance finishes within 2.5 s of load");
     const headline = await page.locator(".pp-hero h1").first().evaluate((node) => getComputedStyle(node).opacity);
-    check(headline === "1", "the hero headline is at full opacity once loaded");
+    check(headline === "1", "the hero headline is at full opacity once settled");
     const total = await page.evaluate(() => document.querySelectorAll("[data-reveal]").length);
     // A visitor who reads the hero for a while must still see the first
     // section rise: well after the failsafe window, a reveal below the
@@ -144,6 +159,81 @@ try {
     check(cls !== null && cls < CLS_LIMIT, `layout shift on / is under ${CLS_LIMIT}`, cls === null ? "layout-shift not supported here" : `CLS ${cls}`);
     lines.push(`- Reveals on /: ${total}. CLS after load and one full scroll (4x CPU throttle, 375px): ${cls ?? "not measured"}.`);
     await context.close();
+  }
+
+  // 4. The Prow moment, the hero drift and the header (brief 22, M2).
+  {
+    const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2 });
+    const page = await context.newPage();
+    await page.goto(`${BASE}/`, { waitUntil: "commit" });
+    const prow = await page.waitForSelector(".prow-moment", { timeout: 5000 }).then(() => true).catch(() => false);
+    check(prow, "the Prow moment plays on the first load of / in a session");
+    if (prow) await page.screenshot({ path: `${OUT}/frames/prow-moment-375.png`, clip: { x: 0, y: 0, width: PHONE.width, height: 120 } });
+    const gone = await page.waitForSelector(".prow-moment", { state: "detached", timeout: 3000 }).then(() => true).catch(() => false);
+    check(gone, "the Prow moment is gone within a second");
+    await page.waitForLoadState("load");
+    await heroSettled(page);
+    const drifting = await page.evaluate(() => document.getAnimations().some((a) => a.playState === "running" && a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest(".pp-hero-frame")));
+    check(drifting, "the hero photo drifts while the hero is on screen");
+    const rowBefore = await page.evaluate(() => document.querySelector(".site-shell-header")?.getBoundingClientRect().height ?? 0);
+    await page.evaluate(() => window.scrollTo({ top: 1600, behavior: "instant" }));
+    await page.waitForTimeout(400);
+    const paused = await page.evaluate(() => {
+      const img = document.querySelector(".pp-hero-frame img");
+      return Boolean(document.querySelector(".pp-hero")?.hasAttribute("data-offscreen") && img && getComputedStyle(img).animationPlayState === "paused");
+    });
+    check(paused, "the drift is paused once the hero is off screen");
+    const header = await page.evaluate(() => {
+      const el = document.querySelector(".site-shell-header");
+      return el ? { condensed: el.hasAttribute("data-condensed"), top: el.getBoundingClientRect().top, height: el.getBoundingClientRect().height } : null;
+    });
+    check(Boolean(header && header.condensed), "the header is condensed after scrolling");
+    check(Boolean(header && header.top === 0), "the header stays at the top of the screen while scrolled");
+    check(Boolean(header && header.height === rowBefore), "condensing changes nothing about the header's height", `${rowBefore} then ${header?.height}`);
+    await page.screenshot({ path: `${OUT}/frames/header-condensed-375.png`, clip: { x: 0, y: 0, width: PHONE.width, height: 120 } });
+    await page.goto(`${BASE}/`, { waitUntil: "load" });
+    const replay = await page.waitForSelector(".prow-moment", { timeout: 1500 }).then(() => true).catch(() => false);
+    check(!replay, "the Prow moment does not replay on a second load in the same session");
+    await context.close();
+
+    // At 1440px the logo condenses by a transform and the menu fades in.
+    const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const wide = await desktop.newPage();
+    await wide.goto(`${BASE}/`, { waitUntil: "load" });
+    await heroSettled(wide);
+    const logo = () =>
+      wide.evaluate(() => {
+        const img = Array.from(document.querySelectorAll(".site-shell-brand img.brand-logo")).find((el) => el.getBoundingClientRect().width > 0);
+        return img ? { transform: getComputedStyle(img).transform, height: img.getBoundingClientRect().height } : null;
+      });
+    const logoBefore = await logo();
+    await wide.evaluate(() => window.scrollTo({ top: 400, behavior: "instant" }));
+    await wide.waitForTimeout(500);
+    const logoAfter = await logo();
+    check(Boolean(logoBefore && logoAfter && logoBefore.transform === "none" && logoAfter.transform !== "none"), "at 1440px the logo condenses with a transform", `${logoBefore?.transform} then ${logoAfter?.transform}`);
+    check(Boolean(logoBefore && logoAfter && Math.round(logoAfter.height) === 30), "the condensed logo reads as 30px tall", `${logoAfter?.height}px`);
+    await wide.screenshot({ path: `${OUT}/frames/header-condensed-1440.png`, clip: { x: 0, y: 0, width: 1440, height: 120 } });
+    await wide.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await wide.waitForTimeout(400);
+    const trigger = wide.locator(".nav-trigger").first();
+    if ((await trigger.count()) > 0) {
+      await trigger.click();
+      await wide.waitForTimeout(40);
+      const opening = await wide.evaluate(() => {
+        const panel = document.querySelector(".nav-item.is-open .nav-panel");
+        return panel ? Number(getComputedStyle(panel).opacity) : null;
+      });
+      await wide.waitForTimeout(400);
+      const opened = await wide.evaluate(() => {
+        const panel = document.querySelector(".nav-item.is-open .nav-panel");
+        return panel ? Number(getComputedStyle(panel).opacity) : null;
+      });
+      check(opening !== null && opening < 1 && opened === 1, "the category menu fades in and settles", `${opening} then ${opened}`);
+      await wide.screenshot({ path: `${OUT}/frames/menu-open-1440.png`, clip: { x: 0, y: 0, width: 1440, height: 420 } });
+    } else {
+      lines.push("- No category menu trigger at 1440px (no sections seeded), so the menu fade was not exercised.");
+    }
+    await desktop.close();
   }
 } finally {
   await browser.close();

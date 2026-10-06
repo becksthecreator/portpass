@@ -3,6 +3,7 @@ import "./globals.css";
 import "./staff.css";
 import "@/lib/motion/tokens.css";
 import "@/lib/motion/motion.css";
+import "@/lib/motion/public.css";
 import { getSiteContent } from "@/db/siteContent";
 import { GrowthBeacon } from "./_components/GrowthBeacon";
 import { PwaRegister } from "./_components/PwaRegister";

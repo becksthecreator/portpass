@@ -5,6 +5,7 @@ import { getNavTree } from "@/lib/navSections";
 import { announcementVisible, nassauDay } from "@/lib/siteContent";
 import { HeaderAccount } from "./HeaderAccount";
 import { SiteNav } from "./SiteNav";
+import { HeaderMotion } from "./motion/HeaderMotion";
 import { jsonLdString } from "@/lib/seo/jsonLd";
 
 export type Crumb = { label: string; href: string };
@@ -58,6 +59,7 @@ export async function SiteHeader({ breadcrumb }: { breadcrumb?: Crumb[] }) {
       </p>
     )}
     <header className="site-shell-header">
+      <HeaderMotion />
       <div className="site-shell-header-top">
         <Link className="site-shell-brand" href="/"><BrandLogo markQuery={HEADER_MARK_QUERY} /></Link>
         <SiteNav sections={sections} />
