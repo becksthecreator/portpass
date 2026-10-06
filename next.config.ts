@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
+import { securityHeaders } from "./lib/securityHeaders";
 
 const nextConfig: NextConfig = {
+  // The HTTP security headers, on every path (Brief 21, part D):
+  // lib/securityHeaders.ts says what and why; lib/securityHeaders.test.ts
+  // and scripts/security/headers-check.mjs keep them there.
+  async headers() {
+    return [{ source: "/(.*)", headers: securityHeaders() }];
+  },
   // Photos are converted and resized on the server (lib/imageProcess.ts,
   // brief 19 part E): sharp is native code and the HEIC decoder is one
   // large WebAssembly file, so both are loaded as they are, not bundled.
