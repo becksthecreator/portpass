@@ -4,6 +4,7 @@ import Link from "next/link";
 import { currentFutprepStaffId, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
 import { coachSlotPrompt, listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
 import { isUploadedCoachPhoto } from "@/lib/imageUpload";
+import { money, sessionButtonLabel } from "@/lib/privateSessions";
 import { initialsOf } from "@/lib/team";
 import { PrivateSessionBooking } from "./PrivateSessionBooking";
 
@@ -37,10 +38,12 @@ export default async function FutprepCoachesPage(){
   const bookable=coaches.filter((coach)=>coach.bookable && coach.member_type==="coach");
   const bookingCoaches=bookable.map((c)=>({id:c.id,displayName:c.display_name,slots:c.availability.filter((s)=>s.status==="available").map((s)=>({id:s.id,date:s.availability_date,startTime:s.start_time,endTime:s.end_time,location:s.location}))}));
   const bookingServices=services.map((s)=>({slug:s.slug,name:s.name,priceCents:s.priceCents,priceUnit:s.priceUnit,kind:s.kind,durationMinutes:s.durationMinutes,minChildren:s.minChildren,maxChildren:s.maxChildren,perChildCents:s.perChildCents}));
-  const fromPrice=(kind:"session"|"party")=>{
-    const cents=services.filter((s)=>s.kind===kind&&s.priceCents!==null).map((s)=>s.priceCents as number);
-    return cents.length?` · from $${Math.min(...cents)/100}`:"";
-  };
+  // Brief 29, part B: the button reads the published sessions ("30 min $35 ·
+  // 60 min $70"), and the party button is there only while a party service
+  // is published.
+  const sessionLabel=sessionButtonLabel(services);
+  const partyService=services.find((s)=>s.kind==="party"&&s.priceCents!==null);
+  const partyLabel=partyService?`Book a party · ${money(partyService.priceCents!)} →`:null;
 
   return (
     <main className="futprep-team-page">
@@ -88,8 +91,8 @@ export default async function FutprepCoachesPage(){
                     <span className={`availability-${slot.status}`} key={slot.id}>{dayLabel(slot.availability_date)} · {slot.start_time}–{slot.end_time} · {slot.status}</span>
                   )) : <span className="availability-unset">Schedule not posted yet — you can still request a time.</span>}
                   <div className="coach-book-actions">
-                    <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} defaultKind="session" triggerLabel={`Book a private session${fromPrice("session")} →`} />
-                    <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} defaultKind="party" triggerLabel={`Book a party${fromPrice("party")} →`} />
+                    <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} defaultKind="session" triggerLabel={sessionLabel} />
+                    {partyLabel && <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} defaultKind="party" triggerLabel={partyLabel} />}
                   </div>
                 </div>
               )}

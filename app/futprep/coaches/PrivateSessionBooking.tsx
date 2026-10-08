@@ -28,7 +28,8 @@ const money = (cents: number | null) => (cents === null ? "" : `$${(cents / 100)
 // Request a private session or a party (brief 06 v2, Part B): the service
 // and its price, a coach, and one of the coach's open times -- or a
 // suggested time when none suits. It is a request until the coach
-// accepts; the reference is a PS- code.
+// accepts; the reference (FP-S0007) is numbered like the business's
+// payment requests.
 export function PrivateSessionBooking({
   coaches, services, schemaReady, preferredCoachId, defaultKind = "session", triggerLabel,
 }: {
@@ -204,7 +205,7 @@ export function PrivateSessionBooking({
               <p className="private-session-price">
                 Price: <strong>{money(totalCents)}</strong>
                 {service.priceUnit === "per_child" ? ` (${money(service.priceCents)} per child × ${childrenCount})` : (service.minChildren ?? 1) > 1 && service.perChildCents ? ` (${money(service.perChildCents)} per child)` : ""}.
-                {" "}Pay cash at the session or by bank transfer using your PS- reference.
+                {" "}Pay cash at the session or by bank transfer using your reference.
               </p>
             )}
             {error && <p className="form-error" role="alert">{error}</p>}

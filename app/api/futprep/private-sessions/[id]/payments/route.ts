@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { currentFutprepStaffAccount, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
 import { listPrivateSessionRequests, recordPrivateSessionPayment } from "@/db/coaches";
 
-// Staff record money received for a private session against its PS- code
+// Staff record money received for a private session against its reference
 // (brief 06 v2, Part B).
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const [account, role] = await Promise.all([currentFutprepStaffAccount(), currentFutprepStaffRole()]);

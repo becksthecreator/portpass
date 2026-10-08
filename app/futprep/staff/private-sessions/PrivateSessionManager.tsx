@@ -8,7 +8,7 @@ const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 
 // Private sessions inbox (brief 06 v2, Part B), phone-first: post weekly
 // open times, accept or decline requests (accepting books the slot and
-// emails the parent), record payments against the PS- code.
+// emails the parent), record payments against the reference.
 // `defaultCoachId` preselects the coach the "add your weekly slots" prompt
 // came from (brief 16, C1).
 export function PrivateSessionManager({ initialRequests, coaches, services, schemaReady, defaultCoachId, canRequestPayment = false }: { initialRequests: PrivateSessionRequest[]; coaches: CoachProfile[]; services: ServiceName[]; schemaReady: boolean; defaultCoachId?: number | null; canRequestPayment?: boolean }) {

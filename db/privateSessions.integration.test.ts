@@ -10,6 +10,7 @@ import {
   recordPrivateSessionPayment,
 } from "./coaches";
 import { notifyNewPrivateSessionRequest, TEMPLATE } from "./privateSessionNotices";
+import { SESSION_REFERENCE } from "@/lib/privateSessions";
 
 // Brief 06 v2, Part B and brief 13, part 4, against the local Supabase
 // stack: a TEST coach posts weekly slots, a TEST parent books one with a
@@ -26,14 +27,17 @@ import { notifyNewPrivateSessionRequest, TEMPLATE } from "./privateSessionNotice
 // what it added.
 const db = () => createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!);
 const MARK = `TEST — delete ${crypto.randomUUID().slice(0, 6)}`;
-const SLUGS = ["private-1on1", "private-pair", "private-trio", "private-group", "private-pack-4", "birthday-party"];
+const SLUGS = ["private-1on1", "private-60", "private-pair", "private-trio", "private-group", "private-pack-4", "birthday-party"];
+// The rows as Futprep has them on 8 Oct 2026 (Brief 29): lengths and child
+// counts on the row, where the drawer and the API now read them.
 const SERVICE_ROWS = [
-  { slug: "private-1on1", name: "1-on-1 Session", price_cents: 8000, price_unit: "per_session", inclusions: ["45 minutes"], sort_order: 50 },
-  { slug: "private-pair", name: "2-on-1 Session", price_cents: 12000, price_unit: "per_session", inclusions: ["45 minutes", "2 children"], sort_order: 51 },
-  { slug: "private-trio", name: "3-on-1 Session", price_cents: 13500, price_unit: "per_session", inclusions: ["45 minutes", "3 children"], sort_order: 52 },
-  { slug: "private-group", name: "Group Session (4+)", price_cents: 3500, price_unit: "per_child", inclusions: ["45 minutes", "4 to 8 children"], sort_order: 53 },
-  { slug: "private-pack-4", name: "4-Session Pack", price_cents: 22000, price_unit: null, inclusions: ["Four 45-minute sessions"], sort_order: 54 },
-  { slug: "birthday-party", name: "Birthday Football Party", price_cents: 30000, price_unit: null, inclusions: ["90 minutes"], sort_order: 55 },
+  { slug: "private-1on1", name: "Private session · 30 min", price_cents: 3500, price_unit: "per_session", inclusions: ["30 minutes", "1 child"], sort_order: 50, duration_minutes: 30, min_children: 1, max_children: 1 },
+  { slug: "private-60", name: "Private session · 60 min", price_cents: 7000, price_unit: "per_session", inclusions: ["60 minutes", "1 child"], sort_order: 51, duration_minutes: 60, min_children: 1, max_children: 1 },
+  { slug: "private-pair", name: "2-on-1 Session", price_cents: 12000, price_unit: "per_session", inclusions: ["45 minutes", "2 children"], sort_order: 51, duration_minutes: 45, min_children: 2, max_children: 2 },
+  { slug: "private-trio", name: "3-on-1 Session", price_cents: 13500, price_unit: "per_session", inclusions: ["45 minutes", "3 children"], sort_order: 52, duration_minutes: 45, min_children: 3, max_children: 3 },
+  { slug: "private-group", name: "Group Session (4+)", price_cents: 3500, price_unit: "per_child", inclusions: ["45 minutes", "4 to 8 children"], sort_order: 53, duration_minutes: 45, min_children: 4, max_children: 8 },
+  { slug: "private-pack-4", name: "4-Session Pack", price_cents: 22000, price_unit: null, inclusions: ["Four 45-minute sessions"], sort_order: 54, duration_minutes: 45, min_children: 1, max_children: 1 },
+  { slug: "birthday-party", name: "Birthday Football Party", price_cents: 30000, price_unit: null, inclusions: ["90 minutes"], sort_order: 55, duration_minutes: 90, min_children: 1, max_children: 1 },
 ];
 type ServiceRow = { id: number; slug: string; name: string; summary: string | null; price_cents: number | null; price_unit: string | null; inclusions: string[]; sort_order: number; is_published: boolean };
 let coachId = 0;
@@ -66,7 +70,7 @@ beforeAll(async () => {
 
   // Offered to parents for this test: the 1-on-1, trio and group. The pair
   // is switched off to prove an unpublished service is refused.
-  await db().from("offerings").update({ is_published: true }).eq("organization_id", orgId).in("slug", ["private-1on1", "private-trio", "private-group"]);
+  await db().from("offerings").update({ is_published: true }).eq("organization_id", orgId).in("slug", ["private-1on1", "private-60", "private-trio", "private-group"]);
   await db().from("offerings").update({ is_published: false }).eq("organization_id", orgId).eq("slug", "private-pair");
 });
 
@@ -107,14 +111,28 @@ describe("private sessions (brief 06 v2, Part B)", () => {
   let slotId = 0;
   let requestId = 0;
 
-  it("has the six services, priced, and offers only the published ones", async () => {
+  it("has every service of the business, with length and children from the row, and offers only the published ones", async () => {
     const all = await listFutprepPrivateServices();
-    expect(all.map((s) => s.slug).sort()).toEqual([...SLUGS].sort());
-    expect(all.find((s) => s.slug === "private-1on1")).toMatchObject({ priceCents: price["private-1on1"], durationMinutes: 45, kind: "session", minChildren: 1, maxChildren: 1 });
-    expect(all.find((s) => s.slug === "birthday-party")).toMatchObject({ durationMinutes: 90, kind: "party" });
+    for (const slug of SLUGS) expect(all.map((s) => s.slug)).toContain(slug);
+    expect(all.find((s) => s.slug === "private-1on1")).toMatchObject({ priceCents: price["private-1on1"], durationMinutes: 30, kind: "session", minChildren: 1, maxChildren: 1 });
+    expect(all.find((s) => s.slug === "private-60")).toMatchObject({ priceCents: price["private-60"], durationMinutes: 60, kind: "session", requestType: "private_lesson" });
+    expect(all.find((s) => s.slug === "birthday-party")).toMatchObject({ durationMinutes: 90, kind: "party", requestType: "birthday" });
     const offered = await listFutprepPrivateServices({ publishedOnly: true });
     expect(offered.some((s) => s.slug === "private-1on1")).toBe(true);
+    expect(offered.some((s) => s.slug === "private-60")).toBe(true);
     expect(offered.some((s) => s.slug === "private-pair")).toBe(false);
+  });
+
+  it("books the 60 minute session at its own price and length, with a reference numbered from the business's prefix (Brief 29, part B)", async () => {
+    const { referenceCode } = await request({ serviceSlug: "private-60", durationMinutes: 45 });
+    expect(referenceCode).toMatch(SESSION_REFERENCE);
+    const { data } = await db().from("private_session_requests").select("price_cents,duration_minutes,service_slug,request_type").eq("reference_code", referenceCode).single();
+    expect(data).toEqual({ price_cents: price["private-60"], duration_minutes: 60, service_slug: "private-60", request_type: "private_lesson" });
+    const { referenceCode: second } = await request({ serviceSlug: "private-1on1" });
+    expect(second).toMatch(SESSION_REFERENCE);
+    expect(Number(second.split("-S")[1])).toBe(Number(referenceCode.split("-S")[1]) + 1);
+    const thirty = await db().from("private_session_requests").select("duration_minutes,price_cents").eq("reference_code", second).single();
+    expect(thirty.data).toEqual({ duration_minutes: 30, price_cents: price["private-1on1"] });
   });
 
   it("lets a coach add weekly repeating slots", async () => {
