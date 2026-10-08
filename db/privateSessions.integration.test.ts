@@ -16,7 +16,7 @@ import { SESSION_REFERENCE } from "@/lib/privateSessions";
 // stack: a TEST coach posts weekly slots, a TEST parent books one with a
 // priced service, the coach accepts (slot booked; the email goes to the
 // reserved test domain, so nothing is ever sent), a payment is recorded
-// against the PS- code and the stats count it; the per-child tiers price a
+// against the reference and the stats count it; the per-child tiers price a
 // trio and a group of 4 to 8.
 //
 // Prices are never written by this test (brief 13: it must not overwrite
@@ -145,9 +145,9 @@ describe("private sessions (brief 06 v2, Part B)", () => {
     slotId = Number(data![0].id);
   });
 
-  it("books one of the slots with a priced service and a PS- code", async () => {
+  it("books one of the slots with a priced service and a reference numbered from the business prefix", async () => {
     const { referenceCode } = await request({ availabilityId: slotId, preferredCoachId: coachId, requestedDate: "1970-01-01", requestedStartTime: "00:00", durationMinutes: 60 });
-    expect(referenceCode).toMatch(/^PS-\d{4}-[A-Z0-9]{7}$/);
+    expect(referenceCode).toMatch(SESSION_REFERENCE);
     const { data } = await db().from("private_session_requests").select("id,service_slug,price_cents,children_count,availability_id,requested_date,requested_start_time,duration_minutes,status").eq("reference_code", referenceCode).single();
     expect(data).toMatchObject({ service_slug: "private-1on1", price_cents: price["private-1on1"], children_count: 1, availability_id: slotId, requested_date: "2030-01-02", requested_start_time: "4:00 PM", duration_minutes: 45, status: "pending" });
     requestId = Number(data!.id);
@@ -166,7 +166,7 @@ describe("private sessions (brief 06 v2, Part B)", () => {
     expect(accepted!.accepted_at).not.toBeNull();
   });
 
-  it("records a payment against the PS- code and the stats count it", async () => {
+  it("records a payment against the reference and the stats count it", async () => {
     const full = price["private-1on1"];
     const before = await privateSessionStats();
     const partial = await recordPrivateSessionPayment({ requestId, amountCents: 3000, method: "cash", reference: "", recordedBy: "TEST" });

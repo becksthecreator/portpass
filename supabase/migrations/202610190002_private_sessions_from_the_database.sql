@@ -39,14 +39,21 @@ update public.offerings f
 alter table public.organization_payment_settings
   add column if not exists next_session_number integer not null default 1 check (next_session_number > 0);
 
+-- References are unique within a business, as payment requests' and
+-- bookings' are (two businesses may share a prefix). The old global unique
+-- goes; existing PS- codes stay unique anyway.
+alter table public.private_session_requests drop constraint if exists private_session_requests_reference_code_key;
+drop index if exists public.private_session_requests_reference_code_key;
+create unique index if not exists private_session_requests_org_reference_key on public.private_session_requests (organization_id, reference_code);
+
 -- The next reference for a private-session request of a business:
 -- "<prefix>-S0001". Makes the settings row if the business has none yet,
 -- with the prefix the caller worked out from the business's name (the same
--- rule payment requests use). Service role only.
+-- rule payment requests use). Service role only; a plain invoker function
+-- like payment_request_create, since the service role bypasses RLS.
 create or replace function public.private_session_next_reference(p_org bigint, p_default_prefix text)
 returns text
 language plpgsql
-security definer
 set search_path = public, pg_temp
 as $$
 declare
@@ -67,3 +74,4 @@ end;
 $$;
 
 revoke all on function public.private_session_next_reference(bigint, text) from public, anon, authenticated;
+grant execute on function public.private_session_next_reference(bigint, text) to service_role;
