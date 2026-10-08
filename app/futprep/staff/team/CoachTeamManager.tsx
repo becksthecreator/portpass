@@ -1,6 +1,7 @@
 "use client";
 import { ChangeEvent, FormEvent, useState } from "react";
 import type { CoachProfile } from "@/db/coaches";
+import { workingDaysLabel } from "@/lib/workingDays";
 import { squareCropBox } from "@/lib/imageUpload";
 import { initialsOf } from "@/lib/team";
 
@@ -125,6 +126,12 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
             <button disabled={!schemaReady} onClick={()=>action({action:"restore",id:coach.id})}>Restore</button>
           )}
         </div>
+        {coach.active&&coach.member_type==="coach"&&<form className="team-working-days" onSubmit={(e)=>{e.preventDefault();const picked=Array.from(new FormData(e.currentTarget).getAll("day")).map(Number);void action({action:"working_days",id:coach.id,workingDays:picked});}}>
+          <span>Works on</span>
+          {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((name,i)=><label key={name}><input type="checkbox" name="day" value={i+1} defaultChecked={(coach.working_days??[]).includes(i+1)} />{name}</label>)}
+          <button type="submit" disabled={!schemaReady}>Save days</button>
+          <small>{(coach.working_days??[]).length?`Parents can suggest ${workingDaysLabel(coach.working_days)} only.`:"No rule: parents can suggest any day."}</small>
+        </form>}
         <details className="team-profile-details"><summary>Profile details</summary><dl>
           <div><dt>Licenses</dt><dd>{coach.licenses.join(" · ")||"Not added"}</dd></div>
           <div><dt>Played at</dt><dd>{coach.played_at.join(" · ")||"Not added"}</dd></div>

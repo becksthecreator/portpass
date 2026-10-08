@@ -66,6 +66,7 @@ export async function POST(request:Request){
     const message=error instanceof Error?error.message:"Could not send request.";
     if(message==="PRIVATE_SESSIONS_MIGRATION_REQUIRED") return NextResponse.json({error:"Private-session booking is being connected. Please try again shortly."},{status:503});
     if(message==="COACH_NOT_AVAILABLE") return NextResponse.json({error:"That coach is not currently bookable. Choose another coach or Any available coach."},{status:409});
+    if(message.startsWith("COACH_DAY_OFF|")) return NextResponse.json({error:message.slice("COACH_DAY_OFF|".length)},{status:400});
     if(message==="SERVICE_NOT_AVAILABLE") return NextResponse.json({error:"That service is not bookable online yet. Message Futprep on WhatsApp and we'll help."},{status:409});
     if(message==="SLOT_NOT_AVAILABLE") return NextResponse.json({error:"That time has just been taken. Choose another time or suggest one."},{status:409});
     if(message.startsWith("CHILDREN_OUT_OF_RANGE")){
