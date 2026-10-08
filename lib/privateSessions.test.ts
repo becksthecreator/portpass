@@ -35,10 +35,10 @@ describe("private sessions (brief 06 v2, Part B)", () => {
       location: "Lyford Cay Lower Campus Soccer Field",
       priceCents: 6000,
       referenceCode: "PS-2026-7K3QD9A",
-      bank: { bankName: "TEST Bank", accountName: "Futprep Athletics", accountNumber: "000-TEST", swiftCode: "TESTBSNS" },
+      bank: { bankName: "TEST Bank", accountName: "Futprep Athletics", last4: "4879", instructions: "Account 000-TEST (SWIFT TESTBSNS)." },
     });
     expect(subject).toBe("Confirmed: 1-on-1 Session with Coach Alexander Thompson, Wed 7 Oct");
-    for (const part of ["Wed 7 Oct", "4:00 PM", "45 minutes", "Lyford Cay Lower Campus Soccer Field", "$60", "PS-2026-7K3QD9A", "TEST Bank", "000-TEST"]) expect(html).toContain(part);
+    for (const part of ["Wed 7 Oct", "4:00 PM", "45 minutes", "Lyford Cay Lower Campus Soccer Field", "$60", "PS-2026-7K3QD9A", "TEST Bank", "account ending 4879", "000-TEST", "cash to your coach"]) expect(html).toContain(part);
     expect(html).toContain("TEST &lt;Child&gt;");
     expect(html).not.toMatch(/allerg|medical|medication/i);
   });

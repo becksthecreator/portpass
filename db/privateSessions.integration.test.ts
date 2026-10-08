@@ -9,6 +9,7 @@ import {
   privateSessionStats,
   recordPrivateSessionPayment,
 } from "./coaches";
+import { notifyNewPrivateSessionRequest, TEMPLATE } from "./privateSessionNotices";
 
 // Brief 06 v2, Part B and brief 13, part 4, against the local Supabase
 // stack: a TEST coach posts weekly slots, a TEST parent books one with a
@@ -184,5 +185,57 @@ describe("private-session tiers per child (brief 13)", () => {
   it("never changes a price", async () => {
     const { data: rows } = await db().from("offerings").select("slug,price_cents").eq("organization_id", orgId).in("slug", SLUGS);
     for (const row of rows ?? []) expect(Number(row.price_cents)).toBe(price[String(row.slug)]);
+  });
+});
+
+// Brief 29, part A: every send is a Messages-log line and every state change
+// an event. The parent is a test address and the TEST coach has no login,
+// so nothing leaves; the lines say so.
+describe("private-session emails and events (Brief 29, part A)", () => {
+  const since = new Date().toISOString();
+  const lines = async (template: string) => (await db().from("message_log").select("recipient,status,detail").eq("template", template).gte("created_at", since)).data ?? [];
+
+  afterAll(async () => {
+    await db().from("message_log").delete().like("template", "futprep_private_session_%").gte("created_at", since);
+  });
+
+  it("writes a created event on the request itself", async () => {
+    const { id } = await request({ preferredCoachId: coachId });
+    const { data: events } = await db().from("private_session_events").select("action,actor_account,note").eq("request_id", id);
+    expect(events).toEqual([{ action: "created", actor_account: "parent", note: expect.stringContaining("2030-02-01") }]);
+  });
+
+  it("tells the parent, the coach and the owner, and logs each as a line: skipped here, since nobody has a real address", async () => {
+    const parentEmail = `parent-${crypto.randomUUID().slice(0, 6)}@test.portpass.local`;
+    const { id } = await request({ preferredCoachId: coachId, parentEmail });
+    const sent = await notifyNewPrivateSessionRequest(id);
+    expect(sent).toBe(0);
+    const parent = await lines(TEMPLATE.parentReceived);
+    expect(parent).toEqual([{ recipient: parentEmail, status: "skipped", detail: "A test address: never emailed." }]);
+    const staff = await lines(TEMPLATE.staffNew);
+    expect(staff).toEqual(expect.arrayContaining([
+      expect.objectContaining({ recipient: `${MARK} coach`, status: "skipped", detail: "No email address on this coach's staff account." }),
+      expect.objectContaining({ recipient: "(no owner on file)", status: "skipped" }),
+    ]));
+    expect(JSON.stringify(staff)).not.toContain("TEST Child");
+  });
+
+  it("with no preferred coach, every bookable coach is told", async () => {
+    const { id } = await request({ preferredCoachId: null });
+    await notifyNewPrivateSessionRequest(id);
+    const staff = await lines(TEMPLATE.staffNew);
+    expect(staff.filter((l) => l.recipient === `${MARK} coach`).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("tells the parent on a decline and a referral, and logs each", async () => {
+    const parentEmail = `parent-${crypto.randomUUID().slice(0, 6)}@test.portpass.local`;
+    const { id } = await request({ preferredCoachId: coachId, parentEmail });
+    await actOnPrivateSessionRequest({ id, action: "decline", reason: "TEST: coach away", actor: "TEST" });
+    expect(await lines(TEMPLATE.parentDeclined)).toEqual([{ recipient: parentEmail, status: "skipped", detail: "A test address: never emailed." }]);
+    const second = await request({ preferredCoachId: coachId, parentEmail });
+    await actOnPrivateSessionRequest({ id: second.id, action: "refer", coachId, targetCoachId: coachId, reason: "TEST note", actor: "TEST" });
+    expect(await lines(TEMPLATE.parentReferred)).toEqual([{ recipient: parentEmail, status: "skipped", detail: "A test address: never emailed." }]);
+    const { data: events } = await db().from("private_session_events").select("action").eq("request_id", second.id).order("id");
+    expect(events?.map((e) => e.action)).toEqual(["created", "refer"]);
   });
 });

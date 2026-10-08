@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { bodyOf, readJson } from "@/lib/api/body";
 import { createPrivateSessionRequest } from "@/db/coaches";
+import { notifyNewPrivateSessionRequest } from "@/db/privateSessionNotices";
+import { afterResponse } from "@/lib/afterResponse";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 
 // @public-route: parents request a private session or party here.
@@ -47,7 +49,10 @@ export async function POST(request:Request){
       sessionGoal:String(body.sessionGoal??"").slice(0,1000),
       notes:String(body.notes??"").slice(0,1000),
     });
-    return NextResponse.json({ok:true,...result});
+    // The coach, the owner and the parent are emailed after the answer goes
+    // out (Brief 29, part A); a failed email never undoes a saved request.
+    afterResponse(()=>notifyNewPrivateSessionRequest(result.id));
+    return NextResponse.json({ok:true,referenceCode:result.referenceCode});
   }catch(error){
     const message=error instanceof Error?error.message:"Could not send request.";
     if(message==="PRIVATE_SESSIONS_MIGRATION_REQUIRED") return NextResponse.json({error:"Private-session booking is being connected. Please try again shortly."},{status:503});
