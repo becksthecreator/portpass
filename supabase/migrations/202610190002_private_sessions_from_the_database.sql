@@ -36,6 +36,12 @@ update public.offerings f
        ) as v(slug, duration_minutes, min_children, max_children)
  where f.organization_id = o.id and o.slug = 'futprep' and f.slug = v.slug and f.type = 'service';
 
+-- A request's length is whatever its service says, so the old list of five
+-- lengths gives way to the same range the offering column allows.
+alter table public.private_session_requests drop constraint if exists private_session_requests_duration_minutes_check;
+alter table public.private_session_requests add constraint private_session_requests_duration_minutes_check
+  check (duration_minutes between 15 and 480);
+
 alter table public.organization_payment_settings
   add column if not exists next_session_number integer not null default 1 check (next_session_number > 0);
 

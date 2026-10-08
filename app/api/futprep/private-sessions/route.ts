@@ -34,7 +34,10 @@ export async function POST(request:Request){
   const durationMinutes=Number(body.durationMinutes);
   // A picked slot supplies the date and time; otherwise they are required.
   const timeOk=availabilityId!==null||(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(requestedDate)&&/^[0-9]{2}:[0-9]{2}$/.test(requestedStartTime));
-  if(!parentName||!isEmail(parentEmail)||!parentPhone||!childName||!Number.isInteger(childAge)||childAge<1||childAge>18||!timeOk||![30,45,60,90,120].includes(durationMinutes)){
+  // With a service, the length comes from its row (Brief 29, part B); the
+  // browser's number is only read for the old no-service request.
+  const durationOk=serviceSlug!==null||(Number.isInteger(durationMinutes)&&durationMinutes>=15&&durationMinutes<=480);
+  if(!parentName||!isEmail(parentEmail)||!parentPhone||!childName||!Number.isInteger(childAge)||childAge<1||childAge>18||!timeOk||!durationOk){
     return NextResponse.json({error:"Please complete the required session details."},{status:400});
   }
   if(perEmail(parentEmail.toLowerCase())) return NextResponse.json({error:"That email address has sent a few requests already. Futprep will be in touch; try again later."},{status:429});
@@ -65,7 +68,11 @@ export async function POST(request:Request){
     if(message==="COACH_NOT_AVAILABLE") return NextResponse.json({error:"That coach is not currently bookable. Choose another coach or Any available coach."},{status:409});
     if(message==="SERVICE_NOT_AVAILABLE") return NextResponse.json({error:"That service is not bookable online yet. Message Futprep on WhatsApp and we'll help."},{status:409});
     if(message==="SLOT_NOT_AVAILABLE") return NextResponse.json({error:"That time has just been taken. Choose another time or suggest one."},{status:409});
-    if(message==="CHILDREN_OUT_OF_RANGE") return NextResponse.json({error:"A group session is for 4 to 8 children. For 1, 2 or 3 children choose that session instead."},{status:400});
+    if(message.startsWith("CHILDREN_OUT_OF_RANGE")){
+      const [,min,max]=message.split("|");
+      const range=min&&max?(min===max?`${min} ${min==="1"?"child":"children"}`:`${min} to ${max} children`):"a set number of children";
+      return NextResponse.json({error:`That session is for ${range}. Choose the session that matches how many are coming.`},{status:400});
+    }
     console.error("private session request error",error);
     return NextResponse.json({error:"Could not send the request."},{status:500});
   }

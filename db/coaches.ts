@@ -375,7 +375,7 @@ export async function createPrivateSessionRequest(input:{
     if (!service) throw new Error("SERVICE_NOT_AVAILABLE");
   }
   const childrenCount = service ? (input.childrenCount ?? service.minChildren) : 1;
-  if (service && !childrenAllowed(service, childrenCount)) throw new Error("CHILDREN_OUT_OF_RANGE");
+  if (service && !childrenAllowed(service, childrenCount)) throw new Error(`CHILDREN_OUT_OF_RANGE|${service.minChildren}|${service.maxChildren}`);
 
   let preferredCoachId = input.preferredCoachId;
   let requestedDate = input.requestedDate;
