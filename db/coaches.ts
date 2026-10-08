@@ -1,6 +1,9 @@
 import { FUTPREP_BANK_DETAILS } from "@/app/futprep/config";
 import { sendPrivateSessionAcceptedEmail } from "@/lib/email";
 import { childrenAllowed, isPrivateServiceSlug, perChildCents, PRIVATE_SERVICES, privatePaymentStatus, privateSessionCode, sessionTotalCents, weeklySlotDates, type PrivateServiceSlug } from "@/lib/privateSessions";
+import { afterResponse } from "@/lib/afterResponse";
+import { getPaymentSettings } from "./paymentRequests";
+import { notifyParentOfDecision } from "./privateSessionNotices";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 export type CoachAvailability = {
@@ -407,7 +410,7 @@ export async function createPrivateSessionRequest(input:{
     if(!data) throw new Error("COACH_NOT_AVAILABLE");
   }
   const referenceCode=privateSessionCode();
-  const {error}=await db.from("private_session_requests").insert({
+  const {data:created,error}=await db.from("private_session_requests").insert({
     reference_code:referenceCode,
     organization_id:organizationId,
     preferred_coach_id:preferredCoachId,
@@ -429,10 +432,14 @@ export async function createPrivateSessionRequest(input:{
     availability_id:availabilityId,
     status:"pending",
     updated_at:new Date().toISOString(),
-  });
+  }).select("id").single();
   if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
   throwIfSupabaseError(error,"Could not request private session");
-  return {referenceCode};
+  const id=Number(created!.id);
+  // Every state change is an event (Brief 29, part A), the first one included.
+  const {error:eventError}=await db.from("private_session_events").insert({request_id:id,actor_account:"parent",action:"created",note:`Requested ${service?.name ?? input.requestType} for ${requestedDate} ${requestedStartTime}`});
+  if(eventError) console.error("private session created event",eventError.message);
+  return {referenceCode,id};
 }
 
 export async function listPrivateSessionRequests():Promise<{schemaReady:boolean;requests:PrivateSessionRequest[]}>{
@@ -568,16 +575,39 @@ export async function actOnPrivateSessionRequest(input:{
   const {error:eventError}=await db.from("private_session_events").insert({request_id:input.id,actor_account:input.actor,action:input.action,note});
   throwIfSupabaseError(eventError,"Could not record private session action");
 
-  // Tell the parent: time, place, price and how to pay with the PS- code.
-  // Never blocks the accept (no email configured, a bad address).
+  // The parent hears about a decline or a referral (Brief 29, part A), once:
+  // a second press of the same button, or a referral to the coach already
+  // assigned, says nothing again. Sent after the answer; never blocks the
+  // action; logged in Messages either way.
+  if(input.action==="decline" && existing.status!=="declined"){
+    const reason=input.reason!.trim();
+    afterResponse(()=>notifyParentOfDecision(input.id,{action:"declined",reason}));
+  }else if(input.action==="refer" && Number(existing.assigned_coach_id)!==Number(input.targetCoachId)){
+    const {data:target}=await db.from("coach_profiles").select("display_name").eq("id",input.targetCoachId!).eq("organization_id",existing.organization_id).maybeSingle();
+    const newCoachName=(target as {display_name?:string}|null)?.display_name ?? "another Futprep coach";
+    const note=input.reason?.trim() ?? "";
+    afterResponse(()=>notifyParentOfDecision(input.id,{action:"referred",newCoachName,note}));
+  }
+
+  // Tell the parent: time, place, price and how to pay with the reference.
+  // Bank details come from Futprep's payment settings (the same ones a
+  // payment request shows), with the config as the fallback. Never blocks
+  // the accept (no email configured, a bad address).
   if(input.action==="accept" && existing.status!=="accepted"){
     try{
-      const [{data:coach},{data:slot}]=await Promise.all([
+      const [{data:coach},{data:slot},settings]=await Promise.all([
         db.from("coach_profiles").select("display_name").eq("id",input.coachId!).maybeSingle(),
         existing.availability_id ? db.from("coach_availability").select("location").eq("id",existing.availability_id).maybeSingle() : Promise.resolve({data:null}),
+        getPaymentSettings(Number(existing.organization_id)).catch(()=>null),
       ]);
       const services=existing.service_slug ? await listFutprepPrivateServices() : [];
       const service=services.find((s)=>s.slug===existing.service_slug);
+      // The settings row carries the payer line the business wrote; the
+      // fallback gives the bank, the account name and the last four only,
+      // never the full number.
+      const bank=settings && settings.bankName
+        ? {bankName:settings.bankName,accountName:settings.accountName,last4:settings.accountNumberLast4,instructions:settings.transferInstructions}
+        : {bankName:FUTPREP_BANK_DETAILS.bankName,accountName:FUTPREP_BANK_DETAILS.accountName,last4:FUTPREP_BANK_DETAILS.accountNumber.slice(-4),instructions:null};
       await sendPrivateSessionAcceptedEmail({
         organizationId:existing.organization_id===null||existing.organization_id===undefined ? null : Number(existing.organization_id),
         parentEmail:existing.parent_email,
@@ -591,7 +621,7 @@ export async function actOnPrivateSessionRequest(input:{
         location:(slot as {location?:string}|null)?.location || existing.location_preference || "",
         priceCents:existing.price_cents===null||existing.price_cents===undefined ? null : Number(existing.price_cents),
         referenceCode:existing.reference_code,
-        bank:FUTPREP_BANK_DETAILS,
+        bank,
       });
     }catch(emailError){
       console.error("private session accepted email failed", emailError);

@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { bodyOf, readJson } from "@/lib/api/body";
 import { createPrivateSessionRequest } from "@/db/coaches";
+import { notifyNewPrivateSessionRequest } from "@/db/privateSessionNotices";
+import { afterResponse } from "@/lib/afterResponse";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
+import { isEmail } from "@/lib/paymentRequests/input";
 
 // @public-route: parents request a private session or party here.
 const limited = createRateLimiter(8, 10 * 60_000);
+// A request now sends email (Brief 29, part A), so one typed address gets a
+// few a day, not a stream: the form is not a way to make Futprep write to
+// someone.
+const perEmail = createRateLimiter(3, 60 * 60_000);
 
 // The fields this route reads, and no others (lib/api/body.ts).
 const Body = bodyOf(["requestType", "serviceSlug", "childrenCount", "preferredCoachId", "availabilityId", "parentName", "parentEmail", "parentPhone", "childName", "childAge", "requestedDate", "requestedStartTime", "durationMinutes", "locationPreference", "sessionGoal", "notes"]);
@@ -27,9 +34,10 @@ export async function POST(request:Request){
   const durationMinutes=Number(body.durationMinutes);
   // A picked slot supplies the date and time; otherwise they are required.
   const timeOk=availabilityId!==null||(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(requestedDate)&&/^[0-9]{2}:[0-9]{2}$/.test(requestedStartTime));
-  if(!parentName||!parentEmail.includes("@")||!parentPhone||!childName||!Number.isInteger(childAge)||childAge<1||childAge>18||!timeOk||![30,45,60,90,120].includes(durationMinutes)){
+  if(!parentName||!isEmail(parentEmail)||!parentPhone||!childName||!Number.isInteger(childAge)||childAge<1||childAge>18||!timeOk||![30,45,60,90,120].includes(durationMinutes)){
     return NextResponse.json({error:"Please complete the required session details."},{status:400});
   }
+  if(perEmail(parentEmail.toLowerCase())) return NextResponse.json({error:"That email address has sent a few requests already. Futprep will be in touch; try again later."},{status:429});
   if(availabilityId===null&&requestedDate<new Date().toISOString().slice(0,10)) return NextResponse.json({error:"Choose a future date."},{status:400});
   try{
     const result=await createPrivateSessionRequest({
@@ -47,7 +55,10 @@ export async function POST(request:Request){
       sessionGoal:String(body.sessionGoal??"").slice(0,1000),
       notes:String(body.notes??"").slice(0,1000),
     });
-    return NextResponse.json({ok:true,...result});
+    // The coach, the owner and the parent are emailed after the answer goes
+    // out (Brief 29, part A); a failed email never undoes a saved request.
+    afterResponse(()=>notifyNewPrivateSessionRequest(result.id));
+    return NextResponse.json({ok:true,referenceCode:result.referenceCode});
   }catch(error){
     const message=error instanceof Error?error.message:"Could not send request.";
     if(message==="PRIVATE_SESSIONS_MIGRATION_REQUIRED") return NextResponse.json({error:"Private-session booking is being connected. Please try again shortly."},{status:503});

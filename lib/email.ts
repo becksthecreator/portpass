@@ -289,7 +289,10 @@ export type PrivateSessionAcceptedInput = {
   location: string;
   priceCents: number | null;
   referenceCode: string;
-  bank: { bankName: string; accountName: string; accountNumber: string; swiftCode: string };
+  // From the business's payment settings (Brief 29, part A): the bank, the
+  // account name, the last four digits, and the line the business wrote
+  // for payers (the same one a payment request shows).
+  bank: { bankName: string; accountName: string; last4: string | null; instructions?: string | null };
 };
 
 const SESSION_DAY = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
@@ -310,7 +313,7 @@ export function privateSessionAcceptedEmail(input: PrivateSessionAcceptedInput):
         ${row("Reference", `<strong>${escapeHtml(input.referenceCode)}</strong>`)}
       </table>
       <p><strong>How to pay:</strong> cash to your coach at the session, or a bank transfer before it. For a transfer, use <strong>${escapeHtml(input.referenceCode)}</strong> as the reference so Futprep can match it.</p>
-      <p style="font-size:13px;color:#647069">${escapeHtml(input.bank.bankName)} · ${escapeHtml(input.bank.accountName)} · Account ${escapeHtml(input.bank.accountNumber)} · SWIFT ${escapeHtml(input.bank.swiftCode)}</p>
+      <p style="font-size:13px;color:#647069">${escapeHtml(input.bank.bankName)} · ${escapeHtml(input.bank.accountName)}${input.bank.last4 ? ` · account ending ${escapeHtml(input.bank.last4)}` : ""}${input.bank.instructions ? `<br>${escapeHtml(input.bank.instructions)}` : ""}</p>
       <p>Need to change the time? Reply to this email or message Futprep on WhatsApp.</p>
     `);
   return { subject, html };
