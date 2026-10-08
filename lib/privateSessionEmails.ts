@@ -18,7 +18,8 @@ export type RequestFacts = {
   childFirstName: string;
   childAge: number;
   locationPreference: string;
-  sessionGoal: string;
+  // The parent's free-text goal and notes are NOT here on purpose: parents
+  // write health facts in them, and those stay in the staff portal (rule 3).
 };
 
 const DAY = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
@@ -72,9 +73,9 @@ export function newRequestStaffEmail(f: RequestFacts, portalUrl: string): { subj
         ${row("Parent", `${escapeHtml(f.parentName)} · ${escapeHtml(f.parentPhone)}`)}
         ${row("Price", escapeHtml(money(f.priceCents)))}
         ${f.locationPreference ? row("Where they suggested", escapeHtml(f.locationPreference)) : ""}
-        ${f.sessionGoal ? row("Focus", escapeHtml(f.sessionGoal.slice(0, 200))) : ""}
       </table>
       <p><a href="${escapeHtml(portalUrl)}" style="color:#f0245c;font-weight:700">Accept, refer or decline in the staff portal →</a></p>
+      <p style="color:#647069;font-size:13px">What the parent wrote about the session is in the portal, not in this email.</p>
       <p style="color:#647069;font-size:13px">The parent has been told it is not confirmed until a coach accepts. Accepting emails them the time, place, price and how to pay.</p>
     `);
   return { subject, html };

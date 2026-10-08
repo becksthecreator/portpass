@@ -194,6 +194,16 @@ describe("private-session tiers per child (brief 13)", () => {
 describe("private-session emails and events (Brief 29, part A)", () => {
   const since = new Date().toISOString();
   const lines = async (template: string) => (await db().from("message_log").select("recipient,status,detail").eq("template", template).gte("created_at", since)).data ?? [];
+  // The decision emails go out after the answer (afterResponse); outside a
+  // request that is a promise nobody awaits, so give it a moment.
+  const linesSoon = async (template: string, atLeast = 1) => {
+    for (let i = 0; i < 40; i += 1) {
+      const found = await lines(template);
+      if (found.length >= atLeast) return found;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return lines(template);
+  };
 
   afterAll(async () => {
     await db().from("message_log").delete().like("template", "futprep_private_session_%").gte("created_at", since);
@@ -231,11 +241,17 @@ describe("private-session emails and events (Brief 29, part A)", () => {
     const parentEmail = `parent-${crypto.randomUUID().slice(0, 6)}@test.portpass.local`;
     const { id } = await request({ preferredCoachId: coachId, parentEmail });
     await actOnPrivateSessionRequest({ id, action: "decline", reason: "TEST: coach away", actor: "TEST" });
-    expect(await lines(TEMPLATE.parentDeclined)).toEqual([{ recipient: parentEmail, status: "skipped", detail: "A test address: never emailed." }]);
+    expect(await linesSoon(TEMPLATE.parentDeclined)).toEqual([{ recipient: parentEmail, status: "skipped", detail: "A test address: never emailed." }]);
+    // A second decline of the same request says nothing again.
+    await actOnPrivateSessionRequest({ id, action: "decline", reason: "TEST: again", actor: "TEST" });
+    await new Promise((r) => setTimeout(r, 300));
+    expect(await lines(TEMPLATE.parentDeclined)).toHaveLength(1);
     const second = await request({ preferredCoachId: coachId, parentEmail });
     await actOnPrivateSessionRequest({ id: second.id, action: "refer", coachId, targetCoachId: coachId, reason: "TEST note", actor: "TEST" });
-    expect(await lines(TEMPLATE.parentReferred)).toEqual([{ recipient: parentEmail, status: "skipped", detail: "A test address: never emailed." }]);
+    expect(await linesSoon(TEMPLATE.parentReferred)).toEqual([{ recipient: parentEmail, status: "skipped", detail: "A test address: never emailed." }]);
     const { data: events } = await db().from("private_session_events").select("action").eq("request_id", second.id).order("id");
     expect(events?.map((e) => e.action)).toEqual(["created", "refer"]);
+    const { data: declinedEvents } = await db().from("private_session_events").select("action").eq("request_id", id).order("id");
+    expect(declinedEvents?.map((e) => e.action)).toEqual(["created", "decline", "decline"]);
   });
 });

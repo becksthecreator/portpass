@@ -1,6 +1,7 @@
 import { FUTPREP_BANK_DETAILS } from "@/app/futprep/config";
 import { sendPrivateSessionAcceptedEmail } from "@/lib/email";
 import { childrenAllowed, isPrivateServiceSlug, perChildCents, PRIVATE_SERVICES, privatePaymentStatus, privateSessionCode, sessionTotalCents, weeklySlotDates, type PrivateServiceSlug } from "@/lib/privateSessions";
+import { afterResponse } from "@/lib/afterResponse";
 import { getPaymentSettings } from "./paymentRequests";
 import { notifyParentOfDecision } from "./privateSessionNotices";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
@@ -574,13 +575,18 @@ export async function actOnPrivateSessionRequest(input:{
   const {error:eventError}=await db.from("private_session_events").insert({request_id:input.id,actor_account:input.actor,action:input.action,note});
   throwIfSupabaseError(eventError,"Could not record private session action");
 
-  // The parent hears about a decline or a referral (Brief 29, part A).
-  // Never blocks the action; logged in Messages either way.
-  if(input.action==="decline"){
-    await notifyParentOfDecision(input.id,{action:"declined",reason:input.reason!.trim()});
-  }else if(input.action==="refer"){
-    const {data:target}=await db.from("coach_profiles").select("display_name").eq("id",input.targetCoachId!).maybeSingle();
-    await notifyParentOfDecision(input.id,{action:"referred",newCoachName:(target as {display_name?:string}|null)?.display_name ?? "another Futprep coach",note:input.reason?.trim() ?? ""});
+  // The parent hears about a decline or a referral (Brief 29, part A), once:
+  // a second press of the same button, or a referral to the coach already
+  // assigned, says nothing again. Sent after the answer; never blocks the
+  // action; logged in Messages either way.
+  if(input.action==="decline" && existing.status!=="declined"){
+    const reason=input.reason!.trim();
+    afterResponse(()=>notifyParentOfDecision(input.id,{action:"declined",reason}));
+  }else if(input.action==="refer" && Number(existing.assigned_coach_id)!==Number(input.targetCoachId)){
+    const {data:target}=await db.from("coach_profiles").select("display_name").eq("id",input.targetCoachId!).eq("organization_id",existing.organization_id).maybeSingle();
+    const newCoachName=(target as {display_name?:string}|null)?.display_name ?? "another Futprep coach";
+    const note=input.reason?.trim() ?? "";
+    afterResponse(()=>notifyParentOfDecision(input.id,{action:"referred",newCoachName,note}));
   }
 
   // Tell the parent: time, place, price and how to pay with the reference.
@@ -596,9 +602,12 @@ export async function actOnPrivateSessionRequest(input:{
       ]);
       const services=existing.service_slug ? await listFutprepPrivateServices() : [];
       const service=services.find((s)=>s.slug===existing.service_slug);
+      // The settings row carries the payer line the business wrote; the
+      // fallback gives the bank, the account name and the last four only,
+      // never the full number.
       const bank=settings && settings.bankName
         ? {bankName:settings.bankName,accountName:settings.accountName,last4:settings.accountNumberLast4,instructions:settings.transferInstructions}
-        : {bankName:FUTPREP_BANK_DETAILS.bankName,accountName:FUTPREP_BANK_DETAILS.accountName,last4:FUTPREP_BANK_DETAILS.accountNumber.slice(-4),instructions:`Account ${FUTPREP_BANK_DETAILS.accountNumber} (SWIFT ${FUTPREP_BANK_DETAILS.swiftCode}).`};
+        : {bankName:FUTPREP_BANK_DETAILS.bankName,accountName:FUTPREP_BANK_DETAILS.accountName,last4:FUTPREP_BANK_DETAILS.accountNumber.slice(-4),instructions:null};
       await sendPrivateSessionAcceptedEmail({
         organizationId:existing.organization_id===null||existing.organization_id===undefined ? null : Number(existing.organization_id),
         parentEmail:existing.parent_email,

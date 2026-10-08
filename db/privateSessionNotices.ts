@@ -44,7 +44,6 @@ type RequestRow = {
   service_slug: string | null;
   request_type: string;
   location_preference: string;
-  session_goal: string;
 };
 
 export type CoachContact = { coachId: number; name: string; email: string | null };
@@ -85,7 +84,7 @@ export async function ownerAndAdminEmails(organizationId: number): Promise<strin
 
 async function loadFacts(requestId: number): Promise<{ row: RequestRow; facts: RequestFacts } | null> {
   const db = getSupabaseAdmin();
-  const { data, error } = await db.from("private_session_requests").select("id,organization_id,reference_code,preferred_coach_id,assigned_coach_id,parent_name,parent_email,parent_phone,child_name,child_age,requested_date,requested_start_time,duration_minutes,price_cents,service_slug,request_type,location_preference,session_goal").eq("id", requestId).maybeSingle();
+  const { data, error } = await db.from("private_session_requests").select("id,organization_id,reference_code,preferred_coach_id,assigned_coach_id,parent_name,parent_email,parent_phone,child_name,child_age,requested_date,requested_start_time,duration_minutes,price_cents,service_slug,request_type,location_preference").eq("id", requestId).maybeSingle();
   throwIfSupabaseError(error, "Could not load the request");
   if (!data) return null;
   const row = data as RequestRow;
@@ -106,7 +105,6 @@ async function loadFacts(requestId: number): Promise<{ row: RequestRow; facts: R
     childFirstName: firstName(row.child_name),
     childAge: Number(row.child_age),
     locationPreference: row.location_preference ?? "",
-    sessionGoal: row.session_goal ?? "",
   };
   return { row, facts };
 }
