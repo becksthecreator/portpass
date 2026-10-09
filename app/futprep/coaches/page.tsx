@@ -90,9 +90,9 @@ export default async function FutprepCoachesPage(){
                 <div className="coach-availability">
                   <strong>Availability</strong>
                   {(coach.working_days??[]).length>0 && <span className="availability-days">{workingDaysLabel(coach.working_days)} · suggest a time</span>}
-                  {coach.availability.length ? coach.availability.filter((s)=>s.status==="available").slice(0,3).map((slot)=>(
+                  {(()=>{const open=coach.availability.filter((s)=>s.status==="available").slice(0,3);return open.length ? open.map((slot)=>(
                     <span className={`availability-${slot.status}`} key={slot.id}>{dayLabel(slot.availability_date)} · {slot.start_time}–{slot.end_time}</span>
-                  )) : (coach.working_days??[]).length===0 && <span className="availability-unset">Schedule not posted yet — you can still request a time.</span>}
+                  )) : (coach.working_days??[]).length===0 && <span className="availability-unset">Schedule not posted yet — you can still request a time.</span>;})()}
                   <div className="coach-book-actions">
                     <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} defaultKind="session" triggerLabel={sessionLabel} />
                     {partyLabel && <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} defaultKind="party" triggerLabel={partyLabel} />}

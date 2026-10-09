@@ -11,7 +11,7 @@ alter table public.coach_profiles
   add column if not exists working_days smallint[] not null default '{}';
 alter table public.coach_profiles drop constraint if exists coach_profiles_working_days_check;
 alter table public.coach_profiles add constraint coach_profiles_working_days_check
-  check (working_days <@ array[1, 2, 3, 4, 5, 6, 7]::smallint[] and array_length(working_days, 1) is distinct from 0);
+  check (working_days <@ array[1, 2, 3, 4, 5, 6, 7]::smallint[]);
 comment on column public.coach_profiles.working_days is 'ISO weekdays the coach takes private sessions on (1 = Monday). Empty: any day may be suggested.';
 
 update public.coach_profiles c

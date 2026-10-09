@@ -34,6 +34,7 @@ export async function POST(request:Request){
   }catch(error){
     const message=error instanceof Error?error.message:"Could not save.";
     if(message==="PRIVATE_SESSIONS_MIGRATION_REQUIRED") return NextResponse.json({error:"Run the Futprep coaches/private sessions migration first."},{status:503});
+    if(message==="COACH_NOT_FOUND") return NextResponse.json({error:"That coach is no longer on the team."},{status:404});
     return NextResponse.json({error:"Could not save team changes."},{status:500});
   }
 }

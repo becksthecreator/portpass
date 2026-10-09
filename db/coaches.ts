@@ -401,7 +401,9 @@ export async function createPrivateSessionRequest(input:{
   }
 
   if(preferredCoachId){
-    const {data,error}=await db.from("coach_profiles").select("id,display_name,working_days").eq("id",preferredCoachId).eq("organization_id",organizationId).eq("active",true).eq("bookable",true).maybeSingle();
+    // Only a coach the site shows: a hidden profile's name must not come
+    // back through a guessed id.
+    const {data,error}=await db.from("coach_profiles").select("id,display_name,working_days").eq("id",preferredCoachId).eq("organization_id",organizationId).eq("active",true).eq("bookable",true).eq("public_visible",true).maybeSingle();
     throwIfSupabaseError(error,"Could not validate preferred coach");
     if(!data) throw new Error("COACH_NOT_AVAILABLE");
     // A suggested time must fall on one of the coach's working days (Brief
@@ -676,7 +678,9 @@ export async function saveCoachProfile(input:{
 // Team page. An empty list clears the rule.
 export async function setCoachWorkingDays(id:number,days:number[]):Promise<void>{
   const db=getSupabaseAdmin();
-  const {data,error}=await db.from("coach_profiles").update({working_days:cleanWorkingDays(days),updated_at:new Date().toISOString()}).eq("id",id).select("id");
+  const organizationId=await futprepOrganizationId();
+  if(!organizationId) throw new Error("FUTPREP_NOT_FOUND");
+  const {data,error}=await db.from("coach_profiles").update({working_days:cleanWorkingDays(days),updated_at:new Date().toISOString()}).eq("id",id).eq("organization_id",organizationId).select("id");
   if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
   throwIfSupabaseError(error,"Could not save the working days");
   if(!data?.length) throw new Error("COACH_NOT_FOUND");

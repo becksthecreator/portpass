@@ -9,6 +9,12 @@
   font-size: 0.9rem;
   color: var(--muted, #647069);
 }
+/* The date and time sit in a two-column grid above phone width; the
+   working-days line and the day-off message span both columns. */
+.private-session-two .private-session-days,
+.private-session-two .form-error {
+  grid-column: 1 / -1;
+}
 .team-working-days {
   display: flex;
   flex-wrap: wrap;
@@ -28,10 +34,13 @@
   align-items: center;
   gap: 4px;
   font-size: 0.9rem;
-  min-height: 32px;
+  min-height: 44px;
+  padding: 0 4px;
 }
 .team-working-days button {
   margin-left: auto;
+  min-height: 44px;
+  padding: 0 14px;
 }
 .team-working-days small {
   flex-basis: 100%;
