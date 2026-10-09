@@ -10,12 +10,13 @@ import {
   recordPrivateSessionPayment,
 } from "./coaches";
 import { notifyNewPrivateSessionRequest, TEMPLATE } from "./privateSessionNotices";
+import { SESSION_REFERENCE } from "@/lib/privateSessions";
 
 // Brief 06 v2, Part B and brief 13, part 4, against the local Supabase
 // stack: a TEST coach posts weekly slots, a TEST parent books one with a
 // priced service, the coach accepts (slot booked; the email goes to the
 // reserved test domain, so nothing is ever sent), a payment is recorded
-// against the PS- code and the stats count it; the per-child tiers price a
+// against the reference and the stats count it; the per-child tiers price a
 // trio and a group of 4 to 8.
 //
 // Prices are never written by this test (brief 13: it must not overwrite
@@ -26,14 +27,17 @@ import { notifyNewPrivateSessionRequest, TEMPLATE } from "./privateSessionNotice
 // what it added.
 const db = () => createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!);
 const MARK = `TEST — delete ${crypto.randomUUID().slice(0, 6)}`;
-const SLUGS = ["private-1on1", "private-pair", "private-trio", "private-group", "private-pack-4", "birthday-party"];
+const SLUGS = ["private-1on1", "private-60", "private-pair", "private-trio", "private-group", "private-pack-4", "birthday-party"];
+// The rows as Futprep has them on 8 Oct 2026 (Brief 29): lengths and child
+// counts on the row, where the drawer and the API now read them.
 const SERVICE_ROWS = [
-  { slug: "private-1on1", name: "1-on-1 Session", price_cents: 8000, price_unit: "per_session", inclusions: ["45 minutes"], sort_order: 50 },
-  { slug: "private-pair", name: "2-on-1 Session", price_cents: 12000, price_unit: "per_session", inclusions: ["45 minutes", "2 children"], sort_order: 51 },
-  { slug: "private-trio", name: "3-on-1 Session", price_cents: 13500, price_unit: "per_session", inclusions: ["45 minutes", "3 children"], sort_order: 52 },
-  { slug: "private-group", name: "Group Session (4+)", price_cents: 3500, price_unit: "per_child", inclusions: ["45 minutes", "4 to 8 children"], sort_order: 53 },
-  { slug: "private-pack-4", name: "4-Session Pack", price_cents: 22000, price_unit: null, inclusions: ["Four 45-minute sessions"], sort_order: 54 },
-  { slug: "birthday-party", name: "Birthday Football Party", price_cents: 30000, price_unit: null, inclusions: ["90 minutes"], sort_order: 55 },
+  { slug: "private-1on1", name: "Private session · 30 min", price_cents: 3500, price_unit: "per_session", inclusions: ["30 minutes", "1 child"], sort_order: 50, duration_minutes: 30, min_children: 1, max_children: 1 },
+  { slug: "private-60", name: "Private session · 60 min", price_cents: 7000, price_unit: "per_session", inclusions: ["60 minutes", "1 child"], sort_order: 51, duration_minutes: 60, min_children: 1, max_children: 1 },
+  { slug: "private-pair", name: "2-on-1 Session", price_cents: 12000, price_unit: "per_session", inclusions: ["45 minutes", "2 children"], sort_order: 51, duration_minutes: 45, min_children: 2, max_children: 2 },
+  { slug: "private-trio", name: "3-on-1 Session", price_cents: 13500, price_unit: "per_session", inclusions: ["45 minutes", "3 children"], sort_order: 52, duration_minutes: 45, min_children: 3, max_children: 3 },
+  { slug: "private-group", name: "Group Session (4+)", price_cents: 3500, price_unit: "per_child", inclusions: ["45 minutes", "4 to 8 children"], sort_order: 53, duration_minutes: 45, min_children: 4, max_children: 8 },
+  { slug: "private-pack-4", name: "4-Session Pack", price_cents: 22000, price_unit: null, inclusions: ["Four 45-minute sessions"], sort_order: 54, duration_minutes: 45, min_children: 1, max_children: 1 },
+  { slug: "birthday-party", name: "Birthday Football Party", price_cents: 30000, price_unit: null, inclusions: ["90 minutes"], sort_order: 55, duration_minutes: 90, min_children: 1, max_children: 1 },
 ];
 type ServiceRow = { id: number; slug: string; name: string; summary: string | null; price_cents: number | null; price_unit: string | null; inclusions: string[]; sort_order: number; is_published: boolean };
 let coachId = 0;
@@ -47,7 +51,7 @@ beforeAll(async () => {
   orgId = Number(org!.id);
   const { data: coach, error } = await db()
     .from("coach_profiles")
-    .insert({ organization_id: orgId, slug: `test-delete-coach-${crypto.randomUUID().slice(0, 6)}`, display_name: `${MARK} coach`, nickname: "Coach Test", member_type: "coach", public_visible: false, bookable: true, active: true })
+    .insert({ organization_id: orgId, slug: `test-delete-coach-${crypto.randomUUID().slice(0, 6)}`, display_name: `${MARK} coach`, nickname: "Coach Test", member_type: "coach", public_visible: true, bookable: true, active: true })
     .select("id")
     .single();
   expect(error).toBeNull();
@@ -66,7 +70,7 @@ beforeAll(async () => {
 
   // Offered to parents for this test: the 1-on-1, trio and group. The pair
   // is switched off to prove an unpublished service is refused.
-  await db().from("offerings").update({ is_published: true }).eq("organization_id", orgId).in("slug", ["private-1on1", "private-trio", "private-group"]);
+  await db().from("offerings").update({ is_published: true }).eq("organization_id", orgId).in("slug", ["private-1on1", "private-60", "private-trio", "private-group"]);
   await db().from("offerings").update({ is_published: false }).eq("organization_id", orgId).eq("slug", "private-pair");
 });
 
@@ -107,14 +111,28 @@ describe("private sessions (brief 06 v2, Part B)", () => {
   let slotId = 0;
   let requestId = 0;
 
-  it("has the six services, priced, and offers only the published ones", async () => {
+  it("has every service of the business, with length and children from the row, and offers only the published ones", async () => {
     const all = await listFutprepPrivateServices();
-    expect(all.map((s) => s.slug).sort()).toEqual([...SLUGS].sort());
-    expect(all.find((s) => s.slug === "private-1on1")).toMatchObject({ priceCents: price["private-1on1"], durationMinutes: 45, kind: "session", minChildren: 1, maxChildren: 1 });
-    expect(all.find((s) => s.slug === "birthday-party")).toMatchObject({ durationMinutes: 90, kind: "party" });
+    for (const slug of SLUGS) expect(all.map((s) => s.slug)).toContain(slug);
+    expect(all.find((s) => s.slug === "private-1on1")).toMatchObject({ priceCents: price["private-1on1"], durationMinutes: 30, kind: "session", minChildren: 1, maxChildren: 1 });
+    expect(all.find((s) => s.slug === "private-60")).toMatchObject({ priceCents: price["private-60"], durationMinutes: 60, kind: "session", requestType: "private_lesson" });
+    expect(all.find((s) => s.slug === "birthday-party")).toMatchObject({ durationMinutes: 90, kind: "party", requestType: "birthday" });
     const offered = await listFutprepPrivateServices({ publishedOnly: true });
     expect(offered.some((s) => s.slug === "private-1on1")).toBe(true);
+    expect(offered.some((s) => s.slug === "private-60")).toBe(true);
     expect(offered.some((s) => s.slug === "private-pair")).toBe(false);
+  });
+
+  it("books the 60 minute session at its own price and length, with a reference numbered from the business's prefix (Brief 29, part B)", async () => {
+    const { referenceCode } = await request({ serviceSlug: "private-60", durationMinutes: 45 });
+    expect(referenceCode).toMatch(SESSION_REFERENCE);
+    const { data } = await db().from("private_session_requests").select("price_cents,duration_minutes,service_slug,request_type").eq("reference_code", referenceCode).single();
+    expect(data).toEqual({ price_cents: price["private-60"], duration_minutes: 60, service_slug: "private-60", request_type: "private_lesson" });
+    const { referenceCode: second } = await request({ serviceSlug: "private-1on1" });
+    expect(second).toMatch(SESSION_REFERENCE);
+    expect(Number(second.split("-S")[1])).toBe(Number(referenceCode.split("-S")[1]) + 1);
+    const thirty = await db().from("private_session_requests").select("duration_minutes,price_cents").eq("reference_code", second).single();
+    expect(thirty.data).toEqual({ duration_minutes: 30, price_cents: price["private-1on1"] });
   });
 
   it("lets a coach add weekly repeating slots", async () => {
@@ -127,11 +145,11 @@ describe("private sessions (brief 06 v2, Part B)", () => {
     slotId = Number(data![0].id);
   });
 
-  it("books one of the slots with a priced service and a PS- code", async () => {
+  it("books one of the slots with a priced service and a reference numbered from the business prefix", async () => {
     const { referenceCode } = await request({ availabilityId: slotId, preferredCoachId: coachId, requestedDate: "1970-01-01", requestedStartTime: "00:00", durationMinutes: 60 });
-    expect(referenceCode).toMatch(/^PS-\d{4}-[A-Z0-9]{7}$/);
+    expect(referenceCode).toMatch(SESSION_REFERENCE);
     const { data } = await db().from("private_session_requests").select("id,service_slug,price_cents,children_count,availability_id,requested_date,requested_start_time,duration_minutes,status").eq("reference_code", referenceCode).single();
-    expect(data).toMatchObject({ service_slug: "private-1on1", price_cents: price["private-1on1"], children_count: 1, availability_id: slotId, requested_date: "2030-01-02", requested_start_time: "4:00 PM", duration_minutes: 45, status: "pending" });
+    expect(data).toMatchObject({ service_slug: "private-1on1", price_cents: price["private-1on1"], children_count: 1, availability_id: slotId, requested_date: "2030-01-02", requested_start_time: "4:00 PM", duration_minutes: 30, status: "pending" });
     requestId = Number(data!.id);
   });
 
@@ -148,7 +166,7 @@ describe("private sessions (brief 06 v2, Part B)", () => {
     expect(accepted!.accepted_at).not.toBeNull();
   });
 
-  it("records a payment against the PS- code and the stats count it", async () => {
+  it("records a payment against the reference and the stats count it", async () => {
     const full = price["private-1on1"];
     const before = await privateSessionStats();
     const partial = await recordPrivateSessionPayment({ requestId, amountCents: 3000, method: "cash", reference: "", recordedBy: "TEST" });

@@ -23,7 +23,7 @@ export default async function PrivateSessionsPage({ searchParams }: { searchPara
   return <main className="staff-workspace theme-night">
     <header className="staff-workspace-header"><div><Link className="brand" href="/"><BrandLogo /></Link><span className="staff-workspace-label">Futprep · Private sessions</span></div><nav>{canManageFutprepTeam(role)&&<Link href="/futprep/staff/team">Team</Link>}<Link href="/futprep/coaches">Parent view ↗</Link><StaffLogoutButton /></nav></header>
     <section className="staff-workspace-content">
-      <div className="staff-page-intro"><div><span className="section-kicker">Lessons · parties · payments</span><h1>Private sessions.</h1></div><p>Post open times, accept or decline requests (accepting books the time and emails the parent), refer to another coach, and record payments against the PS- code.</p></div>
+      <div className="staff-page-intro"><div><span className="section-kicker">Lessons · parties · payments</span><h1>Private sessions.</h1></div><p>Post open times, accept or decline requests (accepting books the time and emails the parent), refer to another coach, and record payments against the reference.</p></div>
       <div className="staff-summary staff-summary-4">
         <article><span>Requested</span><strong>{stats.requested}</strong></article>
         <article><span>Accepted</span><strong>{stats.accepted}</strong></article>
