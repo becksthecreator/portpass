@@ -103,7 +103,8 @@ export type Attribution = {
 export const EMPTY_ATTRIBUTION: Attribution = { utmSource: null, utmMedium: null, utmCampaign: null, referrerHost: null, viaPortpass: false };
 
 const TAG_MAX = 80;
-function tag(value: string | null | undefined): string | null {
+// A UTM tag as it may be stored: letters, digits and a few marks, 80 at most.
+export function tag(value: string | null | undefined): string | null {
   const v = (value ?? "").trim().slice(0, TAG_MAX);
   return v && /^[\w.\-:+ ]+$/.test(v) ? v : null;
 }

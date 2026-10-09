@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
+import { cache } from "react";
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import { listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
 import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAttribution, parseAttributionCookie, type Attribution } from "@/lib/attribution";
@@ -17,13 +18,14 @@ export const dynamic = "force-dynamic";
 
 type Query = Record<string, string | string[] | undefined>;
 
-async function load(searchParams: Promise<Query>) {
+// Once per request: generateMetadata and the page both ask.
+const load = cache(async function load(searchParams: Promise<Query>) {
   const [query, { schemaReady, coaches }, services] = await Promise.all([searchParams, listPublicCoachProfiles(), listFutprepPrivateServices({ publishedOnly: true }).catch(() => [])]);
   const bookable = coaches.filter((c) => c.bookable && c.member_type === "coach");
   const params = readBookingParams({ coach: query.coach, service: query.service }, { coaches: bookable.map((c) => c.slug), services: services.map((s) => s.slug) });
   const coach = bookable.find((c) => c.slug === params.coachSlug) ?? null;
   return { query, schemaReady, bookable, services, params, coach };
-}
+});
 
 async function readAttribution(query: Query): Promise<Attribution> {
   const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
