@@ -4,6 +4,8 @@ import { afterResponse } from "@/lib/afterResponse";
 import { defaultPrefix } from "@/lib/paymentRequests/rules";
 import { childrenAllowed, privatePaymentStatus, privateSessionCode, serviceFromRow, sessionTotalCents, weeklySlotDates, type PrivateService } from "@/lib/privateSessions";
 import { cleanWorkingDays, dayOffMessage, isWorkingDay } from "@/lib/workingDays";
+import type { Attribution } from "@/lib/attribution";
+import { channelFromAttribution } from "@/lib/growth";
 import { getPaymentSettings } from "./paymentRequests";
 import { notifyParentOfDecision } from "./privateSessionNotices";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
@@ -366,6 +368,8 @@ export async function createPrivateSessionRequest(input:{
   availabilityId?:number|null;
   // Brief 13: children in the session (a group session is 4 to 8).
   childrenCount?:number|null;
+  // Brief 29, part D: where the request came from, as a registration records it.
+  attribution?:Attribution|null;
 }) {
   const ready=await seedProfiles();
   if(!ready) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
@@ -433,6 +437,12 @@ export async function createPrivateSessionRequest(input:{
     children_count:childrenCount,
     availability_id:availabilityId,
     status:"pending",
+    source_channel:channelFromAttribution(input.attribution??null),
+    utm_source:input.attribution?.utmSource??null,
+    utm_medium:input.attribution?.utmMedium??null,
+    utm_campaign:input.attribution?.utmCampaign??null,
+    referrer_host:input.attribution?.referrerHost??null,
+    via_portpass:input.attribution?.viaPortpass??false,
     updated_at:new Date().toISOString(),
   }).select("id").single();
   if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");

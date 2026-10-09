@@ -235,6 +235,19 @@ describe("a coach's working days (Brief 29, part C)", () => {
   });
 });
 
+// Brief 29, part D: where a request came from is kept, as a registration
+// keeps it (brief 05).
+describe("the booking link's source (Brief 29, part D)", () => {
+  it("stores the link's tags and the channel they mean, and nothing when there are none", async () => {
+    const tagged = await request({ attribution: { utmSource: "portpass", utmMedium: "qr", utmCampaign: "TEST-flyer", referrerHost: null, viaPortpass: true } });
+    const { data } = await db().from("private_session_requests").select("source_channel,utm_source,utm_medium,utm_campaign,referrer_host,via_portpass").eq("reference_code", tagged.referenceCode).single();
+    expect(data).toEqual({ source_channel: "qr", utm_source: "portpass", utm_medium: "qr", utm_campaign: "TEST-flyer", referrer_host: null, via_portpass: true });
+    const plain = await request({});
+    const { data: none } = await db().from("private_session_requests").select("source_channel,utm_source,via_portpass").eq("reference_code", plain.referenceCode).single();
+    expect(none).toEqual({ source_channel: "unknown", utm_source: null, via_portpass: false });
+  });
+});
+
 // Brief 29, part A: every send is a Messages-log line and every state change
 // an event. The parent is a test address and the TEST coach has no login,
 // so nothing leaves; the lines say so.

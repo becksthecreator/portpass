@@ -2,6 +2,8 @@
 import { ChangeEvent, FormEvent, useState } from "react";
 import type { CoachProfile } from "@/db/coaches";
 import { workingDaysLabel } from "@/lib/workingDays";
+import { bookingLink } from "@/lib/bookingLink";
+import { CopyLinkButton } from "@/app/_components/CopyLinkButton";
 import { squareCropBox } from "@/lib/imageUpload";
 import { initialsOf } from "@/lib/team";
 
@@ -121,6 +123,7 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
           {coach.active ? <>
             <button disabled={!schemaReady||uploadingId!==null} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:!coach.public_visible,bookable:coach.bookable,sortOrder:coach.sort_order})}>{coach.public_visible?"Hide":"Unhide"}</button>
             <button disabled={!schemaReady||uploadingId!==null||coach.member_type!=="coach"} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:coach.public_visible,bookable:!coach.bookable,sortOrder:coach.sort_order})}>{coach.bookable?"Pause bookings":"Allow bookings"}</button>
+            {coach.bookable&&coach.member_type==="coach"&&<CopyLinkButton path={bookingLink("", coach.slug)} label="Copy booking link" className="" />}
             <button className="danger-action" disabled={!schemaReady} onClick={()=>{if(confirm(`Remove ${coach.display_name} from the active team? Booking history is kept, and you can restore the profile later from this page.`))action({action:"delete",id:coach.id});}}>Delete</button>
           </> : (
             <button disabled={!schemaReady} onClick={()=>action({action:"restore",id:coach.id})}>Restore</button>

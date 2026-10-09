@@ -1,0 +1,115 @@
+/* /futprep/book (Brief 29, part D): the booking form as a page. The drawer's
+   own rules style the form; this places it. No motion. */
+.futprep-book-page {
+  background: #fffaf6;
+  color: #171717;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.futprep-book-intro {
+  padding: 24px 16px 8px;
+  max-width: 560px;
+  margin: 0 auto;
+  width: 100%;
+}
+.futprep-book-intro > span {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #647069;
+}
+.futprep-book-intro h1 {
+  font-size: clamp(1.7rem, 6vw, 2.4rem);
+  line-height: 1.1;
+  margin: 8px 0 0;
+}
+.futprep-book-intro h1 em {
+  font-style: normal;
+  color: #d11149;
+}
+.futprep-book-note {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff1d6;
+  color: #5c3a00;
+}
+.private-session-inline {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 8px 16px 40px;
+  box-sizing: border-box;
+}
+/* The drawer's form rules (globals.css) are scoped to .private-session-drawer;
+   the same body on this page needs them too. */
+.private-session-inline h2 {
+  color: #171717;
+  font-family: Georgia, serif;
+  font-size: clamp(2rem, 7vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  margin: 15px 0;
+}
+.private-session-inline form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 28px;
+}
+.private-session-inline label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.private-session-inline label > span {
+  color: #171717;
+  font-size: 0.65rem;
+  font-weight: 900;
+}
+.private-session-inline input,
+.private-session-inline select,
+.private-session-inline textarea {
+  background: #fff;
+  border: 1px solid #cfc7c1;
+  color: #171717;
+  min-height: 46px;
+  padding: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.private-session-inline .private-session-services label,
+.private-session-inline .private-session-slots label {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.private-session-inline .private-session-services input,
+.private-session-inline .private-session-slots input {
+  width: auto;
+  min-height: 0;
+}
+.private-session-inline .private-session-submit {
+  min-height: 48px;
+  font-weight: 800;
+}
+@media (max-width: 640px) {
+  .private-session-inline .private-session-two {
+    grid-template-columns: 1fr;
+  }
+}
+.private-session-inline .private-session-success {
+  padding-top: 16px;
+}
+.private-session-back {
+  display: inline-block;
+  margin-top: 12px;
+  font-weight: 700;
+}
+.futprep-book-page .futprep-team-footer {
+  margin-top: auto;
+}

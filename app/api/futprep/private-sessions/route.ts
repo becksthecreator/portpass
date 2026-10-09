@@ -4,6 +4,7 @@ import { createPrivateSessionRequest } from "@/db/coaches";
 import { notifyNewPrivateSessionRequest } from "@/db/privateSessionNotices";
 import { afterResponse } from "@/lib/afterResponse";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
+import { cleanHost, tag } from "@/lib/attribution";
 import { isEmail } from "@/lib/paymentRequests/input";
 
 // @public-route: parents request a private session or party here.
@@ -14,7 +15,8 @@ const limited = createRateLimiter(8, 10 * 60_000);
 const perEmail = createRateLimiter(3, 60 * 60_000);
 
 // The fields this route reads, and no others (lib/api/body.ts).
-const Body = bodyOf(["requestType", "serviceSlug", "childrenCount", "preferredCoachId", "availabilityId", "parentName", "parentEmail", "parentPhone", "childName", "childAge", "requestedDate", "requestedStartTime", "durationMinutes", "locationPreference", "sessionGoal", "notes"]);
+const Body = bodyOf(["requestType", "serviceSlug", "childrenCount", "preferredCoachId", "availabilityId", "parentName", "parentEmail", "parentPhone", "childName", "childAge", "requestedDate", "requestedStartTime", "durationMinutes", "locationPreference", "sessionGoal", "notes", "utmSource", "utmMedium", "utmCampaign", "referrerHost", "viaPortpass"]);
+const utm=(value:unknown)=>tag(typeof value==="string"?value:null);
 
 export async function POST(request:Request){
   if(limited(clientIp(request))) return NextResponse.json({error:"Too many requests. Try again in a few minutes."},{status:429});
@@ -57,6 +59,9 @@ export async function POST(request:Request){
       locationPreference:String(body.locationPreference??"").slice(0,200),
       sessionGoal:String(body.sessionGoal??"").slice(0,1000),
       notes:String(body.notes??"").slice(0,1000),
+      // Where the request came from (brief 05, kept by Brief 29 part D): the
+      // link's tags and the first-party cookie, as a registration records them.
+      attribution:{utmSource:utm(body.utmSource),utmMedium:utm(body.utmMedium),utmCampaign:utm(body.utmCampaign),referrerHost:cleanHost(String(body.referrerHost??"")),viaPortpass:body.viaPortpass===true},
     });
     // The coach, the owner and the parent are emailed after the answer goes
     // out (Brief 29, part A); a failed email never undoes a saved request.

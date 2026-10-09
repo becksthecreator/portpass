@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { CopyLinkButton } from "@/app/_components/CopyLinkButton";
 import { BOOKINGS_ON_SCREEN, listAdminBookings } from "@/db/adminBookings";
+import { listPublicCoachProfiles } from "@/db/coaches";
+import { bookingLink } from "@/lib/bookingLink";
 import { listAdminBusinesses } from "@/db/adminBusinesses";
 import { BOOKING_KIND_LABEL, BOOKING_KINDS, isBookingKind, owingCents, type AdminBooking } from "@/lib/adminBookings";
 import { requireAdmin } from "@/lib/auth/admin";
@@ -54,6 +57,10 @@ export default async function AdminBookingsPage({ searchParams }: { searchParams
   const paid = bookings.reduce((sum, b) => sum + (b.paidCents ?? 0), 0);
   const owed = bookings.reduce((sum, b) => sum + owingCents(b), 0);
 
+  // Brief 29, part D: the link that opens a booking with a coach chosen, for
+  // a founder to paste into WhatsApp. Futprep only has coaches today.
+  const coachLinks = await listPublicCoachProfiles().then((r) => r.coaches.filter((c) => c.bookable && c.member_type === "coach")).catch(() => []);
+
   return (
     <AdminShell
       session={session}
@@ -62,6 +69,15 @@ export default async function AdminBookingsPage({ searchParams }: { searchParams
       lede="Registrations, private sessions, booking requests, wedding leads and shop orders across every business. Children's health and emergency details are never shown here."
       actions={organizationId ? <a className="admin-bar-link" href={`/api/admin/bookings/export?org=${organizationId}`}>Export this business (CSV)</a> : undefined}
     >
+      {coachLinks.length > 0 && (
+        <div className="admin-section-card" aria-labelledby="booking-links">
+          <h2 id="booking-links" style={{ margin: "0 0 6px", fontSize: "1.05rem" }}>Futprep booking links</h2>
+          <p style={{ margin: "0 0 10px", color: "var(--muted)" }}>Each opens the booking with that coach chosen. Paste one into WhatsApp. Adding <code>&amp;utm_source=whatsapp</code> is kept on the request for a later report.</p>
+          {coachLinks.map((coach) => (
+            <div className="admin-section-row" key={coach.id}><strong>{coach.display_name}</strong> <code>{bookingLink("", coach.slug)}</code> <CopyLinkButton path={bookingLink("", coach.slug)} label="Copy booking link" /></div>
+          ))}
+        </div>
+      )}
       <div className="admin-filters" aria-label="Filter by business">
         <Link href={href({ org: null })} aria-current={!organizationId ? "true" : undefined}>All businesses</Link>
         {businesses.map((business) => (
