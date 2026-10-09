@@ -3,6 +3,7 @@ import { sendPrivateSessionAcceptedEmail } from "@/lib/email";
 import { afterResponse } from "@/lib/afterResponse";
 import { defaultPrefix } from "@/lib/paymentRequests/rules";
 import { childrenAllowed, privatePaymentStatus, privateSessionCode, serviceFromRow, sessionTotalCents, weeklySlotDates, type PrivateService } from "@/lib/privateSessions";
+import { cleanWorkingDays, dayOffMessage, isWorkingDay } from "@/lib/workingDays";
 import { getPaymentSettings } from "./paymentRequests";
 import { notifyParentOfDecision } from "./privateSessionNotices";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
@@ -40,6 +41,9 @@ export type CoachProfile = {
   bookable: boolean;
   active: boolean;
   sort_order: number;
+  // ISO weekdays the coach takes private sessions on (1 = Monday); empty
+  // means any day may be suggested (Brief 29, part C).
+  working_days: number[];
   availability: CoachAvailability[];
 };
 
@@ -85,7 +89,7 @@ export type PrivateSessionRequest = {
 // also carries each coach's pay rates and staff login, which only the CEO
 // and platform owners may see, and these rows go to the Team page (admin
 // too) and the public coaches page.
-const COACH_PROFILE_COLUMNS = "id,organization_id,slug,display_name,nickname,position_title,member_type,bio,licenses,played_at,favorite_player,favorite_team,photo_url,intro_video_url,testimonial_quote,testimonial_name,public_visible,bookable,active,sort_order";
+const COACH_PROFILE_COLUMNS = "id,organization_id,slug,display_name,nickname,position_title,member_type,bio,licenses,played_at,favorite_player,favorite_team,photo_url,intro_video_url,testimonial_quote,testimonial_name,public_visible,bookable,active,sort_order,working_days";
 
 const fallbackProfiles: CoachProfile[] = [];
 
@@ -299,7 +303,7 @@ export async function listAllCoachProfiles() {
     throwIfSupabaseError(availabilityError,"Could not load availability");
     slots=(availability ?? []) as CoachAvailability[];
   }
-  return {schemaReady:true,coaches:profiles.map((profile)=>({...profile,licenses:profile.licenses??[],played_at:profile.played_at??[],availability:slots.filter((slot)=>slot.coach_id===profile.id)}))};
+  return {schemaReady:true,coaches:profiles.map((profile)=>({...profile,licenses:profile.licenses??[],played_at:profile.played_at??[],working_days:profile.working_days??[],availability:slots.filter((slot)=>slot.coach_id===profile.id)}))};
 }
 
 // A priced service a parent can book (brief 06 v2, Part B; Brief 29, part
@@ -397,9 +401,15 @@ export async function createPrivateSessionRequest(input:{
   }
 
   if(preferredCoachId){
-    const {data,error}=await db.from("coach_profiles").select("id").eq("id",preferredCoachId).eq("organization_id",organizationId).eq("active",true).eq("bookable",true).maybeSingle();
+    // Only a coach the site shows: a hidden profile's name must not come
+    // back through a guessed id.
+    const {data,error}=await db.from("coach_profiles").select("id,display_name,working_days").eq("id",preferredCoachId).eq("organization_id",organizationId).eq("active",true).eq("bookable",true).eq("public_visible",true).maybeSingle();
     throwIfSupabaseError(error,"Could not validate preferred coach");
     if(!data) throw new Error("COACH_NOT_AVAILABLE");
+    // A suggested time must fall on one of the coach's working days (Brief
+    // 29, part C). A posted open time is the coach's own, so it is not checked.
+    const days=cleanWorkingDays(data.working_days);
+    if(!availabilityId && !isWorkingDay(days,requestedDate)) throw new Error(`COACH_DAY_OFF|${dayOffMessage(String(data.display_name),days)}`);
   }
   const referenceCode=await nextSessionReference(organizationId);
   const {data:created,error}=await db.from("private_session_requests").insert({
@@ -662,6 +672,18 @@ export async function saveCoachProfile(input:{
     : db.from("coach_profiles").insert(payload);
   const {error}=await query;
   throwIfSupabaseError(error,"Could not save coach profile");
+}
+
+// Brief 29, part C: the days a coach takes private sessions on, from the
+// Team page. An empty list clears the rule.
+export async function setCoachWorkingDays(id:number,days:number[]):Promise<void>{
+  const db=getSupabaseAdmin();
+  const organizationId=await futprepOrganizationId();
+  if(!organizationId) throw new Error("FUTPREP_NOT_FOUND");
+  const {data,error}=await db.from("coach_profiles").update({working_days:cleanWorkingDays(days),updated_at:new Date().toISOString()}).eq("id",id).eq("organization_id",organizationId).select("id");
+  if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
+  throwIfSupabaseError(error,"Could not save the working days");
+  if(!data?.length) throw new Error("COACH_NOT_FOUND");
 }
 
 export async function softDeleteCoach(id:number){

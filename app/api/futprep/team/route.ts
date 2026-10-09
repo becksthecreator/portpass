@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentFutprepStaffAccount, currentFutprepStaffRole, canManageFutprepTeam } from "@/app/futprep/staff-auth";
-import { listAllCoachProfiles, restoreCoach, saveCoachAvailability, saveCoachProfile, softDeleteCoach } from "@/db/coaches";
+import { listAllCoachProfiles, restoreCoach, saveCoachAvailability, saveCoachProfile, setCoachWorkingDays, softDeleteCoach } from "@/db/coaches";
 import { bumpListings } from "@/lib/revalidate";
 
 function csv(value:unknown){return String(value??"").split(",").map((v)=>v.trim()).filter(Boolean);}
@@ -19,6 +19,10 @@ export async function POST(request:Request){
     }else if(body.action==="availability"){
       if(!body.coachId||!body.date||!body.startTime||!body.endTime) return NextResponse.json({error:"Complete the availability details."},{status:400});
       await saveCoachAvailability({coachId:Number(body.coachId),date:String(body.date),startTime:String(body.startTime),endTime:String(body.endTime),status:["available","blocked","booked"].includes(body.status)?body.status:"available",location:String(body.location??""),note:String(body.note??""),actor:account});
+    }else if(body.action==="working_days"){
+      // Brief 29, part C: the days a coach takes private sessions on.
+      if(!Number(body.id)) return NextResponse.json({error:"Which coach?"},{status:400});
+      await setCoachWorkingDays(Number(body.id),Array.isArray(body.workingDays)?body.workingDays.map(Number):[]);
     }else if(body.action==="save"){
       if(!String(body.displayName??"").trim()||!String(body.slug??"").trim()) return NextResponse.json({error:"Name and slug are required."},{status:400});
       await saveCoachProfile({id:Number(body.id)||undefined,displayName:String(body.displayName),slug:String(body.slug),positionTitle:String(body.positionTitle||"Coach"),memberType:["coach","relations","admin"].includes(body.memberType)?body.memberType:"coach",bio:String(body.bio??""),licenses:csv(body.licenses),playedAt:csv(body.playedAt),favoritePlayer:String(body.favoritePlayer??""),favoriteTeam:String(body.favoriteTeam??""),photoUrl:body.photoUrl===undefined?undefined:String(body.photoUrl??""),introVideoUrl:String(body.introVideoUrl??""),testimonialQuote:String(body.testimonialQuote??""),testimonialName:String(body.testimonialName??""),publicVisible:Boolean(body.publicVisible),bookable:Boolean(body.bookable),sortOrder:Number(body.sortOrder)||100});
@@ -30,6 +34,7 @@ export async function POST(request:Request){
   }catch(error){
     const message=error instanceof Error?error.message:"Could not save.";
     if(message==="PRIVATE_SESSIONS_MIGRATION_REQUIRED") return NextResponse.json({error:"Run the Futprep coaches/private sessions migration first."},{status:503});
+    if(message==="COACH_NOT_FOUND") return NextResponse.json({error:"That coach is no longer on the team."},{status:404});
     return NextResponse.json({error:"Could not save team changes."},{status:500});
   }
 }

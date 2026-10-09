@@ -4,10 +4,12 @@ import {
   actOnPrivateSessionRequest,
   addWeeklyCoachSlots,
   createPrivateSessionRequest,
+  listAllCoachProfiles,
   listFutprepPrivateServices,
   listPrivateSessionRequests,
   privateSessionStats,
   recordPrivateSessionPayment,
+  setCoachWorkingDays,
 } from "./coaches";
 import { notifyNewPrivateSessionRequest, TEMPLATE } from "./privateSessionNotices";
 import { SESSION_REFERENCE } from "@/lib/privateSessions";
@@ -203,6 +205,33 @@ describe("private-session tiers per child (brief 13)", () => {
   it("never changes a price", async () => {
     const { data: rows } = await db().from("offerings").select("slug,price_cents").eq("organization_id", orgId).in("slug", SLUGS);
     for (const row of rows ?? []) expect(Number(row.price_cents)).toBe(price[String(row.slug)]);
+  });
+});
+
+// Brief 29, part C: a suggested time must fall on one of the coach's working
+// days; a posted open time is the coach's own and is not checked.
+describe("a coach's working days (Brief 29, part C)", () => {
+  afterAll(async () => {
+    await setCoachWorkingDays(coachId, []);
+  });
+
+  it("refuses a suggested date on a day the coach does not work, with the days in the message, and accepts one that fits", async () => {
+    await setCoachWorkingDays(coachId, [1, 3, 5]);
+    const { data } = await db().from("coach_profiles").select("working_days").eq("id", coachId).single();
+    expect(data!.working_days).toEqual([1, 3, 5]);
+    // 2030-02-05 is a Tuesday; 2030-02-04 a Monday.
+    await expect(request({ preferredCoachId: coachId, requestedDate: "2030-02-05" })).rejects.toThrow(/^COACH_DAY_OFF\|.*works Mondays, Wednesdays and Fridays\. Pick one of those days\.$/);
+    const monday = await request({ preferredCoachId: coachId, requestedDate: "2030-02-04" });
+    expect(monday.referenceCode).toBeTruthy();
+    // No preferred coach: no rule to apply.
+    const any = await request({ preferredCoachId: null, requestedDate: "2030-02-05" });
+    expect(any.referenceCode).toBeTruthy();
+    // No rule: any day.
+    await setCoachWorkingDays(coachId, []);
+    const tuesday = await request({ preferredCoachId: coachId, requestedDate: "2030-02-05" });
+    expect(tuesday.referenceCode).toBeTruthy();
+    const listed = await listAllCoachProfiles();
+    expect(listed.coaches.find((c) => c.id === coachId)?.working_days).toEqual([]);
   });
 });
 

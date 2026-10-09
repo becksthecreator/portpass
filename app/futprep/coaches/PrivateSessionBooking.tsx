@@ -2,10 +2,11 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { PrivacyNote } from "@/app/_components/PrivacyNote";
+import { dayOffMessage, isWorkingDay, workingDaysLabel } from "@/lib/workingDays";
 import steamerStyles from "./SteamerLeft.module.css";
 
 export type BookingSlot = { id: number; date: string; startTime: string; endTime: string; location: string };
-export type BookingCoach = { id: number; displayName: string; slots: BookingSlot[] };
+export type BookingCoach = { id: number; displayName: string; slots: BookingSlot[]; workingDays?: number[] };
 export type BookingService = {
   slug: string; name: string; priceCents: number | null; priceUnit: string | null; kind: "session" | "party"; durationMinutes: number;
   // Brief 13: tiers priced per child. A group is 4 to 8 children at a
@@ -44,11 +45,16 @@ export function PrivateSessionBooking({
   const [coachId, setCoachId] = useState<number | null>(preferredCoachId ?? null);
   const [slotId, setSlotId] = useState<number | "suggest">("suggest");
   const [children, setChildren] = useState(4);
+  const [suggestedDate, setSuggestedDate] = useState("");
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const service = services.find((s) => s.slug === serviceSlug) ?? null;
   const coach = coaches.find((c) => c.id === coachId) ?? null;
   const slots = coach?.slots ?? [];
+  // Brief 29, part C: a suggested date must be one of the coach's working
+  // days. The API enforces the same rule; this is the gentle message first.
+  const workingDays = coach?.workingDays ?? [];
+  const dayOff = coach && slotId === "suggest" && suggestedDate !== "" && !isWorkingDay(workingDays, suggestedDate) ? dayOffMessage(coach.displayName, workingDays) : "";
   const legacyType = service?.kind === "party" ? "birthday" : defaultKind === "party" ? "birthday" : "private_lesson";
   const variableChildren = service ? (service.maxChildren ?? 1) > (service.minChildren ?? 1) : false;
   const childrenCount = service ? (variableChildren ? Math.min(Math.max(children, service.minChildren ?? 1), service.maxChildren ?? 8) : service.minChildren ?? 1) : 1;
@@ -175,7 +181,9 @@ export function PrivateSessionBooking({
             )}
             {slotId === "suggest" && (
               <div className="private-session-two">
-                <label><span>Suggested date</span><input name="requestedDate" type="date" min={today} required /></label>
+                <label><span>Suggested date</span><input name="requestedDate" type="date" min={today} required value={suggestedDate} onChange={(e) => setSuggestedDate(e.target.value)} aria-invalid={dayOff ? true : undefined} /></label>
+                {coach && workingDays.length > 0 && <p className="private-session-days">{coach.displayName} works {workingDaysLabel(workingDays)}.</p>}
+                {dayOff && <p className="form-error" role="alert">{dayOff}</p>}
                 <label><span>Suggested start time</span><input name="requestedStartTime" type="time" required /></label>
               </div>
             )}
@@ -210,7 +218,7 @@ export function PrivateSessionBooking({
             )}
             {error && <p className="form-error" role="alert">{error}</p>}
             <PrivacyNote childDetails />
-            <button className="private-session-submit" disabled={busy || !schemaReady} type="submit">{busy ? "Sending…" : "Send request →"}</button>
+            <button className="private-session-submit" disabled={busy || !schemaReady || dayOff !== ""} type="submit">{busy ? "Sending…" : "Send request →"}</button>
           </form>
         </>}
       </aside>

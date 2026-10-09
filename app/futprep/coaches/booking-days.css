@@ -1,0 +1,48 @@
+/* Brief 29, part C: a coach's working days on the card, in the drawer and
+   on the Team page. No motion (brief 22: never on a booking form). */
+.availability-days {
+  display: block;
+  font-weight: 700;
+}
+.private-session-days {
+  margin: -6px 0 10px;
+  font-size: 0.9rem;
+  color: var(--muted, #647069);
+}
+/* The date and time sit in a two-column grid above phone width; the
+   working-days line and the day-off message span both columns. */
+.private-session-two .private-session-days,
+.private-session-two .form-error {
+  grid-column: 1 / -1;
+}
+.team-working-days {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.14));
+  border-radius: 10px;
+}
+.team-working-days > span {
+  font-weight: 700;
+  margin-right: 4px;
+}
+.team-working-days label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9rem;
+  min-height: 44px;
+  padding: 0 4px;
+}
+.team-working-days button {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 14px;
+}
+.team-working-days small {
+  flex-basis: 100%;
+  color: var(--muted, #647069);
+}
