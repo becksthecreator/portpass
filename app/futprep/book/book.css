@@ -43,6 +43,65 @@
   padding: 8px 16px 40px;
   box-sizing: border-box;
 }
+/* The drawer's form rules (globals.css) are scoped to .private-session-drawer;
+   the same body on this page needs them too. */
+.private-session-inline h2 {
+  color: #171717;
+  font-family: Georgia, serif;
+  font-size: clamp(2rem, 7vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  margin: 15px 0;
+}
+.private-session-inline form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 28px;
+}
+.private-session-inline label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.private-session-inline label > span {
+  color: #171717;
+  font-size: 0.65rem;
+  font-weight: 900;
+}
+.private-session-inline input,
+.private-session-inline select,
+.private-session-inline textarea {
+  background: #fff;
+  border: 1px solid #cfc7c1;
+  color: #171717;
+  min-height: 46px;
+  padding: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.private-session-inline .private-session-services label,
+.private-session-inline .private-session-slots label {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.private-session-inline .private-session-services input,
+.private-session-inline .private-session-slots input {
+  width: auto;
+  min-height: 0;
+}
+.private-session-inline .private-session-submit {
+  min-height: 48px;
+  font-weight: 800;
+}
+@media (max-width: 640px) {
+  .private-session-inline .private-session-two {
+    grid-template-columns: 1fr;
+  }
+}
 .private-session-inline .private-session-success {
   padding-top: 16px;
 }

@@ -4,7 +4,7 @@ import { cache } from "react";
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import { listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
 import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAttribution, parseAttributionCookie, type Attribution } from "@/lib/attribution";
-import { bookingDescription, bookingTitle, readBookingParams } from "@/lib/bookingLink";
+import { bookingDescription, bookingTitle, coachShortName, readBookingParams } from "@/lib/bookingLink";
 import { PrivateSessionBooking } from "../coaches/PrivateSessionBooking";
 import "../coaches/booking-days.css";
 import "./book.css";
@@ -64,8 +64,8 @@ export default async function FutprepBookPage({ searchParams }: { searchParams: 
       </header>
       <section className="futprep-book-intro">
         <span>Futprep Athletics</span>
-        <h1>{coach ? <>Book a private session with <em>{coach.nickname?.trim() || coach.display_name}</em>.</> : <>Book a private <em>session</em>.</>}</h1>
-        {params.unknown.length > 0 && <p className="futprep-book-note" role="status">{params.unknown.includes("coach") ? "We couldn't find that coach, so pick one below." : "That session isn't offered right now, so pick one below."}</p>}
+        <h1>{coach ? <>Book a private session with <em>{coachShortName(coach)}</em>.</> : <>Book a private <em>session</em>.</>}</h1>
+        {params.unknown.length > 0 && <p className="futprep-book-note" role="status">{params.unknown.length === 2 ? "We couldn't find that coach or that session, so pick below." : params.unknown.includes("coach") ? "We couldn't find that coach, so pick one below." : "That session isn't offered right now, so pick one below."}</p>}
       </section>
       <PrivateSessionBooking inline coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} preferredCoachId={coach?.id} preferredServiceSlug={params.serviceSlug} attribution={attribution} />
       <footer className="futprep-team-footer">
