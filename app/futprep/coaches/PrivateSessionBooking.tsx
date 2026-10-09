@@ -31,16 +31,22 @@ const money = (cents: number | null) => (cents === null ? "" : `$${(cents / 100)
 // suggested time when none suits. It is a request until the coach
 // accepts; the reference (FP-S0007) is numbered like the business's
 // payment requests.
+export type BookingAttribution = { utmSource: string | null; utmMedium: string | null; utmCampaign: string | null; referrerHost: string | null; viaPortpass: boolean };
+
 export function PrivateSessionBooking({
-  coaches, services, schemaReady, preferredCoachId, defaultKind = "session", triggerLabel,
+  coaches, services, schemaReady, preferredCoachId, preferredServiceSlug, defaultKind = "session", triggerLabel = "Book a private session →", inline = false, attribution,
 }: {
-  coaches: BookingCoach[]; services: BookingService[]; schemaReady: boolean; preferredCoachId?: number; defaultKind?: "session" | "party"; triggerLabel: string;
+  coaches: BookingCoach[]; services: BookingService[]; schemaReady: boolean; preferredCoachId?: number; defaultKind?: "session" | "party"; triggerLabel?: string;
+  // Brief 29, part D: /futprep/book opens the form on the page itself, with
+  // a coach and a service already chosen, and passes on where the link came
+  // from (brief 05's attribution).
+  preferredServiceSlug?: string | null; inline?: boolean; attribution?: BookingAttribution | null;
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [reference, setReference] = useState("");
-  const firstService = services.find((s) => s.kind === defaultKind) ?? services[0] ?? null;
+  const firstService = (preferredServiceSlug ? services.find((s) => s.slug === preferredServiceSlug) : undefined) ?? services.find((s) => s.kind === defaultKind) ?? services[0] ?? null;
   const [serviceSlug, setServiceSlug] = useState<string>(firstService?.slug ?? "");
   const [coachId, setCoachId] = useState<number | null>(preferredCoachId ?? null);
   const [slotId, setSlotId] = useState<number | "suggest">("suggest");
@@ -87,6 +93,11 @@ export function PrivateSessionBooking({
           locationPreference: form.get("locationPreference"),
           sessionGoal: form.get("sessionGoal"),
           notes: form.get("notes"),
+          utmSource: attribution?.utmSource ?? null,
+          utmMedium: attribution?.utmMedium ?? null,
+          utmCampaign: attribution?.utmCampaign ?? null,
+          referrerHost: attribution?.referrerHost ?? null,
+          viaPortpass: attribution?.viaPortpass ?? false,
         }),
       });
       const data = (await response.json()) as { referenceCode?: string; error?: string };
@@ -99,11 +110,7 @@ export function PrivateSessionBooking({
     }
   }
 
-  return <>
-    <button className="private-session-trigger" type="button" onClick={() => setOpen(true)}>{triggerLabel}</button>
-    {open && <div className="private-session-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
-      <aside className="private-session-drawer" role="dialog" aria-modal="true" aria-label="Request a Futprep session" onMouseDown={(e) => e.stopPropagation()}>
-        <button className="private-session-close" type="button" onClick={() => setOpen(false)} aria-label="Close">×</button>
+  const body = <>
         {reference ? <div className="private-session-success">
           <span>Request mailed</span>
           <div className="request-mail-scene" aria-hidden="true">
@@ -137,7 +144,7 @@ export function PrivateSessionBooking({
             <strong>{reference}</strong>
             <span className="request-reference-full">Use it as the transfer reference if you pay by bank.</span>
           </div>
-          <button type="button" onClick={() => setOpen(false)}>Done</button>
+          {inline ? <a className="private-session-back" href="/futprep/coaches">Back to the coaches</a> : <button type="button" onClick={() => setOpen(false)}>Done</button>}
         </div> : <>
           <span className="private-session-kicker">Futprep private sessions &amp; parties</span>
           <h2>{service?.kind === "party" ? "Book a football party." : "Book a private session."}</h2>
@@ -221,6 +228,17 @@ export function PrivateSessionBooking({
             <button className="private-session-submit" disabled={busy || !schemaReady || dayOff !== ""} type="submit">{busy ? "Sending…" : "Send request →"}</button>
           </form>
         </>}
+  </>;
+
+  // The full-page form (/futprep/book): no drawer, no motion, the same body.
+  if (inline) return <section className="private-session-inline" aria-label="Request a Futprep session">{body}</section>;
+
+  return <>
+    <button className="private-session-trigger" type="button" onClick={() => setOpen(true)}>{triggerLabel}</button>
+    {open && <div className="private-session-backdrop" role="presentation" onMouseDown={() => setOpen(false)}>
+      <aside className="private-session-drawer" role="dialog" aria-modal="true" aria-label="Request a Futprep session" onMouseDown={(e) => e.stopPropagation()}>
+        <button className="private-session-close" type="button" onClick={() => setOpen(false)} aria-label="Close">×</button>
+        {body}
       </aside>
     </div>}
   </>;

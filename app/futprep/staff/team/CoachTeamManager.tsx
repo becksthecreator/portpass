@@ -2,6 +2,8 @@
 import { ChangeEvent, FormEvent, useState } from "react";
 import type { CoachProfile } from "@/db/coaches";
 import { workingDaysLabel } from "@/lib/workingDays";
+import { bookingLink } from "@/lib/bookingLink";
+import { CopyLinkButton } from "@/app/_components/CopyLinkButton";
 import { squareCropBox } from "@/lib/imageUpload";
 import { initialsOf } from "@/lib/team";
 
@@ -127,6 +129,7 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
           )}
         </div>
         {coach.active&&coach.member_type==="coach"&&<form className="team-working-days" onSubmit={(e)=>{e.preventDefault();const picked=Array.from(new FormData(e.currentTarget).getAll("day")).map(Number);void action({action:"working_days",id:coach.id,workingDays:picked});}}>
+          <CopyLinkButton path={bookingLink("", coach.slug)} label="Copy booking link" className="team-copy-link" />
           <span>Works on</span>
           {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((name,i)=><label key={name}><input type="checkbox" name="day" value={i+1} defaultChecked={(coach.working_days??[]).includes(i+1)} />{name}</label>)}
           <button type="submit" disabled={!schemaReady}>Save days</button>
