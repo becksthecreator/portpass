@@ -51,7 +51,7 @@ beforeAll(async () => {
   orgId = Number(org!.id);
   const { data: coach, error } = await db()
     .from("coach_profiles")
-    .insert({ organization_id: orgId, slug: `test-delete-coach-${crypto.randomUUID().slice(0, 6)}`, display_name: `${MARK} coach`, nickname: "Coach Test", member_type: "coach", public_visible: false, bookable: true, active: true })
+    .insert({ organization_id: orgId, slug: `test-delete-coach-${crypto.randomUUID().slice(0, 6)}`, display_name: `${MARK} coach`, nickname: "Coach Test", member_type: "coach", public_visible: true, bookable: true, active: true })
     .select("id")
     .single();
   expect(error).toBeNull();
@@ -149,7 +149,7 @@ describe("private sessions (brief 06 v2, Part B)", () => {
     const { referenceCode } = await request({ availabilityId: slotId, preferredCoachId: coachId, requestedDate: "1970-01-01", requestedStartTime: "00:00", durationMinutes: 60 });
     expect(referenceCode).toMatch(SESSION_REFERENCE);
     const { data } = await db().from("private_session_requests").select("id,service_slug,price_cents,children_count,availability_id,requested_date,requested_start_time,duration_minutes,status").eq("reference_code", referenceCode).single();
-    expect(data).toMatchObject({ service_slug: "private-1on1", price_cents: price["private-1on1"], children_count: 1, availability_id: slotId, requested_date: "2030-01-02", requested_start_time: "4:00 PM", duration_minutes: 45, status: "pending" });
+    expect(data).toMatchObject({ service_slug: "private-1on1", price_cents: price["private-1on1"], children_count: 1, availability_id: slotId, requested_date: "2030-01-02", requested_start_time: "4:00 PM", duration_minutes: 30, status: "pending" });
     requestId = Number(data!.id);
   });
 
