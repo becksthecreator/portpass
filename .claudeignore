@@ -1,0 +1,4 @@
+# Files Claude Code should not read directly.
+# Graphify (Brief 30): the built code map is queried through graphify, not
+# read as files; it is large and machine-specific.
+graphify-out/
