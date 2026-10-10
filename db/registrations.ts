@@ -506,7 +506,10 @@ export async function nextFutprepRegistrationOpening(now: Date = new Date()): Pr
 
   const opensAt = rows[0].registration_opens_at;
   const nameById = new Map(programList.map((p) => [Number(p.id), p.name]));
-  const sameDay = rows.filter((row) => row.registration_opens_at === opensAt);
+  // Programs that open on the same Nassau day are named together, even
+  // when their timestamps differ by a few seconds.
+  const openingDay = nassauToday(new Date(opensAt));
+  const sameDay = rows.filter((row) => nassauToday(new Date(row.registration_opens_at)) === openingDay);
   return {
     opensAt,
     termName: sameDay[0].name,

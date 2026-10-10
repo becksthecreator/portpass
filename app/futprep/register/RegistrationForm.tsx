@@ -419,7 +419,7 @@ export function RegistrationForm({
             <div className="choice-section">
               <span className="choice-heading">{isTrial ? "Choose a class *" : "Choose a class or camp *"}</span>
               <div className="class-choice-grid">
-                {availability.length === 0 && <p className="form-hint">{closedNotice ?? "Nothing is open for registration right now."} Message Futprep on WhatsApp and we&apos;ll tell you when the next one opens.</p>}
+                {availability.length === 0 && <p className="form-hint">{closedNotice ? `${closedNotice} Message Futprep on WhatsApp if you have a question.` : <>Nothing is open for registration right now. Message Futprep on WhatsApp and we&apos;ll tell you when the next one opens.</>}</p>}
                 {availability.map((program) => (
                   <label className={`choice-card ${form.offerKey===offerKey(program) ? "is-selected" : ""}`} key={offerKey(program)}>
                     <input type="radio" name="program" checked={form.offerKey===offerKey(program)} onChange={()=>chooseOffer(program)} />

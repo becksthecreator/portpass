@@ -28,7 +28,9 @@ export const EXPORT_LINK_SECONDS = 24 * 3600;
 export const EXPORT_KEPT_DAYS = 7;
 
 const PAGE = 1000;
-const STRIP = new Set(["pin_hash", "token", "token_hash", "public_token", "invite_token"]);
+// staff_note (brief 27, A): a programme's staff-only note stays on the
+// staff screen, as its migration promises.
+const STRIP = new Set(["pin_hash", "token", "token_hash", "public_token", "invite_token", "staff_note"]);
 
 type Row = Record<string, unknown>;
 
