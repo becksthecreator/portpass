@@ -38,7 +38,7 @@ async function openCamps(): Promise<FutprepAvailability[]> {
 // plain text, so the page never points at an account nobody confirmed.
 async function instagramHandle(): Promise<string | null> {
   try {
-    const handle = (await getOrganizationListingBySlug("futprep"))?.instagramHandle?.replace(/^@/, "").trim();
+    const handle = (await getOrganizationListingBySlug("futprep"))?.organization.instagramHandle?.replace(/^@/, "").trim();
     return handle || null;
   } catch {
     return null;
