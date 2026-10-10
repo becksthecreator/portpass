@@ -16,7 +16,9 @@ export default async function FutprepStaffAdminPage() {
   const [registrations, moneySummary, offers] = await Promise.all([
     listFutprepStaffRegistrations(),
     getFutprepMoneySummary(),
-    listFutprepOffers().catch(() => []),
+    // Every active term that has not finished, open to parents or not
+    // (brief 27, A): staff add late joiners and next-term families by hand.
+    listFutprepOffers({ staffDesk: true }).catch(() => []),
   ]);
 
   return (

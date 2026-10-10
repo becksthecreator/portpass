@@ -5532,6 +5532,8 @@ a.admin-tile:hover{border-color:var(--sky)}
 .camps-empty{max-width:900px;margin:0 auto;padding:10px 5vw 50px;display:grid;gap:10px;justify-items:start}
 .camps-empty h2{font-family:var(--font-pp-display),Georgia,serif;margin:0}
 .camps-empty p{color:var(--muted);margin:0}
+.camps-empty p a{color:var(--harbour);text-decoration:underline;text-underline-offset:3px}
+.camps-empty-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
 .camps-coaches{max-width:1000px;margin:0 auto;padding:10px 5vw 60px}
 .camps-coaches h2{font-family:var(--font-pp-display),Georgia,serif;margin:0 0 14px}
 .camps-coaches ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}

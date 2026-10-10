@@ -7,6 +7,8 @@ import {
   ensureFutprepPilotData,
   getFutprepAvailability,
   getFutprepOffer,
+  listFutprepOffers,
+  nextFutprepRegistrationOpening,
   resetFutprepSeedThrottleForTests,
   type FutprepRegistrationInput,
 } from "./registrations";
@@ -135,6 +137,37 @@ describe("holiday camps (brief 06 v2, Part A)", () => {
     await db().from("program_terms").update({ registration_closes_at: "2020-01-01T00:00:00Z" }).eq("id", termId);
     expect(await getFutprepOffer(SLUG, termId)).toBeNull();
     await expect(createFutprepRegistration(child({}))).rejects.toThrow("TERM_CLOSED");
+  });
+
+  // Brief 27 (A): the registration desk still lists a closed, unfinished
+  // term so staff can add a late joiner by hand; parents never see it.
+  it("keeps a closed term on the staff desk list only", async () => {
+    const desk = await listFutprepOffers({ staffDesk: true });
+    expect(desk.some((o) => o.slug === SLUG && o.termId === termId)).toBe(true);
+    expect((await listFutprepOffers()).some((o) => o.slug === SLUG)).toBe(false);
+    expect((await getFutprepAvailability()).some((o) => o.slug === SLUG)).toBe(false);
+
+    // A finished term drops off the desk too.
+    await db().from("program_terms").update({ end_date: "2020-01-02", start_date: "2020-01-01" }).eq("id", termId);
+    expect((await listFutprepOffers({ staffDesk: true })).some((o) => o.termId === termId)).toBe(false);
+    await db().from("program_terms").update({ start_date: "2027-07-12", end_date: "2027-07-16" }).eq("id", termId);
+  });
+
+  // Brief 27 (A): "Term 2 opens on …" on the closed registration page comes
+  // from the earliest future registration_opens_at of a listed program.
+  it("names the next registration opening, and only for listed programs", async () => {
+    const opensAt = "2031-01-19T05:00:00.000Z";
+    await db().from("programs").update({ is_public: true }).eq("id", programId);
+    await db().from("program_terms").update({ registration_closes_at: null, registration_opens_at: opensAt }).eq("id", termId);
+    const next = await nextFutprepRegistrationOpening(new Date("2031-01-01T00:00:00Z"));
+    expect(next).not.toBeNull();
+    expect(new Date(next!.opensAt).toISOString()).toBe(opensAt);
+    expect(next!.termName).toBe("TEST July 2027");
+    expect(next!.programNames).toContain(`${MARK} camp`);
+
+    await db().from("programs").update({ is_public: false }).eq("id", programId);
+    const hidden = await nextFutprepRegistrationOpening(new Date("2031-01-01T00:00:00Z"));
+    expect(hidden?.programNames ?? []).not.toContain(`${MARK} camp`);
   });
 });
 
