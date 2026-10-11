@@ -347,7 +347,7 @@ export type Invoice = {
   id: number;
   number: string;
   organizationId: number;
-  kind: "subscription" | "commission" | "manual" | "historical";
+  kind: "subscription" | "commission" | "manual" | "historical" | "market";
   periodStart: string;
   periodEnd: string;
   issuedOn: string;

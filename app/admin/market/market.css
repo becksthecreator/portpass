@@ -9,3 +9,10 @@
 .mkt-admin-suspend{display:grid;gap:6px;width:100%;min-width:200px}
 .mkt-admin-suspend label{display:grid;gap:4px;font-size:.72rem;font-weight:700}
 .mkt-admin-suspend input{min-height:40px;border:1px solid var(--muted);border-radius:8px;padding:6px 8px;background:var(--bg);color:var(--text)}
+/* Admin -> Market -> Income (brief 25, part C): the prices form. */
+.mkt-admin-settings{display:grid;gap:12px;max-width:520px;margin:0 0 18px}
+.mkt-admin-settings label{display:grid;gap:6px;font-size:.78rem;font-weight:700}
+.mkt-admin-settings input:not([type=checkbox]){min-height:44px;border:1px solid var(--muted);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--text);font-size:1rem}
+.mkt-admin-settings .mkt-admin-switch{grid-template-columns:auto 1fr;align-items:center;gap:10px;font-weight:600;font-size:.88rem}
+.mkt-admin-settings .mkt-admin-switch input{width:22px;height:22px;margin:0}
+.mkt-admin-settings button{justify-self:start;min-height:44px}

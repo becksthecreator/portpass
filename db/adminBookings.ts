@@ -221,7 +221,7 @@ export async function listAdminBookings(filter: BookingFilter = {}): Promise<Adm
       const total = Number(row.total_cents ?? 0);
       bookings.push({
         kind: "shop_order", id: Number(row.id), reference: textOrNull(row.reference_code), organizationId, organizationName: orgName(organizationId),
-        customer: text(row.buyer_name), detail: drops.get(Number(row.drop_id)) ?? "",
+        customer: text(row.buyer_name), detail: row.drop_id === null ? "PortPass Market order" : (drops.get(Number(row.drop_id)) ?? ""),
         createdAt: String(row.created_at), status: text(row.status), paymentStatus: textOrNull(row.payment_status),
         // A cancelled, released or refunded order owes nothing.
         dueCents: canOwe(text(row.status), textOrNull(row.payment_status)) ? total : 0, paidCents: row.payment_status === "paid" ? total : 0, email: textOrNull(row.buyer_email), phone: textOrNull(row.buyer_phone),

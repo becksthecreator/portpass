@@ -10,18 +10,23 @@ import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { ppDisplay, ppSans } from "@/app/fonts";
 import { getMarketProduct, type MarketProductPage } from "@/db/market";
+import { getOrderOptions } from "@/db/marketOrders";
 import { marketCategoryName } from "@/lib/market/categories";
 import { MARKET_TAGLINE } from "@/lib/market/copy";
 import { zoneLine } from "@/lib/market/sellers";
 import { productJsonLd } from "@/lib/seo/jsonLd";
-import { dropPhase, licenceLabel, paymentMethodLabel, SHOP_PAYMENT_METHODS, whatsappHref } from "@/lib/shop/rules";
+import { dropPhase, licenceLabel, paymentMethodLabel, whatsappHref } from "@/lib/shop/rules";
+import { OrderForm } from "./OrderForm";
+import "@/app/shop/shop.css";
 import "../../../market.css";
 
 // A product on PortPass Market (brief 25, B2): photos, sizes and stock,
 // price, the seller's badge, how to get it, and the button. Only a product
 // the market_products view lists reaches this page (a verified seller, an
 // open shop, never the demo). Rendered per request: stock changes.
-// The order button holds still (money: brief 22's Never list).
+// Ordering (part C): the order form, when the seller can take an order
+// here (a way to get it and a way to pay them); otherwise a WhatsApp link.
+// The form and its button hold still (money: brief 22's Never list).
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ org: string; product: string }>;
@@ -67,8 +72,10 @@ export default async function MarketProductPage({ params }: { params: Params }) 
   const inStock = product.variants.some((v) => v.stock === null || v.stock > 0);
   const openDrop = drops.find((d) => dropPhase(d, now) === "open" && d.productIds.includes(product.id)) ?? null;
   const edition = product.usesMarks ? licenceLabel(product.licenceKind) : null;
-  const methods = SHOP_PAYMENT_METHODS.filter((m) => org.paymentMethods.includes(m));
+  const options = await getOrderOptions(org.id, shop).catch(() => null);
+  const methods = Array.from(new Set([...(options?.pickup ? options.methods.pickup : []), ...(options?.delivery ? options.methods.seller_delivery : [])]));
   const payLine = methods.map((m) => paymentMethodLabel(m).toLowerCase()).join(" or ");
+  const orderable = Boolean(options?.canOrder) && inStock && !openDrop;
   const ask = inStock && org.whatsappE164 ? whatsappHref(org.whatsappE164, `Hi ${org.name}, I'd like to order ${product.title} from your PortPass shop.`) : null;
   const category = marketCategoryName(product.marketCategory);
   const path = `/market/p/${orgSlug}/${productSlug}`;
@@ -113,6 +120,8 @@ export default async function MarketProductPage({ params }: { params: Params }) 
           <div className="mkt-product-action">
             {openDrop ? (
               <Link className="primary-button" data-still href={`/shop/${orgSlug}/drop/${openDrop.slug}#product-${product.id}`}>Reserve in {openDrop.title}</Link>
+            ) : orderable ? (
+              <a className="primary-button" data-still href="#order">Order</a>
             ) : ask ? (
               <a className="primary-button" data-still href={ask} target="_blank" rel="noopener noreferrer">Order on WhatsApp</a>
             ) : (
@@ -136,6 +145,22 @@ export default async function MarketProductPage({ params }: { params: Params }) 
           <p className="mkt-more"><Link href={`/shop/${orgSlug}`}>More from {org.name} →</Link></p>
         </div>
       </article>
+      {orderable && options && (
+        <section className="mkt-order" aria-label={`Order ${product.title}`}>
+          <OrderForm
+            orgSlug={orgSlug}
+            productSlug={productSlug}
+            orgName={org.name}
+            title={product.title}
+            priceCents={product.priceCents}
+            variants={product.variants.map((v) => ({ id: v.id, label: v.label, left: v.stock, available: v.stock === null || v.stock > 0 }))}
+            options={options}
+            zones={shop.sellerDeliveryZones.map((z) => ({ zone: z.zone, feeCents: z.feeCents, leadDays: z.leadDays }))}
+            pickupNote={shop.sellerPickupNote}
+            holdHours={shop.holdHours}
+          />
+        </section>
+      )}
       <p className="mkt-tagline">{MARKET_TAGLINE}</p>
       <SiteFooter orgLine={`${org.name} · Made in The Bahamas. You pay ${org.name} directly.`} />
     </main>

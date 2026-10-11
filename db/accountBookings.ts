@@ -1,4 +1,5 @@
 import { CUSTOMER_STATUS_LABEL, isBookingStatus } from "@/lib/bookings/rules";
+import { isOrderStatus, ORDER_STATUS_LABEL } from "@/lib/market/orders";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // What /account shows a signed-in customer (brief 18, F2): the
@@ -71,7 +72,7 @@ export async function listAccountBookings(email: string | null): Promise<Account
   const [registrations, sessions, orders, weddings, requests, asked] = await Promise.all([
     db.from("registrations").select("reference_code,organization_id,program_id,term_id,child_name,registration_status,payment_status,submitted_at").ilike("parent_email", match).order("submitted_at", { ascending: false }).limit(LIMIT),
     db.from("private_session_requests").select("reference_code,organization_id,child_name,requested_date,status,created_at").ilike("parent_email", match).order("created_at", { ascending: false }).limit(LIMIT),
-    db.from("reservations").select("reference_code,receipt_token,organization_id,total_cents,status,created_at").ilike("buyer_email", match).order("created_at", { ascending: false }).limit(LIMIT),
+    db.from("reservations").select("reference_code,receipt_token,organization_id,total_cents,status,kind,order_status,created_at").ilike("buyer_email", match).order("created_at", { ascending: false }).limit(LIMIT),
     db.from("wedding_leads").select("public_token,status,preferred_wedding_date,created_at").ilike("email", match).order("created_at", { ascending: false }).limit(LIMIT),
     db.from("payment_requests").select("reference_code,public_token,organization_id,total_cents,paid_cents,status,due_date,created_at").ilike("customer_email", match).eq("is_test", false).not("status", "in", "(draft,void)").order("created_at", { ascending: false }).limit(LIMIT),
     // Booking requests (brief 19, part A): what was asked for and where it stands.
@@ -135,9 +136,11 @@ export async function listAccountBookings(email: string | null): Promise<Account
         kind: "Order" as const,
         business: businessName(row.organization_id),
         what: `${text(row.reference_code)} · ${money(row.total_cents)}`,
-        status: text(row.status).replace(/_/g, " "),
+        // A PortPass Market order (brief 25) has its own page, /order/<code>,
+        // and its own steps; a drop reservation keeps its receipt.
+        status: row.kind === "order" ? (isOrderStatus(row.order_status) ? ORDER_STATUS_LABEL[row.order_status] : "New") : text(row.status).replace(/_/g, " "),
         when: text(row.created_at),
-        href: slug && row.receipt_token ? `/shop/${slug}/reservation/${text(row.receipt_token)}` : null,
+        href: row.kind === "order" ? `/order/${text(row.reference_code)}` : slug && row.receipt_token ? `/shop/${slug}/reservation/${text(row.receipt_token)}` : null,
       };
     }),
     ...((weddings.data ?? []) as Row[]).map((row) => ({

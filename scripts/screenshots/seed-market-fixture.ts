@@ -7,7 +7,10 @@
 // Adds: a TEST platform owner (the workflow puts the address in
 // PLATFORM_OWNER_EMAILS for the run), a TEST seller waiting to be verified
 // and a TEST seller PortPass suspended, so Admin -> Market -> Sellers shows
-// each state. Writes what the capture script needs to $MARKET_FIXTURE.
+// each state. Part C: TEST bank-transfer details for the TEST Kit Shop,
+// so its order form offers bank transfer and cash (the details are TEST
+// words and a 0000 ending, nothing real). Writes what the capture script
+// needs to $MARKET_FIXTURE.
 import { writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
@@ -52,7 +55,12 @@ async function main() {
     if (shopError) throw new Error(`Could not seed the shop for ${s.name}: ${shopError.message}`);
   }
 
-  writeFileSync(out, JSON.stringify({ adminEmail }, null, 2));
+  const { data: kit, error: kitError } = await db.from("organizations").select("id").eq("slug", "test-kit-shop").single();
+  if (kitError || !kit) throw new Error(`Could not find the TEST Kit Shop: ${kitError?.message}`);
+  const { error: payError } = await db.from("organization_payment_settings").upsert({ organization_id: kit.id, reference_prefix: "TKP", accepted_methods: ["bank_transfer", "cash"], bank_name: "TEST Bank", account_name: "TEST Kit Shop", account_number_last4: "0000", transfer_instructions: "TEST — not a real account", cash_note: "TEST — at the studio" });
+  if (payError) throw new Error(`Could not seed the TEST payment settings: ${payError.message}`);
+
+  writeFileSync(out, JSON.stringify({ adminEmail, kitShopId: kit.id }, null, 2));
   console.log("Seeded the TEST Market admin and sellers.");
 }
 

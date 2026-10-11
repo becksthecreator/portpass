@@ -4,6 +4,7 @@ import { prunePassChecks } from "@/db/memberPerks";
 import { listOwnerEmails } from "@/db/business";
 import { pruneExports } from "@/db/businessExport";
 import { resetDemoBusiness } from "@/db/demo";
+import { runMarketFees } from "@/db/marketOrders";
 import { pruneSecurityEvents } from "@/db/securityEvents";
 import { getSiteContent } from "@/db/siteContent";
 import { bumpListings } from "@/lib/revalidate";
@@ -35,6 +36,11 @@ export const dynamic = "force-dynamic";
 // 4. Puts the demo business (/demo) back to its starting point, with its
 //    dates worked out from today.
 //
+// 5. PortPass Market fees (brief 25, C5): last month's Seller plan and
+//    commission per seller. Until market_settings.fees_live is on it only
+//    writes the amounts to the log (a dry run); then it drafts one PortPass
+//    invoice per seller per month, once. It never sends anything.
+//
 // The answer says only that the job ran: what it did is in the audit trail
 // (billing_events, message_log), not in a response anyone could read.
 export async function GET(request: Request) {
@@ -65,6 +71,12 @@ export async function GET(request: Request) {
     await runBillingStep(clock.date);
   } catch (error) {
     console.error("daily job: billing", error instanceof Error ? error.message : "");
+  }
+  // PortPass Market fees: a dry run in the log until the prices are confirmed.
+  try {
+    await runMarketFees(clock.date);
+  } catch (error) {
+    console.error("daily job: market fees", error instanceof Error ? error.message : "");
   }
   if (!organization) return NextResponse.json({ ok: true });
 

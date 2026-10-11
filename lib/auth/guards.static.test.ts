@@ -15,6 +15,7 @@ const PUBLIC_ROUTES = new Set<string>([
   "app/demo/page.tsx", // the demo's front door: one tap starts a demo session
   "app/demo/start/route.ts", // starts the demo session
   "app/demo/exit/route.ts", // ends it
+  "app/api/market/orders/route.ts", // a buyer orders on PortPass Market without an account (brief 25, C2)
 ]);
 
 const HANDLER = /export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE|HEAD)\b|export\s+const\s+(GET|POST|PUT|PATCH|DELETE|HEAD)\s*=/;
