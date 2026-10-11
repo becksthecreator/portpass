@@ -20,6 +20,63 @@ const fixture = JSON.parse(readFileSync(process.env.SCREENSHOT_FIXTURE, "utf8"))
 if (!PIN) throw new Error("SCREENSHOT_PIN is not set.");
 mkdirSync("screenshots", { recursive: true });
 
+// Brief 27 (C): the Saturday registration before and after, walked with
+// TEST details on the local stack. A sixth item on a shot is a function
+// that drives the page before the picture is taken.
+const TEST_PARENT = { name: "TEST Parent (delete)", phone: "2425550123", email: "test-delete-parent@example.com" };
+const field = (page, label) => page.locator(`label:has-text("${label}")`).first().locator("input, select, textarea").last();
+async function classicContinue(page) {
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await page.waitForTimeout(300);
+}
+// Fills the classic form up to (not including) the given step, 1 to 5.
+function classicTo(step) {
+  return async (page) => {
+    if (step >= 2) {
+      await field(page, "Full name *").fill(TEST_PARENT.name);
+      await field(page, "Relationship *").fill("Mother");
+      await field(page, "Email *").fill(TEST_PARENT.email);
+      await field(page, "Phone *").fill(TEST_PARENT.phone);
+      await field(page, "How did you hear").selectOption("qr");
+      await classicContinue(page);
+    }
+    if (step >= 3) {
+      await field(page, "Child full name *").fill("TEST Child (delete)");
+      await field(page, "Date of birth *").fill("2021-03-01");
+      await field(page, "Gender *").selectOption("Female");
+      await field(page, "Authorized pickup").fill(TEST_PARENT.name);
+      await classicContinue(page);
+    }
+    if (step >= 4) {
+      await field(page, "Emergency contact name *").fill("TEST Contact (delete)");
+      await field(page, "Emergency contact phone *").fill("2425550124");
+      await classicContinue(page);
+    }
+    if (step >= 5) {
+      await page.locator(".choice-section").filter({ hasText: "Payment plan" }).locator("label").first().click();
+      await page.locator(".choice-section").filter({ hasText: "Payment method" }).locator("label").first().click();
+      await classicContinue(page);
+    }
+  };
+}
+// The three-tap form: Pick is the page; Who is one tap; Done is the TEST
+// registration itself, on the throwaway database.
+async function quickWho(page) {
+  await page.locator(".tap-card").first().click();
+  await page.locator(".tap-form").waitFor();
+}
+async function quickDone(page) {
+  await quickWho(page);
+  await field(page, "Your name *").fill(TEST_PARENT.name);
+  await field(page, "Phone *").fill(TEST_PARENT.phone);
+  await field(page, "Child’s name *").fill("TEST Child (delete)");
+  await field(page, "Age *").selectOption("4");
+  for (const legend of ["Pay *", "How *", "Photos and video"]) await page.locator("fieldset").filter({ hasText: legend }).locator("label").last().click();
+  await page.locator(".tap-consent input").check();
+  await page.locator(".tap-submit").click();
+  await page.locator(".tap-done").waitFor({ timeout: 30_000 });
+}
+
 // [file name, account, path, element to also capture on its own, link to press first]
 // account "admin" is the TEST platform owner; "anon" is a visitor; "demo"
 // is a visitor who pressed "Open the demo"; anything else is a staff PIN
@@ -228,7 +285,23 @@ try {
     ["product-shot-paid", "anon", payPath("HKC-0001"), ".paypage-demo"],
   );
 
-  for (const [name, account, path, focus, press] of SHOTS) {
+  // Brief 27 (C): the classic Saturday registration, step by step, and the
+  // three-tap form that replaces it. The seeded Lil Kickers class is open
+  // on the throwaway stack; the Done shot registers a TEST child there.
+  const classicPath = "/futprep/register?flow=classic&program=lil-kickers";
+  SHOTS.push(
+    ["brief27-before-1-parent-375", "anon", classicPath, ".registration-form"],
+    ["brief27-before-2-child-375", "anon", classicPath, ".registration-form", null, classicTo(2)],
+    ["brief27-before-3-health-375", "anon", classicPath, ".registration-form", null, classicTo(3)],
+    ["brief27-before-4-class-payment-375", "anon", classicPath, ".registration-form", null, classicTo(4)],
+    ["brief27-before-5-consent-375", "anon", classicPath, ".registration-form", null, classicTo(5)],
+    ["brief27-after-1-pick-375", "anon", "/futprep/register", ".tap-cards"],
+    ["brief27-after-2-who-375", "anon", "/futprep/register", ".tap-form", null, quickWho],
+    ["brief27-after-3-done-375", "anon", "/futprep/register", ".tap-done", null, quickDone],
+    ["brief27-after-book-private-375", "anon", "/futprep/book?coach=test-delete-coach-bex", ".tap-step"],
+  );
+
+  for (const [name, account, path, focus, press, act] of SHOTS) {
     const started = Date.now();
     let loaded = started;
     try {
@@ -237,6 +310,10 @@ try {
       if (press) {
         await page.locator(press).first().click();
         await page.waitForLoadState("networkidle", { timeout: 60_000 });
+        if (focus) await page.locator(focus).first().waitFor({ timeout: 30_000 });
+      }
+      if (act) {
+        await act(page);
         if (focus) await page.locator(focus).first().waitFor({ timeout: 30_000 });
       }
       loaded = Date.now();

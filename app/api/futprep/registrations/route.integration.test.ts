@@ -96,3 +96,62 @@ describe("POST /api/futprep/registrations", () => {
     expect(body.error).toMatch(/cash|bank transfer|online banking/i);
   });
 });
+
+// Booking in three taps (brief 27, C): the same route, mode "quick". The
+// seeded Lil Kickers class is for ages 3 to 7 with a term through 2026.
+function quickPayload(overrides: Record<string, unknown> = {}) {
+  return {
+    mode: "quick",
+    parentName: "Test Parent",
+    parentPhone: "242-555-0123",
+    parentEmail: "",
+    childName: `Test Quick ${crypto.randomUUID().slice(0, 8)}`,
+    childAgeMonths: 60,
+    healthNotes: "",
+    programSlug: "lil-kickers",
+    paymentFrequency: "weekly",
+    paymentMethod: "cash",
+    photoConsent: "no",
+    consentAccepted: true,
+    utmSource: "instagram",
+    utmMedium: "bio",
+    ...overrides,
+  };
+}
+
+describe("POST /api/futprep/registrations, mode quick (brief 27, C)", () => {
+  it("registers with a name, a phone and an age, no email and no account", async () => {
+    const response = await post(quickPayload());
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { registration?: { referenceCode?: string; amountDueCents?: number; registrationStatus?: string } };
+    expect(body.registration?.referenceCode).toMatch(/^FP-/);
+    expect(body.registration?.amountDueCents).toBe(3500);
+    expect(body.registration?.registrationStatus).toBe("pending");
+  });
+
+  it("takes an email when one is given, and refuses a broken one", async () => {
+    expect((await post(quickPayload({ parentEmail: `quick-${crypto.randomUUID()}@test.portpass.local` }))).status).toBe(201);
+    const bad = await post(quickPayload({ parentEmail: "not-an-email" }));
+    expect(bad.status).toBe(400);
+  });
+
+  it("keeps the age rule: a ten-year-old can't join Lil Kickers", async () => {
+    const response = await post(quickPayload({ childAgeMonths: 120 }));
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error?: string }).error).toMatch(/age/i);
+    expect((await post(quickPayload({ childAgeMonths: "soon" }))).status).toBe(400);
+  });
+
+  it("still needs the consent, the photo answer, a phone and a way to pay", async () => {
+    expect((await post(quickPayload({ consentAccepted: false }))).status).toBe(400);
+    expect((await post(quickPayload({ photoConsent: "" }))).status).toBe(400);
+    expect((await post(quickPayload({ parentPhone: "" }))).status).toBe(400);
+    expect((await post(quickPayload({ paymentMethod: "card" }))).status).toBe(400);
+  });
+
+  it("treats a second email-less entry for the same child as a duplicate", async () => {
+    const payload = quickPayload();
+    expect((await post(payload)).status).toBe(201);
+    expect((await post(payload)).status).toBe(409);
+  });
+});

@@ -7,6 +7,7 @@ import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAtt
 import { bookingDescription, bookingTitle, coachShortName, readBookingParams } from "@/lib/bookingLink";
 import { PrivateSessionBooking } from "../coaches/PrivateSessionBooking";
 import "../coaches/booking-days.css";
+import "../tap-steps.css";
 import "./book.css";
 
 // /futprep/book?coach=<slug>&service=<slug> (Brief 29, part D): the booking

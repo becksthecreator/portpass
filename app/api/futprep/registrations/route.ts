@@ -7,11 +7,17 @@ import {
   createFutprepRegistration,
   type FutprepRegistrationInput,
 } from "@/db/registrations";
-import { cleanHost, isHeardAnswer } from "@/lib/attribution";
+import { cleanHost, isHeardAnswer, type HeardAnswer } from "@/lib/attribution";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { getSession } from "@/lib/auth/session";
 import { sendFutprepRegistrationReceivedEmail } from "@/lib/email";
+import { nassauToday } from "@/lib/futprepTerms";
 import { normalizePhoneE164 } from "@/lib/phone";
+import { ageWords, dobFromAgeMonths } from "@/lib/quickRegistration";
+
+// The consent wording of the three-tap form (brief 27, C), recorded on the
+// registration so staff can tell which words a parent agreed to.
+const QUICK_CONSENT_VERSION = "futprep-quick-2026-10";
 
 // Phones are stored as E.164 when they can be read as a number (the form
 // sends them that way); anything else is kept as typed rather than
@@ -26,7 +32,7 @@ const limits: Record<string, number> = {
   childName: 120, childDob: 10, gender: 40,
   emergencyContactName: 120, emergencyContactPhone: 40,
   allergies: 1000, medicalConditions: 1000, medications: 1000,
-  specialNeeds: 1500, authorizedPickup: 1000, additionalNotes: 1500,
+  specialNeeds: 1500, authorizedPickup: 1000, additionalNotes: 1500, healthNotes: 1500,
   programSlug: 40, paymentFrequency: 20, paymentMethod: 30,
   photoConsent: 10, signatureName: 120,
   // Growth tracking (28 Sept): the parent's answer, an optional referral
@@ -46,7 +52,7 @@ function clean(body: Record<string, unknown>, field: string) {
 }
 
 // The fields this route reads, and no others (lib/api/body.ts).
-const Body = bodyOf(["parentName", "parentEmail", "parentPhone", "relationship", "childName", "childDob", "gender", "authorizedPickup", "emergencyContactName", "emergencyContactPhone", "allergies", "medicalConditions", "medications", "specialNeeds", "additionalNotes", "offerKey", "paymentFrequency", "paymentMethod", "photoConsent", "signatureName", "consentAccepted", "heardAboutUs", "referralCode", "programSlug", "termId", "mode", "returnToken", "trialSessionId", "joinFromTrialCode", "utmSource", "utmMedium", "utmCampaign", "referrerHost", "viaPortpass"]);
+const Body = bodyOf(["parentName", "parentEmail", "parentPhone", "relationship", "childName", "childDob", "gender", "authorizedPickup", "emergencyContactName", "emergencyContactPhone", "allergies", "medicalConditions", "medications", "specialNeeds", "additionalNotes", "offerKey", "paymentFrequency", "paymentMethod", "photoConsent", "signatureName", "consentAccepted", "heardAboutUs", "referralCode", "programSlug", "termId", "mode", "returnToken", "trialSessionId", "joinFromTrialCode", "utmSource", "utmMedium", "utmCampaign", "referrerHost", "viaPortpass", "childAgeMonths", "healthNotes"]);
 
 export async function POST(request: Request) {
   let body: Record<string, unknown>;
@@ -65,24 +71,53 @@ export async function POST(request: Request) {
 
   // Part C (brief 06 v2): a free trial and a waitlist entry owe nothing
   // yet, so they don't ask how the parent will pay.
-  const mode = body.mode === "trial" ? "trial" : body.mode === "waitlist" ? "waitlist" : "standard";
-  if (mode !== "standard") {
+  const mode = body.mode === "trial" ? "trial" : body.mode === "waitlist" ? "waitlist" : body.mode === "quick" ? "quick" : "standard";
+  if (mode === "trial" || mode === "waitlist") {
     if (!clean(body, "paymentFrequency")) body.paymentFrequency = "weekly";
     if (!clean(body, "paymentMethod")) body.paymentMethod = "cash";
+  }
+
+  // Booking in three taps (brief 27, C): the parent gives their name and
+  // phone (email optional), the child's name and age, one health-notes
+  // box, how they will pay, the photo answer and one combined consent.
+  // The rest of the record is filled from that: the parent is the
+  // emergency contact and the pickup person until they say otherwise at
+  // /futprep/my/<code>/complete; the date of birth is derived from the age
+  // and the notes say so; the health notes go in medical_conditions.
+  if (mode === "quick") {
+    const ageMonths = Number(body.childAgeMonths);
+    if (!Number.isInteger(ageMonths) || ageMonths < 0 || ageMonths > 18 * 12) {
+      return NextResponse.json({ error: "Enter the child's age." }, { status: 400 });
+    }
+    const today = nassauToday();
+    const parentName = clean(body, "parentName");
+    body.childDob = dobFromAgeMonths(ageMonths, today);
+    body.relationship = clean(body, "relationship") || "Parent/guardian";
+    body.gender = "Not given";
+    body.emergencyContactName = parentName;
+    body.emergencyContactPhone = clean(body, "parentPhone");
+    body.authorizedPickup = parentName;
+    body.signatureName = parentName;
+    body.allergies = "";
+    body.medications = "";
+    body.specialNeeds = "";
+    body.medicalConditions = clean(body, "healthNotes");
+    body.additionalNotes = `Quick form: age given as ${ageWords(ageMonths)} on ${today}, so the date of birth is approximate. Emergency contact and pickup default to the parent.`;
   }
 
   const required = [
     "parentName","parentEmail","parentPhone","relationship","childName","childDob","gender",
     "emergencyContactName","emergencyContactPhone","authorizedPickup","programSlug",
     "paymentFrequency","paymentMethod","photoConsent","signatureName",
-  ];
+  ].filter((field) => mode !== "quick" || field !== "parentEmail");
 
   if (required.some((field) => !clean(body, field))) {
     return NextResponse.json({ error: "Please complete all required fields." }, { status: 400 });
   }
 
+  // An email is optional on the three-tap form; everywhere else it is required.
   const parentEmail = clean(body, "parentEmail");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail)) {
+  if (parentEmail ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail) : mode !== "quick") {
     return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
   }
 
@@ -110,8 +145,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Parent/guardian consent is required to register." }, { status: 400 });
   }
 
-  const heardAboutUs = clean(body, "heardAboutUs");
-  if (!isHeardAnswer(heardAboutUs)) {
+  // The three-tap form doesn't ask; brief 05's UTM and referrer still arrive.
+  const heardAnswer = clean(body, "heardAboutUs");
+  const heardAboutUs: HeardAnswer | null = isHeardAnswer(heardAnswer) ? heardAnswer : null;
+  if (!heardAboutUs && mode !== "quick") {
     return NextResponse.json({ error: "Tell us how you heard about Futprep." }, { status: 400 });
   }
 
@@ -120,7 +157,7 @@ export async function POST(request: Request) {
   // early-access perk. Decided here from the session, never from the form;
   // a hiccup reading the perk leaves the public rules in force.
   const session = await getSession();
-  const early = session && mode === "standard"
+  const early = session && (mode === "standard" || mode === "quick")
     ? await futprepOrganization().then(async (organization) => (organization ? { organizationId: organization.id, perk: await memberEarlyAccess(organization.id, session.userId) } : null)).catch(() => null)
     : null;
 
@@ -149,7 +186,8 @@ export async function POST(request: Request) {
     signatureName: clean(body,"signatureName"),
     heardAboutUs,
     referralCode: clean(body, "referralCode") || null,
-    mode,
+    mode: mode === "quick" ? "standard" : mode,
+    consentVersion: mode === "quick" ? QUICK_CONSENT_VERSION : null,
     returnToken: typeof body.returnToken === "string" ? body.returnToken.slice(0, 80) : null,
     trialSessionId: Number.isInteger(Number(body.trialSessionId)) && Number(body.trialSessionId) > 0 ? Number(body.trialSessionId) : null,
     joinFromTrialCode: typeof body.joinFromTrialCode === "string" ? body.joinFromTrialCode.slice(0, 40) : null,
@@ -177,7 +215,7 @@ export async function POST(request: Request) {
     // instructions, so it goes only for a real place; a waitlist entry or
     // a free trial gets its confirmation on screen.
     const origin = new URL(request.url).origin;
-    if (registration.registrationStatus === "pending") afterResponse(async () => sendFutprepRegistrationReceivedEmail({
+    if (registration.registrationStatus === "pending" && input.parentEmail) afterResponse(async () => sendFutprepRegistrationReceivedEmail({
       organizationId: (await futprepOrganization().catch(() => null))?.id ?? null,
       parentEmail: input.parentEmail,
       parentName: input.parentName,
