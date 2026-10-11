@@ -10,6 +10,8 @@ import { futprepOrganization } from "@/db/growth";
 import { memberEarlyAccess } from "@/db/memberPerks";
 import { getPaymentSettings } from "@/db/paymentRequests";
 import type { QuickHowToPay } from "@/lib/quickRegistration";
+import { futprepTokenStyle } from "@/db/futprepTheme";
+import type { CSSProperties } from "react";
 import { getFutprepOffer, listFutprepOffers, nextFutprepRegistrationOpening, trialJoinQuote, type FutprepAvailability } from "@/db/registrations";
 import { getSession } from "@/lib/auth/session";
 import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAttribution, parseAttributionCookie, type Attribution } from "@/lib/attribution";
@@ -140,7 +142,7 @@ export default async function FutprepRegisterPage({ searchParams }: { searchPara
   const programDetailsHref = requested?.programType === "camp" ? "/futprep/camps" : requested ? `/sports-fitness/futprep-athletics/${requested.slug}` : "/sports-fitness/futprep-athletics";
 
   return (
-    <main className="registration-page futprep-theme">
+    <main className="registration-page futprep-theme" style={(await futprepTokenStyle()) as CSSProperties}>
       <header className="site-header form-header registration-header">
         <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">

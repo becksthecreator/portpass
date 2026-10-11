@@ -5814,7 +5814,7 @@ a.admin-tile:hover{border-color:var(--sky)}
    every pair that carries text. Pink and mint fills take navy words; dark
    sections are navy with base text and mint links and eyebrows; pink as
    text on a light background is the deep pink. No white on pink anywhere. */
-.futprep-theme{background:var(--fp-base);color:var(--fp-navy)}
+.futprep-theme.registration-page{background:var(--fp-base);color:var(--fp-navy)}
 .futprep-theme .pilot-header,
 .futprep-theme.registration-page .registration-header{background:var(--fp-base);border-bottom:1px solid var(--fp-line)}
 .futprep-theme .header-link,.futprep-theme .pilot-header a{color:var(--fp-navy)}

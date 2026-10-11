@@ -299,6 +299,10 @@ try {
     ["brief27-after-2-who-375", "anon", "/futprep/register", ".tap-form", null, quickWho],
     ["brief27-after-3-done-375", "anon", "/futprep/register", ".tap-done", null, quickDone],
     ["brief27-after-book-private-375", "anon", "/futprep/book?coach=test-delete-coach-bex", ".tap-step"],
+    // Brief 27 (D): Flamingo Night on the Futprep pages the brief names.
+    ["brief27-palette-home-375", "anon", "/sports-fitness/futprep-athletics", ".pilot-cta"],
+    ["brief27-palette-coaches-375", "anon", "/futprep/coaches", ".futprep-team-note"],
+    ["brief27-palette-camps-375", "anon", "/futprep/camps", ".camps-empty"],
   );
 
   for (const [name, account, path, focus, press, act] of SHOTS) {

@@ -1,4 +1,5 @@
 import { escapeHtml } from "./email";
+import { futprepEmailButton, futprepEmailShell } from "./futprepEmail";
 
 // The emails around a Futprep private-session request (Brief 29, part A),
 // the pure part: subjects and bodies. db/privateSessionNotices.ts decides
@@ -27,12 +28,9 @@ export const dayOf = (iso: string) => DAY.format(new Date(`${iso}T12:00:00Z`)).r
 export const money = (cents: number | null) => (cents === null ? "to be confirmed" : `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`);
 export const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 
+// Flamingo Night (brief 27, D): the same shell as every Futprep email.
 function shell(title: string, body: string): string {
-  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#171717">
-    <h1 style="font-size:22px;margin:0 0 16px">${escapeHtml(title)}</h1>
-    ${body}
-    <p style="color:#647069;font-size:12px;margin-top:32px">Futprep Athletics · Sent via PortPass</p>
-  </div>`;
+  return futprepEmailShell(title, body);
 }
 
 const row = (label: string, value: string) => `<tr><td style="padding:6px 0;color:#647069">${label}</td><td style="padding:6px 0;text-align:right">${value}</td></tr>`;
@@ -74,7 +72,7 @@ export function newRequestStaffEmail(f: RequestFacts, portalUrl: string): { subj
         ${row("Price", escapeHtml(money(f.priceCents)))}
         ${f.locationPreference ? row("Where they suggested", escapeHtml(f.locationPreference)) : ""}
       </table>
-      <p><a href="${escapeHtml(portalUrl)}" style="color:#f0245c;font-weight:700">Accept, refer or decline in the staff portal →</a></p>
+      ${futprepEmailButton(portalUrl, "Accept, refer or decline in the staff portal →")}
       <p style="color:#647069;font-size:13px">What the parent wrote about the session is in the portal, not in this email.</p>
       <p style="color:#647069;font-size:13px">The parent has been told it is not confirmed until a coach accepts. Accepting emails them the time, place, price and how to pay.</p>
     `);
