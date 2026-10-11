@@ -5,6 +5,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 ## Live on production
 | Feature | PR | Merged |
 | --- | --- | --- |
+| PortPass Market sellers: verification ("Made in The Bahamas"), always-on storefronts, Admin → Market | #184 | 11 Oct |
 | Futprep reset: Term 1 closed to new families, Term 2 opens 19 Nov, owner dashboard, three-tap registration, Flamingo Night | #191–#195 | 11 Oct |
 | Futprep private sessions: emails and log lines, 30 and 60 minutes from the database, FP-S references, coach working days, `/futprep/book` | #186–#189 | 8–9 Oct |
 | Harbour Motion (M1–M5) and the AA hero lede | #168, #175, #178–#182 | 6 Oct |
@@ -20,8 +21,9 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
-| `chore/one-mind` (brief 33) | this PR | CI, then merge | Claude Code |
-| `feat/market-a` (brief 25 A) | #184 | Live apply of `202610200001_market_sellers.sql`; then parts B (`feat/market-b`), C (`feat/market-c`, WIP) and D | Antonio: allow the apply, or run it himself |
+| `chore/one-mind` (brief 33) | #198 | CI, then merge | Claude Code |
+| `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
+| `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green | Antonio's OK |
 | `claude/keen-volta-6u6jdp` (WeddingWire, fixes a #183 finding) | #185 | Renumber its migration, apply it live, merge | Antonio: confirm the apply (it drops and re-adds columns) |
 | `chore/csp-enforce` (brief 26) | #183 | Merge after #185 | #185 |
@@ -36,18 +38,19 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | 22 | Harbour Motion | merged | none (`docs/motion.md`) |
 | 23 | Agents from everything-claude-code | merged | none |
 | 24 | Hardening follow-ups | merged | none |
-| 25 | PortPass Market, Phase 1 | building | none yet |
+| 25 | PortPass Market, Phase 1 | building (A merged, B in review) | none yet |
 | 26 | Enforce the CSP | held | none |
 | 27 | Futprep reset | merged | [brief27](../briefs/brief27-futprep-reset-report.md) |
 | 29 | Private sessions | merged | [brief29](../briefs/brief29-private-sessions-report.md) |
 | 30 | graphify | held | [brief30](../briefs/brief30-graphify-report.md) |
+| 31 | Staff logins: one person, one login, one role | building | none yet |
 | 33 | One Mind: STATE.md and `/handoff` | building | [brief33](../briefs/brief33-one-mind-report.md) |
 
-Briefs 28, 31 and 32 have left no trace in this repo; their status is in the HQ project.
+Briefs 28 and 32 have left no trace in this repo; their status is in the HQ project.
 
 ## Waiting on Antonio
 - **First: set `CRON_SECRET`** (Vercel → Production). Production logs show `/api/cron/daily` and `/api/cron/attendance-nudge` refused with 503 on every run since at least 9 Oct, so the 90-day health-record purge (rule 3), billing, the demo reset and export pruning are not running.
-- Brief 25: allow the live migration apply for #184 (the auto-mode check refused it), or apply it himself.
+- #197 (brief 31 A): answer its four questions; nothing is switched until then.
 - #185: confirm its live migration once renumbered. #190: OK or no.
 - Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
 - Futprep data: clear or keep Term 2's 12 Dec taster date before 19 Nov; offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
@@ -70,4 +73,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
 
 ## Last updated
-11 Oct 2026, `main` at `ff452a9`, by Claude Code.
+11 Oct 2026, `main` at `2a7bb7f`, by Claude Code.

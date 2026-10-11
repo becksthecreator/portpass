@@ -10,7 +10,7 @@ One branch, `chore/one-mind`, one PR, two parts. No app code changed.
 ## Decisions
 - We take one idea from ECC, a plain Markdown handoff, and build it here. Nothing from ECC is installed or copied.
 - `/handoff` commits `STATE.md` and the report to the current branch and pushes it. It never merges, never enables auto-merge and refuses to run on `main`.
-- Briefs 28, 31 and 32 have left no trace in this repo, so `STATE.md` says so rather than guessing.
+- Briefs 28 and 32 have left no trace in this repo, so `STATE.md` says so rather than guessing. Brief 31 appeared as #197 while this PR was open.
 - The copied skills keep their text. The only edits: a source note at the top of each `SKILL.md`, every install or `npx` line removed, links re-pointed to the new folders, and one secret-printing `grep` replaced (rule 6). Pinned SHAs and what was left out are in `docs/briefs/README.md`.
 - The audit and the checklist were run by read-only subagents. The audit's findings 1–6 and three checklist claims were re-checked against the code before they went into `STATE.md`.
 
