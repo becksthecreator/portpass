@@ -33,10 +33,12 @@ export async function OwnerDashboard({ orgId, basePath, showMoney, query }: { or
   }
   const { tiles, today } = data;
   const status: MoneyFilter = isMoneyFilter(query.status) ? query.status : "all";
-  const month = isMonth(query.month) ? query.month : today.slice(0, 7);
-  const href = (next: { month?: string; status?: MoneyFilter }) => `${basePath}?month=${next.month ?? month}&status=${next.status ?? status}#money`;
+  // This month by default; "all" shows every month, so an older request
+  // still owed is never hidden from the table while the tile counts it.
+  const month: string | null = query.month === "all" ? null : isMonth(query.month) ? query.month : today.slice(0, 7);
+  const href = (next: { month?: string; status?: MoneyFilter }) => `${basePath}?month=${next.month ?? month ?? "all"}&status=${next.status ?? status}#money`;
   const shownMoney = data.money ? filterMoney(data.money.rows, month, status) : [];
-  const csvQuery = `month=${encodeURIComponent(month)}&status=${status}`;
+  const csvQuery = `month=${encodeURIComponent(month ?? "all")}&status=${status}`;
 
   return (
     <div className="dash">
@@ -59,6 +61,7 @@ export async function OwnerDashboard({ orgId, basePath, showMoney, query }: { or
           <div className="dash-filters" aria-label="Month">
             <span>Month</span>
             {data.money.months.slice(0, 6).map((m) => <Link key={m} href={href({ month: m })} aria-current={m === month ? "true" : undefined}>{monthLabel(m)}</Link>)}
+            <Link href={href({ month: "all" })} aria-current={month === null ? "true" : undefined}>All months</Link>
           </div>
           <div className="dash-filters" aria-label="Status">
             <span>Show</span>
@@ -66,7 +69,7 @@ export async function OwnerDashboard({ orgId, basePath, showMoney, query }: { or
             <a className="dash-csv" href={`/api/business/orgs/${orgId}/money-csv?${csvQuery}`}>Download CSV</a>
           </div>
           {shownMoney.length === 0 ? (
-            <p className="dash-empty">No payment requests {status === "all" ? "" : `${MONEY_STATUS_LABEL[status].toLowerCase()} `}in {monthLabel(month)}.</p>
+            <p className="dash-empty">No payment requests {status === "all" ? "" : `${MONEY_STATUS_LABEL[status].toLowerCase()} `}{month ? `in ${monthLabel(month)}` : "yet"}.</p>
           ) : (
             <div className="dash-scroll">
               <table className="dash-table">

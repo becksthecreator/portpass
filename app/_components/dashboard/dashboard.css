@@ -1,7 +1,10 @@
 /* The owner's dashboard (brief 27, B): money and attendance on one screen.
    Night-theme tokens, as the business home around it. No motion: this is
    about money. */
-.dash{display:grid;gap:18px;margin:18px 0 6px}
+/* minmax(0,1fr): a section's minimum is otherwise its table's 560px, which
+   would push the page sideways at 375px. */
+.dash{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;margin:18px 0 6px}
+.dash>*{min-width:0}
 .dash h2{margin:0;font-size:1.1rem}
 .dash-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 14px}
 .dash-head p{margin:0;color:var(--muted);font-size:.86rem}
@@ -11,7 +14,7 @@
 .dash-tiles dd{margin:4px 0 0;font-family:var(--font-pp-display),Archivo,sans-serif;font-size:1.3rem;font-weight:800;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .dash-tiles dd small{display:block;font-family:var(--font-pp-sans),Inter,sans-serif;font-size:.72rem;font-weight:600;color:var(--muted)}
 .dash-filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.dash-filters a{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);color:var(--text);font-size:.84rem;font-weight:700;text-decoration:none}
+.dash-filters a{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--line);color:var(--text);font-size:.84rem;font-weight:700;text-decoration:none}
 .dash-filters a[aria-current="true"]{background:var(--link);border-color:var(--link);color:var(--bg)}
 .dash-filters span{color:var(--muted);font-size:.78rem;font-weight:700;margin-right:4px}
 .dash-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
@@ -22,7 +25,7 @@
 .dash-table tbody tr:last-child td{border-bottom:0}
 .dash-table a{color:var(--link);font-weight:700}
 .dash-empty{color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:16px;text-align:center;margin:0;font-size:.9rem}
-.dash-csv{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);color:var(--text);font-size:.84rem;font-weight:700;text-decoration:none}
+.dash-csv{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--line);color:var(--text);font-size:.84rem;font-weight:700;text-decoration:none}
 .dash-note{margin:0;color:var(--muted);font-size:.82rem}
 .dash-pill{display:inline-flex;align-items:center;border-radius:999px;padding:3px 9px;font-size:.7rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:var(--tint);color:var(--text)}
 .dash-pill.is-paid{background:#1f6f43;color:#fff}
