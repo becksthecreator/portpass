@@ -6,7 +6,7 @@ import { buildAttendanceCsv, buildMoneyCsv } from "@/lib/ownerDashboard";
 import { addDays } from "@/lib/paymentRequests/rules";
 import { createDraftBusiness } from "./business";
 import { loadAttendance, loadMoneyRows, loadOwnerDashboard } from "./ownerDashboard";
-import { createPaymentRequest, markPaymentRequestSent, recordRequestPayment, savePaymentSettings } from "./paymentRequests";
+import { completeTestRequest, createPaymentRequest, markPaymentRequestSent, recordRequestPayment, savePaymentSettings } from "./paymentRequests";
 
 // The owner's dashboard (brief 27, B) against the local Supabase stack: a
 // TEST business with a TEST class, two TEST children, a held session with
@@ -102,9 +102,11 @@ beforeAll(async () => {
   const overdueRequest = await createPaymentRequest(orgId, request({ lines: [{ label: "TEST Saturday", qty: 1, unitCents: 4500 }], totalCents: 4500 }), actor(), "TDB");
   await markPaymentRequestSent(orgId, overdueRequest.id, "in_person", actor());
   await admin.from("payment_requests").update({ due_date: addDays(today, -3) }).eq("id", overdueRequest.id);
+  // A TEST request (brief 18, E3) can only be completed its own way; the
+  // send and mark-paid paths refuse it. Completed, it looks paid but is
+  // never money.
   const testRequest = await createPaymentRequest(orgId, request({ customerEmail: `dash-owner-${tag}@test.portpass.local` }), actor(), "TDB", { isTest: true });
-  await markPaymentRequestSent(orgId, testRequest.id, "in_person", actor());
-  await recordRequestPayment(orgId, testRequest.id, { amountCents: 42000, method: "cash", receivedAt: new Date().toISOString(), reference: "", note: "" }, actor());
+  await completeTestRequest(orgId, testRequest.id, actor());
   requestIds.push(paidRequest.id, overdueRequest.id, testRequest.id);
 });
 
