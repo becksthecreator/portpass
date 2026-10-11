@@ -1,15 +1,24 @@
-import type { StaffRegistration } from "@/db/staff";
+// What a pending_details registration still lacks, as a coach or admin
+// should read it, not the underlying column. Worked out on the server
+// (db/staff.ts listFutprepStaffRegistrations) from the registration's
+// emergency and health columns, so the desk list that goes to the browser
+// carries only these words, never the details (CLAUDE.md rule 3). Pure, so
+// it is unit-tested.
+export type RegistrationCompleteness = {
+  registration_status: string;
+  child_dob: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  // null = never asked; "" = asked, and the answer was none.
+  allergies: string | null;
+  medical_conditions: string | null;
+  medications: string | null;
+  special_needs: string | null;
+  photo_consent: string | null;
+  signature_name: string | null;
+};
 
-// Fields a pending_details registration is still missing. Named for what a
-// coach/admin should see, not the underlying column.
-//
-// Deliberately not in db/staff.ts: that module imports db/supabase.ts,
-// which imports "server-only" -- fine for the server components that read
-// StaffRegistration, but this function is also called from the client
-// component AdminRegistrationManager.tsx, and pulling in the server-only
-// chain there breaks the client bundle build. A type-only import of
-// StaffRegistration is erased at compile time and carries none of that.
-export function missingRegistrationFields(row: StaffRegistration): string[] {
+export function missingRegistrationFields(row: RegistrationCompleteness): string[] {
   if (row.registration_status !== "pending_details") return [];
   const missing: string[] = [];
   if (!row.child_dob) missing.push("date of birth");

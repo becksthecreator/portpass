@@ -1,8 +1,9 @@
 // The camp roster as a spreadsheet (brief 06 v2, A1.7). The row type is
 // the whitelist: it has no field for allergies, medical conditions,
-// medications, special needs or emergency contacts, so none can reach the
-// file whatever the query returns. Those stay on the coach roster behind
-// the existing reveal rules. Pure, so it is unit-tested.
+// medications, special needs, emergency contacts or who may collect the
+// child, so none can reach the file whatever the query returns (CLAUDE.md
+// rule 3: never in an export). Those stay on the coach roster behind the
+// existing reveal rules. Pure, so it is unit-tested.
 
 export type RosterExportRow = {
   referenceCode: string;
@@ -12,7 +13,6 @@ export type RosterExportRow = {
   parentName: string | null;
   parentPhone: string | null;
   parentEmail: string | null;
-  authorizedPickup: string | null;
   photoConsent: string | null;
   registrationStatus: string;
   paymentStatus: string;
@@ -30,7 +30,6 @@ export const ROSTER_CSV_BASE_HEADERS = [
   "Parent / guardian",
   "Parent phone",
   "Parent email",
-  "Authorised pickup",
   "Photo consent",
   "Registration",
   "Payment",
@@ -64,7 +63,6 @@ export function buildRosterCsv(rows: RosterExportRow[], days: string[]): string 
         row.parentName,
         row.parentPhone,
         row.parentEmail,
-        row.authorizedPickup,
         row.photoConsent,
         row.registrationStatus,
         row.paymentStatus,

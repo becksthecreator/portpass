@@ -12,7 +12,7 @@ import {
   resetFutprepSeedThrottleForTests,
   type FutprepRegistrationInput,
 } from "./registrations";
-import { markFutprepAttendance, rosterExportForTerm, rosterForSession } from "./staff";
+import { listFutprepStaffRegistrations, markFutprepAttendance, rosterExportForTerm, rosterForSession } from "./staff";
 
 // Brief 06 v2, Part A acceptance, against the local Supabase stack CI
 // starts. Every row is "TEST — delete" and removed in afterAll. The camp
@@ -32,13 +32,13 @@ function child(over: Partial<FutprepRegistrationInput>): FutprepRegistrationInpu
     childName: `${MARK} child ${crypto.randomUUID().slice(0, 4)}`,
     childDob: "2021-03-01", // 6 on 12 Jul 2027
     gender: "Female",
-    emergencyContactName: MARK,
+    emergencyContactName: `ZZEMERGENCY ${MARK}`,
     emergencyContactPhone: "+12425550199",
     allergies: "TEST peanut",
     medicalConditions: "TEST asthma",
     medications: "TEST inhaler",
     specialNeeds: "",
-    authorizedPickup: MARK,
+    authorizedPickup: `ZZPICKUP ${MARK}`,
     additionalNotes: "TEST — delete",
     programSlug: SLUG,
     termId,
@@ -125,8 +125,21 @@ describe("holiday camps (brief 06 v2, Part A)", () => {
     expect(marked.attendance).toEqual({ "2027-07-12": "present", "2027-07-13": "absent" });
 
     const csv = buildRosterCsv(exported!.rows, exported!.days);
-    for (const secret of ["TEST peanut", "TEST asthma", "TEST inhaler", "+12425550199"]) expect(csv).not.toContain(secret);
-    expect(JSON.stringify(exported)).not.toMatch(/allerg|medical|medication|emergency/i);
+    // No health, emergency or pickup detail (rule 3; Ponytail audit, 11 Oct,
+    // finding 4: pickup was a column).
+    for (const secret of ["TEST peanut", "TEST asthma", "TEST inhaler", "+12425550199", "ZZEMERGENCY", "ZZPICKUP"]) expect(csv).not.toContain(secret);
+    expect(JSON.stringify(exported)).not.toMatch(/allerg|medical|medication|emergency|pickup|ZZ/i);
+  });
+
+  it("lists the campers on the registration desk with no health, emergency or pickup detail", async () => {
+    // A list that goes to the browser (rule 3; Ponytail audit, 11 Oct,
+    // finding 4): "missing details" is worked out on the server instead.
+    const desk = (await listFutprepStaffRegistrations()).filter((r) => r.program_slug === SLUG);
+    expect(desk).toHaveLength(2);
+    expect(desk.every((r) => Array.isArray(r.missing_details) && r.missing_details.length === 0)).toBe(true);
+    const sent = JSON.stringify(desk);
+    for (const secret of ["TEST peanut", "TEST asthma", "TEST inhaler", "+12425550199", "ZZEMERGENCY", "ZZPICKUP"]) expect(sent).not.toContain(secret);
+    expect(sent).not.toMatch(/allergies|medical|medications|special_needs|emergency|pickup|additional_notes/i);
   });
 
   it("closes at registration_closes_at, and an unlisted camp is reachable only by link", async () => {

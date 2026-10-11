@@ -1,10 +1,14 @@
 import { derivePaymentStatus } from "@/lib/payments";
 import { ageOnDate } from "@/lib/scheduling";
 import { effectiveCap } from "@/lib/futprepClasses";
+import { missingRegistrationFields } from "@/lib/futprepRegistrations";
 import { effectiveCapForTerm, ensureFutprepPilotData, type PaymentFrequency, type PaymentMethod } from "./registrations";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
+// One child on the registration desk's list. A list, so it carries no
+// health, emergency or pickup detail (CLAUDE.md rule 3, lib/health.ts):
+// those are on the child's own record (getFutprepRegistrationDetail).
 export type StaffRegistration = {
   id: number;
   reference_code: string;
@@ -22,13 +26,10 @@ export type StaffRegistration = {
   parent_name: string | null;
   parent_email: string | null;
   parent_phone: string | null;
-  emergency_contact_name: string | null;
-  emergency_contact_phone: string | null;
-  allergies: string | null;
-  medical_conditions: string | null;
-  medications: string | null;
-  special_needs: string | null;
-  authorized_pickup: string | null;
+  // What a pending_details registration still lacks ("emergency contact",
+  // "medical information", ...), worked out here from columns that never
+  // leave this function.
+  missing_details: string[];
   photo_consent: string | null;
   signature_name: string | null;
   payment_frequency: string;
@@ -136,7 +137,9 @@ export async function listFutprepStaffRegistrations(): Promise<
     await Promise.all([
       db
         .from("registrations")
-        .select("id,reference_code,program_id,term_id,child_name,child_dob,gender,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,authorized_pickup,photo_consent,signature_name,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,submitted_at")
+        // The emergency and health columns are read only to work out
+        // missing_details below; they are not returned.
+        .select("id,reference_code,program_id,term_id,child_name,child_dob,gender,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,photo_consent,signature_name,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,submitted_at")
         .in("program_id", programIds)
         .neq("registration_status", "cancelled")
         .order("child_name", { ascending: true }),
@@ -180,13 +183,18 @@ export async function listFutprepStaffRegistrations(): Promise<
         parent_name: asNullableString(row.parent_name),
         parent_email: asNullableString(row.parent_email),
         parent_phone: asNullableString(row.parent_phone),
-        emergency_contact_name: asNullableString(row.emergency_contact_name),
-        emergency_contact_phone: asNullableString(row.emergency_contact_phone),
-        allergies: asNullableString(row.allergies),
-        medical_conditions: asNullableString(row.medical_conditions),
-        medications: asNullableString(row.medications),
-        special_needs: asNullableString(row.special_needs),
-        authorized_pickup: asNullableString(row.authorized_pickup),
+        missing_details: missingRegistrationFields({
+          registration_status: String(row.registration_status),
+          child_dob: asNullableString(row.child_dob),
+          emergency_contact_name: asNullableString(row.emergency_contact_name),
+          emergency_contact_phone: asNullableString(row.emergency_contact_phone),
+          allergies: asNullableString(row.allergies),
+          medical_conditions: asNullableString(row.medical_conditions),
+          medications: asNullableString(row.medications),
+          special_needs: asNullableString(row.special_needs),
+          photo_consent: asNullableString(row.photo_consent),
+          signature_name: asNullableString(row.signature_name),
+        }),
         photo_consent: asNullableString(row.photo_consent),
         signature_name: asNullableString(row.signature_name),
         payment_frequency: String(row.payment_frequency),
@@ -1394,8 +1402,8 @@ export async function getFutprepMoneySummary(): Promise<FutprepMoneySummary> {
 // ---- camp roster export (brief 06 v2, A1.7) --------------------------------
 
 // Everything the camp roster spreadsheet needs for one program-in-a-term,
-// and nothing more: the registrations select names only non-medical
-// columns, and the row type (lib/rosterCsv.ts) has no medical field to
+// and nothing more: the registrations select names no health, emergency
+// or pickup column, and the row type (lib/rosterCsv.ts) has no field to
 // put one in. Attendance comes per camp day.
 export async function rosterExportForTerm(programId: number, termId: number): Promise<{ programName: string; termName: string; days: string[]; rows: import("@/lib/rosterCsv").RosterExportRow[] } | null> {
   await ensureFutprepPilotData();
@@ -1413,7 +1421,7 @@ export async function rosterExportForTerm(programId: number, termId: number): Pr
   const [{ data: registrations, error }, { data: sessions, error: sessionsError }] = await Promise.all([
     db
       .from("registrations")
-      .select("id,reference_code,child_name,child_dob,parent_name,parent_phone,parent_email,authorized_pickup,photo_consent,registration_status,payment_status,amount_due_cents")
+      .select("id,reference_code,child_name,child_dob,parent_name,parent_phone,parent_email,photo_consent,registration_status,payment_status,amount_due_cents")
       .eq("program_id", programId)
       .eq("term_id", termId)
       .in("registration_status", ["pending_details", "pending", "confirmed"])
@@ -1464,7 +1472,6 @@ export async function rosterExportForTerm(programId: number, termId: number): Pr
         parentName: str(r.parent_name),
         parentPhone: str(r.parent_phone),
         parentEmail: str(r.parent_email),
-        authorizedPickup: str(r.authorized_pickup),
         photoConsent: str(r.photo_consent),
         registrationStatus: String(r.registration_status),
         paymentStatus: String(r.payment_status),

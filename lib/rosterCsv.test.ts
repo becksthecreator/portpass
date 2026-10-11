@@ -9,7 +9,6 @@ const row: RosterExportRow = {
   parentName: "TEST — delete",
   parentPhone: "+12425550100",
   parentEmail: "test@example.com",
-  authorizedPickup: "=HYPERLINK(\"x\")",
   photoConsent: "no",
   registrationStatus: "pending",
   paymentStatus: "partial",
@@ -19,12 +18,21 @@ const row: RosterExportRow = {
 };
 
 describe("camp roster CSV", () => {
-  it("has no medical, allergy or emergency columns", () => {
+  it("has no medical, allergy, emergency or pickup columns", () => {
     const header = buildRosterCsv([row], ["2026-10-13"]).split("\r\n")[0].toLowerCase();
-    for (const banned of ["allerg", "medical", "medication", "special", "emergency", "condition", "notes"]) {
+    for (const banned of ["allerg", "medical", "medication", "special", "emergency", "condition", "notes", "pickup", "pick-up", "collect"]) {
       expect(header).not.toContain(banned);
     }
-    expect(ROSTER_CSV_BASE_HEADERS).toHaveLength(14);
+    expect(ROSTER_CSV_BASE_HEADERS).toHaveLength(13);
+  });
+
+  it("never writes who may collect a child, whatever the row carries (rule 3)", () => {
+    // A row built from a wider query must still not put pickup in the file.
+    const wider = { ...row, authorizedPickup: "ZZPICKUP Auntie", emergencyContactName: "ZZEMERGENCY" } as RosterExportRow;
+    const csv = buildRosterCsv([wider], ["2026-10-13"]);
+    expect(csv).not.toContain("ZZPICKUP");
+    expect(csv).not.toContain("ZZEMERGENCY");
+    expect(csv.split("\r\n")[1].split('","')).toHaveLength(ROSTER_CSV_BASE_HEADERS.length + 1);
   });
 
   it("writes one column per camp day and the money as dollars", () => {

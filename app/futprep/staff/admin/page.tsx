@@ -47,10 +47,9 @@ export default async function FutprepStaffAdminPage() {
         </div>
         <MoneySummary summary={moneySummary} />
         <p className="coach-export"><a className="secondary-button" href="/futprep/staff/import">Import families from TeamSnap →</a></p>
-        {/* The list never shows a child's health details (the detail page
-            loads them one child at a time), so they are not sent to the
-            browser with it. */}
-        <AdminRegistrationManager initialRegistrations={registrations.map((row) => ({ ...row, allergies: null, medical_conditions: null, medications: null, special_needs: null }))} />
+        {/* The list carries no health, emergency or pickup detail (rule 3);
+            the child's own record shows them, one child at a time. */}
+        <AdminRegistrationManager initialRegistrations={registrations} />
         <div className="team-admin-panels">
           <AddRegistrationForm options={offers.map((offer): StaffClassOption => ({ key: `${offer.programId}:${offer.termId}`, programSlug: offer.slug, termId: offer.termId, label: `${offerHeadline(offer)} (ages ${offer.ageLabel})` }))} />
         </div>
