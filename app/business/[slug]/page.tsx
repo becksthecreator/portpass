@@ -10,11 +10,13 @@ import { MissingFromPage } from "@/app/_components/checklist/PageChecklist";
 import { requireOrgRole } from "@/lib/auth/guards";
 import { handlesPayments } from "@/lib/paymentRequests/access";
 import { workspaceLinks } from "@/lib/orgWorkspaces";
+import { OwnerDashboard } from "@/app/_components/dashboard/OwnerDashboard";
 import { GoogleReviewCard } from "./GoogleReviewCard";
 
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ slug: string }>;
+type Query = Promise<{ month?: string; status?: string }>;
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
@@ -29,10 +31,10 @@ const STATUS_COPY: Record<string, { label: string; detail: string }> = {
   suspended: { label: "Suspended", detail: "Your page is hidden. Contact PortPass." },
 };
 
-// v1 business home: where you stand, where to go. Today's schedule and
-// balances arrive with the staff-view adapters (block 6).
-export default async function BusinessHomePage({ params }: { params: Params }) {
-  const { slug } = await params;
+// The business home: where you stand, where to go, and (brief 27, B) the
+// owner's dashboard of money and attendance, first thing after sign-in.
+export default async function BusinessHomePage({ params, searchParams }: { params: Params; searchParams: Query }) {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
   const access = await requireOrgRole({ slug }, "org_viewer", `/business/${slug}`);
   const business = await getBusinessBySlug(slug);
   if (!business) notFound();
@@ -64,6 +66,10 @@ export default async function BusinessHomePage({ params }: { params: Params }) {
             <p>Make the changes, then send it to us again.</p>
           </div>
         )}
+
+        {/* Owners and admins see money and attendance; staff (coaches) see
+            attendance, and money only with the payments permission. */}
+        {isTeam && <OwnerDashboard orgId={business.id} basePath={`/business/${slug}`} showMoney={payments} query={query} />}
 
         <div className="biz-home-grid">
           {business.status === "draft" && canEdit && (

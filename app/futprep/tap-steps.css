@@ -1,0 +1,79 @@
+/* Booking in three taps (brief 27, C): Pick, Who, Done. Shared by Futprep's
+   Saturday registration and the private-session form. Colours come from
+   the Futprep theme tokens where they are set (Part D), with the current
+   pink and navy as fallbacks. No transitions: this is a form about a
+   child's place and money. */
+.tap-progress{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;list-style:none;margin:0 0 18px;padding:0}
+.tap-progress li{border-top:2px solid var(--fp-line,#d9e3e0);color:var(--fp-muted,#666b6a);display:flex;align-items:center;gap:8px;padding-top:10px;font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.tap-progress span{align-items:center;border:2px solid currentColor;border-radius:50%;display:inline-flex;font-size:.7rem;height:24px;justify-content:center;width:24px;flex:none}
+.tap-progress .is-current{border-top-color:var(--fp-pink,#f0245c);color:var(--fp-navy,#0d1b3d)}
+.tap-progress .is-current span{background:var(--fp-navy,#0d1b3d);border-color:var(--fp-navy,#0d1b3d);color:var(--fp-base,#f7f9fc)}
+.tap-progress .is-done{border-top-color:var(--fp-navy,#0d1b3d);color:var(--fp-navy,#0d1b3d)}
+.tap-progress .is-done span{background:var(--fp-navy,#0d1b3d);border-color:var(--fp-navy,#0d1b3d);color:var(--fp-base,#f7f9fc)}
+
+.tap-screen{background:var(--fp-base,#fff);border:1px solid var(--fp-line,#d9e3e0);border-radius:18px;padding:20px 16px 24px}
+.tap-screen h1{font-size:clamp(1.7rem,6vw,2.4rem);line-height:1.05;margin:0 0 6px}
+.tap-screen>p{color:var(--fp-muted,#666b6a);margin:0 0 16px;line-height:1.5}
+.tap-step{display:flex;align-items:center;gap:10px;margin:18px 0 10px;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--fp-navy,#0d1b3d)}
+.tap-step span{align-items:center;background:var(--fp-navy,#0d1b3d);border-radius:999px;color:var(--fp-base,#f7f9fc);display:inline-flex;font-size:.72rem;height:26px;justify-content:center;min-width:26px;padding:0 8px;box-sizing:border-box;flex:none}
+.tap-step.is-done span{background:var(--fp-navy,#0d1b3d);color:var(--fp-base,#f7f9fc)}
+
+/* Pick: one card per class. */
+.tap-cards{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.tap-card{appearance:none;background:var(--fp-base,#fff);border:2px solid var(--fp-line,#d9e3e0);border-radius:16px;color:inherit;cursor:pointer;display:grid;gap:6px;font:inherit;padding:16px;text-align:left;width:100%;min-height:44px}
+.tap-card:hover,.tap-card:focus-visible{border-color:var(--fp-navy,#0d1b3d)}
+.tap-card:focus-visible{outline:2px solid var(--fp-navy,#0d1b3d);outline-offset:2px}
+.tap-card strong{font-size:1.15rem;line-height:1.2}
+.tap-card .tap-ages{color:var(--fp-pink-deep,#b80f43);font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.tap-card span{color:var(--fp-muted,#666b6a);font-size:.92rem;line-height:1.45}
+.tap-card .tap-price{color:var(--fp-navy,#0d1b3d);font-weight:800;font-size:1rem}
+.tap-card .tap-go{color:var(--fp-navy,#0d1b3d);font-weight:800;justify-self:end}
+.tap-card.is-full{cursor:default}
+.tap-card.is-full .tap-go{font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.tap-closed{background:var(--fp-teal-soft,#e6f7f3);border-radius:14px;color:var(--fp-navy,#0d1b3d);margin:0;padding:14px 16px;line-height:1.5}
+
+/* Who: everything on one screen. */
+.tap-chosen{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;background:var(--fp-teal-soft,#e6f7f3);border-radius:14px;padding:12px 14px;margin:0 0 14px}
+.tap-chosen strong{font-size:1rem}
+.tap-chosen a,.tap-chosen button{appearance:none;background:none;border:0;color:var(--fp-navy,#0d1b3d);cursor:pointer;font:inherit;font-weight:800;padding:0;text-decoration:underline;text-underline-offset:3px;min-height:44px}
+.tap-form{display:grid;gap:14px}
+.tap-form label{display:grid;gap:6px;font-size:.8rem;font-weight:800;min-width:0}
+.tap-form label>span{color:var(--fp-navy,#0d1b3d)}
+.tap-form label>span small{color:var(--fp-muted,#666b6a);font-weight:600}
+.tap-form input:not([type="radio"]):not([type="checkbox"]),.tap-form select,.tap-form textarea{background:#fff;border:1px solid #9aa3a0;border-radius:10px;color:#111;font:inherit;font-size:1rem;min-height:48px;padding:10px 12px;width:100%;box-sizing:border-box}
+.tap-form textarea{min-height:88px;resize:vertical}
+.tap-form input:focus-visible,.tap-form select:focus-visible,.tap-form textarea:focus-visible{outline:2px solid var(--fp-navy,#0d1b3d);outline-offset:1px}
+.tap-two{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.tap-two>*{min-width:0}
+.tap-age{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.tap-pills{display:grid;gap:8px}
+.tap-pills legend{font-size:.8rem;font-weight:800;color:var(--fp-navy,#0d1b3d);padding:0;margin:0 0 6px}
+.tap-pills fieldset,fieldset.tap-pills{border:0;margin:0;padding:0;min-width:0}
+.tap-pill{align-items:center;background:#fff;border:2px solid var(--fp-line,#d9e3e0);border-radius:12px;cursor:pointer;display:flex;gap:10px;min-height:48px;padding:10px 12px;font-weight:700;font-size:.95rem}
+.tap-pill input{accent-color:var(--fp-navy,#0d1b3d);flex:none;height:20px;width:20px;margin:0}
+.tap-pill.is-selected{border-color:var(--fp-navy,#0d1b3d);background:var(--fp-teal-soft,#e6f7f3)}
+.tap-pill small{color:var(--fp-muted,#666b6a);font-weight:600;margin-left:auto;text-align:right}
+.tap-consent{align-items:flex-start;display:flex;gap:12px;background:var(--fp-base,#fff);border:1px solid var(--fp-line,#d9e3e0);border-radius:12px;padding:12px;font-size:.9rem;line-height:1.5;font-weight:500}
+.tap-consent input{accent-color:var(--fp-navy,#0d1b3d);flex:none;height:22px;width:22px;margin-top:2px}
+.tap-error{background:#fdeceb;border-radius:10px;color:#8a1c12;margin:0;padding:10px 12px;font-weight:700}
+.tap-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-top:6px}
+.tap-submit,.tap-button{appearance:none;background:var(--fp-navy,#0d1b3d);border:0;border-radius:999px;color:var(--fp-base,#f7f9fc);cursor:pointer;font:inherit;font-size:1rem;font-weight:800;min-height:48px;padding:0 22px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.tap-submit:disabled{opacity:.6;cursor:default}
+.tap-submit:focus-visible,.tap-button:focus-visible{outline:2px solid var(--fp-navy,#0d1b3d);outline-offset:2px}
+.tap-back{appearance:none;background:none;border:0;color:var(--fp-navy,#0d1b3d);cursor:pointer;font:inherit;font-weight:700;min-height:44px;padding:0 6px;text-decoration:underline;text-underline-offset:3px}
+
+/* Done. */
+.tap-done{display:grid;gap:14px}
+.tap-ref{background:var(--fp-navy,#0d1b3d);border-radius:16px;color:var(--fp-base,#f7f9fc);display:grid;gap:4px;padding:16px}
+.tap-ref small{color:var(--fp-mint,#2fc9ae);font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.tap-ref strong{font-size:1.6rem;font-variant-numeric:tabular-nums;letter-spacing:.04em;overflow-wrap:anywhere}
+.tap-facts{display:grid;gap:10px;margin:0}
+.tap-facts>div{background:var(--fp-base,#fff);border:1px solid var(--fp-line,#d9e3e0);border-radius:14px;padding:12px 14px}
+.tap-facts dt{color:var(--fp-muted,#666b6a);font-size:.76rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.tap-facts dd{margin:0;line-height:1.5}
+.tap-facts dd strong{font-size:1.15rem}
+.tap-facts dd p{margin:4px 0 0}
+.tap-facts a{color:var(--fp-navy,#0d1b3d);font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.tap-note{color:var(--fp-muted,#666b6a);font-size:.9rem;line-height:1.5;margin:0}
+@media(min-width:720px){.tap-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.tap-screen{padding:28px}}
+@media(max-width:479px){.tap-two{grid-template-columns:1fr}}
