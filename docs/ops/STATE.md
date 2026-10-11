@@ -1,0 +1,64 @@
+# PortPass: where things stand
+
+The page both sides read first: Claude Code in this repo, and the Beckford HQ project, which reads it from GitHub. `/handoff` keeps it true. Env var names only: no values, keys, emails, phone numbers or children's details.
+
+## Live on production
+| Feature | PR | Merged |
+| --- | --- | --- |
+| Futprep reset: Term 1 closed to new families, Term 2 opens 19 Nov, owner dashboard, three-tap registration, Flamingo Night | #191–#195 | 11 Oct |
+| Futprep private sessions: emails and log lines, 30 and 60 minutes from the database, FP-S references, coach working days, `/futprep/book` | #186–#189 | 8–9 Oct |
+| Harbour Motion (M1–M5) and the AA hero lede | #168, #175, #178–#182 | 6 Oct |
+| Hardening: scrypt staff PINs, `npm ci`, gitleaks fails on any error, planner limit | #169, #171, #172, #174 | 6 Oct |
+| Security Phase 1: fail-closed secrets, RLS on every table, sign-in limits, headers (CSP report-only), zod on public routes, alerts, backup docs | #150–#154, #156, #157, #165, #166 | 5–6 Oct |
+| Repo agents and commands in `.claude/` | #148, #167 | 5–6 Oct |
+| Phase 1 close-out: booking requests, page checklist, phone photos, Admin → Phase 1, the end-to-end run | #142–#147 | 5 Oct |
+| Public site from the data, sign-up, Get paid, registration for any business, `/demo` | #132–#139 | 4 Oct |
+| Payment requests and reconciliation (cash and bank transfer only) | #124 | 1 Oct |
+| Drops / Shop Bahamian pre-orders | #120, #122 | 1 Oct |
+
+## In flight
+Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
+| Branch | PR | What's left | Waiting on |
+| --- | --- | --- | --- |
+| `chore/one-mind` (brief 33) | this PR | CI, then merge | Claude Code |
+| `feat/market-a` (brief 25 A) | #184 | Live apply of `202610200001_market_sellers.sql`; then parts B (`feat/market-b`), C (`feat/market-c`, WIP) and D | Antonio: allow the apply, or run it himself |
+| `chore/graphify` (brief 30) | #190 | Nothing; CI green | Antonio's OK |
+| `claude/keen-volta-6u6jdp` (WeddingWire, fixes a #183 finding) | #185 | Renumber its migration, apply it live, merge | Antonio: confirm the apply (it drops and re-adds columns) |
+| `chore/csp-enforce` (brief 26) | #183 | Merge after #185 | #185 |
+| `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct) | A decision: merge or close |
+
+## Briefs
+| No. | Title | Status | Report |
+| --- | --- | --- | --- |
+| 19 | Phase 1 close-out | merged | none |
+| 20 | CLAUDE.md, agents, commands | merged | none |
+| 21 | Security hardening, Phase 1 | merged | none (`docs/security/`) |
+| 22 | Harbour Motion | merged | none (`docs/motion.md`) |
+| 23 | Agents from everything-claude-code | merged | none |
+| 24 | Hardening follow-ups | merged | none |
+| 25 | PortPass Market, Phase 1 | building | none yet |
+| 26 | Enforce the CSP | held | none |
+| 27 | Futprep reset | merged | [brief27](../briefs/brief27-futprep-reset-report.md) |
+| 29 | Private sessions | merged | [brief29](../briefs/brief29-private-sessions-report.md) |
+| 30 | graphify | held | [brief30](../briefs/brief30-graphify-report.md) |
+| 33 | One Mind: STATE.md and `/handoff` | building | [brief33](../briefs/brief33-one-mind-report.md) |
+
+Briefs 28, 31 and 32 have left no trace in this repo; their status is in the HQ project.
+
+## Waiting on Antonio
+- Brief 25: allow the live migration apply for #184 (the auto-mode check refused it), or apply it himself.
+- #185: confirm its live migration once renumbered. #190: OK or no.
+- Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
+- Futprep data: clear or keep Term 2's 12 Dec taster date before 19 Nov; offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
+- The brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `CRON_SECRET`, `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
+
+## Known issues
+- #185's migration `202610190002_weddingwire_widgets_structured.sql` clashes with `202610190002_private_sessions_from_the_database.sql` on `main`.
+- The CSP keeps `'unsafe-inline'` and is report-only until #183.
+- 92 signed-in API routes still take bodies without zod; `lib/api/body.static.test.ts` lists them and can only shrink.
+- Lint is not in CI (#176); 35 warnings remain.
+- The owner dashboard's "Collected" counts payment requests only; Term 1's desk payments are not in it.
+- A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
+
+## Last updated
+11 Oct 2026, `main` at `ff452a9`, by Claude Code.
