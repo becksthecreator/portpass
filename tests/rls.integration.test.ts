@@ -174,5 +174,8 @@ describe.skipIf(!anonKey)("row level security, seen through a browser key", () =
     expect((await anon.rpc("admin_database_checks")).error).not.toBeNull();
     // private.public_organization has no REST endpoint: the schema is not exposed.
     expect((await anon.schema("private").rpc("public_organization", { org_id: ids.published })).error).not.toBeNull();
+    // Nor the Market seller check (brief 25).
+    expect((await anon.schema("private").rpc("market_seller", { org_id: ids.published })).error).not.toBeNull();
+    expect((await anon.rpc("market_verify_seller", { p_org: ids.published, p_actor: null, p_licence: "x", p_contact: "x" })).error).not.toBeNull();
   });
 });

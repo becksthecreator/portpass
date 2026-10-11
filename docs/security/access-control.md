@@ -19,6 +19,8 @@ Roles come from the database (`profiles.platform_role`, `organization_members.ro
 | Customer | A parent, a buyer | Their own account page, bookings, Member Pass | Anything else | None |
 | Demo session | Anyone, on `/demo` | The demo business only; nothing is sent | The real data | None |
 
+PortPass Market sellers (brief 25): a business's licence number and contact person (`organizations.licences`, `primary_contact`) are never public. They are seen by that business's own `org_owner` and `org_admin` (the PortPass Market block on its shop page) and by `platform_owner` and `platform_admin` (Admin -> Market -> Sellers). Only a `platform_owner` verifies or suspends a seller, after the second step, and verifies only the records shown on screen when the button was pressed.
+
 ## Accounts outside the app
 
 | Account | Who holds it | Guards |

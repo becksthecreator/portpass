@@ -1,0 +1,11 @@
+/* Admin -> Market (brief 25). Night theme, like every admin page. */
+.mkt-admin-table td small{line-height:1.45}
+.mkt-admin-table em{color:var(--signal-text,#FF6B6E);font-style:normal;font-weight:700}
+.mkt-status-pending{background:#F2C14E;color:#0D1B3D}
+.mkt-status-verified{background:#FFC72C;color:#0D1B3D}
+.mkt-status-suspended{background:var(--signal);color:#fff}
+.mkt-admin-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+.mkt-admin-actions .admin-mini{min-height:36px}
+.mkt-admin-suspend{display:grid;gap:6px;width:100%;min-width:200px}
+.mkt-admin-suspend label{display:grid;gap:4px;font-size:.72rem;font-weight:700}
+.mkt-admin-suspend input{min-height:40px;border:1px solid var(--muted);border-radius:8px;padding:6px 8px;background:var(--bg);color:var(--text)}
