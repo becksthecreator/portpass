@@ -50,6 +50,7 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 
 ## Waiting on Antonio
 - **First: set `CRON_SECRET`** (Vercel → Production). Production logs show `/api/cron/daily` and `/api/cron/attendance-nudge` refused with 503 on every run since at least 9 Oct, so the 90-day health-record purge (rule 3), billing, the demo reset and export pruning are not running.
+- **Also now: create the Wedding Desk's first staff account** at `/weddings/staff/login`. None has ever been made, so the page offers "Create the first account" to anyone, and whoever fills it in becomes its admin. The PIN-hardening session is adding a platform-owner sign-in to that screen on both desks.
 - #197 (brief 31 A): answer its four questions; nothing is switched until then.
 - #185: confirm its live migration once renumbered. #190: OK or no.
 - Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
