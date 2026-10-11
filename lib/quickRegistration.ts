@@ -46,11 +46,12 @@ export function asksMonths(offer: AgeRule): boolean {
   return ageRangeMonths(offer).min % 12 !== 0 || ageRangeMonths(offer).max < 48;
 }
 
-// The date of birth we store for an age given in months: the 15th of the
-// month that many months ago, so the child sits mid-month either way. It is
-// approximate; the registration says so in its notes.
+// The date of birth we store for an age given in months: the first of the
+// month that many months ago, so "2 years 6 months" reads as exactly that
+// on any day of this month ("turned it this month"). It is approximate;
+// the registration says so in its notes.
 export function dobFromAgeMonths(ageMonths: number, today: string): string {
-  const date = new Date(`${today.slice(0, 7)}-15T12:00:00Z`);
+  const date = new Date(`${today.slice(0, 7)}-01T12:00:00Z`);
   date.setUTCMonth(date.getUTCMonth() - ageMonths);
   return date.toISOString().slice(0, 10);
 }

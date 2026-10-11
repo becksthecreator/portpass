@@ -83,8 +83,10 @@ export async function POST(request: Request) {
   // box, how they will pay, the photo answer and one combined consent.
   // The rest of the record is filled from that: the parent is the
   // emergency contact and the pickup person until they say otherwise at
-  // /futprep/my/<code>/complete; the date of birth is derived from the age
-  // and the notes say so; the health notes go in medical_conditions.
+  // the registration detail (a coach enters what the parent sends on
+  // WhatsApp); the date of birth is derived from the age (the first of the
+  // month, "turned it this month") and the notes say so; the health notes
+  // go in medical_conditions.
   if (mode === "quick") {
     const ageMonths = Number(body.childAgeMonths);
     if (!Number.isInteger(ageMonths) || ageMonths < 0 || ageMonths > 18 * 12) {
