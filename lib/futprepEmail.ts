@@ -23,11 +23,18 @@ export function futprepEmailShell(title: string, bodyHtml: string): string {
   </div>`;
 }
 
+// Every link in an email is an absolute http(s) address the server built;
+// anything else is refused here rather than sent.
+function safeHref(href: string): string {
+  if (!/^https?:\/\//i.test(href)) throw new Error("An email link must be an absolute http(s) address.");
+  return escape(href);
+}
+
 // The one action in an email: a pink button with navy words.
 export function futprepEmailButton(href: string, label: string): string {
-  return `<p style="margin:20px 0"><a href="${escape(href)}" style="display:inline-block;background:${p.button};color:${p.buttonText};font-weight:800;text-decoration:none;padding:12px 20px;border-radius:999px">${escape(label)}</a></p>`;
+  return `<p style="margin:20px 0"><a href="${safeHref(href)}" style="display:inline-block;background:${p.button};color:${p.buttonText};font-weight:800;text-decoration:none;padding:12px 20px;border-radius:999px">${escape(label)}</a></p>`;
 }
 
 export function futprepEmailLink(href: string, label: string): string {
-  return `<a href="${escape(href)}" style="color:${p.link};font-weight:700">${escape(label)}</a>`;
+  return `<a href="${safeHref(href)}" style="color:${p.link};font-weight:700">${escape(label)}</a>`;
 }

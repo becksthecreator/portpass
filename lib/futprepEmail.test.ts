@@ -26,6 +26,11 @@ describe("the Futprep email shell", () => {
     expect(contrast(FLAMINGO_NIGHT["--fp-navy"], FLAMINGO_NIGHT["--fp-pink"])).toBeGreaterThanOrEqual(AA);
   });
 
+  it("refuses a link that isn't an absolute http(s) address", () => {
+    expect(() => futprepEmailButton("javascript:alert(1)", "Go")).toThrow();
+    expect(() => futprepEmailLink("/futprep/my", "Go")).toThrow();
+  });
+
   it("a plain link is the deep pink, which reads on white", () => {
     const link = futprepEmailLink("https://portpassbahamas.com", "PortPass");
     expect(link).toContain(`color:${FLAMINGO_NIGHT["--fp-pink-deep"]}`);
