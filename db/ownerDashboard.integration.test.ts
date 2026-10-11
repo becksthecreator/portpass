@@ -91,7 +91,8 @@ beforeAll(async () => {
 
   await savePaymentSettings(orgId, { referencePrefix: "TDB", bankName: "TEST Bank", accountName: MARK, accountNumberLast4: "0000", transferInstructions: "TEST", kanooHandleOrPhone: "", cashNote: "TEST desk", defaultDueDays: 7, acceptedMethods: ["bank_transfer", "cash"] }, actor());
   const request = (over: Record<string, unknown> = {}) => ({
-    customerName: `${MARK} Parent`, customerEmail: `dash-parent-${tag}@example.com`, customerPhone: "242-555-0101", personId: null,
+    // Stored as E.164, as the route normalises it (payment_requests_customer_phone_check).
+    customerName: `${MARK} Parent`, customerEmail: `dash-parent-${tag}@example.com`, customerPhone: "+12425550101", personId: null,
     lines: [{ label: "TEST term fee", qty: 1, unitCents: 42000 }], totalCents: 42000, dueDate: addDays(today, 7), allowPartPayment: false,
     methods: ["bank_transfer" as const, "cash" as const], offeringId: null, registrationId: null, privateSessionRequestId: null, reservationId: null, ...over,
   });
