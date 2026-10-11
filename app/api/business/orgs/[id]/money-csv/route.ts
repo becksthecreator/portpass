@@ -3,9 +3,13 @@ import { logAudit } from "@/db/audit";
 import { loadMoneyRows } from "@/db/ownerDashboard";
 import { buildMoneyCsv, filterMoney, isMoneyFilter, isMonth } from "@/lib/ownerDashboard";
 import { nassauToday } from "@/lib/futprepTerms";
+import { createRateLimiter } from "@/lib/auth/rateLimit";
 import { orgIdFrom, paymentRouteError, paymentsApiAccess } from "@/lib/paymentRequests/access";
 
 type Ctx = { params: Promise<{ id: string }> };
+
+// A CSV is a handful of queries; sixty an hour per person is plenty.
+const limited = createRateLimiter(60, 60 * 60_000);
 
 // The dashboard's money table as CSV (brief 27, B), for the people who may
 // handle this business's payments: the same door as every payments route.
@@ -14,6 +18,7 @@ export async function GET(request: Request, ctx: Ctx) {
   if (!orgId) return NextResponse.json({ error: "Not found." }, { status: 404 });
   const auth = await paymentsApiAccess(orgId);
   if (!auth.ok) return auth.response;
+  if (limited(auth.access.actor.userId ?? `org:${orgId}`)) return NextResponse.json({ error: "Too many downloads in a row. Wait a few minutes." }, { status: 429 });
 
   const params = new URL(request.url).searchParams;
   const today = nassauToday();

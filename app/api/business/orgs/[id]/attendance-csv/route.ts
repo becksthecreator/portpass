@@ -3,8 +3,11 @@ import { logAudit } from "@/db/audit";
 import { loadAttendance } from "@/db/ownerDashboard";
 import { buildAttendanceCsv } from "@/lib/ownerDashboard";
 import { requireOrgRoleApi } from "@/lib/auth/guards";
+import { createRateLimiter } from "@/lib/auth/rateLimit";
 
 type Ctx = { params: Promise<{ id: string }> };
+
+const limited = createRateLimiter(60, 60 * 60_000);
 
 // The dashboard's attendance tables as CSV (brief 27, B): sessions with
 // booked, present, absent and not marked, then each child's rate. Team
@@ -15,6 +18,7 @@ export async function GET(_request: Request, ctx: Ctx) {
   if (!Number.isInteger(id) || id <= 0) return NextResponse.json({ error: "Not found." }, { status: 404 });
   const auth = await requireOrgRoleApi(id, "org_staff");
   if (!auth.ok) return auth.response;
+  if (limited(auth.session.userId)) return NextResponse.json({ error: "Too many downloads in a row. Wait a few minutes." }, { status: 429 });
 
   try {
     const { sessions, rates } = await loadAttendance(id);
