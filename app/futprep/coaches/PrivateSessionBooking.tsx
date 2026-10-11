@@ -137,7 +137,7 @@ export function PrivateSessionBooking({
             </div>
             <div className="request-mail-water"><i/><i/><i/></div>
           </div>
-          <h3 className="tap-step is-done"><span>3</span>Done</h3>
+          <p className="tap-step is-done"><span>3</span>Done</p>
           <h2>On its way.</h2>
           <p>Your request has gone to the Futprep coaches. It is not confirmed until a coach accepts it; you will get an email with the time, place and how to pay.</p>
           <div className="request-reference">
@@ -154,7 +154,7 @@ export function PrivateSessionBooking({
           <form onSubmit={submit}>
             {/* Brief 27 (C): the same Pick / Who / Done reading as the Saturday
                 registration; the fields and rules are brief 29's, unchanged. */}
-            <h3 className="tap-step"><span>1</span>Pick</h3>
+            <p className="tap-step"><span>1</span>Pick</p>
             {services.length > 0 ? (
               <fieldset className="private-session-services">
                 <legend>Service</legend>
@@ -198,7 +198,7 @@ export function PrivateSessionBooking({
                 <label><span>Suggested start time</span><input name="requestedStartTime" type="time" required /></label>
               </div>
             )}
-            <h3 className="tap-step"><span>2</span>Who</h3>
+            <p className="tap-step"><span>2</span>Who</p>
             <div className="private-session-two">
               <label><span>Parent / guardian</span><input name="parentName" autoComplete="name" required /></label>
               <label><span>Phone</span><input name="parentPhone" type="tel" autoComplete="tel" required /></label>

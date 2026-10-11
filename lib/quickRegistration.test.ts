@@ -29,16 +29,19 @@ describe("age", () => {
     expect(asksMonths(lilKickers)).toBe(true);
     expect(asksMonths(kickers)).toBe(false);
   });
-  it("counts the age on the day the term starts", () => {
+  it("counts the age on the day the term starts, ahead or behind, from the stored date of birth", () => {
+    // Born 15 Apr 2024 (2 years 6 months today): 32 months on 9 Jan 2027,
+    // 28 months on 5 Sept 2026, the day Term 1 started.
     expect(ageMonthsAtTermStart(30, today, "2027-01-09")).toBe(32);
-    expect(ageMonthsAtTermStart(30, today, "2026-09-05")).toBe(30);
+    expect(ageMonthsAtTermStart(30, today, "2026-09-05")).toBe(28);
   });
   it("tells the parent early when the class won't fit, in the class's own words", () => {
     expect(ageProblem(lilKickers, 30, today)).toBeNull();
     // 2 years 11 months today is 3 years 1 month on 9 Jan: too old for Lil Kickers.
     expect(ageProblem(lilKickers, 35, today)).toBe("Futprep Lil Kickers is for ages 1½–3, counted on the day the term starts.");
-    expect(ageProblem(kickers, 30, today)).toBe("Futprep Kickers is for ages 3–6.");
+    expect(ageProblem(kickers, 30, today)).toBe("Futprep Kickers is for ages 3–6, counted on the day the term started.");
     expect(ageProblem(kickers, 6 * 12 + 11, today)).toBeNull();
+    expect(ageProblem({ ...kickers, termStartDate: today }, 3 * 12, today)).toBeNull();
     expect(ageProblem(kickers, Number.NaN, today)).toBe("Enter the child's age.");
   });
   it("stores an age as a mid-month date of birth and says it in words", () => {
