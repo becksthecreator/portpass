@@ -250,7 +250,7 @@ async function main() {
   const { data: kidsTerm } = await db.from("program_terms").select("id").eq("program_id", kidsDance.id).single();
   const { data: businessRegistration, error: businessRegistrationError } = await db
     .from("registrations")
-    .insert({ ...rows[0], reference_code: "TPB-TEST-0001", organization_id: booth.id, program_id: kidsDance.id, term_id: kidsTerm!.id, child_name: `${MARK} Dancer`, additional_notes: "TEST — delete: a note from the parent", registration_status: "pending", payment_status: "pending", amount_due_cents: 18000 })
+    .insert({ ...rows[0], reference_code: "TPB-TEST-0001", parent_phone: "+12425550125", organization_id: booth.id, program_id: kidsDance.id, term_id: kidsTerm!.id, child_name: `${MARK} Dancer`, additional_notes: "TEST — delete: a note from the parent", registration_status: "pending", payment_status: "pending", amount_due_cents: 18000 })
     .select("id")
     .single();
   if (businessRegistrationError || !businessRegistration) throw new Error(`Could not seed the TEST business registration: ${businessRegistrationError?.message}`);

@@ -140,6 +140,7 @@ export async function listFutprepStaffRegistrations(): Promise<
         // The emergency and health columns are read only to work out
         // missing_details below; they are not returned.
         .select("id,reference_code,program_id,term_id,child_name,child_dob,gender,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,photo_consent,signature_name,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,submitted_at")
+        .eq("organization_id", organizationId)
         .in("program_id", programIds)
         .neq("registration_status", "cancelled")
         .order("child_name", { ascending: true }),
@@ -1422,6 +1423,7 @@ export async function rosterExportForTerm(programId: number, termId: number): Pr
     db
       .from("registrations")
       .select("id,reference_code,child_name,child_dob,parent_name,parent_phone,parent_email,photo_consent,registration_status,payment_status,amount_due_cents")
+      .eq("organization_id", organizationId)
       .eq("program_id", programId)
       .eq("term_id", termId)
       .in("registration_status", ["pending_details", "pending", "confirmed"])

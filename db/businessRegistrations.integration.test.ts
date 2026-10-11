@@ -130,6 +130,7 @@ describe("the team sees who registered", () => {
     // An adult's notes, too, only for someone allowed.
     const adultHidden = (await getBusinessRegistration(orgId, adultRegistration, { mayViewHealth: false }))!;
     expect(JSON.stringify(adultHidden)).not.toContain("ZZNOTE");
+    expect([hidden.notesHidden, adultHidden.notesHidden, shown.notesHidden, adult.notesHidden]).toEqual([true, true, false, false]);
     // Another business can't open it.
     expect(await getBusinessRegistration(otherOrgId, childRegistration, { mayViewHealth: true })).toBeNull();
   });

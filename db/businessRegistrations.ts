@@ -50,6 +50,9 @@ export type BusinessRegistrationDetail = BusinessRegistration & {
   // A health column (lib/health.ts): null unless the person may see medical
   // details, whatever was written.
   additionalNotes: string | null;
+  // The person may not see medical details, so the notes (and a child's
+  // health block) were not read: the screen says why, never whether any exist.
+  notesHidden: boolean;
   heardAboutUs: string | null;
   // null: the person may not see them, or this is an adult's registration.
   health: BusinessRegistrationHealth | null;
@@ -145,6 +148,7 @@ export async function getBusinessRegistration(organizationId: number, id: number
     paymentMethod: text(row.payment_method),
     photoConsent: text(row.photo_consent),
     additionalNotes,
+    notesHidden: !options.mayViewHealth,
     heardAboutUs: text(row.heard_about_us),
     health,
   };

@@ -144,7 +144,9 @@ export function RegistrationDetail({
           <div><dt>Photos</dt><dd>{r.photoConsent === "yes" ? "Permission given" : r.photoConsent === "no" ? "No permission" : "Not answered"}</dd></div>
           {/* Loaded only for someone allowed to see medical details; a
               child's are under Health and safety. */}
-          {r.participantIsAdult && r.additionalNotes && <div><dt>Notes</dt><dd>{r.additionalNotes}</dd></div>}
+          {r.participantIsAdult && (r.notesHidden
+            ? <div><dt>Notes</dt><dd>Shown only to team members allowed to see medical details</dd></div>
+            : r.additionalNotes && <div><dt>Notes</dt><dd>{r.additionalNotes}</dd></div>)}
         </dl>
       </section>
 
