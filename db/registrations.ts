@@ -361,7 +361,12 @@ function termWindow(term: TermOfferRow): TermWindow {
 // is open. Three queries however many programs and terms there are.
 // `organizationId` (brief 18, D1): any business's offers; without it,
 // Futprep's, exactly as before.
-export async function listFutprepOffers(options: { publicOnly?: boolean; now?: Date; earlyAccess?: boolean; memberEarlyHours?: number | null; organizationId?: number } = {}): Promise<FutprepAvailability[]> {
+// `staffDesk` (brief 27, A): the registration desk lists every active term
+// that has not finished, whether or not its public window is open, so
+// staff can add a late joiner to a closed term or a family to the next
+// one by hand (createFutprepRegistration already skips the window for
+// staff). Never used for anything a parent sees.
+export async function listFutprepOffers(options: { publicOnly?: boolean; now?: Date; earlyAccess?: boolean; memberEarlyHours?: number | null; organizationId?: number; staffDesk?: boolean } = {}): Promise<FutprepAvailability[]> {
   if (options.organizationId === undefined) await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
   const organizationId = options.organizationId ?? (await futprepOrganizationId());
@@ -407,7 +412,8 @@ export async function listFutprepOffers(options: { publicOnly?: boolean; now?: D
     const earlyOpen = Boolean(options.earlyAccess) && isTermEarlyAccessOpen({ ...termWindow(term), earlyAccessUntil: term.early_access_until }, now);
     // A signed-in member, in the hours before the public opening (brief 10).
     const memberOpen = isTermMemberEarlyOpen(termWindow(term), options.memberEarlyHours, now);
-    if (!publicOpen && !earlyOpen && !memberOpen) continue;
+    const staffOpen = Boolean(options.staffDesk) && Boolean(term.active) && term.end_date >= nassauToday(now);
+    if (!publicOpen && !earlyOpen && !memberOpen && !staffOpen) continue;
     const capacity = Number(program.capacity);
     const cap = capForTerm(program, term, upcoming);
     const registered = registeredByKey.get(`${program.id}:${term.id}`) ?? 0;
@@ -463,6 +469,52 @@ export async function listFutprepOffers(options: { publicOnly?: boolean; now?: D
 // What the public sees: every open offer on a listed (is_public) program.
 export async function getFutprepAvailability(): Promise<FutprepAvailability[]> {
   return listFutprepOffers({ publicOnly: true });
+}
+
+// When registration next opens to parents (brief 27, A): the earliest
+// future opening among active terms of listed, active programs, with the
+// names of the programs that open then. Null when nothing is scheduled.
+// Shown on /futprep/register while nothing is open ("Term 2 opens on
+// 19 November"), so a closed page still says what comes next.
+export type FutprepNextOpening = { opensAt: string; termName: string; programNames: string[] };
+
+export async function nextFutprepRegistrationOpening(now: Date = new Date()): Promise<FutprepNextOpening | null> {
+  await ensureFutprepPilotData();
+  const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
+  const { data: programs, error: programsError } = await db
+    .from("programs")
+    .select("id,name")
+    .eq("organization_id", organizationId)
+    .eq("active", true)
+    .eq("is_public", true)
+    .neq("program_type", "contract");
+  throwIfSupabaseError(programsError, "Could not load programs");
+  const programList = (programs ?? []) as Array<{ id: number; name: string }>;
+  if (programList.length === 0) return null;
+
+  const { data: terms, error: termsError } = await db
+    .from("program_terms")
+    .select("program_id,name,registration_opens_at")
+    .in("program_id", programList.map((p) => p.id))
+    .eq("active", true)
+    .gt("registration_opens_at", now.toISOString())
+    .order("registration_opens_at", { ascending: true });
+  throwIfSupabaseError(termsError, "Could not load term openings");
+  const rows = (terms ?? []) as Array<{ program_id: number; name: string; registration_opens_at: string }>;
+  if (rows.length === 0) return null;
+
+  const opensAt = rows[0].registration_opens_at;
+  const nameById = new Map(programList.map((p) => [Number(p.id), p.name]));
+  // Programs that open on the same Nassau day are named together, even
+  // when their timestamps differ by a few seconds.
+  const openingDay = nassauToday(new Date(opensAt));
+  const sameDay = rows.filter((row) => nassauToday(new Date(row.registration_opens_at)) === openingDay);
+  return {
+    opensAt,
+    termName: sameDay[0].name,
+    programNames: [...new Set(sameDay.map((row) => nameById.get(Number(row.program_id))).filter((name): name is string => Boolean(name)))],
+  };
 }
 
 // One offer by program slug (and term, when given), including unlisted

@@ -118,6 +118,7 @@ export function AddProgramManager({ initialPrograms, sites = [] }: { initialProg
             </div>
             <div className="team-manager-flags">
               <span className={program.active ? "flag-on" : "flag-off"}>{program.active ? "Active" : "Inactive"}</span>
+              {!program.isPublic && <span className="flag-off">Hidden from parents</span>}
               {program.programType === "contract" && program.contractFeeCents !== null && (
                 <span className="flag-on">{formatMoney(program.contractFeeCents)} {program.contractBilling === "per_term" ? "per term" : "per session"}</span>
               )}
@@ -125,6 +126,8 @@ export function AddProgramManager({ initialPrograms, sites = [] }: { initialProg
                 <span className="flag-on">{program.spotsRemaining} of {program.capacity} spots open</span>
               )}
             </div>
+            {/* Brief 27 (A): a staff-only note, never on a parent's page. */}
+            {program.staffNote && <p className="team-manager-note" role="note"><strong>Staff note:</strong> {program.staffNote}</p>}
             <div className="team-manager-actions">
               <button
                 className={program.active ? "danger-action" : ""}

@@ -93,7 +93,7 @@ function longDate(iso: string): string {
 // the one a direct link names); `initialOfferKey` is that link's choice.
 export function RegistrationForm({
   attribution = EMPTY_ATTRIBUTION, offers, initialOfferKey = null,
-  mode = "standard", prefill = null, returnToken = null, trialSessions = {}, joinQuote = null, intro = null, trialHref = null, trialLabel = null,
+  mode = "standard", prefill = null, returnToken = null, trialSessions = {}, joinQuote = null, intro = null, trialHref = null, trialLabel = null, closedNotice = null,
 }: {
   attribution?: Attribution; offers: Offer[]; initialOfferKey?: string | null;
   mode?: "standard" | "trial"; prefill?: FormPrefill | null; returnToken?: string | null;
@@ -101,6 +101,9 @@ export function RegistrationForm({
   trialHref?: string | null;
   // Brief 12: "Free taster Saturday, 12 Dec →", from the taster date.
   trialLabel?: string | null;
+  // Brief 27 (A): what to say when nothing is open, e.g. "Term 2 opens on
+  // Thursday 19 November." Without it, the generic line.
+  closedNotice?: string | null;
 }) {
   const searchParams = useSearchParams();
   const availability = offers;
@@ -416,7 +419,7 @@ export function RegistrationForm({
             <div className="choice-section">
               <span className="choice-heading">{isTrial ? "Choose a class *" : "Choose a class or camp *"}</span>
               <div className="class-choice-grid">
-                {availability.length === 0 && <p className="form-hint">Nothing is open for registration right now. Message Futprep on WhatsApp and we&apos;ll tell you when the next one opens.</p>}
+                {availability.length === 0 && <p className="form-hint">{closedNotice ? `${closedNotice} Message Futprep on WhatsApp if you have a question.` : <>Nothing is open for registration right now. Message Futprep on WhatsApp and we&apos;ll tell you when the next one opens.</>}</p>}
                 {availability.map((program) => (
                   <label className={`choice-card ${form.offerKey===offerKey(program) ? "is-selected" : ""}`} key={offerKey(program)}>
                     <input type="radio" name="program" checked={form.offerKey===offerKey(program)} onChange={()=>chooseOffer(program)} />

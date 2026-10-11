@@ -4,9 +4,16 @@ import { SiteHeader } from "@/app/_components/SiteHeader";
 import { formatPriceCents } from "@/app/_components/blocks/format";
 import { bizDisplay, ppSans } from "@/app/fonts";
 import { listPublicCoachProfiles } from "@/db/coaches";
+import { getOrganizationListingBySlug } from "@/db/organizations";
 import { getFutprepAvailability, type FutprepAvailability } from "@/db/registrations";
 import { campDays, formatDateRange } from "@/lib/futprepTerms";
 import { portpassWhatsAppUrl } from "@/lib/contact";
+
+// Where the empty state sends parents instead (brief 27 A): the two things
+// Futprep runs every week. No dates here: a camp's dates appear only once
+// its row is public and its registration window is open.
+const SATURDAY_SESSIONS_HREF = "/sports-fitness/futprep-athletics";
+const PRIVATE_SESSIONS_HREF = "/futprep/book";
 
 // Futprep's holiday camps (brief 06 v2, A1.6): every public camp with an
 // open registration window. Spots left change with each registration, so
@@ -27,6 +34,17 @@ async function openCamps(): Promise<FutprepAvailability[]> {
   }
 }
 
+// A saved Instagram handle makes "@futprep" a link; without one it stays
+// plain text, so the page never points at an account nobody confirmed.
+async function instagramHandle(): Promise<string | null> {
+  try {
+    const handle = (await getOrganizationListingBySlug("futprep"))?.organization.instagramHandle?.replace(/^@/, "").trim();
+    return handle || null;
+  } catch {
+    return null;
+  }
+}
+
 async function campCoaches(): Promise<{ name: string; photo: string | null; title: string }[]> {
   try {
     const { coaches } = await listPublicCoachProfiles();
@@ -43,7 +61,7 @@ function initials(name: string): string {
 }
 
 export default async function FutprepCampsPage() {
-  const [camps, coaches] = await Promise.all([openCamps(), campCoaches()]);
+  const [camps, coaches, instagram] = await Promise.all([openCamps(), campCoaches(), instagramHandle()]);
   const whatsapp = portpassWhatsAppUrl("Hi, I'd like to hear about the next Futprep holiday camp");
 
   return (
@@ -59,8 +77,15 @@ export default async function FutprepCampsPage() {
         {camps.length === 0 ? (
           <section className="camps-empty">
             <h2>No camps open right now.</h2>
-            <p>The next camp&rsquo;s dates go up here as soon as they are set.</p>
-            <a className="tpl-offering-cta" href={whatsapp} target="_blank" rel="noopener noreferrer">Ask about the next camp on WhatsApp <span aria-hidden="true">→</span></a>
+            <p>
+              Follow{" "}
+              {instagram ? <a href={`https://www.instagram.com/${encodeURIComponent(instagram)}/`} target="_blank" rel="noopener noreferrer">@{instagram}</a> : "@futprep"}{" "}
+              for the next one.
+            </p>
+            <div className="camps-empty-links">
+              <Link className="tpl-offering-cta" href={SATURDAY_SESSIONS_HREF}>Saturday sessions <span aria-hidden="true">→</span></Link>
+              <Link className="tpl-offering-cta" href={PRIVATE_SESSIONS_HREF}>Private sessions <span aria-hidden="true">→</span></Link>
+            </div>
           </section>
         ) : (
           <section className="camps-list" aria-label="Open camps">

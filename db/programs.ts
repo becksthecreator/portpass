@@ -63,6 +63,10 @@ export type FutprepProgramSummary = {
   endTime: string | null;
   capacity: number;
   active: boolean;
+  // Brief 27 (A): an unlisted program (is_public = false) is hidden from
+  // parents but still here for staff; the note is staff-only too.
+  isPublic: boolean;
+  staffNote: string | null;
   // Who it is for (brief 18, D3).
   audience: "children" | "adults" | "mixed";
   // Brief 13: the kind of program, its site, and a school contract's terms.
@@ -137,7 +141,7 @@ export async function listFutprepPrograms(forOrganizationId?: number): Promise<F
 
   const { data: programs, error: programsError } = await db
     .from("programs")
-    .select("id,slug,name,age_min,age_max,age_min_months,age_max_months,coed,location,day_of_week,start_time,end_time,capacity,active,audience,program_type,location_id,contract_client,contract_fee_cents,contract_billing,locations(name)")
+    .select("id,slug,name,age_min,age_max,age_min_months,age_max_months,coed,location,day_of_week,start_time,end_time,capacity,active,is_public,staff_note,audience,program_type,location_id,contract_client,contract_fee_cents,contract_billing,locations(name)")
     .eq("organization_id", organizationId)
     .order("id", { ascending: true });
   throwIfSupabaseError(programsError, "Could not load Futprep programs");
@@ -196,6 +200,8 @@ export async function listFutprepPrograms(forOrganizationId?: number): Promise<F
       endTime: program.end_time ?? null,
       capacity: Number(program.capacity),
       active: Boolean(program.active),
+      isPublic: program.is_public !== false,
+      staffNote: (program.staff_note as string | null)?.trim() || null,
       audience: program.audience === "adults" || program.audience === "mixed" ? program.audience : "children",
       programType: program.program_type === "camp" ? "camp" : program.program_type === "contract" ? "contract" : "term",
       siteName: (program.locations as unknown as { name: string } | null)?.name ?? null,

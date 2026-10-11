@@ -6,7 +6,7 @@ import { RegistrationForm, type JoinQuote } from "./RegistrationForm";
 import "./contrast.css";
 import { futprepOrganization } from "@/db/growth";
 import { memberEarlyAccess } from "@/db/memberPerks";
-import { getFutprepOffer, listFutprepOffers, trialJoinQuote, type FutprepAvailability } from "@/db/registrations";
+import { getFutprepOffer, listFutprepOffers, nextFutprepRegistrationOpening, trialJoinQuote, type FutprepAvailability } from "@/db/registrations";
 import { getSession } from "@/lib/auth/session";
 import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAttribution, parseAttributionCookie, type Attribution } from "@/lib/attribution";
 import { shortDate, upcomingTaster } from "@/lib/futprepClasses";
@@ -77,6 +77,23 @@ async function readAttribution(searchParams: SearchParams): Promise<Attribution>
   return mergeAttribution(parseAttributionCookie(cookieStore.get(ATTRIBUTION_COOKIE)?.value), incoming) ?? EMPTY_ATTRIBUTION;
 }
 
+// Brief 27 (A): while nothing is open, say when registration next opens
+// ("Term 2 opens on Thursday 19 November for Futprep Lil Kickers and
+// Futprep Kickers."). Nothing scheduled, or a hiccup, means no line.
+const OPENS = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Nassau" });
+
+async function closedNotice(offers: FutprepAvailability[]): Promise<string | null> {
+  if (offers.length > 0) return null;
+  try {
+    const next = await nextFutprepRegistrationOpening();
+    if (!next) return null;
+    const names = next.programNames.length > 0 ? ` for ${new Intl.ListFormat("en-GB", { type: "conjunction" }).format(next.programNames)}` : "";
+    return `${next.termName} opens for registration on ${OPENS.format(new Date(next.opensAt))}${names}.`;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMetadata({ searchParams }: { searchParams: SearchParams }) {
   const { requested } = await loadOffers(searchParams);
   return {
@@ -88,7 +105,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
 
 export default async function FutprepRegisterPage({ searchParams }: { searchParams: SearchParams }) {
   const [{ offers, requested }, attribution] = await Promise.all([loadOffers(searchParams), readAttribution(searchParams)]);
-  const joinQuote = await loadJoinQuote(searchParams, offers);
+  const [joinQuote, closed] = await Promise.all([loadJoinQuote(searchParams, offers), closedNotice(offers)]);
   // Brief 12: the free taster Saturday, when one is coming up.
   const taster = upcomingTaster(offers, nassauToday());
   const programDetailsHref = requested?.programType === "camp" ? "/futprep/camps" : requested ? `/sports-fitness/futprep-athletics/${requested.slug}` : "/sports-fitness/futprep-athletics";
@@ -112,6 +129,7 @@ export default async function FutprepRegisterPage({ searchParams }: { searchPara
           joinQuote={joinQuote}
           trialHref={taster && !joinQuote ? "/futprep/trial" : null}
           trialLabel={taster ? `Free taster Saturday, ${shortDate(taster.date)}` : null}
+          closedNotice={closed}
           intro={!joinQuote && offers.some((offer) => offer.earlyAccessOnly) ? { eyebrow: "Futprep · PortPass member early access", title: "You're in early.", lead: "As a PortPass member you can register before it opens to everyone." } : joinQuote ? { eyebrow: "Futprep · after the free taster", title: `Join the rest of the term.`, lead: `Keep ${joinQuote.childName.split(" ")[0]} playing for the ${joinQuote.remainingSessions} Saturdays left in the term. You pay only for those.` } : null}
         />
       </Suspense>
