@@ -149,8 +149,20 @@ describe.skipIf(!anonKey)("row level security, seen through a browser key", () =
       const { error } = await anon.from(table).select("*").limit(1);
       // organizations and a few others grant only some columns: "*" is
       // refused there by design, and the test above checks them by name.
-      if (["organizations", "venues", "products", "drops", "guides"].includes(table)) continue;
+      if (["organizations", "venues", "products", "drops", "guides", "locations"].includes(table)) continue;
       expect(error, `anon should be able to read ${table}: ${error?.message}`).toBeNull();
+    }
+  });
+
+  it("a location's name is public, what the business pays for it is not (brief 31, B)", async () => {
+    const { error: seedError } = await admin.from("locations").insert({ organization_id: ids.published, name: `TEST — delete ${TAG} field`, active: true, cost_model: "per_hour", cost_cents: 4000, cost_note: "TEST" });
+    expect(seedError).toBeNull();
+    const named = await anon.from("locations").select("name").eq("organization_id", ids.published);
+    expect(named.error).toBeNull();
+    expect((named.data ?? []).map((row) => row.name)).toContain(`TEST — delete ${TAG} field`);
+    for (const column of ["cost_model", "cost_cents", "cost_note", "private_sessions_ok", "days_available", "hours_note", "surface"]) {
+      const hidden = await anon.from("locations").select(column).eq("organization_id", ids.published).limit(1);
+      expect(hidden.error, `anon must not be able to select locations.${column}`).not.toBeNull();
     }
   });
 

@@ -4,14 +4,19 @@
 // everyone's; a coach sees only their own.
 import {
   contractInvoiceCents,
+  estimateFieldCostCents,
+  fieldCostFor,
   leftForFutprep,
   monthOf,
   payForRole,
   portpassFeeCents,
+  sessionMinutes,
   shareFee,
   type ContractBilling,
   type ContractLine,
   type LedgerRow,
+  type LocationCost,
+  type LocationCostModel,
   type PnlLine,
   type StaffRole,
 } from "@/lib/coachPay";
@@ -281,6 +286,7 @@ export async function listStaffLogins(): Promise<Array<{ id: number; name: strin
 
 type ProgramRow = {
   id: number; name: string; program_type: string; field_cost_cents_per_term: number | null;
+  location_id: number | null; start_time: string | null; end_time: string | null;
   contract_client: string | null; contract_fee_cents: number | null; contract_billing: string | null;
 };
 type TermRow = { id: number; program_id: number; name: string; start_date: string };
@@ -290,7 +296,7 @@ async function loadProgramsAndTerms() {
   const organizationId = await futprepOrganizationId();
   const { data: programs, error } = await db
     .from("programs")
-    .select("id,name,program_type,field_cost_cents_per_term,contract_client,contract_fee_cents,contract_billing")
+    .select("id,name,program_type,field_cost_cents_per_term,contract_client,contract_fee_cents,contract_billing,location_id,start_time,end_time")
     .eq("organization_id", organizationId);
   throwIfSupabaseError(error, "Could not load programs");
   const programList = (programs ?? []) as ProgramRow[];
@@ -384,6 +390,16 @@ export async function listProgramPnl(): Promise<PnlLine[]> {
   }
   const contractLines = await listContractLines();
 
+  // Brief 31 (B3): a program with no field cost of its own is costed from
+  // its location and the term's scheduled sessions, and says so.
+  const locationIds = [...new Set(programs.map((p) => p.location_id).filter((id): id is number => id !== null))];
+  const { data: locationRows, error: locationError } = locationIds.length
+    ? await db.from("locations").select("id,cost_model,cost_cents").in("id", locationIds)
+    : { data: [], error: null };
+  throwIfSupabaseError(locationError, "Could not load location costs");
+  const locationCost = new Map((locationRows ?? []).map((row): [number, LocationCost] => [Number(row.id), { costModel: (row.cost_model as LocationCostModel | null) ?? null, costCents: row.cost_cents === null ? null : Number(row.cost_cents) }]));
+  const { scheduled } = await sessionCounts(db, termIds);
+
   // The PortPass fee is capped per term across the classes that share it.
   const programById = new Map(programs.map((p) => [p.id, p]));
   const groups = new Map<string, number[]>();
@@ -418,7 +434,11 @@ export async function listProgramPnl(): Promise<PnlLine[]> {
       kind,
       feesCollectedCents,
       coachPayCents,
-      fieldCostCents: Number(program.field_cost_cents_per_term ?? 0),
+      ...(() => {
+        const estimate = estimateFieldCostCents(program.location_id === null ? null : locationCost.get(Number(program.location_id)) ?? null, scheduled.get(termId) ?? 0, sessionMinutes(program.start_time, program.end_time));
+        const field = fieldCostFor(program.field_cost_cents_per_term === null ? null : Number(program.field_cost_cents_per_term), estimate);
+        return { fieldCostCents: field.cents, fieldCostSource: field.source, fieldCostEstimateCents: estimate };
+      })(),
       portpassFeeCents: fee.get(termId) ?? 0,
     };
     lines.push({ ...base, leftCents: leftForFutprep(base), startDate: term.start_date });
