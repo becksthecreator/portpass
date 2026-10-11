@@ -3,7 +3,7 @@ import { ageOnDate } from "@/lib/scheduling";
 import { effectiveCap } from "@/lib/futprepClasses";
 import { effectiveCapForTerm, ensureFutprepPilotData, type PaymentFrequency, type PaymentMethod } from "./registrations";
 import { futprepOrganizationId } from "./programs";
-import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
+import { getSupabaseAdmin, pageAll, throwIfSupabaseError } from "./supabase";
 
 export type StaffRegistration = {
   id: number;
@@ -132,37 +132,47 @@ export async function listFutprepStaffRegistrations(): Promise<
   const programById = new Map(programRows.map((row) => [row.id, row]));
   const programIds = programRows.map((row) => row.id);
 
-  const [{ data: registrations, error }, { data: payments, error: paymentError }] =
-    await Promise.all([
+  // Audit finding 5 (brief 33): the API returns at most 1,000 rows a call,
+  // so both lists are read in pages, and only these children's received
+  // payments are read (in chunks of ids, to keep each request short).
+  const registrations = await pageAll<Record<string, unknown>>(
+    (from, to) =>
       db
         .from("registrations")
         .select("id,reference_code,program_id,term_id,child_name,child_dob,gender,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,authorized_pickup,photo_consent,signature_name,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,submitted_at")
         .in("program_id", programIds)
         .neq("registration_status", "cancelled")
-        .order("child_name", { ascending: true }),
-      db
-        .from("payments")
-        .select("registration_id,amount_cents,status")
-        .eq("status", "received"),
-    ]);
-  throwIfSupabaseError(error, "Could not load Futprep registrations");
-  throwIfSupabaseError(paymentError, "Could not load Futprep payments");
+        .order("child_name", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    "Could not load Futprep registrations",
+  );
 
+  const registrationIds = registrations.map((row) => Number(row.id));
   const paidByRegistration = new Map<number, number>();
-  for (const payment of (payments ?? []) as Array<{
-    registration_id: number;
-    amount_cents: number;
-    status: string;
-  }>) {
-    paidByRegistration.set(
-      payment.registration_id,
-      (paidByRegistration.get(payment.registration_id) ?? 0) +
-        Number(payment.amount_cents),
+  for (let i = 0; i < registrationIds.length; i += 200) {
+    const ids = registrationIds.slice(i, i + 200);
+    const payments = await pageAll<{ registration_id: number; amount_cents: number }>(
+      (from, to) =>
+        db
+          .from("payments")
+          .select("registration_id,amount_cents")
+          .eq("status", "received")
+          .in("registration_id", ids)
+          .order("id", { ascending: true })
+          .range(from, to),
+      "Could not load Futprep payments",
     );
+    for (const payment of payments) {
+      paidByRegistration.set(
+        Number(payment.registration_id),
+        (paidByRegistration.get(Number(payment.registration_id)) ?? 0) +
+          Number(payment.amount_cents),
+      );
+    }
   }
 
-  const rows = (registrations ?? []) as Array<Record<string, unknown>>;
-  return rows
+  return registrations
     .map((row) => {
       const program = programById.get(Number(row.program_id));
       if (!program) return null;

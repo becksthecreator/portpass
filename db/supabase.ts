@@ -49,6 +49,19 @@ export function throwIfSupabaseError(
   throw thrown;
 }
 
+// PostgREST returns at most 1,000 rows a call, whatever .limit() says
+// (supabase/config.toml max_rows): read a whole list in pages. The query
+// needs a stable order (end it on a unique column) for the pages to meet.
+export async function pageAll<T>(fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message?: string; code?: string } | null }>, context: string): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await fetchPage(from, from + 999);
+    throwIfSupabaseError(error, context);
+    out.push(...(data ?? []));
+    if (!data || data.length < 1000) return out;
+  }
+}
+
 // Retries once, after a short delay, for the specific failure this was
 // built for: PGRST303 ("JWT issued at future" -- a clock-skew rejection at
 // token-issuance time, not a real data problem) and generic network

@@ -32,7 +32,7 @@ import type { PaymentFrequency } from "./registrations";
 import { logAudit } from "./audit";
 import { findPersonByEmail } from "./accounts";
 import { demoOrganizationIdOrNull } from "./demo";
-import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
+import { getSupabaseAdmin, pageAll, throwIfSupabaseError } from "./supabase";
 
 // Payment requests (brief 17, Payments Phase 1). Every function that takes
 // an organization id only ever reads or writes that business's rows: the
@@ -249,17 +249,6 @@ function toPayment(row: Record<string, unknown>): RequestPayment {
     refundedAt: (row.refunded_at as string | null) ?? null,
     refundNote: (row.refund_note as string | null) ?? null,
   };
-}
-
-// PostgREST returns at most 1,000 rows a call, whatever .limit() says.
-async function pageAll<T>(fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message?: string; code?: string } | null }>, context: string): Promise<T[]> {
-  const out: T[] = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await fetchPage(from, from + 999);
-    throwIfSupabaseError(error, context);
-    out.push(...(data ?? []));
-    if (!data || data.length < 1000) return out;
-  }
 }
 
 // The database refuses with PAYMENT_REQUEST_<CODE>; the screens get <CODE>.
