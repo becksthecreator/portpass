@@ -31,7 +31,7 @@ vi.mock("@/app/futprep/staff-auth", () => ({
   listStaffWithoutLogin: vi.fn(async () => db.withoutLogin),
   assignStaffLogin: vi.fn(async (input: { id: number; role: string; actorName: string }) => {
     db.logins.push({ id: input.id, role: input.role, actorName: input.actorName });
-    return { id: input.id, ...input };
+    return { ...input };
   }),
   setStaffCanViewMedical: vi.fn(async (id: number, value: boolean, actorName: string) => {
     db.medical.push({ id, value, actorName });
