@@ -7,7 +7,7 @@ import {
 import { EMPTY_ATTRIBUTION, resolveAttribution, type Attribution, type HeardAnswer, type Resolved } from "@/lib/attribution";
 import { amountDueCents as amountDueFor, isTermEarlyAccessOpen, isTermMemberEarlyOpen, isTermOpen, nassauToday, prorateCents, type ProgramType, type TermWindow } from "@/lib/futprepTerms";
 import { ageLabel, effectiveCap, fitsAgeRule } from "@/lib/futprepClasses";
-import { escapeLikePattern, normalizeReferenceCode } from "@/lib/referenceCode";
+import { normalizeReferenceCode } from "@/lib/referenceCode";
 import { generateWeeklySessionDates } from "@/lib/scheduling";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
@@ -622,6 +622,39 @@ export async function getFutprepRegistrationStatus(
 // given under. Without a scope it is Futprep's, exactly as before.
 export type RegistrationScope = { organizationId: number; referencePrefix: string; consentVersion: string };
 
+// Audit finding 2 (brief 33): counting the places taken, the duplicate
+// check and the insert are one database call, under a lock for the class
+// and term (create_registration_within_cap, migration 202610220001), so
+// parents pressing at the same moment can't both take the last place and
+// a double tap makes one row. The cap is still worked out here.
+type PlaceRules = {
+  mode: "standard" | "waitlist" | "trial";
+  // Places in the class (standard and waitlist), and free taster spots on
+  // the Saturday (trial).
+  cap: number | null;
+  trialSpots: number | null;
+  // true: same child, date of birth and email (or phone, with no email).
+  // false (the staff desk's quick add): the same child's name in the term.
+  familyDuplicate: boolean;
+};
+
+async function insertWithinCap(db: ReturnType<typeof getSupabaseAdmin>, row: Record<string, unknown>, rules: PlaceRules): Promise<{ id: number; registrationStatus: RegistrationStatus }> {
+  const { data, error } = await db.rpc("create_registration_within_cap", {
+    p_row: row,
+    p_mode: rules.mode,
+    p_cap: rules.cap,
+    p_trial_spots: rules.trialSpots,
+    p_active_statuses: ACTIVE_REGISTRATION_STATUSES,
+    p_family_duplicate: rules.familyDuplicate,
+  });
+  // The database refuses in the app's own words.
+  const refused = /^(PROGRAM_FULL|SPOT_OPEN|TRIAL_FULL|TRIAL_ALREADY_USED|DUPLICATE:[A-Z0-9-]+)$/.exec(error?.message ?? "");
+  if (refused) throw new Error(refused[1]);
+  throwIfSupabaseError(error, "Could not create Futprep registration");
+  const placed = data as { id: number; registration_status: RegistrationStatus };
+  return { id: Number(placed.id), registrationStatus: placed.registration_status };
+}
+
 export async function createFutprepRegistration(
   input: FutprepRegistrationInput,
   scope?: RegistrationScope,
@@ -696,11 +729,14 @@ export async function createFutprepRegistration(
   let registrationStatus: RegistrationStatus = "pending";
   let trialSessionId: number | null = null;
   let joinedFrom: { id: number; amountCents: number } | null = null;
+  // Worked out here, held to by the database with the insert (insertWithinCap).
+  let cap: number | null = null;
 
   if (mode === "trial") {
     // First Saturday free with a PortPass account: signed in, a real
     // session on one of the term's trial dates, a spot left that day, and
-    // once per child (name + date of birth + parent phone).
+    // once per child (name + date of birth + parent phone). The last two
+    // are checked with the insert.
     if (!input.signedInUserId) throw new Error("TRIAL_SIGN_IN_REQUIRED");
     const { data: session, error: sessionError } = await db
       .from("sessions")
@@ -712,37 +748,17 @@ export async function createFutprepRegistration(
     if (!session || Number(session.program_id) !== Number(program.id) || Number(session.term_id) !== Number(term.id) || session.status === "cancelled" || !trialDates.includes(String(session.session_date)) || String(session.session_date) < nassauToday()) {
       throw new Error("TRIAL_NOT_AVAILABLE");
     }
-    const [{ count: trialCount, error: trialCountError }, { data: usedTrial, error: usedError }] = await Promise.all([
-      db.from("registrations").select("id", { count: "exact", head: true }).eq("trial_session_id", session.id).eq("registration_status", "trial"),
-      db.from("registrations").select("reference_code").eq("organization_id", program.organization_id).eq("registration_status", "trial").eq("child_dob", input.childDob).ilike("child_name", escapeLikePattern(input.childName.trim())).eq("parent_phone", input.parentPhone.trim()).limit(1).maybeSingle(),
-    ]);
-    throwIfSupabaseError(trialCountError, "Could not count trial spots");
-    throwIfSupabaseError(usedError, "Could not check earlier trials");
-    if (usedTrial) throw new Error("TRIAL_ALREADY_USED");
-    if (Number(trialCount ?? 0) >= Number(term.trial_spots_per_session ?? 0)) throw new Error("TRIAL_FULL");
     registrationStatus = "trial";
     trialSessionId = Number(session.id);
   } else {
-    const { count, error: countError } = await db
-      .from("registrations")
-      .select("id", { count: "exact", head: true })
-      .eq("program_id", program.id)
-      .eq("term_id", term.id)
-      .in("registration_status", ACTIVE_REGISTRATION_STATUSES);
-    throwIfSupabaseError(countError, "Could not check program capacity");
     // Brief 12: a family registering is capped by the coaches on duty at
     // the next session; staff entering a child by hand answer to capacity
-    // only (the roster warns when a session is over its cap).
-    const cap = input.enteredByStaff
+    // only (the roster warns when a session is over its cap). Full means
+    // PROGRAM_FULL, or a waitlist entry for mode "waitlist"; a place free
+    // on the waitlist form means SPOT_OPEN.
+    cap = input.enteredByStaff
       ? Number(program.capacity)
       : capForTerm(program, term, await loadUpcomingSessions(db, [Number(term.id)], nassauToday()));
-    if (Number(count ?? 0) >= cap) {
-      if (mode !== "waitlist") throw new Error("PROGRAM_FULL");
-      registrationStatus = "waitlist";
-    } else if (mode === "waitlist") {
-      // A spot opened since the page loaded: register properly instead.
-      throw new Error("SPOT_OPEN");
-    }
     // After a trial: the rest of the term at the weekly fee for each class
     // still to come.
     if (input.joinFromTrialCode) {
@@ -756,20 +772,8 @@ export async function createFutprepRegistration(
   // holds null, and a duplicate is another email-less entry for the same
   // child from the same phone. The phone keeps this from telling a stranger
   // whether a named child is enrolled, and from refusing another family's
-  // child who happens to share the name and age.
+  // child who happens to share the name and age. Checked with the insert.
   const normalizedEmail = input.parentEmail.trim().toLowerCase();
-  const sameTerm = db.from("registrations").select("reference_code").eq("term_id", term.id);
-  const sameTermAndEmail = normalizedEmail ? sameTerm.eq("parent_email", normalizedEmail) : sameTerm.is("parent_email", null).eq("parent_phone", input.parentPhone.trim());
-  const { data: duplicate, error: duplicateError } = await (adult ? sameTermAndEmail.is("child_dob", null) : sameTermAndEmail.eq("child_dob", input.childDob))
-    .ilike("child_name", escapeLikePattern(input.childName.trim()))
-    .in("registration_status", mode === "waitlist" ? [...ACTIVE_REGISTRATION_STATUSES, "waitlist"] : ACTIVE_REGISTRATION_STATUSES)
-    .limit(1)
-    .maybeSingle();
-  throwIfSupabaseError(duplicateError, "Could not check duplicate registration");
-
-  if (duplicate) {
-    throw new Error(`DUPLICATE:${duplicate.reference_code}`);
-  }
 
   // Camps are paid in full (the camp fee); the weekly/term choice is for
   // term programs only (brief 06 v2, A1.4).
@@ -805,7 +809,7 @@ export async function createFutprepRegistration(
     .slice(0, 8)
     .toUpperCase()}`;
 
-  const { data: inserted, error: insertError } = await db.from("registrations").insert({
+  const placed = await insertWithinCap(db, {
     reference_code: referenceCode,
     organization_id: program.organization_id,
     program_id: program.id,
@@ -852,10 +856,11 @@ export async function createFutprepRegistration(
     is_new_family: isNewFamily,
     commission_eligible: resolved.commissionEligible,
     commission_reason: resolved.commissionReason,
-  }).select("id").single();
-  throwIfSupabaseError(insertError, "Could not create Futprep registration");
-  if (returnLink && inserted) {
-    await db.from("futprep_return_links").update({ used_registration_id: inserted.id, last_used_at: now }).eq("id", returnLink.id);
+  }, { mode, cap, trialSpots: mode === "trial" ? Number(term.trial_spots_per_session ?? 0) : null, familyDuplicate: true });
+  // "waitlist" when the class filled up for a waitlist form.
+  registrationStatus = placed.registrationStatus;
+  if (returnLink) {
+    await db.from("futprep_return_links").update({ used_registration_id: placed.id, last_used_at: now }).eq("id", returnLink.id);
   }
 
   return {
@@ -936,27 +941,9 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
   throwIfSupabaseError(termError, "Could not load selected term");
   if (!term) throw new Error("PROGRAM_NOT_AVAILABLE");
 
-  const { count, error: countError } = await db
-    .from("registrations")
-    .select("id", { count: "exact", head: true })
-    .eq("program_id", program.id)
-    .eq("term_id", term.id)
-    .in("registration_status", ACTIVE_REGISTRATION_STATUSES);
-  throwIfSupabaseError(countError, "Could not check program capacity");
-  if (Number(count ?? 0) >= Number(program.capacity)) throw new Error("PROGRAM_FULL");
-
+  // Capacity (PROGRAM_FULL) and the same child's name already in the term
+  // (DUPLICATE) are checked with the insert, under the class's lock.
   const childName = input.childName.trim();
-  const { data: duplicate, error: duplicateError } = await db
-    .from("registrations")
-    .select("reference_code")
-    .eq("term_id", term.id)
-    .ilike("child_name", escapeLikePattern(childName))
-    .in("registration_status", ACTIVE_REGISTRATION_STATUSES)
-    .limit(1)
-    .maybeSingle();
-  throwIfSupabaseError(duplicateError, "Could not check duplicate registration");
-  if (duplicate) throw new Error(`DUPLICATE:${duplicate.reference_code}`);
-
   const now = new Date().toISOString();
   const referenceCode = `FP-${new Date().getUTCFullYear()}-${crypto
     .randomUUID()
@@ -964,7 +951,7 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
     .slice(0, 8)
     .toUpperCase()}`;
 
-  const { data: inserted, error: insertError } = await db.from("registrations").insert({
+  const placed = await insertWithinCap(db, {
     reference_code: referenceCode,
     organization_id: program.organization_id,
     program_id: program.id,
@@ -1003,10 +990,9 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
     commission_reason: program.program_type === "contract" ? "School contract" : "Entered by staff",
     submitted_at: now,
     entered_by_staff: input.enteredByStaff.trim(),
-  }).select("id").single();
-  throwIfSupabaseError(insertError, "Could not create Futprep registration");
+  }, { mode: "standard", cap: Number(program.capacity), trialSpots: null, familyDuplicate: false });
 
-  return { referenceCode, programName: program.name, registrationId: Number(inserted!.id) };
+  return { referenceCode, programName: program.name, registrationId: placed.id };
 }
 
 export type FutprepPendingRegistration = {

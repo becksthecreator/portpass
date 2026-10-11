@@ -184,6 +184,28 @@ describe("a double tap makes one registration (audit finding 2)", () => {
     expect((await rowsIn(target)).filter((r) => r.child_name === form.childName)).toHaveLength(1);
   });
 
+  it("the same form sent twice at once for the last place: one row, and the second is told the class is full", async () => {
+    const target = await newClass(1);
+    const form = child(target);
+
+    const { placed, refused } = await allAtOnce([() => createFutprepRegistration(form), () => createFutprepRegistration(form)]);
+
+    expect(placed).toHaveLength(1);
+    expect(refused).toEqual(["PROGRAM_FULL"]);
+    expect((await rowsIn(target)).filter((r) => r.child_name === form.childName)).toHaveLength(1);
+  });
+
+  it("a name is matched whatever its capitals, and % and _ in it are only letters", async () => {
+    const target = await newClass(10);
+    const form = child(target, { childName: `${MARK} AnnXe!` });
+    const first = await createFutprepRegistration(form);
+
+    // Other capitals, same family: the same child.
+    await expect(createFutprepRegistration({ ...form, childName: `${MARK} annxE!` })).rejects.toThrow(`DUPLICATE:${first.referenceCode}`);
+    // As a pattern "Ann_e%" would match "AnnXe!"; as a name it is another child.
+    expect(await createFutprepRegistration({ ...form, childName: `${MARK} Ann_e%` })).toMatchObject({ registrationStatus: "pending" });
+  });
+
   it("the three-tap form with no email, sent twice at once: one row", async () => {
     const target = await newClass(10);
     const form = child(target, { parentEmail: "" });
