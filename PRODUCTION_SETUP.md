@@ -45,9 +45,12 @@ SUPABASE_SECRET_KEY=<server-only secret key>
 
 Staff accounts are not set through environment variables or a fixed list.
 The first admin account is created through a one-time setup screen at
-`/futprep/staff/login` (shown whenever no staff account exists
-yet); that admin can then create coach/ceo/helper/admin accounts for
-everyone else from `/futprep/staff/accounts`. PINs are stored as
+`/futprep/staff/login` (shown only while no staff login has ever been
+made; a switched-off login still counts, so switching every login off
+never reopens it, and a founder switches one back on in the database
+instead). That admin can then create coach/ceo/helper/admin accounts for
+everyone else from `/futprep/staff/accounts`. The Wedding Desk works the
+same way at `/weddings/staff/login`. PINs are stored as
 hashes on `staff_members.pin_hash`, keyed by `staff_members.account_key`, so
 they can be reset without a redeploy.
 
