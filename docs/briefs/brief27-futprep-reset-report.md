@@ -5,9 +5,10 @@ Four PRs, in order, each rebased on `main`, each reviewed by `reviewer` and `sec
 | Part | PR | What it is |
 | --- | --- | --- |
 | A | [#191](https://github.com/becksthecreator/portpass/pull/191) (merged) | Take down what we can't promise: camps empty state, "Term 2 opens…" line, staff desk lists closed terms, staff note on the Christmas camp, Term 1 closed to new families, Term 2 switched on |
-| B | [#192](https://github.com/becksthecreator/portpass/pull/192) | The owner's money and attendance on one screen, on `/business/<slug>` |
-| C | [#193](https://github.com/becksthecreator/portpass/pull/193) | Booking in three taps at `/futprep/register`; private sessions read the same way |
-| D | [#194](https://github.com/becksthecreator/portpass/pull/194) | Flamingo Night: eight tokens on Futprep's row, every Futprep page and email, AA checked by a unit test |
+| B | [#192](https://github.com/becksthecreator/portpass/pull/192) (merged) | The owner's money and attendance on one screen, on `/business/<slug>` |
+| C | [#193](https://github.com/becksthecreator/portpass/pull/193) (merged) | Booking in three taps at `/futprep/register`; private sessions read the same way |
+| D | [#194](https://github.com/becksthecreator/portpass/pull/194) (merged) | Flamingo Night: eight tokens on Futprep's row, every Futprep page and email, AA checked by a unit test |
+| E | [#195](https://github.com/becksthecreator/portpass/pull/195) | Follow-up: staff-login links read on the night background; dashboard shots in the screenshot job |
 
 ## Decisions taken with Antonio during the brief
 - Futprep focuses on **Term 2** of Lil Kickers and Kickers and the **Christmas camp**; there is no mid-term camp.
@@ -35,13 +36,13 @@ CI on every PR (`npm audit`, unit, `next build --webpack` type-check, integratio
 In each PR body under "Agent output". Everything the reviewers marked medium or above was fixed before merge; the lows were applied too, except the three noted as designed (years-only ages are read as "turned N this month"; the classic form still prints the hard-coded bank account; the CEO money strip stays until desk payments and payment requests meet).
 
 ## Lighthouse (mobile, Futprep home)
-LIGHTHOUSE_RESULT
+Run https://github.com/becksthecreator/portpass/actions/runs/38142720623 on `main` after #194 (three runs, mobile): **Performance 0.92 / 0.94 / 0.92, Accessibility 1.00, Best Practices 0.96, SEO 1.00**. The floor is 0.85.
 
 ## Screenshots (375px)
-- Part A: `/futprep/camps` and `/futprep/register` on production after the deploy (SHOTS_A).
-- Part B: `brief27-dashboard-*` in the staff-screenshots run on `main` after #192 (SHOTS_B).
+- Part A: `/futprep/camps` and `/futprep/register` on production after the deploy (checked by `curl` after the deploy; the camps page shows the new copy and both buttons, the register page the "opens on" line).
+- Part B: `brief27-dashboard-owner-375` and `brief27-dashboard-all-months-375` in the staff-screenshots run on PR #195 (the TEST business through the platform door).
 - Part C: staff-screenshots run 38098181282: `brief27-before-1…5` (the classic walk), `brief27-after-1-pick`, `-2-who`, `-3-done`, `-book-private`.
-- Part D: before = the Part C run (old pink and teal) and the production coaches page this morning; after = staff-screenshots run 38099322439 (`brief27-palette-home`, `-coaches`, `-camps`, `brief27-after-*`).
+- Part D: before = the Part C run (old pink and teal) and the production coaches page this morning; after = staff-screenshots run 38141852259 (`brief27-palette-coaches`, `-camps`, `-staff-login`, `brief27-after-*`) plus production at 375px after the deploy: home, the Lil Kickers class page, coaches, the staff login and the three-tap Pick screen.
 
 ## For Antonio
 1. **Nobody can open `/business/futprep` yet**: `organization_members` is empty. Sign in with the account that should own Futprep, then Admin → People → make it the owner. The dashboard, the CSVs and the "Money & attendance" link on the CEO page all wait on that.

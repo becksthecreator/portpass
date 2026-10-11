@@ -143,6 +143,10 @@ const SHOTS = [
   ["brief18-section-soon-375", "admin", "/venues", ".soon-panel"],
   ["brief18-tell-us-375", "admin", "/tell-us", null],
   ["brief18-business-375", "admin", "/business", ".biz-shots"],
+  // Brief 27 (B): the owner's dashboard, seen through the platform door
+  // on the TEST business (money and attendance, both tables).
+  ["brief27-dashboard-owner-375", "admin", "/business/test-delete-photo-booth", ".dash-tiles"],
+  ["brief27-dashboard-all-months-375", "admin", "/business/test-delete-photo-booth?month=all&status=all", ".dash-table"],
   // Brief 18, part F: the header a visitor sees (Sign in · Sign up), the
   // sign-up doors, and My account.
   ["brief18-header-signed-out-375", "anon", "/", null],

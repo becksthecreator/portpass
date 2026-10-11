@@ -5867,3 +5867,7 @@ a.admin-tile:hover{border-color:var(--sky)}
 .private-session-submit,.private-session-success button{background:var(--fp-pink,#FF4A86);color:var(--fp-navy,#0F1B2D);border-radius:999px}
 .private-session-submit:focus-visible{outline:2px solid var(--fp-navy,#0F1B2D);outline-offset:2px}
 .private-session-services label.is-selected,.private-session-slots label.is-selected{border-color:var(--fp-navy,#0F1B2D);background:var(--fp-mint-soft,#E6FAF6)}
+/* The staff login is the one night-themed .futprep-theme page: its header
+   links and eyebrow read in base and mint there (brief 27, D follow-up). */
+.futprep-theme.theme-night .header-link{color:var(--fp-base)}
+.futprep-theme.theme-night .eyebrow{color:var(--fp-mint)}
