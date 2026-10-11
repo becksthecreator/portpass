@@ -90,7 +90,9 @@ describe("money rows", () => {
 
   it("exports the same columns, and nothing about a child", () => {
     const csv = buildMoneyCsv(rows);
-    expect(csv.split("\r\n")[0]).toBe('"Reference","Person","For","Amount","Balance","Status","Method","Date paid"');
+    // The sheet opens in Excel thanks to the byte-order mark in front.
+    expect(csv.startsWith("﻿")).toBe(true);
+    expect(csv.replace(/^﻿/, "").split("\r\n")[0]).toBe('"Reference","Person","For","Amount","Balance","Status","Method","Date paid"');
     expect(csv).toContain('"TB-0003","TEST Parent","Saturday session","45.00","45.00","Overdue","",""');
     expect(csv).toContain('"TB-0002","TEST Parent","Term fee","300.00","0.00","Paid","Bank transfer","2026-10-03"');
   });
