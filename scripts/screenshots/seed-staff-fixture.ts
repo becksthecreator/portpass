@@ -148,7 +148,7 @@ async function main() {
   const dre = coaches.find((c) => c.slug === "test-delete-coach-dre")!.id;
   // Brief 31 (A): Dre is on the team with a staff row but no login yet, so
   // Team shows the red chips and Staff accounts offers "Give a login".
-  const { data: dreRow, error: dreRowError } = await db.from("staff_members").insert({ organization_id: 1, name: `${MARK} Coach Dre`, role: "coach", responsibilities: "", active: true }).select("id").single();
+  const { data: dreRow, error: dreRowError } = await db.from("staff_members").insert({ organization_id: 1, name: `${MARK} Coach Zed`, role: "coach", responsibilities: "", active: true }).select("id").single();
   if (dreRowError || !dreRow) throw new Error(`Could not seed Dre's staff row: ${dreRowError?.message}`);
   await db.from("coach_profiles").update({ staff_member_id: dreRow.id }).eq("id", dre);
   await db.from("programs").update({ default_lead_coach_id: bex, field_cost_cents_per_term: 20000 }).eq("id", program.id);

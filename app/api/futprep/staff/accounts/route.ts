@@ -8,11 +8,10 @@ import {
   listStaffAccounts,
   listStaffWithoutLogin,
   setStaffAccountActive,
-  setStaffAccountEmail,
   setStaffCanViewMedical,
   FUTPREP_STAFF_ROLES,
 } from "@/app/futprep/staff-auth";
-import { revokeFutprepOwnerGrant } from "@/db/futprepOwner";
+import { futprepOwnerStaffState, revokeFutprepOwnerGrant, setFutprepStaffEmail } from "@/db/futprepOwner";
 import { bodyOf, readJson } from "@/lib/api/body";
 import { canSetMedicalSwitch } from "@/lib/futprepRoles";
 
@@ -32,9 +31,11 @@ const CEO_ONLY = "Only the CEO login can create or change a CEO login.";
 type Role = (typeof FUTPREP_STAFF_ROLES)[number];
 const isRole = (value: unknown): value is Role => typeof value === "string" && (FUTPREP_STAFF_ROLES as string[]).includes(value);
 
+// Every login, the people without one, and where the owner mark stands
+// (brief 31), so the screen never shows owner access that was taken back.
 async function everyone() {
-  const [accounts, withoutLogin] = await Promise.all([listStaffAccounts(), listStaffWithoutLogin()]);
-  return { accounts, withoutLogin };
+  const [accounts, withoutLogin, owner] = await Promise.all([listStaffAccounts(), listStaffWithoutLogin(), futprepOwnerStaffState()]);
+  return { accounts, withoutLogin, ownerStates: owner ? { [owner.staffId]: owner.state } : {} };
 }
 
 function loginError(error: unknown, fallback: string) {
@@ -105,8 +106,9 @@ export async function POST(request: Request) {
 
 // Switch a login off or on, set where its reminders are emailed, or
 // (brief 31, A1) switch an admin or coach login's medical view: the owner
-// only. Switching a login off or changing its email takes back any owner
-// access a founder gave from it (db/futprepOwner.ts) before the change.
+// only. Changing a login's email takes back any owner access a founder
+// gave from it in the same transaction; switching a login off takes it
+// back straight after (db/futprepOwner.ts), and again on a retry.
 const PatchBody = bodyOf(["id", "active", "email", "canViewMedical"]);
 
 export async function PATCH(request: Request) {
@@ -138,11 +140,11 @@ export async function PATCH(request: Request) {
       if (target.role !== "admin" && target.role !== "coach") return NextResponse.json({ error: "The switch is for admin and coach logins: the CEO always sees medical details, helpers never do." }, { status: 400 });
       await setStaffCanViewMedical(target.id, body.canViewMedical as boolean, actor);
     } else if (hasEmail) {
-      if ((target.email ?? null) !== email) await revokeFutprepOwnerGrant({ staffId: target.id, reason: "email_changed", actor });
-      await setStaffAccountEmail(target.id, email);
+      await setFutprepStaffEmail({ staffId: target.id, email, actor });
     } else {
-      if (body.active === false) await revokeFutprepOwnerGrant({ staffId: target.id, reason: "login_switched_off", actor });
+      // Off first, so a founder's grant can't land on it in between.
       await setStaffAccountActive(target.id, Boolean(body.active));
+      if (body.active === false) await revokeFutprepOwnerGrant({ staffId: target.id, reason: "login_switched_off", actor });
     }
     return NextResponse.json({ ok: true, ...(await everyone()) });
   } catch (error) {

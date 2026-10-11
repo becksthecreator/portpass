@@ -4,7 +4,7 @@ import { missingForLogin } from "@/lib/futprepRoles";
 
 type StaffAccount = { id: number; name: string; accountKey: string; role: "admin" | "coach" | "ceo" | "helper"; active: boolean; pinChangedAt: string | null; email: string | null; canViewMedical: boolean; isOwner: boolean };
 type WithoutLogin = { id: number; name: string; role: string; email: string | null };
-type Everyone = { accounts?: StaffAccount[]; withoutLogin?: WithoutLogin[]; error?: string };
+type Everyone = { accounts?: StaffAccount[]; withoutLogin?: WithoutLogin[]; ownerStates?: Record<number, string>; error?: string };
 
 const ROLE_LABEL: Record<StaffAccount["role"], string> = {
   admin: "Admin",
@@ -15,18 +15,17 @@ const ROLE_LABEL: Record<StaffAccount["role"], string> = {
 
 // Marking only asks; a PortPass founder gives the owner access in Admin ->
 // People (db/futprepOwner.ts), so a staff PIN alone never makes an owner.
-const OWNER_STEP: Record<"granted" | "needs_email" | "needs_sign_in" | "waiting_for_founder", (name: string, email: string | null) => string> = {
+// This screen never says whether an address has a PortPass sign-in.
+const OWNER_STEP: Record<"granted" | "needs_email" | "waiting", (name: string, email: string | null) => string> = {
   granted: (name) => `${name} has owner access to Futprep on PortPass. /business/futprep opens for them when they sign in.`,
   needs_email: (name) => `${name} is marked as the owner. Add their email above, then press "Check owner access".`,
-  needs_sign_in: (name, email) => `${name} is marked as the owner. Ask them to sign in once at portpassbahamas.com/login with ${email}. Then a PortPass founder confirms owner access. PortPass doesn't make the sign-in or send an invite.`,
-  waiting_for_founder: (name) => `${name} is marked as the owner and has a PortPass sign-in. A PortPass founder confirms owner access in Admin → People after checking with ${name}.`,
+  waiting: (name, email) => `${name} is marked as the owner. Once they have signed in at portpassbahamas.com/login with ${email}, a PortPass founder checks with them and gives owner access. PortPass doesn't make the sign-in or send an invite.`,
 };
 
 const OWNER_FLAG: Record<string, string> = {
   granted: "Owner access on PortPass",
   needs_email: "Owner: needs email",
-  needs_sign_in: "Owner: needs a PortPass sign-in",
-  waiting_for_founder: "Owner: waiting for a founder",
+  waiting: "Owner: waiting for a founder",
 };
 
 // canManageCeo: only the CEO login may create a CEO login or switch one
@@ -43,6 +42,7 @@ export function AccountsManager({ initialAccounts, initialWithoutLogin, currentA
   function apply(data: Everyone) {
     if (data.accounts) setAccounts(data.accounts);
     if (data.withoutLogin) setWithoutLogin(data.withoutLogin);
+    if (data.ownerStates) setOwnerStates(data.ownerStates);
   }
 
   async function send(method: "POST" | "PATCH", path: string, payload: Record<string, unknown>): Promise<(Everyone & Record<string, unknown>) | null> {
@@ -79,7 +79,6 @@ export function AccountsManager({ initialAccounts, initialWithoutLogin, currentA
     const data = await send("POST", "/api/futprep/staff/accounts/owner", { id: account.id });
     if (!data) return;
     const state = data.state as keyof typeof OWNER_STEP;
-    setOwnerStates((current) => ({ ...current, [account.id]: String(data.state) }));
     setMessage(OWNER_STEP[state]?.(String(data.name ?? account.name), (data.email as string | null) ?? null) ?? "Saved.");
   }
 

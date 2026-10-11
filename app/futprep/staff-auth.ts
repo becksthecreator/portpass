@@ -363,7 +363,8 @@ export async function assignStaffLogin(input: { id: number; accountKey: string; 
   if (taken) throw new Error("ACCOUNT_KEY_TAKEN");
   const { data, error } = await supabase
     .from("staff_members")
-    .update({ account_key: accountKey, role: input.role, pin_hash: await hashPin(input.pin), pin_changed_at: null })
+    // A new login starts without the medical view, whatever the row had.
+    .update({ account_key: accountKey, role: input.role, pin_hash: await hashPin(input.pin), pin_changed_at: null, can_view_medical: false })
     .eq("id", input.id)
     .eq("organization_id", FUTPREP_ORG_ID)
     .eq("active", true)
@@ -392,16 +393,9 @@ export async function setStaffCanViewMedical(id: number, canViewMedical: boolean
   await logAudit({ organizationId: FUTPREP_ORG_ID, action: "staff.medical_view_changed", targetTable: "staff_members", targetId: id, after: { can_view_medical: canViewMedical, by: actorName } });
 }
 
-// The email address reminders go to. null clears it.
-export async function setStaffAccountEmail(id: number, email: string | null) {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
-    .from("staff_members")
-    .update({ email })
-    .eq("id", id)
-    .eq("organization_id", FUTPREP_ORG_ID);
-  throwIfSupabaseError(error, "Could not update staff account");
-}
+// The email address reminders go to is set through
+// db/futprepOwner.ts setFutprepStaffEmail (brief 31), which takes back any
+// owner access given from the login in the same transaction.
 
 export async function setStaffAccountActive(id: number, active: boolean) {
   const supabase = getSupabaseAdmin();

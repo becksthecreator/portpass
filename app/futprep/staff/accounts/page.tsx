@@ -1,6 +1,6 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
-import { futprepOwnerRequest } from "@/db/futprepOwner";
+import { futprepOwnerStaffState } from "@/db/futprepOwner";
 import { canSetMedicalSwitch } from "@/lib/futprepRoles";
 import { requireFutprepStaff, currentFutprepStaffAccount, listStaffAccounts, listStaffWithoutLogin } from "../../staff-auth";
 import { AccountsManager } from "./AccountsManager";
@@ -15,7 +15,7 @@ export default async function FutprepStaffAccountsPage() {
     listStaffAccounts(),
     listStaffWithoutLogin(),
     currentFutprepStaffAccount(),
-    futprepOwnerRequest().catch((error) => {
+    futprepOwnerStaffState().catch((error) => {
       console.error("Futprep owner mark could not be read", error instanceof Error ? error.message : "");
       return null;
     }),

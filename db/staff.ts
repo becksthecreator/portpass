@@ -466,15 +466,17 @@ type RosterRegistrationRow = {
 // `includeSafety: false` is for the read-only helper login: the emergency
 // contact, pickup and health columns are then never selected, so they
 // cannot reach that person's browser (privacy policy v2, brief 16 D).
-// `includeHealth: false` (brief 31, A1) keeps the emergency contact and
-// pickup but never selects the allergy, medical, medication and
-// special-needs columns: for a coach login the CEO hasn't switched on.
+// `includeHealth` (brief 31, A1) adds the allergy, medical, medication and
+// special-needs columns; without it the emergency contact and pickup come
+// alone. The coach page asks for them only for the CEO login and a coach
+// login the CEO has switched on.
 export async function rosterForSession(
   sessionId: number,
   options: { includeSafety?: boolean; includeHealth?: boolean } = {},
 ): Promise<AttendanceRow[]> {
   const includeSafety = options.includeSafety ?? true;
-  const includeHealth = includeSafety && (options.includeHealth ?? true);
+  // Off unless asked for: a caller that forgets gets no health columns.
+  const includeHealth = includeSafety && (options.includeHealth ?? false);
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
 

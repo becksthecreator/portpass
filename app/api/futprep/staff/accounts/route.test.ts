@@ -15,9 +15,10 @@ const db = vi.hoisted(() => ({
   revoked: [] as Array<{ staffId: number; reason: string }>,
   created: [] as Array<{ role: string }>,
   toggled: [] as Array<{ id: number; active: boolean }>,
-  emails: [] as Array<{ id: number; email: string | null }>,
+  emails: [] as Array<{ id: number; email: string | null; actor: string }>,
+  order: [] as string[],
   withoutLogin: [
-    { id: 20, name: "TEST Dre", role: "coach", email: null },
+    { id: 20, name: "TEST Quill", role: "coach", email: null },
     { id: 21, name: "TEST Old CEO row", role: "ceo", email: null },
   ],
   logins: [] as Array<{ id: number; role: string; actorName: string }>,
@@ -44,17 +45,23 @@ vi.mock("@/app/futprep/staff-auth", () => ({
   }),
   setStaffAccountActive: vi.fn(async (id: number, active: boolean) => {
     db.toggled.push({ id, active });
-  }),
-  setStaffAccountEmail: vi.fn(async (id: number, email: string | null) => {
-    db.emails.push({ id, email });
+    db.order.push("switch");
   }),
 }));
 
 vi.mock("@/db/futprepOwner", () => ({
   revokeFutprepOwnerGrant: vi.fn(async (input: { staffId: number; reason: string }) => {
     db.revoked.push({ staffId: input.staffId, reason: input.reason });
+    db.order.push("revoke");
     return true;
   }),
+  // The real one changes the email and takes back any owner grant in one
+  // database transaction (supabase/migrations/202610210002).
+  setFutprepStaffEmail: vi.fn(async (input: { staffId: number; email: string | null; actor: string }) => {
+    db.emails.push({ id: input.staffId, email: input.email, actor: input.actor });
+    return true;
+  }),
+  futprepOwnerStaffState: vi.fn(async () => ({ staffId: 1, state: "waiting" })),
 }));
 
 import { PATCH, POST } from "./route";
@@ -72,6 +79,7 @@ beforeEach(() => {
   db.logins = [];
   db.medical = [];
   db.revoked = [];
+  db.order = [];
 });
 
 describe("creating a staff login", () => {
@@ -103,7 +111,7 @@ describe("the email address reminders go to", () => {
     expect((await PATCH(send("PATCH", { id: 3, email: "  TEST-Coach@test.portpass.local " }))).status).toBe(200);
     expect((await PATCH(send("PATCH", { id: 3, email: "" }))).status).toBe(200);
     expect((await PATCH(send("PATCH", { id: 3, email: "not an address" }))).status).toBe(400);
-    expect(db.emails).toEqual([{ id: 3, email: "test-coach@test.portpass.local" }, { id: 3, email: null }]);
+    expect(db.emails).toEqual([{ id: 3, email: "test-coach@test.portpass.local", actor: "TEST admin" }, { id: 3, email: null, actor: "TEST admin" }]);
     expect(db.toggled).toEqual([]);
   });
 
@@ -112,7 +120,7 @@ describe("the email address reminders go to", () => {
     expect((await PATCH(send("PATCH", { id: 1, email: "test-someone@test.portpass.local" }))).status).toBe(403);
     auth.role = "ceo";
     expect((await PATCH(send("PATCH", { id: 1, email: "test-alex@test.portpass.local" }))).status).toBe(200);
-    expect(db.emails).toEqual([{ id: 1, email: "test-alex@test.portpass.local" }]);
+    expect(db.emails).toEqual([{ id: 1, email: "test-alex@test.portpass.local", actor: "TEST ceo" }]);
   });
 });
 
@@ -174,20 +182,23 @@ describe("the medical view of an admin or coach login (brief 31, A1)", () => {
 });
 
 describe("owner access follows the login (brief 31, A4 after review)", () => {
-  it("is taken back before a login is switched off", async () => {
+  it("is taken back straight after a login is switched off, and the screen gets the owner state", async () => {
     auth.role = "ceo";
-    expect((await PATCH(send("PATCH", { id: 1, active: false }))).status).toBe(200);
+    const response = await PATCH(send("PATCH", { id: 1, active: false }));
+    expect(response.status).toBe(200);
+    expect(db.order).toEqual(["switch", "revoke"]);
     expect(db.revoked).toEqual([{ staffId: 1, reason: "login_switched_off" }]);
-    expect(db.toggled).toEqual([{ id: 1, active: false }]);
+    expect(await response.json()).toMatchObject({ ownerStates: { 1: "waiting" } });
   });
 
-  it("is taken back when the email changes, not when it is saved unchanged", async () => {
+  it("an email change goes through the one function that also takes the grant back", async () => {
     auth.role = "admin";
-    expect((await PATCH(send("PATCH", { id: 4, email: "TEST-Helper@example.com " }))).status).toBe(200);
+    expect((await PATCH(send("PATCH", { id: 4, email: "TEST-Other@example.com " }))).status).toBe(200);
+    expect(db.emails).toEqual([{ id: 4, email: "test-other@example.com", actor: "TEST admin" }]);
     expect(db.revoked).toEqual([]);
-    expect((await PATCH(send("PATCH", { id: 4, email: "test-other@example.com" }))).status).toBe(200);
-    expect(db.revoked).toEqual([{ staffId: 4, reason: "email_changed" }]);
-    expect(db.emails).toEqual([{ id: 4, email: "test-helper@example.com" }, { id: 4, email: "test-other@example.com" }]);
+    // The desk can't change the CEO login's email at all.
+    expect((await PATCH(send("PATCH", { id: 1, email: "test-new@example.com" }))).status).toBe(403);
+    expect(db.emails).toHaveLength(1);
   });
 
   it("switching a login back on grants nothing", async () => {

@@ -9,25 +9,33 @@ import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 // anyone an owner on PortPass (review of PR #197):
 //
 //   1. On Staff accounts, an admin or the CEO marks the CEO's staff login
-//      as the owner. That only asks: no membership is written.
+//      as the owner. That only asks: no membership is written. Moving an
+//      existing mark to another login is for the CEO login only.
 //   2. In Admin -> People, a founder (platform owner, admin second step)
 //      checks with the person and grants the org_owner membership, with
-//      payments, to the PortPass sign-in that has the login's email.
+//      payments, for the email the founder saw: if the login's email has
+//      changed since, the grant is refused.
 //
-// The grant is recorded on the staff row (owner_user_id) and taken back
-// when the mark moves to another login, the login is switched off, or its
+// Grant, take back and email changes run in the database as one locked
+// transaction each (supabase/migrations/202610210002). The grant records
+// the membership's own id on the staff row, and only that membership is
+// ever taken back: when the mark moves, the login is switched off, or its
 // email changes. No sign-in is created and no invite is sent.
 
 // The staff logins are Futprep's, organisation 1 (app/futprep/staff-auth.ts).
 export const FUTPREP_ORG_ID = 1;
 
+// What Admin -> People sees.
 export type OwnerState = "needs_email" | "needs_sign_in" | "waiting_for_founder" | "granted";
+// What the staff screens see: never whether an address has a PortPass
+// sign-in, so the staff screen can't be used to test addresses.
+export type StaffOwnerState = "needs_email" | "waiting" | "granted";
 
-export type OwnerOutcome = { state: OwnerState; name: string; email: string | null };
+export type OwnerOutcome = { state: StaffOwnerState; name: string; email: string | null };
 
-type OwnerRow = { id: number; name: string; role: string; email: string | null; active: boolean; account_key: string | null; is_owner: boolean; owner_user_id: string | null };
+type OwnerRow = { id: number; name: string; role: string; email: string | null; active: boolean; account_key: string | null; is_owner: boolean; owner_member_id: number | null };
 
-const OWNER_COLUMNS = "id,name,role,email,active,account_key,is_owner,owner_user_id";
+const OWNER_COLUMNS = "id,name,role,email,active,account_key,is_owner,owner_member_id";
 
 async function loadRow(staffId: number): Promise<OwnerRow | null> {
   const { data, error } = await getSupabaseAdmin().from("staff_members").select(OWNER_COLUMNS).eq("id", staffId).eq("organization_id", FUTPREP_ORG_ID).maybeSingle();
@@ -35,62 +43,83 @@ async function loadRow(staffId: number): Promise<OwnerRow | null> {
   return (data as OwnerRow | null) ?? null;
 }
 
-// Where a marked login stands. "granted" only when the grant on the row is
-// for the PortPass sign-in its email belongs to today.
-async function stateOf(row: OwnerRow): Promise<{ state: OwnerState; authUserId: string | null }> {
-  if (!row.email) return { state: "needs_email", authUserId: null };
-  const person = await findPersonByEmail(row.email);
-  const authUserId = person?.authUserId ?? null;
-  if (!authUserId) return { state: "needs_sign_in", authUserId: null };
-  return { state: row.owner_user_id === authUserId ? "granted" : "waiting_for_founder", authUserId };
+// Granted only while the membership the grant made is still there as an
+// owner: one a founder removed or changed in People doesn't count.
+async function grantStands(row: OwnerRow): Promise<boolean> {
+  if (row.owner_member_id === null) return false;
+  const { data, error } = await getSupabaseAdmin().from("organization_members").select("id").eq("id", row.owner_member_id).eq("organization_id", FUTPREP_ORG_ID).eq("role", "org_owner").maybeSingle();
+  throwIfSupabaseError(error, "Could not check the owner membership");
+  return Boolean(data);
 }
 
-// Takes back the owner membership a founder gave from this login, if any:
-// the org_owner row for the recorded sign-in is removed and the record
-// cleared, with an audit line saying why. A membership made any other way
-// (an invitation, a claim link, Admin -> People) is never recorded here,
-// so it is never touched.
+async function stateOf(row: OwnerRow): Promise<OwnerState> {
+  if (!row.email) return "needs_email";
+  if (await grantStands(row)) return "granted";
+  const person = await findPersonByEmail(row.email);
+  return person?.authUserId ? "waiting_for_founder" : "needs_sign_in";
+}
+
+export function staffOwnerState(state: OwnerState): StaffOwnerState {
+  return state === "needs_email" || state === "granted" ? state : "waiting";
+}
+
+const RPC_ERRORS = ["NOT_MARKED", "NOT_A_CEO", "EMAIL_CHANGED", "ALREADY_MEMBER", "ROW_NOT_FOUND"] as const;
+function rpcError(error: { message?: string; code?: string } | null, what: string): void {
+  if (!error) return;
+  const known = RPC_ERRORS.find((code) => (error.message ?? "").includes(code));
+  if (known) throw new Error(known);
+  throwIfSupabaseError(error, what);
+}
+
+// Takes back the membership this login's grant made, if it is still that
+// grant; an audit line says why. Returns whether a membership went.
 export async function revokeFutprepOwnerGrant(input: { staffId: number; reason: "mark_moved" | "login_switched_off" | "email_changed"; actor: string; actorUserId?: string | null }): Promise<boolean> {
-  const db = getSupabaseAdmin();
-  const row = await loadRow(input.staffId);
-  if (!row?.owner_user_id) return false;
-  const { error: memberError } = await db.from("organization_members").delete().eq("organization_id", FUTPREP_ORG_ID).eq("user_id", row.owner_user_id).eq("role", "org_owner");
-  throwIfSupabaseError(memberError, "Could not take back the owner membership");
-  const { error: clearError } = await db.from("staff_members").update({ owner_user_id: null }).eq("id", row.id).eq("organization_id", FUTPREP_ORG_ID);
-  throwIfSupabaseError(clearError, "Could not clear the owner grant");
-  await logAudit({
-    actorUserId: input.actorUserId ?? null,
-    organizationId: FUTPREP_ORG_ID,
-    action: "membership.owner_revoked",
-    targetTable: "organization_members",
-    targetId: row.owner_user_id,
-    before: { role: "org_owner", from_staff_login: row.id },
-    after: { reason: input.reason, by: input.actor },
-  });
-  return true;
+  const { data, error } = await getSupabaseAdmin().rpc("futprep_owner_revoke", { p_org: FUTPREP_ORG_ID, p_staff_id: input.staffId, p_reason: input.reason, p_actor: input.actor, p_actor_user: input.actorUserId ?? null });
+  rpcError(error, "Could not take back the owner membership");
+  return data === true;
+}
+
+// A staff login's email, with any owner grant on it taken back in the same
+// transaction. Returns whether it changed.
+export async function setFutprepStaffEmail(input: { staffId: number; email: string | null; actor: string }): Promise<boolean> {
+  const { data, error } = await getSupabaseAdmin().rpc("futprep_staff_set_email", { p_org: FUTPREP_ORG_ID, p_staff_id: input.staffId, p_email: input.email, p_actor: input.actor });
+  rpcError(error, "Could not save the email");
+  return data === true;
 }
 
 // Step 1, from Staff accounts: mark the CEO's login as the owner. Writes
-// no membership. Moving the mark takes back the previous login's grant.
-export async function markFutprepOwner(input: { staffId: number; actorName: string }): Promise<OwnerOutcome> {
+// no membership. Moving a mark another login holds is the CEO login's to
+// do, and takes back that login's grant: the old mark is cleared first, so
+// a founder's grant can't land on it in between.
+export async function markFutprepOwner(input: { staffId: number; actorName: string; actorRole: string }): Promise<OwnerOutcome> {
   const db = getSupabaseAdmin();
   const row = await loadRow(input.staffId);
   if (!row || !row.active || !row.account_key) throw new Error("ROW_NOT_FOUND");
   if (!canBeOwner(row.role)) throw new Error("NOT_A_CEO");
 
   if (!row.is_owner) {
-    // One owner per business (a partial unique index): take back the old
-    // login's grant, clear its mark, then set the new one.
     const { data: previous, error: previousError } = await db.from("staff_members").select("id").eq("organization_id", FUTPREP_ORG_ID).eq("is_owner", true).neq("id", row.id);
     throwIfSupabaseError(previousError, "Could not find the previous owner mark");
-    for (const old of previous ?? []) await revokeFutprepOwnerGrant({ staffId: Number(old.id), reason: "mark_moved", actor: input.actorName });
+    if ((previous ?? []).length > 0 && input.actorRole !== "ceo") throw new Error("CEO_ONLY_MOVE");
     const { error: clearError } = await db.from("staff_members").update({ is_owner: false }).eq("organization_id", FUTPREP_ORG_ID).eq("is_owner", true).neq("id", row.id);
     throwIfSupabaseError(clearError, "Could not move the owner mark");
     const { error: markError } = await db.from("staff_members").update({ is_owner: true }).eq("id", row.id).eq("organization_id", FUTPREP_ORG_ID);
     throwIfSupabaseError(markError, "Could not mark the owner");
     await logAudit({ organizationId: FUTPREP_ORG_ID, action: "staff.owner_marked", targetTable: "staff_members", targetId: row.id, after: { name: row.name, by: input.actorName } });
   }
-  return { state: (await stateOf({ ...row, is_owner: true })).state, name: row.name, email: row.email };
+  // Any other login that still carries a grant loses it, marked or not.
+  const { data: granted, error: grantedError } = await db.from("staff_members").select("id").eq("organization_id", FUTPREP_ORG_ID).not("owner_member_id", "is", null).neq("id", row.id);
+  throwIfSupabaseError(grantedError, "Could not find earlier owner grants");
+  for (const old of granted ?? []) await revokeFutprepOwnerGrant({ staffId: Number(old.id), reason: "mark_moved", actor: input.actorName });
+
+  return { state: staffOwnerState(await stateOf({ ...row, is_owner: true })), name: row.name, email: row.email };
+}
+
+// For the staff screens: where the marked login stands, without saying
+// whether an address has a PortPass sign-in.
+export async function futprepOwnerStaffState(): Promise<{ staffId: number; state: StaffOwnerState } | null> {
+  const request = await futprepOwnerRequest();
+  return request ? { staffId: request.staffId, state: staffOwnerState(request.state) } : null;
 }
 
 export type FutprepOwnerRequest = {
@@ -108,44 +137,22 @@ export async function futprepOwnerRequest(): Promise<FutprepOwnerRequest | null>
   throwIfSupabaseError(error, "Could not load Futprep's owner mark");
   if (!data) return null;
   const row = data as OwnerRow;
-  return { staffId: row.id, name: row.name, email: row.email, state: (await stateOf(row)).state, loginActive: row.active && row.account_key !== null };
+  return { staffId: row.id, name: row.name, email: row.email, state: await stateOf(row), loginActive: row.active && row.account_key !== null };
 }
 
 // Step 2, by a founder in Admin -> People (the route checks the platform
 // role and the admin second step): the org_owner membership, with
-// payments and the medical view an owner has, for the PortPass sign-in
-// that has the marked login's email. Someone already in Futprep is
-// refused: their role is changed in the People table, where it is theirs
-// to keep, rather than here, where it can be taken back.
-export async function grantFutprepOwner(input: { staffId: number; founderUserId: string }): Promise<OwnerOutcome> {
-  const db = getSupabaseAdmin();
+// payments and the medical view an owner has, for the PortPass sign-in of
+// the email the founder saw. The database refuses it if the login is no
+// longer marked, active and a CEO login, if its email is no longer that
+// one, or if the person is already in Futprep.
+export async function grantFutprepOwner(input: { staffId: number; email: string; founderUserId: string }): Promise<{ state: "granted"; name: string; email: string }> {
   const row = await loadRow(input.staffId);
   if (!row || !row.active || !row.account_key || !row.is_owner) throw new Error("NOT_MARKED");
-  if (!canBeOwner(row.role)) throw new Error("NOT_A_CEO");
-  const { state, authUserId } = await stateOf(row);
-  if (state !== "waiting_for_founder" || !authUserId) return { state, name: row.name, email: row.email };
-
-  const { data: existing, error: existingError } = await db.from("organization_members").select("role").eq("organization_id", FUTPREP_ORG_ID).eq("user_id", authUserId).maybeSingle();
-  throwIfSupabaseError(existingError, "Could not check the membership");
-  if (existing) throw new Error("ALREADY_MEMBER");
-
-  // A grant from this login to a different sign-in (the email changed some
-  // other way than Staff accounts): take that back first.
-  if (row.owner_user_id) await revokeFutprepOwnerGrant({ staffId: row.id, reason: "email_changed", actor: "founder", actorUserId: input.founderUserId });
-
-  const { error: memberError } = await db.from("organization_members").insert(
-    { organization_id: FUTPREP_ORG_ID, user_id: authUserId, role: "org_owner", can_view_medical: true, can_manage_payments: true, invited_by: input.founderUserId },
-  );
-  throwIfSupabaseError(memberError, "Could not save the owner membership");
-  const { error: recordError } = await db.from("staff_members").update({ owner_user_id: authUserId }).eq("id", row.id).eq("organization_id", FUTPREP_ORG_ID);
-  throwIfSupabaseError(recordError, "Could not record the owner grant");
-  await logAudit({
-    actorUserId: input.founderUserId,
-    organizationId: FUTPREP_ORG_ID,
-    action: "membership.owner_granted",
-    targetTable: "organization_members",
-    targetId: authUserId,
-    after: { role: "org_owner", can_manage_payments: true, from_staff_login: row.id },
-  });
-  return { state: "granted", name: row.name, email: row.email };
+  const email = input.email.trim().toLowerCase();
+  const person = email ? await findPersonByEmail(email) : null;
+  if (!person?.authUserId) throw new Error("NO_SIGN_IN");
+  const { error } = await getSupabaseAdmin().rpc("futprep_owner_grant", { p_org: FUTPREP_ORG_ID, p_staff_id: input.staffId, p_email: email, p_user: person.authUserId, p_founder: input.founderUserId });
+  rpcError(error, "Could not give owner access");
+  return { state: "granted", name: row.name, email };
 }

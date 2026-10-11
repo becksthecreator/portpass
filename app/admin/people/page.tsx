@@ -113,7 +113,7 @@ export default async function AdminPeoplePage() {
                 </td>
                 <td data-label="Access">
                   {futprepOwner.state === "waiting_for_founder" && futprepOwner.loginActive
-                    ? isFounder ? <FutprepOwnerGrant staffId={futprepOwner.staffId} name={futprepOwner.name} /> : "A founder gives this."
+                    ? isFounder && futprepOwner.email ? <FutprepOwnerGrant staffId={futprepOwner.staffId} name={futprepOwner.name} email={futprepOwner.email} /> : "A founder gives this."
                     : "—"}
                 </td>
               </tr>

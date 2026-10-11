@@ -91,6 +91,7 @@ export function canChangePrograms(role: FutprepRole | null | undefined): boolean
 // The owner bridge: an admin or the CEO marks one login as the owner, and
 // only a CEO login can be the owner (docs/futprep/roles.md: ceo = owner).
 // Marking only asks; a PortPass founder gives the access (db/futprepOwner.ts).
+// Moving a mark another login holds is the CEO login's alone (checked there).
 export function canMarkOwner(role: FutprepRole | null | undefined): boolean {
   return role === "admin" || role === "ceo";
 }
