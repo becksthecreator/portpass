@@ -310,6 +310,21 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
   );
 }
 
+// Every desk function that takes a registration id reads and changes
+// Futprep's own rows only (CLAUDE.md rule 3; Ponytail audit finding 1).
+// All businesses' registrations share one table, so another business's
+// registration is treated exactly like a missing one.
+async function isFutprepRegistration(registrationId: number, organizationId: number): Promise<boolean> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("registrations")
+    .select("id")
+    .eq("id", registrationId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load registration");
+  return Boolean(data);
+}
+
 export async function recordFutprepPayment(input: {
   registrationId: number;
   amountCents: number;
@@ -321,11 +336,15 @@ export async function recordFutprepPayment(input: {
 }) {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
 
+  // Futprep's own registrations only: another business's id is treated
+  // as a missing one, so no payment is written and no email goes out.
   const { data: registration, error } = await db
     .from("registrations")
     .select("id,amount_due_cents,payment_frequency,parent_name,parent_email,child_name")
     .eq("id", input.registrationId)
+    .eq("organization_id", organizationId)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load payment registration");
   if (!registration) throw new Error("REGISTRATION_NOT_FOUND");
@@ -376,7 +395,8 @@ export async function recordFutprepPayment(input: {
   const { error: updateError } = await db
     .from("registrations")
     .update({ payment_status: nextStatus })
-    .eq("id", input.registrationId);
+    .eq("id", input.registrationId)
+    .eq("organization_id", organizationId);
   throwIfSupabaseError(updateError, "Could not update payment status");
 
   return {
@@ -396,13 +416,14 @@ export async function updateFutprepRegistration(input: {
 }) {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
 
   const updates: Record<string, string> = {};
   if (input.registrationStatus) {
     // Promoting from the waitlist (brief 06 v2, Part C) takes a class
     // spot, so it needs one free.
     if (input.registrationStatus !== "cancelled") {
-      const { data: current, error: currentError } = await db.from("registrations").select("registration_status,program_id,term_id").eq("id", input.registrationId).maybeSingle();
+      const { data: current, error: currentError } = await db.from("registrations").select("registration_status,program_id,term_id").eq("id", input.registrationId).eq("organization_id", organizationId).maybeSingle();
       throwIfSupabaseError(currentError, "Could not load registration");
       if (current?.registration_status === "waitlist") {
         const [{ count }, cap] = await Promise.all([
@@ -422,6 +443,7 @@ export async function updateFutprepRegistration(input: {
     .from("registrations")
     .update(updates)
     .eq("id", input.registrationId)
+    .eq("organization_id", organizationId)
     .select("id,program_id,parent_name,parent_email,child_name")
     .maybeSingle();
   throwIfSupabaseError(error, "Could not update registration");
@@ -576,15 +598,18 @@ export async function markFutprepAttendance(input: {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
   const now = new Date().toISOString();
+  const organizationId = await futprepOrganizationId();
+  if (!(await isFutprepRegistration(input.registrationId, organizationId))) throw new Error("REGISTRATION_NOT_FOUND");
 
   // is_backfill is computed here, from the session's own date, rather than
   // trusted from the client -- a coach marking today's session and a coach
   // catching up on 5 September should both get the right answer even if
-  // one of them has a wrong device clock.
+  // one of them has a wrong device clock. Futprep's own sessions only.
   const { data: session, error: sessionError } = await db
     .from("sessions")
-    .select("session_date")
+    .select("session_date,programs!inner(organization_id)")
     .eq("id", input.sessionId)
+    .eq("programs.organization_id", organizationId)
     .maybeSingle();
   throwIfSupabaseError(sessionError, "Could not load session for attendance");
   if (!session) throw new Error("SESSION_NOT_FOUND");
@@ -613,6 +638,9 @@ export async function markFutprepAttendance(input: {
 export async function clearFutprepAttendance(input: { sessionId: number; registrationId: number }) {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  // A missing registration has no mark to clear; nor, here, has another
+  // business's.
+  if (!(await isFutprepRegistration(input.registrationId, await futprepOrganizationId()))) return;
   const { error } = await db
     .from("attendance")
     .delete()
@@ -909,6 +937,7 @@ export async function getFutprepRegistrationDetail(
     .from("registrations")
     .select(DETAIL_COLUMNS)
     .eq("id", registrationId)
+    .eq("organization_id", await futprepOrganizationId())
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load registration");
   if (!registration) return null;
@@ -1054,6 +1083,7 @@ export async function updateFutprepRegistrationDetail(
 ) {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
 
   const { data: current, error } = await db
     .from("registrations")
@@ -1061,6 +1091,7 @@ export async function updateFutprepRegistrationDetail(
       "id,program_id,term_id,child_name,child_dob,gender,relationship,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,authorized_pickup,photo_consent,payment_frequency,payment_method,amount_due_cents,additional_notes",
     )
     .eq("id", registrationId)
+    .eq("organization_id", organizationId)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load registration to update");
   if (!current) throw new Error("REGISTRATION_NOT_FOUND");
@@ -1111,6 +1142,8 @@ export async function updateFutprepRegistrationDetail(
       .from("programs")
       .select("id,name")
       .eq("slug", input.programSlug)
+      // A child moves between Futprep's own programmes only.
+      .eq("organization_id", organizationId)
       .eq("active", true)
       .maybeSingle();
     throwIfSupabaseError(programError, "Could not load selected programme");
@@ -1178,7 +1211,7 @@ export async function updateFutprepRegistrationDetail(
   }
   if (programNameChange) changes.Programme = programNameChange;
 
-  const { error: updateError } = await db.from("registrations").update(updates).eq("id", registrationId);
+  const { error: updateError } = await db.from("registrations").update(updates).eq("id", registrationId).eq("organization_id", organizationId);
   throwIfSupabaseError(updateError, "Could not update registration");
 
   if (Object.keys(changes).length) {
@@ -1210,7 +1243,8 @@ export async function updateFutprepRegistrationDetail(
     const { error: statusError } = await db
       .from("registrations")
       .update({ payment_status: nextStatus })
-      .eq("id", registrationId);
+      .eq("id", registrationId)
+      .eq("organization_id", organizationId);
     throwIfSupabaseError(statusError, "Could not update payment status");
   }
 }
@@ -1234,6 +1268,12 @@ export async function voidFutprepPayment(input: {
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load payment");
   if (!payment) throw new Error("PAYMENT_NOT_FOUND");
+  // A payment on another business's registration, or on none (a private
+  // session's), is not the desk's to void: treated as a missing one.
+  const organizationId = await futprepOrganizationId();
+  if (payment.registration_id === null || !(await isFutprepRegistration(Number(payment.registration_id), organizationId))) {
+    throw new Error("PAYMENT_NOT_FOUND");
+  }
   // A payment recorded through a payment request has a receipt the parent
   // may already hold (brief 17): it is refunded on the request, never
   // deleted here.
@@ -1248,6 +1288,7 @@ export async function voidFutprepPayment(input: {
     .from("registrations")
     .select("payment_frequency,amount_due_cents")
     .eq("id", payment.registration_id)
+    .eq("organization_id", organizationId)
     .maybeSingle();
   throwIfSupabaseError(registrationError, "Could not load registration for payment void");
 
@@ -1270,7 +1311,8 @@ export async function voidFutprepPayment(input: {
   const { error: statusError } = await db
     .from("registrations")
     .update({ payment_status: paymentStatus })
-    .eq("id", payment.registration_id);
+    .eq("id", payment.registration_id)
+    .eq("organization_id", organizationId);
   throwIfSupabaseError(statusError, "Could not update payment status after void");
 
   const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;

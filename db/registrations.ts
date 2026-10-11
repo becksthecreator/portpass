@@ -1149,6 +1149,12 @@ function hashToken(token: string): string {
 // once; only its hash is stored.
 export async function createReturnLink(sourceRegistrationId: number, createdBy: string): Promise<{ token: string }> {
   const db = getSupabaseAdmin();
+  // Futprep's own families only: the link fills in the emergency contact
+  // and pickup, so another business's registration is treated as a
+  // missing one (CLAUDE.md rule 3).
+  const { data: source, error: sourceError } = await db.from("registrations").select("id").eq("id", sourceRegistrationId).eq("organization_id", await futprepOrganizationId()).maybeSingle();
+  throwIfSupabaseError(sourceError, "Could not load the registration");
+  if (!source) throw new Error("REGISTRATION_NOT_FOUND");
   const token = randomBytes(18).toString("base64url");
   const { error } = await db.from("futprep_return_links").insert({ token_hash: hashToken(token), source_registration_id: sourceRegistrationId, created_by: createdBy });
   throwIfSupabaseError(error, "Could not create the return link");
@@ -1190,6 +1196,7 @@ export async function returnLinkPrefill(token: string): Promise<ReturnPrefill | 
     .from("registrations")
     .select("parent_name,parent_email,parent_phone,relationship,child_name,child_dob,gender,emergency_contact_name,emergency_contact_phone,authorized_pickup,program_id")
     .eq("id", link.sourceRegistrationId)
+    .eq("organization_id", await futprepOrganizationId())
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load the returning family");
   if (!data) return null;
