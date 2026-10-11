@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatPriceCents } from "@/app/_components/blocks/format";
@@ -24,15 +25,18 @@ import "../../../market.css";
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ org: string; product: string }>;
-const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+// As loose as the slugs lib/slug.ts makes (a trimmed one can end in a
+// hyphen); the lookup is parameterised either way.
+const SLUG = /^[a-z0-9-]{1,80}$/;
 
-async function load(org: string, product: string): Promise<MarketProductPage | null> {
+// Once per request, for the metadata and the page alike.
+const load = cache(async function load(org: string, product: string): Promise<MarketProductPage | null> {
   if (!SLUG.test(org) || !SLUG.test(product)) return null;
   return getMarketProduct(org, product).catch((error) => {
     console.error("market product page", error instanceof Error ? error.message : "");
     return null;
   });
-}
+});
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { org, product } = await params;
@@ -133,7 +137,7 @@ export default async function MarketProductPage({ params }: { params: Params }) 
         </div>
       </article>
       <p className="mkt-tagline">{MARKET_TAGLINE}</p>
-      <SiteFooter orgLine={`${org.name} · Orders through PortPass. You pay ${org.name} directly.`} />
+      <SiteFooter orgLine={`${org.name} · Made in The Bahamas. You pay ${org.name} directly.`} />
     </main>
   );
 }

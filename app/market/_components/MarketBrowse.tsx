@@ -6,7 +6,7 @@ import { SiteHeader } from "@/app/_components/SiteHeader";
 import { ppDisplay, ppSans } from "@/app/fonts";
 import { listMarketProducts, listMarketThingsToDo, type MarketProduct, type MarketThing, type Paged } from "@/db/market";
 import { getSectionOptions } from "@/lib/navSections";
-import type { MarketParams } from "@/lib/market/browse";
+import { marketHref, type MarketParams } from "@/lib/market/browse";
 import { marketCategoryName } from "@/lib/market/categories";
 import { MARKET_TAGLINE } from "@/lib/market/copy";
 import { BuyChips, DoChips, MarketSearch, MarketTabs, Pager, ThingCard } from "./MarketBits";
@@ -69,14 +69,22 @@ export async function MarketBrowse({ params }: { params: MarketParams }) {
 
         {params.tab === "buy" ? (
           buy.items.length === 0 ? (
-            <p className="mkt-empty">{filtered ? "Nothing matches that yet. Try another word or category." : "The first sellers are getting ready. Check back soon, or sell your own."} <Link href="/sell">Sell on PortPass Market →</Link></p>
+            buy.total > 0 ? (
+              <p className="mkt-empty">There&rsquo;s nothing on this page. <Link href={marketHref({ ...params, page: 1 })}>Back to the first page →</Link></p>
+            ) : (
+              <p className="mkt-empty">{filtered ? "Nothing matches that yet. Try another word or category." : "The first sellers are getting ready. Check back soon, or sell your own."} <Link href="/sell">Sell on PortPass Market →</Link></p>
+            )
           ) : (
             <Reveal as="ul" className="mkt-grid" variant="rise" stagger>
               {buy.items.map((product, index) => <li key={product.id}><MarketProductCard product={product} eager={index < 2} /></li>)}
             </Reveal>
           )
         ) : todo.items.length === 0 ? (
-          <p className="mkt-empty">{filtered ? "Nothing matches that yet. Try another word or section." : "Nothing open yet."}</p>
+          todo.total > 0 ? (
+            <p className="mkt-empty">There&rsquo;s nothing on this page. <Link href={marketHref({ ...params, page: 1 })}>Back to the first page →</Link></p>
+          ) : (
+            <p className="mkt-empty">{filtered ? "Nothing matches that yet. Try another word or section." : "Nothing open yet."}</p>
+          )
         ) : (
           <Reveal as="ul" className="mkt-things" variant="rise" stagger>
             {todo.items.map((thing) => <li key={thing.id}><ThingCard thing={thing} /></li>)}
@@ -87,7 +95,7 @@ export async function MarketBrowse({ params }: { params: MarketParams }) {
 
         <aside className="mkt-sell">
           <h2>Make something here?</h2>
-          <p>Sell it on PortPass Market. Buyers order on PortPass and pay you directly.</p>
+          <p>Sell it on PortPass Market. Buyers order from you and pay you directly.</p>
           <Link className="home-button" href="/sell">Sell on PortPass Market</Link>
         </aside>
         <p className="mkt-tagline">{MARKET_TAGLINE}</p>

@@ -88,7 +88,10 @@ export function thingHref(thing: MarketThing): string {
   const page = directoryHref(thing.orgSlug, thing.orgCategory);
   const action = (thing.actionUrl ?? "").trim();
   if (isOwnPath(action)) return action;
-  if (thing.orgSlug === "futprep") return `${page}/${thing.slug}`;
+  // Futprep's private sessions are booked at /futprep/book (it takes the
+  // service's slug and ignores one it doesn't know); its programmes have
+  // their own pages.
+  if (thing.orgSlug === "futprep") return thing.type === "service" ? `/futprep/book?service=${encodeURIComponent(thing.slug)}` : `${page}/${thing.slug}`;
   if (!BOOKING_EXCLUDED_SLUGS.includes(thing.orgSlug) && isBookable({ priceCents: thing.priceCents, actionUrl: thing.actionUrl })) return bookPath(page, thing.slug);
   return page;
 }

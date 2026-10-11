@@ -10,6 +10,10 @@
 --                       business that is not the demo -- what the business
 --                       pages already show -- with whether the business is
 --                       also a verified seller ("Made in The Bahamas").
+--                       Bahamas Weddings By The Sea's page is built from
+--                       its wedding_packages, not its offerings rows (which
+--                       still hold placeholder prices), so its live
+--                       packages are listed instead, linking to that page.
 --
 -- Both views run with the caller's rights (security_invoker), and the
 -- browser roles get nothing: like the tables under them, the server reads
@@ -99,6 +103,38 @@ from public.offerings f
 join public.organizations o on o.id = f.organization_id
 left join public.shops s on s.organization_id = o.id
 where f.is_published
+  and o.is_published
+  and not o.is_demo
+  and o.slug <> 'bahamas-weddings'
+union all
+-- Bahamas Weddings By The Sea: its live packages, at the prices its page
+-- shows. A negative id keeps them apart from offerings' ids.
+select
+  -w.id,
+  o.id,
+  w.slug,
+  'service',
+  w.name,
+  w.tagline,
+  w.price_from_cents,
+  'from',
+  null::text,
+  null::integer,
+  null::integer,
+  null::text,
+  '/weddings/bahamas-weddings-by-the-sea',
+  case when o.photo_consent_required then null else w.image_url end,
+  w.created_at,
+  o.slug,
+  o.name,
+  o.primary_category,
+  o.logo_url,
+  o.brand_color,
+  coalesce(s.is_published and s.seller_status = 'verified', false)
+from public.wedding_packages w
+join public.organizations o on o.slug = 'bahamas-weddings'
+left join public.shops s on s.organization_id = o.id
+where w.visibility = 'live'
   and o.is_published
   and not o.is_demo;
 

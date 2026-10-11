@@ -23,6 +23,7 @@
 .mkt-tabs a{padding:12px 14px;min-height:44px;font-weight:800;color:var(--muted);text-decoration:none;border-bottom:3px solid transparent;margin-bottom:-1px}
 .mkt-tabs a[aria-current=page]{color:var(--ink);border-bottom-color:var(--signal)}
 .mkt-chips{margin:0 0 12px}
+.market-page .subsection-chip{min-height:44px}
 .mkt-filter{margin:0 0 12px}
 .mkt-toggle{display:inline-flex;align-items:center;gap:10px;min-height:44px;font-weight:700;color:var(--ink);text-decoration:none}
 .mkt-toggle-box{width:20px;height:20px;border:2px solid var(--ink);border-radius:5px;flex:none;background:var(--paper)}
@@ -84,13 +85,14 @@
 .mkt-getting dd{margin:0;font-size:.92rem;line-height:1.5;white-space:pre-line}
 .mkt-getting ul{margin:0;padding:0 0 0 18px;display:grid;gap:4px}
 .mkt-returns{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px}
-.mkt-returns summary{font-weight:800;cursor:pointer;min-height:24px}
+.mkt-returns summary{font-weight:800;cursor:pointer;min-height:44px;display:flex;align-items:center}
 .mkt-returns p{white-space:pre-line;line-height:1.55;margin:10px 0 0}
 .mkt-more{margin:0}
 
 @media(min-width:760px){
   .mkt-hero{padding:46px 5vw 34px}
-  .mkt-body{padding:22px 5vw 8px}
+  /* The padding sits inside the max width, so it is added to it: the body lines up with the hero. */
+  .mkt-body{padding:22px 5vw 8px;max-width:calc(1080px + 10vw)}
   .mkt-things{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .mkt-product{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:34px;padding:26px 5vw 0;align-items:start}
+  .mkt-product{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:34px;padding:26px 5vw 0;align-items:start;max-width:calc(1080px + 10vw)}
 }

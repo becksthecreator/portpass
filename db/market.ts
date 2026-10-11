@@ -61,12 +61,29 @@ export type Paged<T> = { items: T[]; total: number };
 // the product's name or the seller's.
 export async function listMarketProducts(options: { q?: string | null; category?: MarketCategorySlug | null; page?: number; pageSize?: number } = {}): Promise<Paged<MarketProduct>> {
   const [from, to] = pageRange(options.page ?? 1, options.pageSize ?? MARKET_PAGE_SIZE);
-  let query = db().from("market_products").select(PRODUCT_COLUMNS, { count: "exact" });
-  if (options.category) query = query.eq("market_category", options.category);
-  if (options.q) query = query.or(`title.ilike.*${options.q}*,seller_name.ilike.*${options.q}*`);
-  const { data, error, count } = await query.order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to);
+  const build = (head: boolean) => {
+    let query = db().from("market_products").select(PRODUCT_COLUMNS, { count: "exact", head });
+    if (options.category) query = query.eq("market_category", options.category);
+    if (options.q) query = query.or(`title.ilike.*${options.q}*,seller_name.ilike.*${options.q}*`);
+    return query;
+  };
+  const { data, error, count } = await build(false).order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to);
+  if (pastTheEnd(error)) return { items: [], total: await countOnly(build(true), "Could not count the Market") };
   throwIfSupabaseError(error, "Could not load the Market");
   return { items: (data ?? []).map(toMarketProduct), total: count ?? 0 };
+}
+
+// A page past the last one (?page=50): PostgREST answers "range not
+// satisfiable" (PGRST103) rather than an empty page. The page says so and
+// offers the first page; the count still comes back.
+function pastTheEnd(error: { code?: string } | null): boolean {
+  return error?.code === "PGRST103";
+}
+
+async function countOnly(query: PromiseLike<{ count: number | null; error: { message?: string; code?: string } | null }>, context: string): Promise<number> {
+  const { count, error } = await query;
+  throwIfSupabaseError(error, context);
+  return count ?? 0;
 }
 
 // The homepage's "From the Market" strip.
@@ -170,11 +187,15 @@ function toThing(row: Record<string, unknown>): MarketThing {
 // slug (the business's own); madeOnly keeps verified sellers' businesses.
 export async function listMarketThingsToDo(options: { q?: string | null; section?: string | null; madeOnly?: boolean; page?: number; pageSize?: number } = {}): Promise<Paged<MarketThing>> {
   const [from, to] = pageRange(options.page ?? 1, options.pageSize ?? MARKET_PAGE_SIZE);
-  let query = db().from("market_things_to_do").select(THING_COLUMNS, { count: "exact" });
-  if (options.section) query = query.eq("org_category", options.section);
-  if (options.madeOnly) query = query.eq("made_in_bahamas", true);
-  if (options.q) query = query.or(`name.ilike.*${options.q}*,org_name.ilike.*${options.q}*`);
-  const { data, error, count } = await query.order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to);
+  const build = (head: boolean) => {
+    let query = db().from("market_things_to_do").select(THING_COLUMNS, { count: "exact", head });
+    if (options.section) query = query.eq("org_category", options.section);
+    if (options.madeOnly) query = query.eq("made_in_bahamas", true);
+    if (options.q) query = query.or(`name.ilike.*${options.q}*,org_name.ilike.*${options.q}*`);
+    return query;
+  };
+  const { data, error, count } = await build(false).order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to);
+  if (pastTheEnd(error)) return { items: [], total: await countOnly(build(true), "Could not count things to do") };
   throwIfSupabaseError(error, "Could not load things to do");
   return { items: (data ?? []).map(toThing), total: count ?? 0 };
 }

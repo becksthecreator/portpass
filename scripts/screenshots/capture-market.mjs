@@ -71,6 +71,8 @@ async function shoot(page, name, path, { focus = null, before = null } = {}) {
     await page.screenshot({ path: `screenshots/${name}.png`, fullPage: true });
     if (focus) {
       await page.locator(focus).first().scrollIntoViewIfNeeded();
+      // Long enough for a <Reveal> section to finish rising in.
+      await page.waitForTimeout(1000);
       await page.screenshot({ path: `screenshots/${name}-viewport.png` });
     }
     console.log(`captured ${name}`);

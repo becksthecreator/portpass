@@ -14,7 +14,7 @@ export async function generateMetadata({ params, searchParams }: { params: Param
   const query = parseMarketParams(await searchParams);
   const url = `https://portpassbahamas.com/market/${category}`;
   const title = `${name} made in The Bahamas | PortPass Market`;
-  const description = `${name} from Bahamian businesses PortPass has checked, newest first. Order on PortPass and pay the business directly.`;
+  const description = `${name} from Bahamian businesses PortPass has checked, newest first. Order from the seller and pay them directly.`;
   return { title, description, alternates: { canonical: url }, openGraph: { type: "website", siteName: "PortPass Bahamas", title, description, url }, robots: query.q || query.page > 1 ? { index: false, follow: true } : undefined };
 }
 

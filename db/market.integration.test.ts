@@ -20,6 +20,7 @@ let verified: Seller;
 let pending: Seller;
 let closedShop: Seller;
 let kidsKit: Seller;
+let suspended: Seller;
 const consented = `https://example.invalid/test-${tag}-consented.jpg`;
 const unconsented = `https://example.invalid/test-${tag}-not-yet.jpg`;
 const uploadedOnly = `https://example.invalid/test-${tag}-product-only.jpg`;
@@ -67,6 +68,14 @@ beforeAll(async () => {
   if (images.error) throw new Error(`could not seed listing photos: ${images.error.message}`);
   const photos = await admin.from("products").update({ photos: [unconsented, consented, uploadedOnly] }).eq("organization_id", kidsKit.orgId);
   if (photos.error) throw new Error(`could not seed product photos: ${photos.error.message}`);
+  // A seller PortPass verified and then suspended.
+  suspended = await seed("Paused Goods", "verified", { products: [{ title: `TEST Paused soap ${tag}`, category: "beauty", published: true }] });
+  const paused = await admin.from("shops").update({ seller_status: "suspended", seller_status_reason: "TEST — paused" }).eq("organization_id", suspended.orgId);
+  if (paused.error) throw new Error(`could not suspend: ${paused.error.message}`);
+  // Something to do under the business whose photos need consent, with a
+  // photo: the Market never shows that photo.
+  const kidsClass = await admin.from("offerings").insert({ organization_id: kidsKit.orgId, type: "program", slug: `test-kids-class-${tag}`, name: `TEST Kids class ${tag}`, price_cents: 2500, price_unit: "per_session", image_url: unconsented, is_published: true });
+  if (kidsClass.error) throw new Error(`could not seed the kids class: ${kidsClass.error.message}`);
   // Something to do from the verified seller's business.
   const offering = await admin.from("offerings").insert({ organization_id: verified.orgId, type: "service", slug: `test-tasting-${tag}`, name: `TEST Jam tasting ${tag}`, price_cents: 1500, price_unit: "per_person", is_published: true });
   if (offering.error) throw new Error(`could not seed an offering: ${offering.error.message}`);
@@ -88,7 +97,8 @@ describe("Things to buy", () => {
     expect(titles).not.toContain(`TEST Draft thing ${tag}`);
     expect(titles).not.toContain(`TEST Waiting basket ${tag}`);
     expect(titles).not.toContain(`TEST Closed hat ${tag}`);
-    expect(items.every((p) => p.sellerSlug !== pending.slug && p.sellerSlug !== closedShop.slug)).toBe(true);
+    expect(titles).not.toContain(`TEST Paused soap ${tag}`);
+    expect(items.every((p) => p.sellerSlug !== pending.slug && p.sellerSlug !== closedShop.slug && p.sellerSlug !== suspended.slug)).toBe(true);
   });
 
   it("finds a product by its name or by its seller's, and filters by category", async () => {
@@ -116,11 +126,22 @@ describe("Things to buy", () => {
     expect(await getMarketProduct(verified.slug, "p-2")).toBeNull(); // a draft
     expect(await getMarketProduct(pending.slug, "p-0")).toBeNull(); // not verified
     expect(await getMarketProduct(closedShop.slug, "p-0")).toBeNull(); // shop not open
+    expect(await getMarketProduct(suspended.slug, "p-0")).toBeNull(); // suspended
+  });
+
+  it("pages through the results, and a page past the end is empty with the real count", async () => {
+    const first = await listMarketProducts({ q: `Guava Works ${tag}`, page: 1, pageSize: 1 });
+    const second = await listMarketProducts({ q: `Guava Works ${tag}`, page: 2, pageSize: 1 });
+    expect(first.total).toBe(2);
+    expect(first.items).toHaveLength(1);
+    expect(second.items).toHaveLength(1);
+    expect(second.items[0].id).not.toBe(first.items[0].id);
+    expect(await listMarketProducts({ q: `Guava Works ${tag}`, page: 50, pageSize: 1 })).toEqual({ items: [], total: 2 });
   });
 
   it("puts only listed products in the sitemap", async () => {
     const paths = await listMarketProductPaths();
-    const mine = paths.filter((p) => [verified.slug, pending.slug, closedShop.slug].includes(p.sellerSlug)).map((p) => `${p.sellerSlug}/${p.slug}`).sort();
+    const mine = paths.filter((p) => [verified.slug, pending.slug, closedShop.slug, suspended.slug].includes(p.sellerSlug)).map((p) => `${p.sellerSlug}/${p.slug}`).sort();
     expect(mine).toEqual([`${verified.slug}/p-0`, `${verified.slug}/p-1`]);
   });
 
@@ -156,5 +177,21 @@ describe("Things to do", () => {
     expect(items[0]).toMatchObject({ orgSlug: verified.slug, madeInBahamas: true, priceCents: 1500, priceUnit: "per_person" });
     expect((await listMarketThingsToDo({ q: `Jam tasting ${tag}`, madeOnly: true })).total).toBe(1);
     expect((await listMarketThingsToDo({ q: `Jam tasting ${tag}`, section: "weddings" })).total).toBe(0);
+  });
+
+  it("never shows an offering's photo where the business's photos need consent", async () => {
+    const { items } = await listMarketThingsToDo({ q: `Kids class ${tag}` });
+    expect(items).toHaveLength(1);
+    expect(items[0].imageUrl).toBeNull();
+  });
+
+  it("lists Bahamas Weddings By The Sea's live packages at the prices its page shows, not its old offering rows", async () => {
+    const { data: rows, error } = await admin.from("market_things_to_do").select("id,slug,price_cents").eq("org_slug", "bahamas-weddings");
+    expect(error).toBeNull();
+    const { data: packages } = await admin.from("wedding_packages").select("id,slug,price_from_cents").eq("visibility", "live");
+    const { data: org } = await admin.from("organizations").select("is_published").eq("slug", "bahamas-weddings").maybeSingle();
+    const expected = org?.is_published ? (packages ?? []).map((p) => ({ id: -Number(p.id), slug: p.slug, price_cents: p.price_from_cents })) : [];
+    const byId = (a: { id: number }, b: { id: number }) => a.id - b.id;
+    expect((rows ?? []).map((r) => ({ id: Number(r.id), slug: r.slug, price_cents: r.price_cents })).sort(byId)).toEqual(expected.sort(byId));
   });
 });
