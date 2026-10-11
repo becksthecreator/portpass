@@ -3,9 +3,15 @@ import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { Suspense } from "react";
 import { RegistrationForm, type JoinQuote } from "./RegistrationForm";
+import { QuickRegistration, type QuickPaymentMethod } from "./QuickRegistration";
 import "./contrast.css";
+import "../tap-steps.css";
 import { futprepOrganization } from "@/db/growth";
 import { memberEarlyAccess } from "@/db/memberPerks";
+import { getPaymentSettings } from "@/db/paymentRequests";
+import type { QuickHowToPay } from "@/lib/quickRegistration";
+import { futprepTokenStyle } from "@/db/futprepTheme";
+import type { CSSProperties } from "react";
 import { getFutprepOffer, listFutprepOffers, nextFutprepRegistrationOpening, trialJoinQuote, type FutprepAvailability } from "@/db/registrations";
 import { getSession } from "@/lib/auth/session";
 import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAttribution, parseAttributionCookie, type Attribution } from "@/lib/attribution";
@@ -17,7 +23,26 @@ import { normalizeProgramSlug } from "../config";
 // all per-request.
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ program?: string; term?: string; join?: string } & Record<string, string | string[] | undefined>>;
+type SearchParams = Promise<{ program?: string; term?: string; join?: string; flow?: string } & Record<string, string | string[] | undefined>>;
+
+// How parents pay Futprep (brief 17 settings): bank details show the last
+// four digits only; cash is paid at the field. No settings yet means the
+// Done screen says to ask for the details.
+async function loadHowToPay(): Promise<{ howToPay: QuickHowToPay | null; methods: QuickPaymentMethod[] }> {
+  const fallback: QuickPaymentMethod[] = ["bank_transfer", "cash"];
+  try {
+    const organization = await futprepOrganization();
+    const settings = organization ? await getPaymentSettings(organization.id) : null;
+    if (!settings) return { howToPay: null, methods: fallback };
+    const methods = (settings.acceptedMethods ?? []).filter((m): m is QuickPaymentMethod => m === "bank_transfer" || m === "cash");
+    return {
+      howToPay: { bankName: settings.bankName, accountName: settings.accountName, accountNumberLast4: settings.accountNumberLast4, transferInstructions: settings.transferInstructions, cashNote: settings.cashNote },
+      methods: methods.length > 0 ? methods : fallback,
+    };
+  } catch {
+    return { howToPay: null, methods: fallback };
+  }
+}
 
 // "Join the rest of the term" after a free trial (brief 06 v2, Part C):
 // ?join=<trial reference> prices the Saturdays left. An unknown code is
@@ -105,13 +130,19 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
 
 export default async function FutprepRegisterPage({ searchParams }: { searchParams: SearchParams }) {
   const [{ offers, requested }, attribution] = await Promise.all([loadOffers(searchParams), readAttribution(searchParams)]);
-  const [joinQuote, closed] = await Promise.all([loadJoinQuote(searchParams, offers), closedNotice(offers)]);
+  const [joinQuote, closed, params] = await Promise.all([loadJoinQuote(searchParams, offers), closedNotice(offers), searchParams]);
+  // Booking in three taps (brief 27, C) is the Saturday registration now.
+  // The classic five-step form stays for "join the rest of the term" after
+  // a taster, for anyone who asks for it (?flow=classic), and for the
+  // waitlist when a class is full.
+  const classic = params.flow === "classic" || Boolean(joinQuote);
+  const pay = classic ? null : await loadHowToPay();
   // Brief 12: the free taster Saturday, when one is coming up.
   const taster = upcomingTaster(offers, nassauToday());
   const programDetailsHref = requested?.programType === "camp" ? "/futprep/camps" : requested ? `/sports-fitness/futprep-athletics/${requested.slug}` : "/sports-fitness/futprep-athletics";
 
   return (
-    <main className="registration-page futprep-theme">
+    <main className="registration-page futprep-theme" style={(await futprepTokenStyle()) as CSSProperties}>
       <header className="site-header form-header registration-header">
         <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
@@ -121,7 +152,12 @@ export default async function FutprepRegisterPage({ searchParams }: { searchPara
           <Link className="header-link" href={programDetailsHref}>{requested?.programType === "camp" ? "Camp details" : "Program details"}</Link>
         </div>
       </header>
-      <Suspense fallback={null}>
+      {!classic && pay && (
+        <div className="registration-shell">
+          <QuickRegistration offers={offers} attribution={attribution} initialOfferKey={requested ? `${requested.programId}:${requested.termId}` : null} howToPay={pay.howToPay} methods={pay.methods} closedNotice={closed} today={nassauToday()} />
+        </div>
+      )}
+      {classic && <Suspense fallback={null}>
         <RegistrationForm
           attribution={attribution}
           offers={offers}
@@ -132,7 +168,7 @@ export default async function FutprepRegisterPage({ searchParams }: { searchPara
           closedNotice={closed}
           intro={!joinQuote && offers.some((offer) => offer.earlyAccessOnly) ? { eyebrow: "Futprep · PortPass member early access", title: "You're in early.", lead: "As a PortPass member you can register before it opens to everyone." } : joinQuote ? { eyebrow: "Futprep · after the free taster", title: `Join the rest of the term.`, lead: `Keep ${joinQuote.childName.split(" ")[0]} playing for the ${joinQuote.remainingSessions} Saturdays left in the term. You pay only for those.` } : null}
         />
-      </Suspense>
+      </Suspense>}
     </main>
   );
 }

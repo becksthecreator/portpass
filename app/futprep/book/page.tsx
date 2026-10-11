@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
-import { cache } from "react";
+import { cache, type CSSProperties } from "react";
+import { futprepTokenStyle } from "@/db/futprepTheme";
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import { listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
 import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAttribution, parseAttributionCookie, type Attribution } from "@/lib/attribution";
 import { bookingDescription, bookingTitle, coachShortName, readBookingParams } from "@/lib/bookingLink";
 import { PrivateSessionBooking } from "../coaches/PrivateSessionBooking";
 import "../coaches/booking-days.css";
+import "../tap-steps.css";
 import "./book.css";
 
 // /futprep/book?coach=<slug>&service=<slug> (Brief 29, part D): the booking
@@ -57,7 +59,7 @@ export default async function FutprepBookPage({ searchParams }: { searchParams: 
   const bookingServices = services.map((s) => ({ slug: s.slug, name: s.name, priceCents: s.priceCents, priceUnit: s.priceUnit, kind: s.kind, durationMinutes: s.durationMinutes, minChildren: s.minChildren, maxChildren: s.maxChildren, perChildCents: s.perChildCents }));
 
   return (
-    <main className="futprep-book-page">
+    <main className="futprep-book-page" style={(await futprepTokenStyle()) as CSSProperties}>
       <header className="futprep-team-header">
         <Link className="brand" href="/"><BrandLogo /></Link>
         <nav><Link href="/futprep/coaches">All coaches</Link> <Link href="/sports-fitness/futprep-athletics">Futprep home</Link></nav>

@@ -7,8 +7,11 @@ import { isUploadedCoachPhoto } from "@/lib/imageUpload";
 import { money, sessionButtonLabel } from "@/lib/privateSessions";
 import { workingDaysLabel } from "@/lib/workingDays";
 import "./booking-days.css";
+import "../tap-steps.css";
 import { initialsOf } from "@/lib/team";
 import { PrivateSessionBooking } from "./PrivateSessionBooking";
+import { futprepTokenStyle } from "@/db/futprepTheme";
+import type { CSSProperties } from "react";
 
 // force-dynamic (not ISR/revalidate) because this repo's CI build has no
 // Supabase credentials available at build time, and a numeric revalidate
@@ -48,7 +51,7 @@ export default async function FutprepCoachesPage(){
   const partyLabel=partyService?`Book a party · ${money(partyService.priceCents!)} →`:null;
 
   return (
-    <main className="futprep-team-page">
+    <main className="futprep-team-page" style={(await futprepTokenStyle()) as CSSProperties}>
       <header className="futprep-team-header">
         <Link className="brand" href="/"><BrandLogo /></Link>
         <nav><Link href="/sports-fitness/futprep-athletics">Futprep home</Link> <Link href="/futprep/camps">Holiday camps</Link></nav>

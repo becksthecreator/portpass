@@ -8,6 +8,8 @@ import { getOrganizationListingBySlug } from "@/db/organizations";
 import { getFutprepAvailability, type FutprepAvailability } from "@/db/registrations";
 import { campDays, formatDateRange } from "@/lib/futprepTerms";
 import { portpassWhatsAppUrl } from "@/lib/contact";
+import { themeTokens, tokenStyle } from "@/lib/futprepTheme";
+import type { CSSProperties } from "react";
 
 // Where the empty state sends parents instead (brief 27 A): the two things
 // Futprep runs every week. No dates here: a camp's dates appear only once
@@ -34,14 +36,16 @@ async function openCamps(): Promise<FutprepAvailability[]> {
   }
 }
 
-// A saved Instagram handle makes "@futprep" a link; without one it stays
-// plain text, so the page never points at an account nobody confirmed.
-async function instagramHandle(): Promise<string | null> {
+// The business row: a saved Instagram handle makes "@futprep" a link
+// (without one it stays plain text, so the page never points at an account
+// nobody confirmed), and its theme tokens colour the page (brief 27, D).
+async function futprepRow(): Promise<{ instagram: string | null; tokens: Record<string, string> }> {
   try {
-    const handle = (await getOrganizationListingBySlug("futprep"))?.organization.instagramHandle?.replace(/^@/, "").trim();
-    return handle || null;
+    const organization = (await getOrganizationListingBySlug("futprep"))?.organization;
+    const handle = organization?.instagramHandle?.replace(/^@/, "").trim();
+    return { instagram: handle || null, tokens: tokenStyle(themeTokens(organization?.theme)) };
   } catch {
-    return null;
+    return { instagram: null, tokens: tokenStyle() };
   }
 }
 
@@ -61,11 +65,11 @@ function initials(name: string): string {
 }
 
 export default async function FutprepCampsPage() {
-  const [camps, coaches, instagram] = await Promise.all([openCamps(), campCoaches(), instagramHandle()]);
+  const [camps, coaches, { instagram, tokens }] = await Promise.all([openCamps(), campCoaches(), futprepRow()]);
   const whatsapp = portpassWhatsAppUrl("Hi, I'd like to hear about the next Futprep holiday camp");
 
   return (
-    <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
+    <div className={`${bizDisplay.variable} ${ppSans.variable}`} style={tokens as CSSProperties}>
       <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: "Futprep Athletics", href: "/sports-fitness/futprep-athletics" }, { label: "Holiday camps", href: "/futprep/camps" }]} />
       <main className="tpl-page camps-page">
         <section className="camps-hero">

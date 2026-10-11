@@ -862,11 +862,8 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 }
 
 
-/* Futprep palette, part 2 of 2: still-live values from this pass. */
-.futprep-theme{
-  --fp-base:#ffffff;
-  --fp-line:#d9e3e0;
-}
+/* Futprep palette, part 2 of 2: --fp-base and --fp-line now come from the
+   Flamingo Night block further down. */
 
 .futprep-theme .pilot-header,
 .futprep-theme.registration-page .registration-header,
@@ -2011,15 +2008,27 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
    definition and stayed here as-is; pink/teal/black/pink-soft/teal-soft
    were each redefined two or three times before landing on the values
    below, which is what every Futprep page has actually been rendering. */
+/* Flamingo Night (brief 27, D). The values below are the defaults for
+   any .futprep-theme root; a Futprep page root sets the same eight tokens
+   inline from organizations.theme.tokens (lib/futprepTheme.ts), which
+   wins. The old pink, teal, black and charcoal are gone; the aliases the
+   rest of this file still reads point at the new tokens. */
 .futprep-theme{
-  --fp-pink:#f0245c;
-  --fp-pink-deep:#c91749;
-  --fp-pink-soft:#ffd9e4;
-  --fp-teal:#2cb8a0;
-  --fp-teal-deep:#168a79;
-  --fp-teal-soft:#ccefe8;
-  --fp-black:#151515;
-  --fp-charcoal:#242424;
+  --fp-pink:#FF4A86;
+  --fp-pink-deep:#D1185C;
+  --fp-pink-soft:#FFE8F0;
+  --fp-mint:#2FC9AE;
+  --fp-mint-deep:#0F7A68;
+  --fp-mint-soft:#E6FAF6;
+  --fp-navy:#0F1B2D;
+  --fp-base:#F7F9FC;
+  --fp-teal:var(--fp-mint);
+  --fp-teal-deep:var(--fp-mint-deep);
+  --fp-teal-soft:var(--fp-mint-soft);
+  --fp-black:var(--fp-navy);
+  --fp-charcoal:var(--fp-navy);
+  --fp-line:#D5DCE6;
+  --fp-muted:#5B6472;
 }
 
 /* HEADER — pink territory */
@@ -5799,3 +5808,62 @@ a.admin-tile:hover{border-color:var(--sky)}
 
 /* Ask for a Google review (brief 11): the message the business sends itself. */
 .biz-review-message{background:var(--surface);border:1px dashed var(--line);border-radius:12px;color:var(--text);font-size:.92rem;line-height:1.55;margin:0 0 14px;padding:12px 14px}
+
+/* ---- Flamingo Night (brief 27, D): what each Futprep surface reads as ----
+   The rules above grew over several passes; this block is the last word on
+   every pair that carries text. Pink and mint fills take navy words; dark
+   sections are navy with base text and mint links and eyebrows; pink as
+   text on a light background is the deep pink. No white on pink anywhere. */
+.futprep-theme.registration-page{background:var(--fp-base);color:var(--fp-navy)}
+.futprep-theme .pilot-header,
+.futprep-theme.registration-page .registration-header{background:var(--fp-base);border-bottom:1px solid var(--fp-line)}
+/* The staff login carries .futprep-theme on a night background, so the
+   light-page rules stop at :not(.theme-night). */
+.futprep-theme:not(.theme-night) .header-link{color:var(--fp-navy)}
+.futprep-theme .brand-mark,.futprep-theme footer .brand-mark{background:var(--fp-pink);color:var(--fp-navy)}
+.futprep-theme:not(.theme-night) .eyebrow{color:var(--fp-pink-deep)}
+.futprep-theme .eyebrow-dot{background:var(--fp-pink)}
+.futprep-theme .primary-button{background:var(--fp-pink);color:var(--fp-navy);border:0}
+.futprep-theme .primary-button:hover{background:var(--fp-navy);color:var(--fp-base)}
+.futprep-theme .primary-button:focus-visible,.futprep-theme .light-button:focus-visible{outline:2px solid var(--fp-navy);outline-offset:2px}
+.futprep-theme.theme-night .primary-button:focus-visible{outline-color:var(--fp-base)}
+.futprep-theme .light-button{background:var(--fp-navy);color:var(--fp-base)}
+.futprep-theme .light-button:hover{background:var(--fp-base);color:var(--fp-navy)}
+/* Footer of the registration pages. */
+.futprep-theme footer{background:var(--fp-navy);color:var(--fp-base)}
+.futprep-theme footer p,.futprep-theme footer .futprep-footer-brand,.futprep-theme footer .brand{color:var(--fp-base)}
+.futprep-theme footer a,.futprep-theme footer .footer-partner b{color:var(--fp-mint)}
+/* Registration (classic form). */
+.futprep-theme .registration-progress .is-current span,.futprep-theme .registration-progress .is-complete span{background:var(--fp-navy);border-color:var(--fp-navy);color:var(--fp-base)}
+.futprep-theme .registration-progress .is-current{border-color:var(--fp-pink);color:var(--fp-navy)}
+.futprep-theme .registration-form legend>span{background:var(--fp-pink);color:var(--fp-navy)}
+.futprep-theme .choice-card.is-selected{background:var(--fp-mint-soft);border-color:var(--fp-navy)}
+.futprep-theme .choice-card.is-selected .choice-check{background:var(--fp-pink);border-color:var(--fp-navy)}
+.futprep-theme .registration-total,.futprep-theme .confirmation-reference{background:var(--fp-navy);color:var(--fp-base)}
+.futprep-theme .confirmation-reference span{color:var(--fp-mint)}
+.futprep-theme .payment-instruction,.futprep-theme .bank-panel{background:var(--fp-mint-soft);color:var(--fp-navy)}
+.futprep-theme:not(.theme-night) input:focus,.futprep-theme:not(.theme-night) select:focus,.futprep-theme:not(.theme-night) textarea:focus{outline:2px solid var(--fp-navy);outline-offset:1px;border-color:var(--fp-navy)}
+/* Coaches page and the private-session form. */
+.futprep-team-page,.futprep-team-footer{background:var(--fp-base,#F7F9FC);color:var(--fp-navy,#0F1B2D)}
+.futprep-team-footer,.futprep-team-footer a{color:var(--fp-muted,#5B6472)}
+.futprep-team-header nav a{color:var(--fp-navy,#0F1B2D)}
+.futprep-team-hero{background:var(--fp-navy,#0F1B2D);color:var(--fp-base,#F7F9FC)}
+.futprep-team-hero::after{background:var(--fp-pink,#FF4A86)}
+.futprep-team-hero>span{color:var(--fp-mint,#2FC9AE)}
+.futprep-team-hero h1 em{color:var(--fp-pink,#FF4A86)}
+.futprep-team-hero>p{color:var(--fp-base,#F7F9FC)}
+.private-session-trigger{background:var(--fp-pink,#FF4A86);color:var(--fp-navy,#0F1B2D)}
+.private-session-trigger:focus-visible{outline:2px solid var(--fp-navy,#0F1B2D);outline-offset:2px}
+.futprep-team-card{border-color:var(--fp-line,#D5DCE6)}
+.futprep-team-photo{background:var(--fp-mint-soft,#E6FAF6)}
+.futprep-team-photo>span{background:var(--fp-pink,#FF4A86);color:var(--fp-navy,#0F1B2D)}
+.futprep-team-initial{color:var(--fp-mint-deep,#0F7A68)}
+.futprep-team-copy>small,.private-session-kicker,.coach-video-link{color:var(--fp-pink-deep,#D1185C)}
+.futprep-team-copy>p,.private-session-intro{color:var(--fp-muted,#5B6472)}
+.futprep-team-copy blockquote{border-left-color:var(--fp-pink,#FF4A86)}
+.availability-available,.private-session-success span{color:var(--fp-mint-deep,#0F7A68)}
+.futprep-team-note{background:var(--fp-mint,#2FC9AE);color:var(--fp-navy,#0F1B2D)}
+.futprep-team-note .private-session-trigger{background:var(--fp-navy,#0F1B2D);color:var(--fp-base,#F7F9FC)}
+.private-session-submit,.private-session-success button{background:var(--fp-pink,#FF4A86);color:var(--fp-navy,#0F1B2D);border-radius:999px}
+.private-session-submit:focus-visible{outline:2px solid var(--fp-navy,#0F1B2D);outline-offset:2px}
+.private-session-services label.is-selected,.private-session-slots label.is-selected{border-color:var(--fp-navy,#0F1B2D);background:var(--fp-mint-soft,#E6FAF6)}
