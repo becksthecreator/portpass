@@ -7,7 +7,7 @@
 .tap-progress li{border-top:2px solid var(--fp-line,#d9e3e0);color:var(--fp-muted,#666b6a);display:flex;align-items:center;gap:8px;padding-top:10px;font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
 .tap-progress span{align-items:center;border:2px solid currentColor;border-radius:50%;display:inline-flex;font-size:.7rem;height:24px;justify-content:center;width:24px;flex:none}
 .tap-progress .is-current{border-top-color:var(--fp-pink,#f0245c);color:var(--fp-navy,#0d1b3d)}
-.tap-progress .is-current span{background:var(--fp-pink,#f0245c);border-color:var(--fp-pink,#f0245c);color:var(--fp-navy,#0d1b3d)}
+.tap-progress .is-current span{background:var(--fp-navy,#0d1b3d);border-color:var(--fp-navy,#0d1b3d);color:var(--fp-base,#f7f9fc)}
 .tap-progress .is-done{border-top-color:var(--fp-navy,#0d1b3d);color:var(--fp-navy,#0d1b3d)}
 .tap-progress .is-done span{background:var(--fp-navy,#0d1b3d);border-color:var(--fp-navy,#0d1b3d);color:var(--fp-base,#f7f9fc)}
 
@@ -15,7 +15,7 @@
 .tap-screen h1{font-size:clamp(1.7rem,6vw,2.4rem);line-height:1.05;margin:0 0 6px}
 .tap-screen>p{color:var(--fp-muted,#666b6a);margin:0 0 16px;line-height:1.5}
 .tap-step{display:flex;align-items:center;gap:10px;margin:18px 0 10px;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--fp-navy,#0d1b3d)}
-.tap-step span{align-items:center;background:var(--fp-pink,#f0245c);border-radius:999px;color:var(--fp-navy,#0d1b3d);display:inline-flex;font-size:.72rem;height:26px;justify-content:center;min-width:26px;padding:0 8px;box-sizing:border-box;flex:none}
+.tap-step span{align-items:center;background:var(--fp-navy,#0d1b3d);border-radius:999px;color:var(--fp-base,#f7f9fc);display:inline-flex;font-size:.72rem;height:26px;justify-content:center;min-width:26px;padding:0 8px;box-sizing:border-box;flex:none}
 .tap-step.is-done span{background:var(--fp-navy,#0d1b3d);color:var(--fp-base,#f7f9fc)}
 
 /* Pick: one card per class. */
@@ -57,7 +57,7 @@
 .tap-consent input{accent-color:var(--fp-navy,#0d1b3d);flex:none;height:22px;width:22px;margin-top:2px}
 .tap-error{background:#fdeceb;border-radius:10px;color:#8a1c12;margin:0;padding:10px 12px;font-weight:700}
 .tap-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-top:6px}
-.tap-submit,.tap-button{appearance:none;background:var(--fp-pink,#f0245c);border:0;border-radius:999px;color:var(--fp-navy,#0d1b3d);cursor:pointer;font:inherit;font-size:1rem;font-weight:800;min-height:48px;padding:0 22px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.tap-submit,.tap-button{appearance:none;background:var(--fp-navy,#0d1b3d);border:0;border-radius:999px;color:var(--fp-base,#f7f9fc);cursor:pointer;font:inherit;font-size:1rem;font-weight:800;min-height:48px;padding:0 22px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 .tap-submit:disabled{opacity:.6;cursor:default}
 .tap-submit:focus-visible,.tap-button:focus-visible{outline:2px solid var(--fp-navy,#0d1b3d);outline-offset:2px}
 .tap-back{appearance:none;background:none;border:0;color:var(--fp-navy,#0d1b3d);cursor:pointer;font:inherit;font-weight:700;min-height:44px;padding:0 6px;text-decoration:underline;text-underline-offset:3px}
@@ -76,3 +76,4 @@
 .tap-facts a{color:var(--fp-navy,#0d1b3d);font-weight:800;text-decoration:underline;text-underline-offset:3px}
 .tap-note{color:var(--fp-muted,#666b6a);font-size:.9rem;line-height:1.5;margin:0}
 @media(min-width:720px){.tap-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.tap-screen{padding:28px}}
+@media(max-width:479px){.tap-two{grid-template-columns:1fr}}

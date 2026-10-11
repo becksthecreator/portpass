@@ -46,20 +46,6 @@ export function asksMonths(offer: AgeRule): boolean {
   return ageRangeMonths(offer).min % 12 !== 0 || ageRangeMonths(offer).max < 48;
 }
 
-// An age given today, as months on the day the term starts (the day the
-// rule is checked, brief 12). A term already running is checked as of today.
-export function ageMonthsAtTermStart(ageMonthsToday: number, today: string, termStartDate: string): number {
-  return ageMonthsToday + Math.max(0, ageInMonths(today, termStartDate));
-}
-
-export function ageProblem(offer: QuickOffer, ageMonthsToday: number, today: string): string | null {
-  if (!Number.isInteger(ageMonthsToday) || ageMonthsToday < 0) return "Enter the child's age.";
-  const months = ageMonthsAtTermStart(ageMonthsToday, today, offer.termStartDate);
-  const { min, max } = ageRangeMonths(offer);
-  if (months < min || months > max) return `${offer.name} is for ages ${offer.ageLabel}${offer.termStartDate > today ? ", counted on the day the term starts" : ""}.`;
-  return null;
-}
-
 // The date of birth we store for an age given in months: the 15th of the
 // month that many months ago, so the child sits mid-month either way. It is
 // approximate; the registration says so in its notes.
@@ -67,6 +53,23 @@ export function dobFromAgeMonths(ageMonths: number, today: string): string {
   const date = new Date(`${today.slice(0, 7)}-15T12:00:00Z`);
   date.setUTCMonth(date.getUTCMonth() - ageMonths);
   return date.toISOString().slice(0, 10);
+}
+
+// An age given today, as months on the day the term starts: the day the
+// rule is checked (brief 12), whether that day is ahead or behind. Worked
+// out from the very date of birth the server will store, so the screen and
+// the server never disagree.
+export function ageMonthsAtTermStart(ageMonthsToday: number, today: string, termStartDate: string): number {
+  return ageInMonths(dobFromAgeMonths(ageMonthsToday, today), termStartDate);
+}
+
+export function ageProblem(offer: QuickOffer, ageMonthsToday: number, today: string): string | null {
+  if (!Number.isInteger(ageMonthsToday) || ageMonthsToday < 0) return "Enter the child's age.";
+  const months = ageMonthsAtTermStart(ageMonthsToday, today, offer.termStartDate);
+  const { min, max } = ageRangeMonths(offer);
+  const when = offer.termStartDate > today ? ", counted on the day the term starts" : offer.termStartDate < today ? ", counted on the day the term started" : "";
+  if (months < min || months > max) return `${offer.name} is for ages ${offer.ageLabel}${when}.`;
+  return null;
 }
 
 export function ageWords(ageMonths: number): string {

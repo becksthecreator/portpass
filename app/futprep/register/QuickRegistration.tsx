@@ -167,7 +167,7 @@ export function QuickRegistration({ offers, attribution = EMPTY_ATTRIBUTION, ini
           </div>
           <div>
             <dt>When</dt>
-            <dd><strong>{next ? longDate(next) : result.term.name}</strong><p>{offer.programType === "camp" ? `${offer.dailyStartTime || offer.time}–${offer.dailyEndTime || offer.endTime} each day` : `${programTimeRange(offer)}, every ${offer.day} until ${longDate(offer.termEndDate)}`}</p></dd>
+            <dd><strong>{next ? longDate(next) : result.term.name}</strong><p>{offer.programType === "camp" ? `${offer.dailyStartTime || offer.time}–${offer.dailyEndTime || offer.endTime} each day` : `${programTimeRange(offer)}, ${offer.day}s until ${longDate(offer.termEndDate)}${offer.breakDates.length > 0 ? ` (not ${offer.breakDates.map((d) => longDate(d).replace(/^\w+ /, "")).join(", ")})` : ""}`}</p></dd>
           </div>
           <div>
             <dt>Where</dt>
@@ -221,10 +221,10 @@ export function QuickRegistration({ offers, attribution = EMPTY_ATTRIBUTION, ini
               </label>
             )}
           </div>
-          <p className="tap-note">{offer.name} is for ages {offer.ageLabel}{offer.termStartDate > today ? `, counted on ${longDate(offer.termStartDate)}` : ""}.</p>
+          <p className="tap-note">{offer.name} is for ages {offer.ageLabel}{offer.termStartDate !== today ? `, counted on ${longDate(offer.termStartDate)}, the day the term ${offer.termStartDate > today ? "starts" : "started"}` : ""}.</p>
           <label><span>Health notes <small>(allergies, medical conditions, medication, anything the coaches should know; leave blank if none)</small></span><textarea value={form.healthNotes} rows={3} maxLength={1000} onChange={(e) => set("healthNotes", e.target.value)} /></label>
 
-          <h2 className="tap-step"><span>$</span>Paying</h2>
+          <h2 className="tap-step"><span>Pay</span>Paying</h2>
           {offer.programType !== "camp" && (
             <fieldset className="tap-pills">
               <legend>Pay *</legend>
