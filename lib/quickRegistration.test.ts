@@ -30,10 +30,11 @@ describe("age", () => {
     expect(asksMonths(kickers)).toBe(false);
   });
   it("counts the age on the day the term starts, ahead or behind, from the stored date of birth", () => {
-    // Born 15 Apr 2024 (2 years 6 months today): 32 months on 9 Jan 2027,
-    // 28 months on 5 Sept 2026, the day Term 1 started.
-    expect(ageMonthsAtTermStart(30, today, "2027-01-09")).toBe(32);
-    expect(ageMonthsAtTermStart(30, today, "2026-09-05")).toBe(28);
+    // Born 1 Apr 2024 (2 years 6 months today): 33 months on 9 Jan 2027,
+    // 29 months on 5 Sept 2026, the day Term 1 started.
+    expect(ageMonthsAtTermStart(30, today, "2027-01-09")).toBe(33);
+    expect(ageMonthsAtTermStart(30, today, "2026-09-05")).toBe(29);
+    expect(ageMonthsAtTermStart(36, today, today)).toBe(36);
   });
   it("tells the parent early when the class won't fit, in the class's own words", () => {
     expect(ageProblem(lilKickers, 30, today)).toBeNull();
@@ -44,9 +45,10 @@ describe("age", () => {
     expect(ageProblem({ ...kickers, termStartDate: today }, 3 * 12, today)).toBeNull();
     expect(ageProblem(kickers, Number.NaN, today)).toBe("Enter the child's age.");
   });
-  it("stores an age as a mid-month date of birth and says it in words", () => {
-    expect(dobFromAgeMonths(30, today)).toBe("2024-04-15");
-    expect(dobFromAgeMonths(0, "2026-01-31")).toBe("2026-01-15");
+  it("stores an age as a first-of-the-month date of birth and says it in words", () => {
+    expect(dobFromAgeMonths(30, today)).toBe("2024-04-01");
+    expect(dobFromAgeMonths(0, "2026-01-31")).toBe("2026-01-01");
+    expect(dobFromAgeMonths(36, "2026-10-02")).toBe("2023-10-01");
     expect(ageWords(30)).toBe("2 years 6 months");
     expect(ageWords(12)).toBe("1 year");
     expect(ageWords(7)).toBe("7 months");
