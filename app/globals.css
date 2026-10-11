@@ -5817,38 +5817,19 @@ a.admin-tile:hover{border-color:var(--sky)}
 .futprep-theme.registration-page{background:var(--fp-base);color:var(--fp-navy)}
 .futprep-theme .pilot-header,
 .futprep-theme.registration-page .registration-header{background:var(--fp-base);border-bottom:1px solid var(--fp-line)}
-.futprep-theme .header-link,.futprep-theme .pilot-header a{color:var(--fp-navy)}
+/* The staff login carries .futprep-theme on a night background, so the
+   light-page rules stop at :not(.theme-night). */
+.futprep-theme:not(.theme-night) .header-link{color:var(--fp-navy)}
 .futprep-theme .brand-mark,.futprep-theme footer .brand-mark{background:var(--fp-pink);color:var(--fp-navy)}
-.futprep-theme .eyebrow{color:var(--fp-pink-deep)}
-.futprep-theme .eyebrow-dot,.futprep-theme .pilot-hero .eyebrow-dot{background:var(--fp-pink)}
-.futprep-theme .primary-button,.futprep-theme .pilot-hero .primary-button{background:var(--fp-pink);color:var(--fp-navy);border:0}
-.futprep-theme .primary-button:hover,.futprep-theme .pilot-hero .primary-button:hover{background:var(--fp-navy);color:var(--fp-base)}
-.futprep-theme .primary-button:focus-visible,.futprep-theme .light-button:focus-visible,.futprep-theme .tpl-offering-cta:focus-visible{outline:2px solid var(--fp-navy);outline-offset:2px}
+.futprep-theme:not(.theme-night) .eyebrow{color:var(--fp-pink-deep)}
+.futprep-theme .eyebrow-dot{background:var(--fp-pink)}
+.futprep-theme .primary-button{background:var(--fp-pink);color:var(--fp-navy);border:0}
+.futprep-theme .primary-button:hover{background:var(--fp-navy);color:var(--fp-base)}
+.futprep-theme .primary-button:focus-visible,.futprep-theme .light-button:focus-visible{outline:2px solid var(--fp-navy);outline-offset:2px}
+.futprep-theme.theme-night .primary-button:focus-visible{outline-color:var(--fp-base)}
 .futprep-theme .light-button{background:var(--fp-navy);color:var(--fp-base)}
 .futprep-theme .light-button:hover{background:var(--fp-base);color:var(--fp-navy)}
-.futprep-theme .session-float{background:var(--fp-pink);color:var(--fp-navy)}
-.futprep-theme .headline-second,.futprep-theme .headline-ellipsis,.futprep-theme .pilot-hero-copy h1 em{color:var(--fp-pink-deep)}
-.futprep-theme .pilot-hero-copy>p{color:var(--fp-muted)}
-.futprep-theme .pilot-term-card{background:var(--fp-base);color:var(--fp-navy);box-shadow:12px 12px 0 var(--fp-mint)}
-/* Classes: a navy section. */
-.futprep-theme .pilot-classes{background:var(--fp-navy)!important;color:var(--fp-base)}
-.futprep-theme .pilot-classes .section-kicker{color:var(--fp-mint)}
-.futprep-theme .pilot-classes h2,.futprep-theme .pilot-classes>p{color:var(--fp-base)}
-/* How to pay: soft mint, navy words. */
-.futprep-theme .pilot-payment-strip{background:var(--fp-mint-soft)!important;color:var(--fp-navy)}
-.futprep-theme .pilot-payment-strip .section-kicker{color:var(--fp-mint-deep)}
-.futprep-theme .pilot-payment-strip h2,.futprep-theme .pilot-payment-strip p{color:var(--fp-navy)}
-/* The call to action and the story: navy sections with a pink button. */
-.futprep-theme .pilot-cta{background:var(--fp-navy);color:var(--fp-base)}
-.futprep-theme .pilot-cta h2,.futprep-theme .pilot-cta>p{color:var(--fp-base)}
-.futprep-theme .pilot-cta .light-button{background:var(--fp-pink);color:var(--fp-navy)}
-.futprep-theme .pilot-cta .light-button:hover{background:var(--fp-base);color:var(--fp-navy)}
-.futprep-theme .futprep-story{background:var(--fp-navy)!important;color:var(--fp-base)}
-.futprep-theme .futprep-story-copy>.section-kicker,.futprep-theme .futprep-story a{color:var(--fp-mint)}
-.futprep-theme .futprep-story-copy h2,.futprep-theme .futprep-story-copy>p{color:var(--fp-base)}
-.futprep-theme .futprep-story-copy h2 em{color:var(--fp-pink)}
-.futprep-theme .sponsor-heading>.section-kicker{color:var(--fp-mint-deep)}
-/* Footer. */
+/* Footer of the registration pages. */
 .futprep-theme footer{background:var(--fp-navy);color:var(--fp-base)}
 .futprep-theme footer p,.futprep-theme footer .futprep-footer-brand,.futprep-theme footer .brand{color:var(--fp-base)}
 .futprep-theme footer a,.futprep-theme footer .footer-partner b{color:var(--fp-mint)}
@@ -5861,7 +5842,7 @@ a.admin-tile:hover{border-color:var(--sky)}
 .futprep-theme .registration-total,.futprep-theme .confirmation-reference{background:var(--fp-navy);color:var(--fp-base)}
 .futprep-theme .confirmation-reference span{color:var(--fp-mint)}
 .futprep-theme .payment-instruction,.futprep-theme .bank-panel{background:var(--fp-mint-soft);color:var(--fp-navy)}
-.futprep-theme input:focus,.futprep-theme select:focus,.futprep-theme textarea:focus{outline:2px solid var(--fp-navy);outline-offset:1px;border-color:var(--fp-navy)}
+.futprep-theme:not(.theme-night) input:focus,.futprep-theme:not(.theme-night) select:focus,.futprep-theme:not(.theme-night) textarea:focus{outline:2px solid var(--fp-navy);outline-offset:1px;border-color:var(--fp-navy)}
 /* Coaches page and the private-session form. */
 .futprep-team-page,.futprep-team-footer{background:var(--fp-base,#F7F9FC);color:var(--fp-navy,#0F1B2D)}
 .futprep-team-footer,.futprep-team-footer a{color:var(--fp-muted,#5B6472)}
@@ -5871,7 +5852,7 @@ a.admin-tile:hover{border-color:var(--sky)}
 .futprep-team-hero>span{color:var(--fp-mint,#2FC9AE)}
 .futprep-team-hero h1 em{color:var(--fp-pink,#FF4A86)}
 .futprep-team-hero>p{color:var(--fp-base,#F7F9FC)}
-.private-session-trigger,.futprep-team-note .private-session-trigger{background:var(--fp-pink,#FF4A86);color:var(--fp-navy,#0F1B2D)}
+.private-session-trigger{background:var(--fp-pink,#FF4A86);color:var(--fp-navy,#0F1B2D)}
 .private-session-trigger:focus-visible{outline:2px solid var(--fp-navy,#0F1B2D);outline-offset:2px}
 .futprep-team-card{border-color:var(--fp-line,#D5DCE6)}
 .futprep-team-photo{background:var(--fp-mint-soft,#E6FAF6)}

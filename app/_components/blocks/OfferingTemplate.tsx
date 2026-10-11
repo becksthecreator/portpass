@@ -9,7 +9,8 @@ import { QuestionsBlock } from "./QuestionsBlock";
 import { ActionBlock } from "./ActionBlock";
 import { categoryLabel } from "./categoryLabel";
 import { OFFERING_ACTION_LABEL, formatAgeRange, formatDate } from "./format";
-import { computeBrandTokens } from "./brand";
+import { businessTheme, themeVars } from "@/lib/businessTheme";
+import "./brand-theme.css";
 
 // Renders a single offering's own page. The brief names four separate
 // templates here -- Program, Event, Venue, Service -- but all four are the
@@ -40,10 +41,12 @@ export function OfferingTemplate({ listing }: { listing: OfferingListing }) {
   if (offering.doorsTime) practicalFacts.push({ label: "Doors", value: offering.doorsTime });
   if (offering.leadTimeText) practicalFacts.push({ label: "Lead time", value: offering.leadTimeText });
 
-  const { brand, brandText } = computeBrandTokens(org.brandColor);
+  // The same colours as the business page (lib/businessTheme.ts), so a
+  // button never carries white on a fill it can't read on (brief 27, D).
+  const theme = businessTheme(org.brandColor, org.theme);
 
   return (
-    <main className="tpl-page" style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}>
+    <main className="tpl-page tpl-themed" style={themeVars(theme) as React.CSSProperties}>
       <IdentityBlock
         name={offering.name}
         category={categoryLabel(org.primaryCategory)}
