@@ -43,4 +43,5 @@ PortPass is a booking platform for Bahamian businesses (portpassbahamas.com). Fo
 * The Handbook (how PortPass runs, pricing rules, onboarding steps, the lead score) is in the same project as `PortPass_Handbook.md`.
 * Admin → Phase 1 shows the live checklist of what's switched on and what each business is missing.
 * Agents and commands for this repo are in `.claude/`: `reviewer`, `qa-runner` and `onboarder` from brief 20, and `security-reviewer` (report-only), `planner` (read-only) and `tdd-guide`, taken from the everything-claude-code kit and rewritten for PortPass (brief 23).
+* Ponytail keeps diffs small (`.claude/skills/ponytail*`, brief 33). Briefs set the scope; Ponytail never cuts tests, validation, security, accessibility, the report or a brief's "Done when".
 * Addresses that are never emailed, whatever is pressed: `@example.com`, `@example.org`, `@example.net` and `@test.portpass.local` (`lib/email.ts`).

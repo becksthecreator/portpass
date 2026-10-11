@@ -46,16 +46,25 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 Briefs 28, 31 and 32 have left no trace in this repo; their status is in the HQ project.
 
 ## Waiting on Antonio
+- **First: set `CRON_SECRET`** (Vercel → Production). Production logs show `/api/cron/daily` and `/api/cron/attendance-nudge` refused with 503 on every run since at least 9 Oct, so the 90-day health-record purge (rule 3), billing, the demo reset and export pruning are not running.
 - Brief 25: allow the live migration apply for #184 (the auto-mode check refused it), or apply it himself.
 - #185: confirm its live migration once renumbered. #190: OK or no.
 - Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
 - Futprep data: clear or keep Term 2's 12 Dec taster date before 19 Nov; offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
-- The brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `CRON_SECRET`, `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
+- The other brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
 
 ## Known issues
+Ponytail audit, 11 Oct (top five of 15, in the brief 33 PR; not fixed):
+1. Futprep's staff functions open, pay, cancel and mark a registration by id without checking it is Futprep's (`db/staff.ts`, e.g. `getFutprepRegistrationDetail`, `recordFutprepPayment`): another business's child's health record is one id away (rule 3).
+2. A class can be oversold when a term opens: the place count and the insert are separate steps (`db/registrations.ts`, ~726–808). Matters on 19 Nov.
+3. `additional_notes`, a health column, is loaded and shown as "Notes" outside the medical permission (`db/businessRegistrations.ts`) (rule 3).
+4. Emergency and pickup details reach a list and an export: "Authorised pickup" in the coach roster CSV (`lib/rosterCsv.ts`), the emergency contact on every desk card (rule 3).
+5. Desk balances read every received payment, unfiltered and unpaged (`db/staff.ts` ~142): past 1,000 rows, paid children show a balance.
+
+Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
 - #185's migration `202610190002_weddingwire_widgets_structured.sql` clashes with `202610190002_private_sessions_from_the_database.sql` on `main`.
 - The CSP keeps `'unsafe-inline'` and is report-only until #183.
-- 92 signed-in API routes still take bodies without zod; `lib/api/body.static.test.ts` lists them and can only shrink.
+- 91 signed-in API routes still take bodies without zod; `lib/api/body.static.test.ts` lists them and can only shrink.
 - Lint is not in CI (#176); 35 warnings remain.
 - The owner dashboard's "Collected" counts payment requests only; Term 1's desk payments are not in it.
 - A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
