@@ -28,11 +28,15 @@ function basePayload(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// Each call comes from its own address: the route allows 30 per address
+// per ten minutes, and this file makes more than that in one process.
+let ip = 0;
 function post(payload: Record<string, unknown>) {
+  ip += 1;
   return POST(
     new Request("https://portpass.test/api/futprep/registrations", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": `10.27.${Math.floor(ip / 250)}.${ip % 250}` },
       body: JSON.stringify(payload),
     }),
   );
@@ -149,9 +153,10 @@ describe("POST /api/futprep/registrations, mode quick (brief 27, C)", () => {
     expect((await post(quickPayload({ paymentMethod: "card" }))).status).toBe(400);
   });
 
-  it("treats a second email-less entry for the same child as a duplicate", async () => {
+  it("treats a second email-less entry for the same child from the same phone as a duplicate, and another family's same-named child as new", async () => {
     const payload = quickPayload();
     expect((await post(payload)).status).toBe(201);
     expect((await post(payload)).status).toBe(409);
+    expect((await post({ ...payload, parentPhone: "242-555-0177" })).status).toBe(201);
   });
 });

@@ -753,10 +753,13 @@ export async function createFutprepRegistration(
   }
 
   // The three-tap form (brief 27, C) may come with no email: the row then
-  // holds null, and a duplicate is another email-less entry for the same child.
+  // holds null, and a duplicate is another email-less entry for the same
+  // child from the same phone. The phone keeps this from telling a stranger
+  // whether a named child is enrolled, and from refusing another family's
+  // child who happens to share the name and age.
   const normalizedEmail = input.parentEmail.trim().toLowerCase();
   const sameTerm = db.from("registrations").select("reference_code").eq("term_id", term.id);
-  const sameTermAndEmail = normalizedEmail ? sameTerm.eq("parent_email", normalizedEmail) : sameTerm.is("parent_email", null);
+  const sameTermAndEmail = normalizedEmail ? sameTerm.eq("parent_email", normalizedEmail) : sameTerm.is("parent_email", null).eq("parent_phone", input.parentPhone.trim());
   const { data: duplicate, error: duplicateError } = await (adult ? sameTermAndEmail.is("child_dob", null) : sameTermAndEmail.eq("child_dob", input.childDob))
     .ilike("child_name", escapeLikePattern(input.childName.trim()))
     .in("registration_status", mode === "waitlist" ? [...ACTIVE_REGISTRATION_STATUSES, "waitlist"] : ACTIVE_REGISTRATION_STATUSES)
