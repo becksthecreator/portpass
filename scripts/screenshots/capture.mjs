@@ -300,8 +300,10 @@ try {
     ["brief27-after-3-done-375", "anon", "/futprep/register", ".tap-done", null, quickDone],
     ["brief27-after-book-private-375", "anon", "/futprep/book?coach=test-delete-coach-bex", ".tap-step"],
     // Brief 27 (D): Flamingo Night on the Futprep pages the brief names.
-    ["brief27-palette-home-375", "anon", "/sports-fitness/futprep-athletics", ".tpl-offering-cta"],
-    ["brief27-palette-class-375", "anon", "/sports-fitness/futprep-athletics/lil-kickers", ".tpl-offering-cta"],
+    // The throwaway stack seeds Futprep's programs but no published
+    // offering, so the home shot waits on the identity block, and the class
+    // page (a 404 here) is shot on production after the merge instead.
+    ["brief27-palette-home-375", "anon", "/sports-fitness/futprep-athletics", ".tpl-identity"],
     ["brief27-palette-coaches-375", "anon", "/futprep/coaches", ".futprep-team-note"],
     ["brief27-palette-camps-375", "anon", "/futprep/camps", ".camps-empty"],
     ["brief27-palette-staff-login-375", "anon", "/futprep/staff/login", ".staff-login-page"],
