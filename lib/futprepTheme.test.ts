@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AA, contrast, inkOn, NAVY, WHITE } from "./businessTheme";
+import { AA, businessTheme, contrast, inkOn, NAVY, WHITE } from "./businessTheme";
 import { EMAIL_PALETTE, failingPairs, FLAMINGO_NIGHT, pairContrast, TEXT_PAIRS, themeTokens, tokenStyle } from "./futprepTheme";
 
 // Flamingo Night (brief 27, D): every pair that carries text reads to AA.
@@ -15,6 +15,16 @@ describe("Flamingo Night tokens", () => {
     expect(contrast(FLAMINGO_NIGHT["--fp-navy"], FLAMINGO_NIGHT["--fp-pink"])).toBeGreaterThanOrEqual(5.4);
     expect(contrast(FLAMINGO_NIGHT["--fp-navy"], FLAMINGO_NIGHT["--fp-mint"])).toBeGreaterThanOrEqual(8.3);
     expect(contrast(FLAMINGO_NIGHT["--fp-navy"], FLAMINGO_NIGHT["--fp-base"])).toBeGreaterThanOrEqual(16);
+  });
+
+  it("reaches the home page through the brand colour: pink buttons with navy words, a navy header", () => {
+    const t = businessTheme(FLAMINGO_NIGHT["--fp-pink"], { background: FLAMINGO_NIGHT["--fp-navy"] });
+    expect(t.fill).toBe(FLAMINGO_NIGHT["--fp-pink"]);
+    expect(t.onFill).toBe(NAVY);
+    expect(t.headerBg).toBe(FLAMINGO_NIGHT["--fp-navy"]);
+    expect(t.headerInk).toBe(WHITE);
+    expect(t.headerAccent).toBe(FLAMINGO_NIGHT["--fp-pink"]);
+    expect(contrast(t.brandText, WHITE)).toBeGreaterThanOrEqual(AA);
   });
 
   it("the email palette reads too: navy on the pink button, base on the navy header, pink-deep links", () => {

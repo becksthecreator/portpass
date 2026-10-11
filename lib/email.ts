@@ -1,4 +1,5 @@
 import { PORTPASS_SUPPORT_EMAIL } from "./contact";
+import { futprepEmailButton, futprepEmailShell } from "./futprepEmail";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
@@ -95,12 +96,9 @@ export async function sendEmail(input: SendEmailInput): Promise<EmailOutcome> {
   }
 }
 
+// Futprep's emails wear Flamingo Night (brief 27, D): lib/futprepEmail.ts.
 function emailShell(title: string, bodyHtml: string) {
-  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#171717">
-    <h1 style="font-size:22px;margin:0 0 16px">${escapeHtml(title)}</h1>
-    ${bodyHtml}
-    <p style="color:#647069;font-size:12px;margin-top:32px">Futprep Athletics · Sent via PortPass</p>
-  </div>`;
+  return futprepEmailShell(title, bodyHtml);
 }
 
 export function portpassFrom(): string | undefined {
@@ -225,7 +223,7 @@ export async function sendFutprepRegistrationReceivedEmail(input: {
         <tr><td style="padding:6px 0;color:#647069">Amount due</td><td style="padding:6px 0;text-align:right">${money}</td></tr>
       </table>
       <p>Registration code: <strong>${escapeHtml(input.referenceCode)}</strong> — use this as your payment reference.</p>
-      <p><a href="${input.statusUrl}" style="color:#f0245c">Check your registration status →</a></p>
+      ${futprepEmailButton(input.statusUrl, "Check your registration status →")}
     `),
   });
 }
@@ -249,7 +247,7 @@ export async function sendFutprepPaymentRecordedEmail(input: {
       <p>Hi ${escapeHtml(input.parentName)},</p>
       <p>Futprep recorded a payment of <strong>${money(input.amountRecordedCents)}</strong> for <strong>${escapeHtml(input.childName)}</strong>.</p>
       <p>${input.balanceCents > 0 ? `Remaining balance: <strong>${money(input.balanceCents)}</strong>.` : "This registration is now fully paid."}</p>
-      <p><a href="${input.statusUrl}" style="color:#f0245c">Check your registration status →</a></p>
+      ${futprepEmailButton(input.statusUrl, "Check your registration status →")}
     `),
   });
 }
@@ -269,7 +267,7 @@ export async function sendFutprepRegistrationConfirmedEmail(input: {
     html: emailShell("Registration confirmed", `
       <p>Hi ${escapeHtml(input.parentName)},</p>
       <p>Futprep has confirmed <strong>${escapeHtml(input.childName)}</strong>'s spot in <strong>${escapeHtml(input.programName)}</strong>. See you on the field!</p>
-      <p><a href="${input.statusUrl}" style="color:#f0245c">View registration details →</a></p>
+      ${futprepEmailButton(input.statusUrl, "View registration details →")}
     `),
   });
 }

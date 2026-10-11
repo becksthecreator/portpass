@@ -6,6 +6,8 @@ import { SiteFooter } from "@/app/_components/SiteFooter";
 import { bizDisplay, ppSans } from "@/app/fonts";
 import { JsonLd } from "@/app/_components/seo/JsonLd";
 import { absoluteUrl, offerPrice } from "@/lib/seo/jsonLd";
+import { themeTokens, tokenStyle } from "@/lib/futprepTheme";
+import type { CSSProperties } from "react";
 
 // ISR (speed brief, 29 Sept): five-minute cache, rebuilt on demand; no
 // build-time prerender (the params list is empty), so CI's credential-less
@@ -60,7 +62,7 @@ export default async function FutprepOfferingPage({ params }: { params: Promise<
   } : null;
 
   return (
-    <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
+    <div className={`${bizDisplay.variable} ${ppSans.variable}`} style={tokenStyle(themeTokens(organization.theme)) as CSSProperties}>
       {courseSchema && (
         <JsonLd data={courseSchema} />
       )}

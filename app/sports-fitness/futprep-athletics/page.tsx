@@ -13,6 +13,8 @@ import { InOurGuides } from "@/app/guides/InOurGuides";
 import "@/app/_components/seo/seo.css";
 import { fromPriceCents, listingJsonLd } from "@/lib/seo/fromListing";
 import { businessDescription, businessTitle } from "@/lib/seo/titles";
+import { themeTokens, tokenStyle } from "@/lib/futprepTheme";
+import type { CSSProperties } from "react";
 
 // ISR (speed brief, 29 Sept): five-minute cache, rebuilt on demand. The
 // loader swallows a failed read so CI's credential-less build can still
@@ -42,7 +44,9 @@ export default async function FutprepOrganizationPage() {
   if (!listing) notFound();
 
   return (
-    <div className={`${bizDisplay.variable} ${ppSans.variable}`}>
+    // Flamingo Night (brief 27, D): Futprep's tokens from its own row, on
+    // this page only. PortPass's header and footer read the base tokens.
+    <div className={`${bizDisplay.variable} ${ppSans.variable}`} style={tokenStyle(themeTokens(listing.organization.theme)) as CSSProperties}>
       <JsonLd data={listingJsonLd(listing, "/sports-fitness/futprep-athletics")} />
       <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: listing.organization.name, href: "/sports-fitness/futprep-athletics" }]} />
       <OrganizationTemplate listing={listing} enquiryForm={false} />
