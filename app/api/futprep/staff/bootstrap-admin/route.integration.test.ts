@@ -46,7 +46,7 @@ describe("the Futprep first-admin door, with every login switched off", () => {
   });
 
   it("refuses to make a new admin, and makes no row", async () => {
-    const answer = await POST(new Request("http://localhost/api/futprep/staff/bootstrap-admin", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: `TEST — delete ${TAG}`, accountKey: NEW_ADMIN, pin: String(randomInt(100000, 999999)) }) }));
+    const answer = await POST(new Request("http://localhost/api/futprep/staff/bootstrap-admin", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: `TEST — delete new ${TAG}`, accountKey: NEW_ADMIN, pin: String(randomInt(100000, 999999)) }) }));
     expect(answer.status).toBe(409);
     expect((await answer.json()).error).toMatch(/already exists/);
     expect(answer.headers.get("set-cookie") ?? "").not.toContain("portpass_futprep_staff=");
