@@ -300,7 +300,7 @@ export function RegistrationDetailEditor({ detail, programs, healthHidden = fals
             <span>Parent signature (read-only)</span>
             <strong>{detail.signature_name ?? "Not signed yet"}</strong>
             <small>{detail.consent_accepted ? `Consent accepted ${formatWhen(detail.consent_at)}` : "Consent not yet accepted"}</small>
-            <p className="detail-hint">Signature and consent are parent-supplied only — staff can&rsquo;t set these here. Record a staff acknowledgement as an internal note below instead.</p>
+            <p className="detail-hint">Signature and consent are parent-supplied only — staff can&rsquo;t set these here. {healthHidden ? "A login that can see the internal notes records any staff acknowledgement there." : "Record a staff acknowledgement as an internal note below instead."}</p>
           </div>
           {!healthHidden && <label><span>Internal notes</span><textarea value={additionalNotes} onChange={(e) => setAdditionalNotes(e.target.value)} rows={3} /></label>}
         </section>

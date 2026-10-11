@@ -1,7 +1,9 @@
 import { listAdminPeople, listOpenInvites, listStaffPinStatus } from "@/db/adminPeople";
+import { futprepOwnerRequest } from "@/db/futprepOwner";
 import { requireAdmin } from "@/lib/auth/admin";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { AdminShell } from "../_components/AdminShell";
+import { FutprepOwnerGrant } from "./FutprepOwnerGrant";
 import { MembershipControl, ResendInvite, SignOutEverywhere } from "./PeopleActions";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +33,13 @@ const failed = (what: string) => (error: unknown) => {
 
 export default async function AdminPeoplePage() {
   const session = await requireAdmin("/admin/people");
-  const [people, invites, pins] = await Promise.all([listAdminPeople(), listOpenInvites().catch(failed("invitations")), listStaffPinStatus().catch(failed("staff logins"))]);
+  const [people, invites, pins, futprepOwner] = await Promise.all([
+    listAdminPeople(),
+    listOpenInvites().catch(failed("invitations")),
+    listStaffPinStatus().catch(failed("staff logins")),
+    futprepOwnerRequest().catch((error: unknown) => (failed("Futprep's owner mark")(error), undefined)),
+  ]);
+  const isFounder = session.platformRole === "platform_owner";
 
   return (
     <AdminShell session={session} current="/admin/people" title="People & access" lede={`${people.length} account${people.length === 1 ? "" : "s"}. Every change here is logged.`}>
@@ -80,6 +88,35 @@ export default async function AdminPeoplePage() {
                   <td data-label="Send again"><ResendInvite inviteId={invite.id} email={invite.email} /></td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section className="admin-group" aria-labelledby="futprep-owner">
+        <h2 id="futprep-owner">Futprep owner access</h2>
+        <p className="admin-empty">Futprep&rsquo;s staff mark their CEO login as the owner in Staff accounts. That only asks: a founder gives the owner access here, after checking with the person. It is taken back by itself if the mark moves, the login is switched off or its email changes.</p>
+        {futprepOwner === undefined || futprepOwner === null ? (
+          <p className="admin-empty">{futprepOwner === null ? "No staff login is marked as the owner." : "Could not load Futprep's owner mark. Refresh to try again."}</p>
+        ) : (
+          <table className="admin-table">
+            <thead><tr><th>Staff login</th><th>Email</th><th>Where it stands</th><th>Access</th></tr></thead>
+            <tbody>
+              <tr>
+                <td data-label="Staff login"><strong>{futprepOwner.name}</strong>{futprepOwner.loginActive ? null : <><br /><span className="admin-pill rejected">switched off</span></>}</td>
+                <td data-label="Email">{futprepOwner.email ?? "—"}</td>
+                <td data-label="Where it stands">
+                  {futprepOwner.state === "granted" ? <span className="admin-pill live">owner access given</span>
+                    : futprepOwner.state === "waiting_for_founder" ? <span className="admin-pill submitted">waiting for a founder</span>
+                    : futprepOwner.state === "needs_sign_in" ? "No PortPass sign-in with this email yet"
+                    : "No email on the staff login yet"}
+                </td>
+                <td data-label="Access">
+                  {futprepOwner.state === "waiting_for_founder" && futprepOwner.loginActive
+                    ? isFounder ? <FutprepOwnerGrant staffId={futprepOwner.staffId} name={futprepOwner.name} /> : "A founder gives this."
+                    : "—"}
+                </td>
+              </tr>
             </tbody>
           </table>
         )}

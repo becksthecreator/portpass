@@ -466,11 +466,15 @@ type RosterRegistrationRow = {
 // `includeSafety: false` is for the read-only helper login: the emergency
 // contact, pickup and health columns are then never selected, so they
 // cannot reach that person's browser (privacy policy v2, brief 16 D).
+// `includeHealth: false` (brief 31, A1) keeps the emergency contact and
+// pickup but never selects the allergy, medical, medication and
+// special-needs columns: for a coach login the CEO hasn't switched on.
 export async function rosterForSession(
   sessionId: number,
-  options: { includeSafety?: boolean } = {},
+  options: { includeSafety?: boolean; includeHealth?: boolean } = {},
 ): Promise<AttendanceRow[]> {
   const includeSafety = options.includeSafety ?? true;
+  const includeHealth = includeSafety && (options.includeHealth ?? true);
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
 
@@ -491,13 +495,22 @@ export async function rosterForSession(
 
   // The session's own term only: once Term 2 runs on the same program, a
   // Term 1 child must not appear on a Term 2 Saturday (brief 06 v2). Term
-  // children, plus taster children booked for this Saturday. Two literal
+  // children, plus taster children booked for this Saturday. Literal
   // selects (not one built from a variable) so a helper's query can never
-  // name the safety columns.
-  const registrationsQuery = includeSafety
+  // name the safety columns, nor a coach's without the switch the health
+  // ones.
+  const registrationsQuery = includeHealth
     ? db
         .from("registrations")
         .select("id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs,health_purged_at")
+        .eq("program_id", session.program_id)
+        .eq("term_id", session.term_id)
+        .or(who)
+        .order("child_name", { ascending: true })
+    : includeSafety
+    ? db
+        .from("registrations")
+        .select("id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup")
         .eq("program_id", session.program_id)
         .eq("term_id", session.term_id)
         .or(who)

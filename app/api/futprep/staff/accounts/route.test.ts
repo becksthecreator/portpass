@@ -10,7 +10,9 @@ const db = vi.hoisted(() => ({
     { id: 1, name: "TEST Alex", accountKey: "test-ceo", role: "ceo", active: true, pinChangedAt: null },
     { id: 2, name: "TEST Desk", accountKey: "test-desk", role: "admin", active: true, pinChangedAt: null },
     { id: 3, name: "TEST Coach", accountKey: "test-coach", role: "coach", active: true, pinChangedAt: null },
+    { id: 4, name: "TEST Helper", accountKey: "test-helper", role: "helper", active: true, pinChangedAt: null, email: "test-helper@example.com" },
   ],
+  revoked: [] as Array<{ staffId: number; reason: string }>,
   created: [] as Array<{ role: string }>,
   toggled: [] as Array<{ id: number; active: boolean }>,
   emails: [] as Array<{ id: number; email: string | null }>,
@@ -48,6 +50,13 @@ vi.mock("@/app/futprep/staff-auth", () => ({
   }),
 }));
 
+vi.mock("@/db/futprepOwner", () => ({
+  revokeFutprepOwnerGrant: vi.fn(async (input: { staffId: number; reason: string }) => {
+    db.revoked.push({ staffId: input.staffId, reason: input.reason });
+    return true;
+  }),
+}));
+
 import { PATCH, POST } from "./route";
 
 function send(method: "POST" | "PATCH", body: unknown) {
@@ -62,6 +71,7 @@ beforeEach(() => {
   db.emails = [];
   db.logins = [];
   db.medical = [];
+  db.revoked = [];
 });
 
 describe("creating a staff login", () => {
@@ -148,14 +158,41 @@ describe("a login for someone already on the team (brief 31, A3)", () => {
   });
 });
 
-describe("an admin login's medical view (brief 31, A1)", () => {
-  it("is switched by the CEO only, and only on admin logins", async () => {
+describe("the medical view of an admin or coach login (brief 31, A1)", () => {
+  it("is switched by the CEO only, on admin and coach logins only", async () => {
     auth.role = "admin";
     expect((await PATCH(send("PATCH", { id: 2, canViewMedical: false }))).status).toBe(403);
+    // An admin can't make a coach login and switch its health notes on.
+    expect((await PATCH(send("PATCH", { id: 3, canViewMedical: true }))).status).toBe(403);
     auth.role = "ceo";
-    expect((await PATCH(send("PATCH", { id: 3, canViewMedical: true }))).status).toBe(400);
+    expect((await PATCH(send("PATCH", { id: 4, canViewMedical: true }))).status).toBe(400);
     expect((await PATCH(send("PATCH", { id: 2, canViewMedical: false }))).status).toBe(200);
-    expect(db.medical).toEqual([{ id: 2, value: false, actorName: "TEST ceo" }]);
+    expect((await PATCH(send("PATCH", { id: 3, canViewMedical: true }))).status).toBe(200);
+    expect(db.medical).toEqual([{ id: 2, value: false, actorName: "TEST ceo" }, { id: 3, value: true, actorName: "TEST ceo" }]);
     expect(db.toggled).toEqual([]);
+  });
+});
+
+describe("owner access follows the login (brief 31, A4 after review)", () => {
+  it("is taken back before a login is switched off", async () => {
+    auth.role = "ceo";
+    expect((await PATCH(send("PATCH", { id: 1, active: false }))).status).toBe(200);
+    expect(db.revoked).toEqual([{ staffId: 1, reason: "login_switched_off" }]);
+    expect(db.toggled).toEqual([{ id: 1, active: false }]);
+  });
+
+  it("is taken back when the email changes, not when it is saved unchanged", async () => {
+    auth.role = "admin";
+    expect((await PATCH(send("PATCH", { id: 4, email: "TEST-Helper@example.com " }))).status).toBe(200);
+    expect(db.revoked).toEqual([]);
+    expect((await PATCH(send("PATCH", { id: 4, email: "test-other@example.com" }))).status).toBe(200);
+    expect(db.revoked).toEqual([{ staffId: 4, reason: "email_changed" }]);
+    expect(db.emails).toEqual([{ id: 4, email: "test-helper@example.com" }, { id: 4, email: "test-other@example.com" }]);
+  });
+
+  it("switching a login back on grants nothing", async () => {
+    auth.role = "ceo";
+    expect((await PATCH(send("PATCH", { id: 3, active: true }))).status).toBe(200);
+    expect(db.revoked).toEqual([]);
   });
 });

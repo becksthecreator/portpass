@@ -41,11 +41,12 @@ describe("Futprep roles (brief 31, Part A)", () => {
     expect(roleCan(null, "roster")).toBe(false);
   });
 
-  it("shows medical details to the owner always, an admin only with the switch, never to a coach or helper", () => {
+  it("shows medical details to the owner always, an admin or coach only with the switch, never to a helper", () => {
     expect(canSeeMedical("ceo", false)).toBe(true);
     expect(canSeeMedical("admin", false)).toBe(false);
     expect(canSeeMedical("admin", true)).toBe(true);
-    expect(canSeeMedical("coach", true)).toBe(false);
+    expect(canSeeMedical("coach", false)).toBe(false);
+    expect(canSeeMedical("coach", true)).toBe(true);
     expect(canSeeMedical("helper", true)).toBe(false);
     expect(canSeeMedical(null, true)).toBe(false);
     expect(canSetMedicalSwitch("ceo")).toBe(true);

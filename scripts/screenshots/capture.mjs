@@ -98,6 +98,8 @@ const SHOTS = [
   ["brief31-team-chips-375", "test-ceo", "/futprep/staff/team", ".flag-missing"],
   ["brief31-accounts-375", "test-ceo", "/futprep/staff/accounts", ".team-without-login"],
   ["brief31-registration-no-medical-375", "test-desk", `/futprep/staff/admin/${fixture.registrationId}`, ".detail-panel-wide"],
+  ["brief31-roster-no-health-375", "test-coach", `/futprep/staff/coach?session=${fixture.sessionId}`, ".coach-roster details[open]", ".coach-roster details > summary"],
+  ["brief31-admin-futprep-owner-375", "admin", "/admin/people", "#futprep-owner"],
   // Brief 05: the growth report, with the CEO login.
   ["brief05-growth-report-375", "test-ceo", "/futprep/staff/growth", ".growth-panel"],
   // Brief 08: Admin -> Businesses (approve, send back, publish, claim link,

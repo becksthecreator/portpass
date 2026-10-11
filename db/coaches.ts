@@ -288,7 +288,10 @@ export async function listPublicCoachProfiles() {
   };
 }
 
-export async function listAllCoachProfiles() {
+// withLogin (brief 31, A3): each coach's staff login facts, for the Team
+// page's chips. Only the admin and CEO screens ask for them; the private
+// sessions page, which coaches open, never gets them.
+export async function listAllCoachProfiles(options: { withLogin?: boolean } = {}) {
   const ready = await seedProfiles().catch((error) => {
     if (isMissingTable(error)) return false;
     throw error;
@@ -311,8 +314,8 @@ export async function listAllCoachProfiles() {
     throwIfSupabaseError(availabilityError,"Could not load availability");
     slots=(availability ?? []) as CoachAvailability[];
   }
-  const logins=await coachLoginStates(ids);
-  return {schemaReady:true,coaches:profiles.map((profile)=>({...profile,licenses:profile.licenses??[],played_at:profile.played_at??[],working_days:profile.working_days??[],availability:slots.filter((slot)=>slot.coach_id===profile.id),login:logins.get(profile.id)??{linked:false,staffName:null,role:null,hasEmail:false,hasPin:false,active:false}}))};
+  const logins=options.withLogin?await coachLoginStates(ids):null;
+  return {schemaReady:true,coaches:profiles.map((profile)=>({...profile,licenses:profile.licenses??[],played_at:profile.played_at??[],working_days:profile.working_days??[],availability:slots.filter((slot)=>slot.coach_id===profile.id),...(logins?{login:logins.get(profile.id)??{linked:false,staffName:null,role:null,hasEmail:false,hasPin:false,active:false}}:{})}))};
 }
 
 // Each profile's staff login as yes/no facts (brief 31, A3). Whether a PIN

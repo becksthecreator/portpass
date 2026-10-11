@@ -36,13 +36,14 @@ export function roleCan(role: FutprepRole | null | undefined, capability: Futpre
   return role ? CAN[role].includes(capability) : false;
 }
 
-// A child's allergies, conditions, medications and special needs on the
-// registration record: the CEO login always; an admin login only when its
-// can_view_medical switch is on; never a coach or helper (a coach sees the
-// safety notes of the children in their own session on the roster).
+// A child's allergies, conditions, medications and special needs: the CEO
+// login always; an admin login (on the registration record) or a coach
+// login (on the roster) only when its can_view_medical switch is on, which
+// only the CEO can turn on; a helper never. Off by default, so a login an
+// admin makes can't be used to get round the switch.
 export function canSeeMedical(role: FutprepRole | null | undefined, canViewMedicalSwitch: boolean): boolean {
   if (role === "ceo") return true;
-  if (role === "admin") return canViewMedicalSwitch;
+  if (role === "admin" || role === "coach") return canViewMedicalSwitch;
   return false;
 }
 
@@ -89,6 +90,7 @@ export function canChangePrograms(role: FutprepRole | null | undefined): boolean
 
 // The owner bridge: an admin or the CEO marks one login as the owner, and
 // only a CEO login can be the owner (docs/futprep/roles.md: ceo = owner).
+// Marking only asks; a PortPass founder gives the access (db/futprepOwner.ts).
 export function canMarkOwner(role: FutprepRole | null | undefined): boolean {
   return role === "admin" || role === "ceo";
 }

@@ -12,6 +12,7 @@ import {
   setStaffCanViewMedical,
   FUTPREP_STAFF_ROLES,
 } from "@/app/futprep/staff-auth";
+import { revokeFutprepOwnerGrant } from "@/db/futprepOwner";
 import { bodyOf, readJson } from "@/lib/api/body";
 import { canSetMedicalSwitch } from "@/lib/futprepRoles";
 
@@ -103,7 +104,9 @@ export async function POST(request: Request) {
 }
 
 // Switch a login off or on, set where its reminders are emailed, or
-// (brief 31, A1) switch an admin login's medical view: the owner only.
+// (brief 31, A1) switch an admin or coach login's medical view: the owner
+// only. Switching a login off or changing its email takes back any owner
+// access a founder gave from it (db/futprepOwner.ts) before the change.
 const PatchBody = bodyOf(["id", "active", "email", "canViewMedical"]);
 
 export async function PATCH(request: Request) {
@@ -130,11 +133,17 @@ export async function PATCH(request: Request) {
     const target = (await listStaffAccounts()).find((account) => account.id === Number(body.id));
     if (!target) return NextResponse.json({ error: "Account not found." }, { status: 404 });
     if (target.role === "ceo" && manager !== "ceo") return NextResponse.json({ error: CEO_ONLY }, { status: 403 });
+    const actor = (await currentFutprepStaffName()) ?? manager;
     if (hasMedical) {
-      if (target.role !== "admin") return NextResponse.json({ error: "The switch is for admin logins: the CEO always sees medical details, coaches see their own session's safety notes." }, { status: 400 });
-      await setStaffCanViewMedical(target.id, body.canViewMedical as boolean, (await currentFutprepStaffName()) ?? manager);
-    } else if (hasEmail) await setStaffAccountEmail(Number(body.id), email);
-    else await setStaffAccountActive(Number(body.id), Boolean(body.active));
+      if (target.role !== "admin" && target.role !== "coach") return NextResponse.json({ error: "The switch is for admin and coach logins: the CEO always sees medical details, helpers never do." }, { status: 400 });
+      await setStaffCanViewMedical(target.id, body.canViewMedical as boolean, actor);
+    } else if (hasEmail) {
+      if ((target.email ?? null) !== email) await revokeFutprepOwnerGrant({ staffId: target.id, reason: "email_changed", actor });
+      await setStaffAccountEmail(target.id, email);
+    } else {
+      if (body.active === false) await revokeFutprepOwnerGrant({ staffId: target.id, reason: "login_switched_off", actor });
+      await setStaffAccountActive(target.id, Boolean(body.active));
+    }
     return NextResponse.json({ ok: true, ...(await everyone()) });
   } catch (error) {
     console.error("Futprep update account error", error);

@@ -259,6 +259,17 @@ async function main() {
   const { error: adminError } = await db.auth.admin.createUser({ email: adminEmail, email_confirm: true });
   if (adminError) throw new Error(`Could not seed the TEST admin: ${adminError.message}`);
 
+  // Brief 31 (A4): the TEST CEO login marked as Futprep's owner, with a
+  // TEST PortPass sign-in on its email, so Admin -> People shows the
+  // founder's "Give owner access" step and Staff accounts what it waits for.
+  const ownerEmail = "test-delete-owner@test.portpass.local";
+  const { data: ownerUser, error: ownerError } = await db.auth.admin.createUser({ email: ownerEmail, email_confirm: true });
+  if (ownerError || !ownerUser.user) throw new Error(`Could not seed the TEST owner sign-in: ${ownerError?.message}`);
+  const { error: ownerPersonError } = await db.from("people").insert({ name: `${MARK} Owner`, email: ownerEmail, auth_user_id: ownerUser.user.id });
+  if (ownerPersonError) throw new Error(`Could not seed the TEST owner: ${ownerPersonError.message}`);
+  const { error: ownerMarkError } = await db.from("staff_members").update({ is_owner: true, email: ownerEmail }).eq("organization_id", 1).eq("account_key", "test-ceo");
+  if (ownerMarkError) throw new Error(`Could not mark the TEST owner: ${ownerMarkError.message}`);
+
   const reason = (key: string, label: string, points: number, why?: string) => ({ key, label, points, ...(why ? { why } : {}) });
   const leads = [
     {

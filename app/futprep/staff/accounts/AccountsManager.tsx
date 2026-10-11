@@ -13,21 +13,32 @@ const ROLE_LABEL: Record<StaffAccount["role"], string> = {
   helper: "Helper",
 };
 
-const OWNER_STEP: Record<"granted" | "needs_email" | "needs_sign_in", (name: string, email: string | null) => string> = {
-  granted: (name) => `${name} is Futprep's owner on PortPass now. /business/futprep opens for them when they sign in.`,
-  needs_email: (name) => `${name} is marked as the owner. Add their email above, then press the button again.`,
-  needs_sign_in: (name, email) => `${name} is marked as the owner. Ask them to sign in once at portpassbahamas.com/login with ${email}, then press the button again. PortPass doesn't make the sign-in or send an invite.`,
+// Marking only asks; a PortPass founder gives the owner access in Admin ->
+// People (db/futprepOwner.ts), so a staff PIN alone never makes an owner.
+const OWNER_STEP: Record<"granted" | "needs_email" | "needs_sign_in" | "waiting_for_founder", (name: string, email: string | null) => string> = {
+  granted: (name) => `${name} has owner access to Futprep on PortPass. /business/futprep opens for them when they sign in.`,
+  needs_email: (name) => `${name} is marked as the owner. Add their email above, then press "Check owner access".`,
+  needs_sign_in: (name, email) => `${name} is marked as the owner. Ask them to sign in once at portpassbahamas.com/login with ${email}. Then a PortPass founder confirms owner access. PortPass doesn't make the sign-in or send an invite.`,
+  waiting_for_founder: (name) => `${name} is marked as the owner and has a PortPass sign-in. A PortPass founder confirms owner access in Admin → People after checking with ${name}.`,
+};
+
+const OWNER_FLAG: Record<string, string> = {
+  granted: "Owner access on PortPass",
+  needs_email: "Owner: needs email",
+  needs_sign_in: "Owner: needs a PortPass sign-in",
+  waiting_for_founder: "Owner: waiting for a founder",
 };
 
 // canManageCeo: only the CEO login may create a CEO login or switch one
 // off or on (the server enforces it; this just hides what would be refused).
 // canSetMedical: only the CEO switches an admin login's medical view.
-export function AccountsManager({ initialAccounts, initialWithoutLogin, currentAccountKey, canManageCeo, canSetMedical }: { initialAccounts: StaffAccount[]; initialWithoutLogin: WithoutLogin[]; currentAccountKey: string; canManageCeo: boolean; canSetMedical: boolean }) {
+export function AccountsManager({ initialAccounts, initialWithoutLogin, currentAccountKey, canManageCeo, canSetMedical, initialOwnerStates }: { initialAccounts: StaffAccount[]; initialWithoutLogin: WithoutLogin[]; currentAccountKey: string; canManageCeo: boolean; canSetMedical: boolean; initialOwnerStates: Record<number, string> }) {
   const [accounts, setAccounts] = useState(initialAccounts);
   const [withoutLogin, setWithoutLogin] = useState(initialWithoutLogin);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [ownerStates, setOwnerStates] = useState<Record<number, string>>(initialOwnerStates);
 
   function apply(data: Everyone) {
     if (data.accounts) setAccounts(data.accounts);
@@ -68,6 +79,7 @@ export function AccountsManager({ initialAccounts, initialWithoutLogin, currentA
     const data = await send("POST", "/api/futprep/staff/accounts/owner", { id: account.id });
     if (!data) return;
     const state = data.state as keyof typeof OWNER_STEP;
+    setOwnerStates((current) => ({ ...current, [account.id]: String(data.state) }));
     setMessage(OWNER_STEP[state]?.(String(data.name ?? account.name), (data.email as string | null) ?? null) ?? "Saved.");
   }
 
@@ -97,7 +109,9 @@ export function AccountsManager({ initialAccounts, initialWithoutLogin, currentA
     }
   }
 
-  const coachRoles = (role: string) => role === "coach" || role === "helper" || role === "admin" ? role : "coach";
+  // The row's own role (the old "admin_registrar" is an admin), so giving
+  // a login never quietly changes what the person is.
+  const startingRole = (role: string) => role === "admin_registrar" ? "admin" : role === "coach" || role === "helper" || role === "admin" || (role === "ceo" && canManageCeo) ? role : "coach";
 
   return (
     <div className="team-manager">
@@ -121,16 +135,17 @@ export function AccountsManager({ initialAccounts, initialWithoutLogin, currentA
                   {account.pinChangedAt ? "PIN changed ✓" : "PIN not changed yet"}
                 </span>
                 {missing.filter((m) => m !== "Login switched off").map((m) => <span key={m} className="flag-missing">{m}</span>)}
-                {account.role === "admin" && <span className={account.canViewMedical ? "flag-on" : "flag-off"}>{account.canViewMedical ? "Sees medical" : "No medical view"}</span>}
+                {(account.role === "admin" || account.role === "coach") && <span className={account.canViewMedical ? "flag-on" : "flag-off"}>{account.canViewMedical ? "Sees medical" : "No medical view"}</span>}
+                {account.isOwner && <span className={ownerStates[account.id] === "granted" ? "flag-on" : "flag-off"}>{OWNER_FLAG[ownerStates[account.id] ?? ""] ?? "Marked as the owner"}</span>}
               </div>
               <form className="team-manager-email" onSubmit={(event) => saveEmail(event, account)}>
                 <label><span>Email</span><input name="email" type="email" inputMode="email" autoCapitalize="none" maxLength={254} defaultValue={account.email ?? ""} placeholder="for reminders and requests" disabled={ceoLocked} /></label>
                 <button type="submit" disabled={ceoLocked}>Save</button>
               </form>
-              {account.role === "admin" && canSetMedical && (
+              {(account.role === "admin" || account.role === "coach") && canSetMedical && (
                 <label className="team-manager-switch">
                   <input type="checkbox" checked={account.canViewMedical} onChange={(event) => setMedical(account, event.target.checked)} />
-                  <span>Can see children&rsquo;s medical details</span>
+                  <span>{account.role === "admin" ? "Can see children’s medical details" : "Sees children’s health notes on the roster"}</span>
                 </label>
               )}
               <div className="team-manager-actions">
@@ -143,11 +158,11 @@ export function AccountsManager({ initialAccounts, initialWithoutLogin, currentA
                   {account.active ? "Deactivate" : "Reactivate"}
                 </button>
                 {account.role === "ceo" && account.active && (
-                  <button type="button" onClick={() => markOwner(account)}>{account.isOwner ? "Give owner access again" : "Mark as the owner"}</button>
+                  <button type="button" className="team-owner-button" onClick={() => markOwner(account)}>{account.isOwner ? "Check owner access" : "Mark as the owner"}</button>
                 )}
               </div>
               {account.role === "ceo" && account.active && (
-                <p className="team-manager-hint">The owner gets Futprep&rsquo;s owner dashboard on PortPass (/business/futprep) once they sign in to PortPass with the email above. PortPass doesn&rsquo;t make the sign-in or send an invite.</p>
+                <p className="team-manager-hint">Marking asks for owner access: Futprep&rsquo;s owner dashboard on PortPass (/business/futprep), for the PortPass sign-in with the email above. A PortPass founder confirms it after checking with the person. PortPass doesn&rsquo;t make the sign-in or send an invite.</p>
               )}
             </article>
           );
@@ -170,7 +185,7 @@ export function AccountsManager({ initialAccounts, initialWithoutLogin, currentA
                 <form className="team-login-form" onSubmit={(event) => giveLogin(event, person)}>
                   <label><span>Account name</span><input name="accountKey" placeholder="lowercase, no spaces" pattern="[a-z0-9_-]{3,40}" autoCapitalize="none" required /></label>
                   <label><span>Role</span>
-                    <select name="role" defaultValue={coachRoles(person.role)}>
+                    <select name="role" defaultValue={startingRole(person.role)}>
                       <option value="admin">Admin</option>
                       <option value="coach">Coach</option>
                       {canManageCeo && <option value="ceo">CEO</option>}
@@ -201,7 +216,7 @@ export function AccountsManager({ initialAccounts, initialWithoutLogin, currentA
                 <option value="admin">Admin: registrations, payments, team, schedules</option>
                 <option value="coach">Coach: own sessions, inbox, days and pay</option>
                 {canManageCeo && <option value="ceo">CEO: everything</option>}
-                <option value="helper">Helper: roster and attendance</option>
+                <option value="helper">Helper: the roster, read-only</option>
               </select>
             </label>
             <label><span>Starting PIN</span><input name="pin" inputMode="numeric" placeholder="6+ digits, they change it after first sign-in" pattern="\d{6,}" required /></label>
