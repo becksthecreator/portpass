@@ -65,6 +65,8 @@ export type FutprepRegistrationInput = {
   photoConsent: "yes" | "no";
   consentAccepted: boolean;
   signatureName: string;
+  // Brief 27 (C): the three-tap form records its own consent wording.
+  consentVersion?: string | null;
   // Staff fast-add only (see /staff/registrations): who entered it, and
   // whether they've confirmed a child's age against the class boundary is
   // right despite ageOnDate() disagreeing - real enrolled kids shouldn't be
@@ -750,8 +752,14 @@ export async function createFutprepRegistration(
     }
   }
 
+  // The three-tap form (brief 27, C) may come with no email: the row then
+  // holds null, and a duplicate is another email-less entry for the same
+  // child from the same phone. The phone keeps this from telling a stranger
+  // whether a named child is enrolled, and from refusing another family's
+  // child who happens to share the name and age.
   const normalizedEmail = input.parentEmail.trim().toLowerCase();
-  const sameTermAndEmail = db.from("registrations").select("reference_code").eq("term_id", term.id).eq("parent_email", normalizedEmail);
+  const sameTerm = db.from("registrations").select("reference_code").eq("term_id", term.id);
+  const sameTermAndEmail = normalizedEmail ? sameTerm.eq("parent_email", normalizedEmail) : sameTerm.is("parent_email", null).eq("parent_phone", input.parentPhone.trim());
   const { data: duplicate, error: duplicateError } = await (adult ? sameTermAndEmail.is("child_dob", null) : sameTermAndEmail.eq("child_dob", input.childDob))
     .ilike("child_name", escapeLikePattern(input.childName.trim()))
     .in("registration_status", mode === "waitlist" ? [...ACTIVE_REGISTRATION_STATUSES, "waitlist"] : ACTIVE_REGISTRATION_STATUSES)
@@ -803,7 +811,7 @@ export async function createFutprepRegistration(
     program_id: program.id,
     term_id: term.id,
     parent_name: input.parentName.trim(),
-    parent_email: normalizedEmail,
+    parent_email: normalizedEmail || null,
     parent_phone: parentPhone,
     relationship: adult ? "Self" : input.relationship.trim(),
     // For an adult the participant's name is their own; nothing about
@@ -828,7 +836,7 @@ export async function createFutprepRegistration(
     payment_status: registrationStatus === "trial" ? "waived" : "pending",
     trial_session_id: trialSessionId,
     joined_from_registration_id: joinedFrom?.id ?? null,
-    consent_version: scope?.consentVersion ?? CONSENT_VERSION,
+    consent_version: scope?.consentVersion ?? input.consentVersion ?? CONSENT_VERSION,
     consent_accepted: true,
     consent_at: now,
     signature_name: input.signatureName.trim(),
