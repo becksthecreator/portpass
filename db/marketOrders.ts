@@ -160,7 +160,7 @@ export async function placeMarketOrder(p: PlaceOrder): Promise<PlacedOrder> {
   const source = resolveShopSource(p.attribution);
   const hold = holdUntil(now, shop.holdHours).toISOString();
   let created: { id: number; referenceCode: string } | null = null;
-  for (let attempt = 0; attempt < 5 && !created; attempt += 1) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
     const referenceCode = makeReferenceCode(shop.referencePrefix, randomBytes(6));
     const { data, error } = await db().rpc("market_create_order", {
       p: {

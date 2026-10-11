@@ -126,10 +126,12 @@ try {
   // Part C: the order form, then two TEST orders through the real route
   // (an example address: nothing is ever sent), arriving from /market so
   // they count as brought by PortPass, and the buyer's order page.
-  await anon.goto(`${BASE}/market/p/${shop.slug}/home-jersey`, { waitUntil: "load", timeout: 60_000, referer: `${BASE}/market` });
-  await shoot(anon, "market-c-order-form-375", `/market/p/${shop.slug}/home-jersey`, { focus: "#order" });
-  const sizeL = await variantId(shop.slug, "home-jersey", "L");
-  const orderBody = (name, phone) => ({ org: shop.slug, product: "home-jersey", items: [{ variantId: sizeL, qty: 1 }], buyerName: name, buyerPhone: phone, buyerEmail: "test-delete-market-buyer@example.com", fulfilment: "pickup", paymentMethod: "bank_transfer" });
+  // The TEST tee is outside the shop's open drop (a product in an open
+  // drop is reserved in the drop instead).
+  await anon.goto(`${BASE}/market/p/${shop.slug}/training-tee`, { waitUntil: "load", timeout: 60_000, referer: `${BASE}/market` });
+  await shoot(anon, "market-c-order-form-375", `/market/p/${shop.slug}/training-tee`, { focus: "#order" });
+  const sizeL = await variantId(shop.slug, "training-tee", "L");
+  const orderBody = (name, phone) => ({ org: shop.slug, product: "training-tee", items: [{ variantId: sizeL, qty: 1 }], buyerName: name, buyerPhone: phone, buyerEmail: "test-delete-market-buyer@example.com", fulfilment: "pickup", paymentMethod: "bank_transfer" });
   const first = await post(anon, "/api/market/orders", orderBody("TEST Buyer Market One", "242-555-0171"));
   const second = await post(anon, "/api/market/orders", orderBody("TEST Buyer Market Two", "242-555-0172"));
   if (first.status !== 201 || second.status !== 201) throw new Error(`Placing the TEST orders returned ${first.status} / ${second.status}: ${first.data.error ?? second.data.error ?? ""}`);

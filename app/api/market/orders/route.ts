@@ -1,3 +1,4 @@
+// @public-route: a buyer orders on PortPass Market without an account (brief 25, C2).
 import { NextRequest, NextResponse } from "next/server";
 import { getMarketProduct } from "@/db/market";
 import { placeMarketOrder, tellSellerAboutOrder } from "@/db/marketOrders";
@@ -6,10 +7,10 @@ import { bodyOf, readJson } from "@/lib/api/body";
 import { parseAttributionCookie, shopAttributionCookie } from "@/lib/attribution";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { parseOrderInput } from "@/lib/market/orders";
-import { soldOutMessage, type CatalogueVariant } from "@/lib/shop/rules";
+import { dropPhase, soldOutMessage, type CatalogueVariant } from "@/lib/shop/rules";
 
-// @public-route: a buyer orders on PortPass Market without an account
-// (brief 25, C2). Rate-limited per address. Everything that matters is
+// A buyer orders on PortPass Market without an account (brief 25, C2).
+// Rate-limited per address. Everything that matters is
 // decided here from the database: that the product is on the Market (a
 // verified seller, an open shop, never the demo), the prices, the delivery
 // fee, the ways this seller can be paid, the hold, and where the order came
@@ -47,6 +48,11 @@ export async function POST(request: NextRequest) {
     return null;
   });
   if (!page) return NextResponse.json({ error: "This product isn't available." }, { status: 404 });
+
+  // While the product is in an open drop it is reserved there, as its page says.
+  if (page.drops.some((d) => dropPhase(d) === "open" && d.productIds.includes(page.product.id))) {
+    return NextResponse.json({ error: "This is in an open drop right now: reserve it there." }, { status: 409 });
+  }
 
   const parsed = parseOrderInput(body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });

@@ -158,11 +158,12 @@ describe("the seller's numbers and spreadsheets", () => {
 
   it("writes the orders and the pick list, opening cleanly in Excel", () => {
     const csv = buildOrdersCsv([order()]);
-    expect(csv.startsWith("﻿Order,Ordered at,Buyer")).toBe(true);
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
+    expect(csv.slice(1).startsWith('"Order","Ordered at","Buyer"')).toBe(true);
     expect(csv).toContain("TK-ABC234");
     expect(csv).toContain("TEST Home jersey S x2");
     const pick = buildOrderPickListCsv([order(), order({ id: 2, paid: true }), order({ id: 3, status: "collected" })]);
-    expect(pick).toContain("TEST Home jersey,S,4,2");
+    expect(pick).toContain("\"TEST Home jersey\",\"S\",\"4\",\"2\"");
   });
 
   it("starts the WhatsApp message with the buyer's first name and the code; nothing is sent for the seller", () => {
@@ -218,6 +219,6 @@ describe("PortPass's Market fees", () => {
     const csv = buildCommissionCsv("2026-09", "TEST Kit Shop", paid, 800);
     expect(csv).toContain("TK-AAA222");
     expect(csv).toContain("8.00%");
-    expect(csv).not.toContain(",A,");
+    expect(csv).not.toContain("\"A\"");
   });
 });
