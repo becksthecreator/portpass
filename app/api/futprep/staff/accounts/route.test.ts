@@ -14,11 +14,26 @@ const db = vi.hoisted(() => ({
   created: [] as Array<{ role: string }>,
   toggled: [] as Array<{ id: number; active: boolean }>,
   emails: [] as Array<{ id: number; email: string | null }>,
+  withoutLogin: [
+    { id: 20, name: "TEST Dre", role: "coach", email: null },
+    { id: 21, name: "TEST Old CEO row", role: "ceo", email: null },
+  ],
+  logins: [] as Array<{ id: number; role: string; actorName: string }>,
+  medical: [] as Array<{ id: number; value: boolean; actorName: string }>,
 }));
 
 vi.mock("@/app/futprep/staff-auth", () => ({
   FUTPREP_STAFF_ROLES: ["admin", "coach", "ceo", "helper"],
   currentFutprepStaffRole: vi.fn(async () => auth.role),
+  currentFutprepStaffName: vi.fn(async () => (auth.role ? `TEST ${auth.role}` : null)),
+  listStaffWithoutLogin: vi.fn(async () => db.withoutLogin),
+  assignStaffLogin: vi.fn(async (input: { id: number; role: string; actorName: string }) => {
+    db.logins.push({ id: input.id, role: input.role, actorName: input.actorName });
+    return { id: input.id, ...input };
+  }),
+  setStaffCanViewMedical: vi.fn(async (id: number, value: boolean, actorName: string) => {
+    db.medical.push({ id, value, actorName });
+  }),
   canManageFutprepTeam: (role: string) => role === "admin" || role === "ceo",
   listStaffAccounts: vi.fn(async () => db.accounts),
   createStaffAccount: vi.fn(async (input: { role: string }) => {
@@ -45,6 +60,8 @@ beforeEach(() => {
   db.created = [];
   db.toggled = [];
   db.emails = [];
+  db.logins = [];
+  db.medical = [];
 });
 
 describe("creating a staff login", () => {
@@ -103,5 +120,42 @@ describe("switching a staff login off or on", () => {
     expect((await PATCH(send("PATCH", { id: 1, active: false }))).status).toBe(200);
     expect((await PATCH(send("PATCH", { id: 77, active: false }))).status).toBe(404);
     expect(db.toggled).toEqual([{ id: 1, active: false }]);
+  });
+});
+
+describe("a login for someone already on the team (brief 31, A3)", () => {
+  it("gives the existing row a login instead of making a second one", async () => {
+    auth.role = "admin";
+    const response = await POST(send("POST", { action: "login", id: 20, accountKey: "test-dre", role: "coach", pin: "000000" }));
+    expect(response.status).toBe(201);
+    expect(db.logins).toEqual([{ id: 20, role: "coach", actorName: "TEST admin" }]);
+    expect(db.created).toEqual([]);
+  });
+
+  it("refuses a row that already has a login, and a CEO login from the desk", async () => {
+    auth.role = "admin";
+    expect((await POST(send("POST", { action: "login", id: 3, accountKey: "test-x", role: "coach", pin: "000000" }))).status).toBe(404);
+    expect((await POST(send("POST", { action: "login", id: 21, accountKey: "test-y", role: "coach", pin: "000000" }))).status).toBe(403);
+    expect((await POST(send("POST", { action: "login", id: 20, accountKey: "test-z", role: "ceo", pin: "000000" }))).status).toBe(403);
+    expect(db.logins).toEqual([]);
+  });
+
+  it("refuses fields the route never reads", async () => {
+    auth.role = "ceo";
+    const response = await POST(send("POST", { ...NEW, role: "coach", pinHash: "x" }));
+    expect(response.status).toBe(400);
+    expect(db.created).toEqual([]);
+  });
+});
+
+describe("an admin login's medical view (brief 31, A1)", () => {
+  it("is switched by the CEO only, and only on admin logins", async () => {
+    auth.role = "admin";
+    expect((await PATCH(send("PATCH", { id: 2, canViewMedical: false }))).status).toBe(403);
+    auth.role = "ceo";
+    expect((await PATCH(send("PATCH", { id: 3, canViewMedical: true }))).status).toBe(400);
+    expect((await PATCH(send("PATCH", { id: 2, canViewMedical: false }))).status).toBe(200);
+    expect(db.medical).toEqual([{ id: 2, value: false, actorName: "TEST ceo" }]);
+    expect(db.toggled).toEqual([]);
   });
 });

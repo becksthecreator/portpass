@@ -11,7 +11,9 @@ function dollarsToCents(value: FormDataEntryValue | null) {
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
 }
 
-export function AddProgramManager({ initialPrograms, sites = [] }: { initialPrograms: FutprepProgramSummary[]; sites?: FutprepSite[] }) {
+// canChange (brief 31, A1): admins and the CEO add programs and switch
+// them on or off; a coach reads the list only (docs/futprep/roles.md).
+export function AddProgramManager({ initialPrograms, sites = [], canChange = true }: { initialPrograms: FutprepProgramSummary[]; sites?: FutprepSite[]; canChange?: boolean }) {
   const [programs, setPrograms] = useState(initialPrograms);
   // Brief 13: the form changes for a school contract, and a chosen site
   // replaces typing a location.
@@ -128,7 +130,7 @@ export function AddProgramManager({ initialPrograms, sites = [] }: { initialProg
             </div>
             {/* Brief 27 (A): a staff-only note, never on a parent's page. */}
             {program.staffNote && <p className="team-manager-note" role="note"><strong>Staff note:</strong> {program.staffNote}</p>}
-            <div className="team-manager-actions">
+            {canChange && <div className="team-manager-actions">
               <button
                 className={program.active ? "danger-action" : ""}
                 onClick={() => {
@@ -138,7 +140,7 @@ export function AddProgramManager({ initialPrograms, sites = [] }: { initialProg
               >
                 {program.active ? "Deactivate" : "Reactivate"}
               </button>
-            </div>
+            </div>}
             <details className="team-profile-details">
               <summary>Term details</summary>
               <dl>
@@ -155,7 +157,7 @@ export function AddProgramManager({ initialPrograms, sites = [] }: { initialProg
       ))}
       {programs.length === 0 && <p className="coach-manager-message">No programs yet — add the first one below.</p>}
 
-      <div className="team-admin-panels">
+      {canChange && <div className="team-admin-panels">
         <form className="team-admin-form" onSubmit={submit}>
           <span className="section-kicker">New program</span>
           <h2>Add a class or location.</h2>
@@ -249,7 +251,7 @@ export function AddProgramManager({ initialPrograms, sites = [] }: { initialProg
 
           <button className="primary-button" disabled={busy}>{busy ? "Creating…" : "Create program →"}</button>
         </form>
-      </div>
+      </div>}
     </div>
   );
 }

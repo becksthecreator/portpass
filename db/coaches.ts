@@ -47,7 +47,13 @@ export type CoachProfile = {
   // means any day may be suggested (Brief 29, part C).
   working_days: number[];
   availability: CoachAvailability[];
+  // Staff screens only (brief 31, A3): the staff login this profile is tied
+  // to, as yes/no facts for the Team page's red chips. Never the PIN or its
+  // hash; listPublicCoachProfiles never sets it.
+  login?: CoachLoginState;
 };
+
+export type CoachLoginState = { linked: boolean; staffName: string | null; role: string | null; hasEmail: boolean; hasPin: boolean; active: boolean };
 
 export type PrivateSessionRequest = {
   id: number;
@@ -305,7 +311,35 @@ export async function listAllCoachProfiles() {
     throwIfSupabaseError(availabilityError,"Could not load availability");
     slots=(availability ?? []) as CoachAvailability[];
   }
-  return {schemaReady:true,coaches:profiles.map((profile)=>({...profile,licenses:profile.licenses??[],played_at:profile.played_at??[],working_days:profile.working_days??[],availability:slots.filter((slot)=>slot.coach_id===profile.id)}))};
+  const logins=await coachLoginStates(ids);
+  return {schemaReady:true,coaches:profiles.map((profile)=>({...profile,licenses:profile.licenses??[],played_at:profile.played_at??[],working_days:profile.working_days??[],availability:slots.filter((slot)=>slot.coach_id===profile.id),login:logins.get(profile.id)??{linked:false,staffName:null,role:null,hasEmail:false,hasPin:false,active:false}}))};
+}
+
+// Each profile's staff login as yes/no facts (brief 31, A3). Whether a PIN
+// is set is asked of the database ("pin_hash is not null"), so no hash is
+// ever read into the app.
+async function coachLoginStates(coachIds:number[]):Promise<Map<number,CoachLoginState>>{
+  const out=new Map<number,CoachLoginState>();
+  if(!coachIds.length) return out;
+  const db=getSupabaseAdmin();
+  const {data:links,error:linkError}=await db.from("coach_profiles").select("id,staff_member_id").in("id",coachIds).not("staff_member_id","is",null);
+  throwIfSupabaseError(linkError,"Could not load coach logins");
+  const staffIds=[...new Set((links??[]).map((row)=>Number(row.staff_member_id)))];
+  if(!staffIds.length) return out;
+  const [{data:staff,error:staffError},{data:withPin,error:pinError}]=await Promise.all([
+    db.from("staff_members").select("id,name,role,email,account_key,active").in("id",staffIds),
+    db.from("staff_members").select("id").in("id",staffIds).not("pin_hash","is",null).not("account_key","is",null),
+  ]);
+  throwIfSupabaseError(staffError,"Could not load coach logins");
+  throwIfSupabaseError(pinError,"Could not load coach logins");
+  const byId=new Map((staff??[]).map((row):[number,Record<string,unknown>]=>[Number(row.id),row]));
+  const pinned=new Set((withPin??[]).map((row)=>Number(row.id)));
+  for(const link of links??[]){
+    const row=byId.get(Number(link.staff_member_id));
+    if(!row) continue;
+    out.set(Number(link.id),{linked:true,staffName:(row.name as string)??null,role:(row.role as string)??null,hasEmail:Boolean(row.email),hasPin:pinned.has(Number(row.id)),active:Boolean(row.active)});
+  }
+  return out;
 }
 
 // A priced service a parent can book (brief 06 v2, Part B; Brief 29, part

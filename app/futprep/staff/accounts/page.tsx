@@ -1,14 +1,16 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
-import { requireFutprepStaff, currentFutprepStaffAccount, listStaffAccounts } from "../../staff-auth";
+import { canSetMedicalSwitch } from "@/lib/futprepRoles";
+import { requireFutprepStaff, currentFutprepStaffAccount, listStaffAccounts, listStaffWithoutLogin } from "../../staff-auth";
 import { AccountsManager } from "./AccountsManager";
 import { StaffLogoutButton } from "../StaffLogoutButton";
+import "../coaches.css";
 
 export const dynamic = "force-dynamic";
 
 export default async function FutprepStaffAccountsPage() {
   const role = await requireFutprepStaff(["admin", "ceo"], "/futprep/staff/accounts");
-  const [accounts, currentAccountKey] = await Promise.all([listStaffAccounts(), currentFutprepStaffAccount()]);
+  const [accounts, withoutLogin, currentAccountKey] = await Promise.all([listStaffAccounts(), listStaffWithoutLogin(), currentFutprepStaffAccount()]);
 
   return (
     <main className="staff-workspace theme-night">
@@ -27,9 +29,9 @@ export default async function FutprepStaffAccountsPage() {
       <section className="staff-workspace-content">
         <div className="staff-page-intro">
           <div><span className="section-kicker">Access control</span><h1>Staff accounts.</h1></div>
-          <p>Create a login for each new coach or teammate and assign a role. Deactivating an account blocks sign-in immediately without deleting their history.</p>
+          <p>One login per person, with the role from Futprep&rsquo;s roles list: CEO (everything), admin (registrations, payments, team, schedules), coach (their own sessions, inbox, days and pay) and helper (roster and attendance). Deactivating a login blocks sign-in at once and keeps its history.</p>
         </div>
-        <AccountsManager initialAccounts={accounts} currentAccountKey={currentAccountKey ?? ""} canManageCeo={role === "ceo"} />
+        <AccountsManager initialAccounts={accounts} initialWithoutLogin={withoutLogin} currentAccountKey={currentAccountKey ?? ""} canManageCeo={role === "ceo"} canSetMedical={canSetMedicalSwitch(role)} />
       </section>
     </main>
   );

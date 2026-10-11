@@ -5,6 +5,7 @@ import { listAllCoachProfiles } from "@/db/coaches";
 import { CoachTeamManager } from "./CoachTeamManager";
 import { StaffLogoutButton } from "../StaffLogoutButton";
 import "../../coaches/booking-days.css";
+import "../coaches.css";
 
 export const dynamic="force-dynamic";
 

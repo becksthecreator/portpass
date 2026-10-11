@@ -34,7 +34,10 @@ function formatWhen(iso: string | null) {
   return date.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
-export function RegistrationDetailEditor({ detail, programs }: { detail: FutprepRegistrationDetail; programs: ProgramOption[] }) {
+// healthHidden (brief 31, A1): this login may not see the child's medical
+// details or internal notes (an admin without the medical switch). The page
+// has already blanked them; the editor neither shows nor saves them.
+export function RegistrationDetailEditor({ detail, programs, healthHidden = false }: { detail: FutprepRegistrationDetail; programs: ProgramOption[]; healthHidden?: boolean }) {
   const router = useRouter();
 
   const [childName, setChildName] = useState(detail.child_name);
@@ -107,14 +110,10 @@ export function RegistrationDetailEditor({ detail, programs }: { detail: Futprep
       emergencyContactName: emergencyContactName || null,
       emergencyContactPhone: emergencyContactPhone || null,
       authorizedPickup: authorizedPickup || null,
-      allergies,
-      medicalConditions,
-      medications,
-      specialNeeds,
+      ...(healthHidden ? {} : { allergies, medicalConditions, medications, specialNeeds, additionalNotes }),
       photoConsent: photoConsent || null,
       paymentFrequency,
       paymentMethod: paymentMethod || null,
-      additionalNotes,
       ...(overrideActive || (amountChangedAtAll && programSlug === detail.program_slug && paymentFrequency === detail.payment_frequency)
         ? { amountDueCentsOverride: amountDueCents }
         : {}),
@@ -282,11 +281,14 @@ export function RegistrationDetailEditor({ detail, programs }: { detail: Futprep
               <strong>Health details removed.</strong> They are deleted 90 days after the programme ends (privacy policy), so a blank box below means &ldquo;removed&rdquo;, not &ldquo;none&rdquo;.
             </p>
           )}
-          {medicalBlank && !detail.health_purged_at && <p className="detail-hint">No information on file yet — nothing has been asked or answered.</p>}
+          {healthHidden && <p className="detail-hint"><strong>Medical details and internal notes are hidden for your login.</strong> The CEO can switch them on in Staff accounts.</p>}
+          {!healthHidden && medicalBlank && !detail.health_purged_at && <p className="detail-hint">No information on file yet — nothing has been asked or answered.</p>}
+          {!healthHidden && <>
           <label><span>Allergies</span><textarea value={allergies} onChange={(e) => setAllergies(e.target.value)} placeholder="No information on file yet" rows={2} /></label>
           <label><span>Medical conditions</span><textarea value={medicalConditions} onChange={(e) => setMedicalConditions(e.target.value)} placeholder="No information on file yet" rows={2} /></label>
           <label><span>Medications</span><textarea value={medications} onChange={(e) => setMedications(e.target.value)} placeholder="No information on file yet" rows={2} /></label>
           <label><span>Special needs</span><textarea value={specialNeeds} onChange={(e) => setSpecialNeeds(e.target.value)} placeholder="No information on file yet" rows={2} /></label>
+          </>}
           <label><span>Photo / video consent</span>
             <select value={photoConsent} onChange={(e) => setPhotoConsent(e.target.value)}>
               <option value="">No information on file yet</option>
@@ -300,7 +302,7 @@ export function RegistrationDetailEditor({ detail, programs }: { detail: Futprep
             <small>{detail.consent_accepted ? `Consent accepted ${formatWhen(detail.consent_at)}` : "Consent not yet accepted"}</small>
             <p className="detail-hint">Signature and consent are parent-supplied only — staff can&rsquo;t set these here. Record a staff acknowledgement as an internal note below instead.</p>
           </div>
-          <label><span>Internal notes</span><textarea value={additionalNotes} onChange={(e) => setAdditionalNotes(e.target.value)} rows={3} /></label>
+          {!healthHidden && <label><span>Internal notes</span><textarea value={additionalNotes} onChange={(e) => setAdditionalNotes(e.target.value)} rows={3} /></label>}
         </section>
       </div>
 

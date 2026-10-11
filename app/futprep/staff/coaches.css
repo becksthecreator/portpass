@@ -1,0 +1,20 @@
+/* Brief 31: the Futprep coaches back end on the staff screens (Team,
+   Staff accounts, and later the ops map, my days and passports). Its own
+   file, imported by those pages only. Phone first: 44px tap targets. */
+
+.team-manager-flags{flex-wrap:wrap}
+.flag-missing{background:#fde2e2;color:#a3161c}
+
+.team-manager-switch{display:flex;align-items:center;gap:10px;margin:12px 0 4px;font-size:.88rem;font-weight:700;min-height:44px;cursor:pointer}
+.team-manager-switch input{width:22px;height:22px;flex:none;margin:0}
+.team-manager-hint{font-size:.8rem;opacity:.8;line-height:1.5;margin:8px 0 0}
+
+.team-without-login{margin-top:34px}
+.team-without-login h2{margin:4px 0 6px}
+.team-login-form{display:grid;gap:10px;margin-top:12px}
+.team-login-form label{display:grid;gap:4px;min-width:0}
+.team-login-form span{font-size:.72rem;opacity:.75}
+.team-login-form input,.team-login-form select{min-width:0;width:100%;min-height:44px}
+.team-login-form button{min-height:44px}
+
+.team-login-status{margin:4px 0 0;font-size:.8rem;opacity:.85}
