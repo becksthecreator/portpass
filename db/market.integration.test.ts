@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getMarketProduct, listMarketProductPaths, listMarketProducts, listMarketThingsToDo } from "./market";
+import { getPublicShop } from "./shop";
 
 // PortPass Market's public lists (brief 25, part B) against the local
 // Supabase stack, with TEST businesses deleted afterwards: only a verified
@@ -18,6 +19,10 @@ type Seller = { orgId: number; slug: string };
 let verified: Seller;
 let pending: Seller;
 let closedShop: Seller;
+let kidsKit: Seller;
+const consented = `https://example.invalid/test-${tag}-consented.jpg`;
+const unconsented = `https://example.invalid/test-${tag}-not-yet.jpg`;
+const uploadedOnly = `https://example.invalid/test-${tag}-product-only.jpg`;
 
 // A business with a shop and products, its seller in the given state.
 async function seed(name: string, status: "verified" | "pending", options: { shopOpen?: boolean; products: { title: string; category: string; published: boolean }[] }): Promise<Seller> {
@@ -50,6 +55,18 @@ beforeAll(async () => {
   verified = await seed("Guava Works", "verified", { products: [{ title: `TEST Guava jam ${tag}`, category: "food-drink", published: true }, { title: `TEST Conch bowl ${tag}`, category: "home", published: true }, { title: `TEST Draft thing ${tag}`, category: "home", published: false }] });
   pending = await seed("Waiting Crafts", "pending", { products: [{ title: `TEST Waiting basket ${tag}`, category: "crafts-gifts", published: true }] });
   closedShop = await seed("Closed Shop", "verified", { shopOpen: false, products: [{ title: `TEST Closed hat ${tag}`, category: "kits-apparel", published: true }] });
+  // A seller whose photos may show children: one listing photo with
+  // consent confirmed, one without, and one uploaded only to the product.
+  kidsKit = await seed("Kids Kit", "verified", { products: [{ title: `TEST Kids kit ${tag}`, category: "kids", published: true }] });
+  const flagged = await admin.from("organizations").update({ photo_consent_required: true }).eq("id", kidsKit.orgId);
+  if (flagged.error) throw new Error(`could not flag photo consent: ${flagged.error.message}`);
+  const images = await admin.from("organization_images").insert([
+    { organization_id: kidsKit.orgId, url: consented, sort_order: 0, consent_confirmed: true },
+    { organization_id: kidsKit.orgId, url: unconsented, sort_order: 1, consent_confirmed: false },
+  ]);
+  if (images.error) throw new Error(`could not seed listing photos: ${images.error.message}`);
+  const photos = await admin.from("products").update({ photos: [unconsented, consented, uploadedOnly] }).eq("organization_id", kidsKit.orgId);
+  if (photos.error) throw new Error(`could not seed product photos: ${photos.error.message}`);
   // Something to do from the verified seller's business.
   const offering = await admin.from("offerings").insert({ organization_id: verified.orgId, type: "service", slug: `test-tasting-${tag}`, name: `TEST Jam tasting ${tag}`, price_cents: 1500, price_unit: "per_person", is_published: true });
   if (offering.error) throw new Error(`could not seed an offering: ${offering.error.message}`);
@@ -113,6 +130,22 @@ describe("Things to buy", () => {
       const { data, error } = await anon.from(view).select("id").limit(1);
       expect(error !== null || (data ?? []).length === 0, `anon must get nothing from ${view}`).toBe(true);
     }
+  });
+});
+
+describe("the children's-photo rule", () => {
+  it("shows a product photo of a business that may show children only once its consent is confirmed", async () => {
+    const { items } = await listMarketProducts({ q: `Kids kit ${tag}` });
+    expect(items.map((p) => p.photos)).toEqual([[consented]]);
+    const page = await getMarketProduct(kidsKit.slug, "p-0");
+    expect(page?.product.photos).toEqual([consented]);
+    const storefront = await getPublicShop(kidsKit.slug);
+    expect(storefront?.products.map((p) => p.photos)).toEqual([[consented]]);
+  });
+
+  it("leaves other sellers' photos as they are", async () => {
+    await admin.from("products").update({ photos: [uploadedOnly] }).eq("organization_id", verified.orgId).eq("slug", "p-0");
+    expect((await getMarketProduct(verified.slug, "p-0"))?.product.photos).toEqual([uploadedOnly]);
   });
 });
 

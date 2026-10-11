@@ -4,7 +4,7 @@ import { directoryHref } from "@/app/_components/blocks/directoryHref";
 import { MadeBadge } from "@/app/_components/market/MadeBadge";
 import type { MarketThing } from "@/db/market";
 import { BOOKING_EXCLUDED_SLUGS, bookPath, isBookable } from "@/lib/bookings/rules";
-import { marketHref, pageCount, type MarketParams } from "@/lib/market/browse";
+import { isOwnPath, marketHref, pageCount, type MarketParams } from "@/lib/market/browse";
 import { MARKET_CATEGORIES } from "@/lib/market/categories";
 
 // The pieces of PortPass Market's browse pages (brief 25, part B). Server
@@ -87,7 +87,7 @@ export function Pager({ params, total }: { params: MarketParams; total: number }
 export function thingHref(thing: MarketThing): string {
   const page = directoryHref(thing.orgSlug, thing.orgCategory);
   const action = (thing.actionUrl ?? "").trim();
-  if (action.startsWith("/") && !action.startsWith("//")) return action;
+  if (isOwnPath(action)) return action;
   if (thing.orgSlug === "futprep") return `${page}/${thing.slug}`;
   if (!BOOKING_EXCLUDED_SLUGS.includes(thing.orgSlug) && isBookable({ priceCents: thing.priceCents, actionUrl: thing.actionUrl })) return bookPath(page, thing.slug);
   return page;

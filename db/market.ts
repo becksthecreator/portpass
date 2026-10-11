@@ -91,7 +91,10 @@ export async function getMarketProduct(sellerSlug: string, productSlug: string):
   const listed = toMarketProduct(data);
   const [product, org, shop, drops] = await Promise.all([getProduct(listed.organizationId, listed.id), getBusinessBySlug(sellerSlug), getShop(listed.organizationId), listDrops(listed.organizationId, { visibleOnly: true })]);
   if (!product || !product.isPublished || !org || !shop) return null;
-  return { product, listed, org, shop, drops };
+  // The photos as the view lists them: where children may appear, only the
+  // ones with consent confirmed (202610200002_market_search.sql). They feed
+  // the gallery, the share image and the JSON-LD alike.
+  return { product: { ...product, photos: listed.photos }, listed, org, shop, drops };
 }
 
 // Every product page, for the sitemap (in pages of 1,000: PostgREST's cap).

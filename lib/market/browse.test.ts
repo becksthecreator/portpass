@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { productJsonLd, jsonLdString } from "@/lib/seo/jsonLd";
-import { cleanPage, cleanQuery, MARKET_PAGE_SIZE, marketHref, pageCount, pageRange, parseMarketParams, productHref } from "./browse";
+import { cleanPage, cleanQuery, isOwnPath, MARKET_PAGE_SIZE, marketHref, pageCount, pageRange, parseMarketParams, productHref } from "./browse";
 
 describe("the search box", () => {
   it("keeps words and the marks names use, and nothing that could change a filter", () => {
@@ -51,6 +51,22 @@ describe("the /market address", () => {
     expect(pageCount(0)).toBe(1);
     expect(pageCount(24)).toBe(1);
     expect(pageCount(25)).toBe(2);
+  });
+});
+
+describe("a stored link on a Things to do card", () => {
+  it("keeps a path on PortPass", () => {
+    expect(isOwnPath("/sports-fitness/futprep-athletics/book")).toBe(true);
+    expect(isOwnPath("/weddings/bahamas-weddings-by-the-sea?utm_source=portpass")).toBe(true);
+  });
+  it("never lets one lead to another site", () => {
+    expect(isOwnPath("https://evil.example")).toBe(false);
+    expect(isOwnPath("//evil.example")).toBe(false);
+    expect(isOwnPath("/\\evil.example")).toBe(false);
+    expect(isOwnPath("/\t/evil.example")).toBe(false);
+    expect(isOwnPath("/ /evil.example")).toBe(false);
+    expect(isOwnPath("javascript:alert(1)")).toBe(false);
+    expect(isOwnPath("")).toBe(false);
   });
 });
 

@@ -68,6 +68,19 @@ export function marketHref(p: Partial<MarketParams>): string {
   return text ? `${base}?${text}` : base;
 }
 
+// A stored link that stays on PortPass: a path, never another site. A
+// backslash or any space in it is refused outright, since browsers read
+// "/\evil.com" and "/<tab>/evil.com" as "//evil.com".
+const SITE = "https://portpassbahamas.com";
+export function isOwnPath(value: string): boolean {
+  if (!value.startsWith("/") || value.startsWith("//") || /[\\\s]/.test(value)) return false;
+  try {
+    return new URL(value, SITE).origin === SITE;
+  } catch {
+    return false;
+  }
+}
+
 export function productHref(sellerSlug: string, productSlug: string): string {
   return `/market/p/${sellerSlug}/${productSlug}`;
 }

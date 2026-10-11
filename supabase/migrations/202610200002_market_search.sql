@@ -15,6 +15,13 @@
 -- browser roles get nothing: like the tables under them, the server reads
 -- them with the service role. Nothing here joins a registration, an
 -- attendance record or anything about a child.
+--
+-- The children's-photo rule (photo consent, 16 Sept) holds here as on the
+-- business pages: where a business's photos may include children
+-- (organizations.photo_consent_required), a product shows only the photos
+-- that are on its listing with consent confirmed. A photo uploaded only to
+-- the product has no consent on record, so it stays off the Market until
+-- it is added to the listing and confirmed there.
 
 create extension if not exists pg_trgm with schema extensions;
 
@@ -32,7 +39,18 @@ select
   p.title,
   p.description,
   p.price_cents,
-  p.photos,
+  case
+    when o.photo_consent_required then array(
+      select u.url
+        from unnest(p.photos) with ordinality as u(url, n)
+       where exists (
+         select 1 from public.organization_images i
+          where i.organization_id = p.organization_id and i.url = u.url and i.consent_confirmed
+       )
+       order by u.n
+    )
+    else p.photos
+  end as photos,
   p.market_category,
   p.uses_marks,
   p.licence_kind,
