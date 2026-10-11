@@ -7,6 +7,7 @@ import { isUploadedCoachPhoto } from "@/lib/imageUpload";
 import { money, sessionButtonLabel } from "@/lib/privateSessions";
 import { workingDaysLabel } from "@/lib/workingDays";
 import "./booking-days.css";
+import "../tap-steps.css";
 import { initialsOf } from "@/lib/team";
 import { PrivateSessionBooking } from "./PrivateSessionBooking";
 
