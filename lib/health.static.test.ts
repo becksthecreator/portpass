@@ -38,7 +38,7 @@ const MAY_SELECT_PROTECTED = new Set<string>([
 
 // Modules that produce something that travels: an email, a CSV, an export,
 // a prompt. None may mention a protected column.
-const TRAVELLING = /(mail|csv|export|prompt|scout|growth|report)/i;
+const TRAVELLING = /(mail|csv|export|prompt|scout|growth|report|dashboard)/i;
 
 function walk(dir: string): string[] {
   let entries: string[];

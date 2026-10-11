@@ -60,6 +60,9 @@ export default async function FutprepCeoPage() {
           <Link href="/futprep/staff/private-sessions">Private sessions</Link>
           <Link href="/futprep/staff/admin">Registration desk</Link>
           <Link href="/futprep/staff/coach">Coaching area</Link>
+          {/* Brief 27 (B): money and attendance live on the owner's
+              dashboard, behind the PortPass account sign-in. */}
+          <Link href="/business/futprep">Money &amp; attendance ↗</Link>
           <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
           <StaffLogoutButton />
         </nav>
