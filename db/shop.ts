@@ -519,8 +519,31 @@ export async function getPublicShop(orgSlug: string): Promise<PublicShop | null>
   if (!org || (org.status !== "approved" && org.status !== "live")) return null;
   const [shop, demoId] = await Promise.all([getShop(org.id), demoOrganizationIdOrNull()]);
   if (!shop || !isPublicStorefront(shop, org, demoId)) return null;
-  const [products, drops] = await Promise.all([listProducts(org.id, { publishedOnly: true }), listDrops(org.id, { visibleOnly: true })]);
-  return { org, shop, products, drops };
+  const [products, drops, allowed] = await Promise.all([listProducts(org.id, { publishedOnly: true }), listDrops(org.id, { visibleOnly: true }), consentedPhotoUrls(org)]);
+  return { org: { ...org, heroImageUrl: consentedUrl(org.heroImageUrl, allowed) }, shop, products: onlyConsented(products, allowed), drops: drops.map((drop) => ({ ...drop, heroImageUrl: consentedUrl(drop.heroImageUrl, allowed) })) };
+}
+
+// The children's-photo rule (photo consent, 16 Sept; withPhotoConsent in
+// db/organizations.ts) on the shop's public pages and the Market: where a
+// business's photos may include children, only the photos on its listing
+// with consent confirmed are shown. A photo uploaded only to a product or
+// a drop has no consent on record, so it stays off every public page
+// until it is added to the listing and confirmed there. Null: no rule.
+export async function consentedPhotoUrls(org: Pick<Business, "id" | "photoConsentRequired">): Promise<Set<string> | null> {
+  if (!org.photoConsentRequired) return null;
+  const { data, error } = await getSupabaseAdmin().from("organization_images").select("url").eq("organization_id", org.id).eq("consent_confirmed", true);
+  throwIfSupabaseError(error, "Could not load consented photos");
+  return new Set((data ?? []).map((row) => row.url as string));
+}
+
+export function onlyConsented<T extends { photos: string[] }>(products: T[], allowed: Set<string> | null): T[] {
+  if (!allowed) return products;
+  return products.map((product) => ({ ...product, photos: product.photos.filter((url) => allowed.has(url)) }));
+}
+
+function consentedUrl(url: string | null, allowed: Set<string> | null): string | null {
+  if (!url || !allowed) return url;
+  return allowed.has(url) ? url : null;
 }
 
 export type PublicDrop = { org: Business; shop: Shop; drop: Drop; products: Product[] };
@@ -534,9 +557,9 @@ export async function getPublicDrop(orgSlug: string, dropSlug: string): Promise<
   throwIfSupabaseError(error, "Could not load drop");
   if (!data) return null;
   const drop = toDrop(data);
-  const published = await listProducts(org.id, { publishedOnly: true });
+  const [published, allowed] = await Promise.all([listProducts(org.id, { publishedOnly: true }), consentedPhotoUrls(org)]);
   const products = drop.productIds.map((id) => published.find((p) => p.id === id)).filter((p): p is Product => Boolean(p));
-  return { org, shop, drop, products };
+  return { org: { ...org, heroImageUrl: consentedUrl(org.heroImageUrl, allowed) }, shop, drop: { ...drop, heroImageUrl: consentedUrl(drop.heroImageUrl, allowed) }, products: onlyConsented(products, allowed) };
 }
 
 // ---- reservations ------------------------------------------------------------

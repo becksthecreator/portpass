@@ -271,12 +271,7 @@
 .admin-licence-actions .admin-mini{min-height:40px;padding:0 14px}
 
 /* ------------------------------------------- PortPass Market (brief 25, A) */
-/* "Made in The Bahamas": a verified seller's badge, on the storefront hero
-   and on every product card. Gold of the flag with navy text (11:1). */
-.shop-badge{display:inline-flex;align-items:center;gap:6px;background:#FFC72C;color:#0D1B3D;border-radius:999px;padding:4px 11px;font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;line-height:1.2}
-.shop-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:#00778B;flex:none}
-.shop-badge-hero{margin:0 0 12px}
-.shop-badge-card{position:absolute;right:10px;bottom:10px}
+/* The "Made in The Bahamas" badge itself is app/_components/market/MadeBadge.tsx. */
 .shop-getting-list{display:grid;gap:10px;margin:0;grid-template-columns:minmax(0,1fr)}
 .shop-getting-list>div{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .shop-getting-list dt{font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}

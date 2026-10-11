@@ -12,6 +12,8 @@ import { OpenNowSkeleton } from "./_components/motion/Skeleton";
 import { Suspense } from "react";
 import { getSectionTiles } from "@/lib/navSections";
 import { HomePerksRow } from "./_components/perks/HomePerksRow";
+import { FromTheMarket } from "./_components/market/FromTheMarket";
+import { MARKET_TAGLINE } from "@/lib/market/copy";
 import { DEFAULT_BRAND } from "./_components/blocks/brand";
 import { categoryLabel } from "./_components/blocks/categoryLabel";
 import { directoryHref } from "./_components/blocks/directoryHref";
@@ -136,6 +138,9 @@ export default async function Home() {
       </Suspense>
       {carousel && <BusinessCarousel businesses={directory} />}
 
+      {/* PortPass Market (brief 25, B3): the newest products, under Open now. */}
+      <FromTheMarket />
+
       {/* Member perks (brief 10): hidden until three are live. */}
       <HomePerksRow />
 
@@ -197,7 +202,7 @@ export default async function Home() {
         </div>
       </Reveal>
 
-      <SiteFooter tide />
+      <SiteFooter tide orgLine={MARKET_TAGLINE} />
     </main>
     </PageTransition>
   );

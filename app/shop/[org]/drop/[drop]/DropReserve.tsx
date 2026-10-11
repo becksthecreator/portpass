@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { PhoneInput } from "@/app/_components/PhoneInput";
 import { MAX_QTY_PER_LINE, money, paymentMethodLabel, type Fulfilment, type ShopPaymentMethod } from "@/lib/shop/rules";
-import { MADE_IN_BAHAMAS } from "@/lib/market/sellers";
+import { MadeBadge } from "@/app/_components/market/MadeBadge";
 
 export type DropProductView = {
   id: number;
@@ -130,7 +130,7 @@ export function DropReserve(props: Props) {
                 <div className="shop-card-photo">
                   {product.photos[0] ? <img src={product.photos[0]} alt={product.title} /> : <span aria-hidden="true">{product.title.slice(0, 1)}</span>}
                   {product.edition && <span className="shop-edition">{product.edition}</span>}
-                  <span className="shop-badge shop-badge-card">{MADE_IN_BAHAMAS}</span>
+                  <MadeBadge />
                 </div>
                 {product.photos.length > 1 && (
                   <div className="shop-thumbs">
