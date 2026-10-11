@@ -29,7 +29,7 @@ Four PRs, in order, each rebased on `main`, each reviewed by `reviewer` and `sec
 None new.
 
 ## Tests run
-CI on every PR (`npm audit`, unit, `next build --webpack` type-check, integration, Futprep's and brief 29's suites). New: `db/camps.integration.test.ts` (staff desk, next opening), `lib/ownerDashboard.test.ts` + `db/ownerDashboard.integration.test.ts`, `lib/quickRegistration.test.ts` + five quick-mode cases in `app/api/futprep/registrations/route.integration.test.ts`, `lib/futprepTheme.test.ts` (every text pair ≥ 4.5:1, white never on pink), `lib/futprepEmail.test.ts`. Phase 1 end-to-end run on branch C: RUN_PHASE1.
+CI on every PR (`npm audit`, unit, `next build --webpack` type-check, integration, Futprep's and brief 29's suites). New: `db/camps.integration.test.ts` (staff desk, next opening), `lib/ownerDashboard.test.ts` + `db/ownerDashboard.integration.test.ts`, `lib/quickRegistration.test.ts` + five quick-mode cases in `app/api/futprep/registrations/route.integration.test.ts`, `lib/futprepTheme.test.ts` (every text pair ≥ 4.5:1, white never on pink), `lib/futprepEmail.test.ts`. Phase 1 end-to-end run on branch C (B and C code): https://github.com/becksthecreator/portpass/actions/runs/38099844869, success.
 
 ## Agent output
 In each PR body under "Agent output". Everything the reviewers marked medium or above was fixed before merge; the lows were applied too, except the three noted as designed (years-only ages are read as "turned N this month"; the classic form still prints the hard-coded bank account; the CEO money strip stays until desk payments and payment requests meet).
