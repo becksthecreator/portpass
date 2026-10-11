@@ -175,7 +175,8 @@ export function QuickRegistration({ offers, attribution = EMPTY_ATTRIBUTION, ini
           </div>
         </dl>
         <p className="tap-note">{form.parentEmail.trim() ? `A copy is on its way to ${form.parentEmail.trim()}.` : "You didn't give an email, so there's no copy to send: screenshot this page or write the reference down."}</p>
-        <p className="tap-note">Want to see this registration any time? <a href={`/login?next=${encodeURIComponent(`/futprep/my/${result.referenceCode}`)}`}>Create a free PortPass account</a> with the same email, or look it up at <a href="/futprep/my">futprep/my</a> with the reference.</p>
+        <p className="tap-note">Need to add an emergency contact, who may collect {first}, or change the health notes? Message Futprep on WhatsApp with the reference and a coach will add it.</p>
+        {form.parentEmail.trim() && <p className="tap-note">Want your bookings in one place? <a href="/login">Create a free PortPass account</a> with the same email; it&rsquo;s optional.</p>}
         <div className="tap-actions">
           <a className="tap-button" href="/sports-fitness/futprep-athletics">Back to Futprep</a>
           <button type="button" className="tap-back" onClick={() => { setResult(null); setForm({ ...EMPTY, parentName: form.parentName, parentPhone: form.parentPhone, parentEmail: form.parentEmail }); setStep(1); window.scrollTo(0, 0); }}>Register another child</button>
@@ -221,7 +222,7 @@ export function QuickRegistration({ offers, attribution = EMPTY_ATTRIBUTION, ini
             )}
           </div>
           <p className="tap-note">{offer.name} is for ages {offer.ageLabel}{offer.termStartDate > today ? `, counted on ${longDate(offer.termStartDate)}` : ""}.</p>
-          <label><span>Health notes <small>(allergies, medical conditions, medication, anything the coaches should know; leave blank if none)</small></span><textarea value={form.healthNotes} rows={3} onChange={(e) => set("healthNotes", e.target.value)} /></label>
+          <label><span>Health notes <small>(allergies, medical conditions, medication, anything the coaches should know; leave blank if none)</small></span><textarea value={form.healthNotes} rows={3} maxLength={1000} onChange={(e) => set("healthNotes", e.target.value)} /></label>
 
           <h2 className="tap-step"><span>$</span>Paying</h2>
           {offer.programType !== "camp" && (

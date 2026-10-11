@@ -32,7 +32,8 @@ const limits: Record<string, number> = {
   childName: 120, childDob: 10, gender: 40,
   emergencyContactName: 120, emergencyContactPhone: 40,
   allergies: 1000, medicalConditions: 1000, medications: 1000,
-  specialNeeds: 1500, authorizedPickup: 1000, additionalNotes: 1500, healthNotes: 1500,
+  // healthNotes lands in medicalConditions, so it has the same ceiling.
+  specialNeeds: 1500, authorizedPickup: 1000, additionalNotes: 1500, healthNotes: 1000,
   programSlug: 40, paymentFrequency: 20, paymentMethod: 30,
   photoConsent: 10, signatureName: 120,
   // Growth tracking (28 Sept): the parent's answer, an optional referral
@@ -245,7 +246,7 @@ export async function POST(request: Request) {
     if (message === "PROGRAM_FULL") return NextResponse.json({ error: "That class has reached capacity." }, { status: 409 });
     // The existing code is not returned: anyone who knows a parent's email and
     // a child's name and birthday could otherwise collect it here.
-    if (message.startsWith("DUPLICATE:")) return NextResponse.json({ error: "A registration for this child has already been received for this session. Your reference code is in the email we sent when you registered; message Futprep on WhatsApp if you can't find it." }, { status: 409 });
+    if (message.startsWith("DUPLICATE:")) return NextResponse.json({ error: "A registration for this child has already been received for this session. Your reference code was on the confirmation screen and in the email we sent, if you gave one; message Futprep on WhatsApp if you can't find it." }, { status: 409 });
     console.error("Futprep registration error", error);
     return NextResponse.json({ error: "We couldn’t complete the registration. Please try again." }, { status: 500 });
   }
