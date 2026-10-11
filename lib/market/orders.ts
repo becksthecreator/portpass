@@ -139,7 +139,19 @@ function str(body: Record<string, unknown>, key: string, max: number): string {
   return typeof body[key] === "string" ? (body[key] as string).trim().slice(0, max) : "";
 }
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// An email address with nothing that could reach a database filter.
+const EMAIL = /^[A-Za-z0-9._%+'-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+// A name as the seller's email and list show it: letters, spaces,
+// apostrophes and hyphens only, so nobody can put a web address or a
+// message into someone else's inbox through the order form.
+const NAME = /^[\p{L}\p{M}' -]+$/u;
+
+// One Market order holds this many items at most, and one buyer may have
+// this many unpaid orders waiting with one seller: enough for a family's
+// kit, too few for anyone to empty a seller's stock with orders they never
+// mean to pay.
+export const MAX_ORDER_UNITS = 10;
+export const MAX_OPEN_ORDERS_PER_BUYER = 3;
 
 export function parseOrderInput(body: Record<string, unknown>): Parsed<OrderInput> {
   const items = Array.isArray(body.items)
@@ -149,8 +161,11 @@ export function parseOrderInput(body: Record<string, unknown>): Parsed<OrderInpu
       })
     : [];
   if (!items.length) return { ok: false, error: "Pick at least one size." };
-  const buyerName = str(body, "buyerName", 120);
+  const units = items.reduce((sum, line) => sum + (Number.isFinite(line.qty) ? line.qty : 0), 0);
+  if (units > MAX_ORDER_UNITS) return { ok: false, error: `One order can hold up to ${MAX_ORDER_UNITS} items. Message the seller for more.` };
+  const buyerName = str(body, "buyerName", 60).replace(/\s+/g, " ");
   if (!buyerName) return { ok: false, error: "Enter your name." };
+  if (!NAME.test(buyerName)) return { ok: false, error: "Enter your name in letters only." };
   const buyerPhone = normalizePhoneE164(str(body, "buyerPhone", 40));
   if (!buyerPhone) return { ok: false, error: "Enter a phone or WhatsApp number the seller can reach you on." };
   const buyerEmail = str(body, "buyerEmail", 180);
@@ -308,7 +323,9 @@ function dollarsLabel(cents: number): string {
   return `$${(cents / 100).toFixed(2).replace(/\.00$/, "")}`;
 }
 
-export type CommissionableOrder = { referenceCode: string; paidAt: string; subtotalCents: number; totalCents: number; buyerName: string };
+// reason: why the server counted it as brought by PortPass (a PortPass
+// link, found on PortPass), so a seller can question a line.
+export type CommissionableOrder = { referenceCode: string; paidAt: string; subtotalCents: number; totalCents: number; reason: string | null };
 
 export type SellerMonthFees = { planCents: number; commissionBaseCents: number; commissionCents: number; orders: number; totalCents: number };
 
@@ -441,8 +458,8 @@ export function buildOrderPickListCsv(list: ListedOrder[]): string {
 
 export function buildCommissionCsv(month: string, sellerName: string, orders: CommissionableOrder[], bps: number): string {
   return csv([
-    ["Seller", "Month", "Order", "Paid at", "Goods", "Commission rate", "Commission"],
-    ...orders.map((o) => [sellerName, month, o.referenceCode, stamp(o.paidAt), dollars(o.subtotalCents), `${(bps / 100).toFixed(2)}%`, dollars(Math.round((o.subtotalCents * bps) / 10_000))]),
+    ["Seller", "Month", "Order", "Paid at", "Why PortPass brought it", "Goods", "Commission rate", "Commission"],
+    ...orders.map((o) => [sellerName, month, o.referenceCode, stamp(o.paidAt), o.reason, dollars(o.subtotalCents), `${(bps / 100).toFixed(2)}%`, dollars(Math.round((o.subtotalCents * bps) / 10_000))]),
   ]);
 }
 

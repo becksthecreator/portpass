@@ -42,6 +42,9 @@ function itemsTable(input: Pick<OrderEmailInput, "items" | "deliveryFeeCents" | 
 const button = (href: string, label: string) =>
   `<p style="margin:20px 0"><a href="${escapeHtml(href)}" style="display:inline-block;background:#0D1B3D;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:10px">${escapeHtml(label)}</a></p>`;
 
+// A business name as it may sit in a subject line: one line.
+const oneLine = (value: string) => value.replace(/[\r\n]+/g, " ").trim();
+
 function shell(sellerName: string, title: string, body: string): string {
   const seller = escapeHtml(sellerName);
   return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#0D1B3D">
@@ -66,7 +69,7 @@ export function buyerOrderEmail(input: OrderEmailInput): { subject: string; html
       : `<p><strong>How to pay:</strong> by bank transfer to ${seller}${input.payReference ? `, quoting <strong>${escapeHtml(input.payReference)}</strong>` : ""}. The bank details are on your payment page.</p>
       ${input.payUrl ? button(input.payUrl, "See how to pay") : ""}`;
   const contact = input.sellerWhatsappUrl ? `<p>Questions? <a href="${escapeHtml(input.sellerWhatsappUrl)}">Message ${seller} on WhatsApp</a> and give your order code.</p>` : `<p>Questions? Contact ${seller} and give your order code.</p>`;
-  const subject = `Your order ${input.referenceCode} from ${input.sellerName}`;
+  const subject = `Your order ${input.referenceCode} from ${oneLine(input.sellerName)}`;
   const body = `<p>Hi ${escapeHtml(firstName(input.buyerName))},</p>
     <p>${seller} has your order. Your order code is <strong>${code}</strong>.</p>
     ${itemsTable(input)}

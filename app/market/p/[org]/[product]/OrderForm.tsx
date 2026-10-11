@@ -175,7 +175,7 @@ export function OrderForm(props: Props) {
       )}
 
       <div className="shop-fields">
-        <label><span>Your name *</span><input required maxLength={120} autoComplete="name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></label>
+        <label><span>Your name *</span><input required maxLength={60} autoComplete="name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></label>
         <label><span>Phone or WhatsApp *</span><PhoneInput required value={form.phone} onChange={(value: string) => setForm((f) => ({ ...f, phone: value }))} /></label>
         <label><span>Email *</span><input type="email" required maxLength={180} autoComplete="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /><small className="mkt-order-hint">Your order code and how to pay {orgName} are sent here.</small></label>
       </div>

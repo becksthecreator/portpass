@@ -23,7 +23,7 @@ let staffId = ""; // a TEST account for the audit trail's "who"
 
 const buyer = (over: Partial<OrderInput> = {}): OrderInput => ({
   items: [{ variantId: small, qty: 2 }],
-  buyerName: "TEST — delete Buyer",
+  buyerName: "TEST Delete Buyer",
   buyerPhone: "+12425550162",
   buyerEmail: `test-buyer-${tag}@example.com`,
   fulfilment: "pickup",
@@ -146,12 +146,13 @@ describe("the buyer's page", () => {
   it("shows the order by its code, without the buyer's phone or email", async () => {
     const [first] = (await listSellerOrders(orgId)).filter((o) => o.fulfilment === "pickup");
     const view = await getPublicOrder(first.referenceCode);
-    expect(view).toMatchObject({ referenceCode: first.referenceCode, buyerFirstName: "TEST", status: "new", paid: false });
-    expect(view?.pay?.token).toMatch(/^[a-f0-9]{40}$/);
+    expect(view).toMatchObject({ referenceCode: first.referenceCode, status: "new", paid: false });
+    expect(view?.payReference).toBeTruthy();
     const text = JSON.stringify(view);
     expect(text).not.toContain("+12425550162"); // the buyer's number
     expect(text).not.toContain("example.com"); // the buyer's email
-    expect(text).not.toContain("delete Buyer"); // first name only
+    expect(text).not.toContain("Buyer"); // the buyer's name
+    expect(text).not.toMatch(/[a-f0-9]{40}/); // no payment page token
     expect(await getPublicOrder("ZZZ-ZZZZZZ")).toBeNull();
   });
 });
@@ -198,6 +199,16 @@ describe("the seller's steps", () => {
     const [order] = await listSellerOrders(orgId);
     expect(await getSellerOrder(orgId + 1_000_000, order.id)).toBeNull();
     await expect(moveOrder(orgId + 1_000_000, order.id, "confirm", staffId)).rejects.toThrow("NOT_FOUND");
+  });
+});
+
+describe("one buyer's open orders", () => {
+  it("lets a buyer hold at most three unpaid orders with one seller", async () => {
+    const open = (await listSellerOrders(orgId)).filter((o) => o.status !== "cancelled" && !o.paid).length;
+    for (let i = open; i < 3; i += 1) await place({ items: [{ variantId: large, qty: 1 }] });
+    await expect(place({ items: [{ variantId: large, qty: 1 }] })).rejects.toThrow("TOO_MANY_OPEN");
+    // Another buyer is not held back.
+    await expect(place({ items: [{ variantId: large, qty: 1 }], buyerEmail: `test-other-buyer-${tag}@example.com`, buyerPhone: "+12425550164" })).resolves.toMatchObject({ totalCents: 3500 });
   });
 });
 

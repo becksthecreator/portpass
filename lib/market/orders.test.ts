@@ -119,6 +119,20 @@ describe("the order form", () => {
     expect(parseOrderInput({ ...body, paymentMethod: "card" })).toMatchObject({ ok: false });
   });
 
+  it("takes a name in letters only, so nobody can put a link or a message in someone's inbox", () => {
+    expect(parseOrderInput({ ...body, buyerName: "Ana-María O'Neil" })).toMatchObject({ ok: true });
+    expect(parseOrderInput({ ...body, buyerName: "verify at evil.example" })).toMatchObject({ ok: false });
+    expect(parseOrderInput({ ...body, buyerName: "https://x" })).toMatchObject({ ok: false });
+    expect(parseOrderInput({ ...body, buyerName: "<b>Hi</b>" })).toMatchObject({ ok: false });
+  });
+
+  it("holds at most ten items in one order, and an email nothing odd can slip through", () => {
+    expect(parseOrderInput({ ...body, items: [{ variantId: 1, qty: 6 }, { variantId: 2, qty: 5 }] })).toMatchObject({ ok: false });
+    expect(parseOrderInput({ ...body, items: [{ variantId: 1, qty: 6 }, { variantId: 2, qty: 4 }] })).toMatchObject({ ok: true });
+    expect(parseOrderInput({ ...body, buyerEmail: "a,b@family.test" })).toMatchObject({ ok: false });
+    expect(parseOrderInput({ ...body, buyerEmail: "a(b)@family.test" })).toMatchObject({ ok: false });
+  });
+
   it("prices from the catalogue, adds the zone's delivery fee, and refuses what is short", () => {
     expect(priceMarketOrder([{ variantId: 1, qty: 2 }], catalogue, null)).toMatchObject({ ok: true, subtotalCents: 7000, deliveryFeeCents: 0, totalCents: 7000 });
     expect(priceMarketOrder([{ variantId: 2, qty: 1 }], catalogue, { zone: "Cable Beach", feeCents: 1500, leadDays: 2 })).toMatchObject({ ok: true, subtotalCents: 3500, deliveryFeeCents: 1500, totalCents: 5000 });
@@ -173,8 +187,8 @@ describe("the seller's numbers and spreadsheets", () => {
 
 describe("PortPass's Market fees", () => {
   const paid = [
-    { referenceCode: "TK-AAA222", paidAt: "2026-09-03T15:00:00Z", subtotalCents: 7000, totalCents: 8500, buyerName: "A" },
-    { referenceCode: "TK-BBB333", paidAt: "2026-09-20T15:00:00Z", subtotalCents: 3333, totalCents: 3333, buyerName: "B" },
+    { referenceCode: "TK-AAA222", paidAt: "2026-09-03T15:00:00Z", subtotalCents: 7000, totalCents: 8500, reason: "PortPass link" },
+    { referenceCode: "TK-BBB333", paidAt: "2026-09-20T15:00:00Z", subtotalCents: 3333, totalCents: 3333, reason: "Found on PortPass" },
   ];
 
   it("charges the plan to a seller on it, and the commission on the goods only (not delivery), rounded to the cent", () => {
@@ -215,10 +229,11 @@ describe("PortPass's Market fees", () => {
     expect(isMonth("2026-13")).toBe(false);
   });
 
-  it("writes one seller's commission spreadsheet without the buyers' names", () => {
+  it("writes one seller's commission spreadsheet with why each order counts, and no buyers", () => {
     const csv = buildCommissionCsv("2026-09", "TEST Kit Shop", paid, 800);
     expect(csv).toContain("TK-AAA222");
     expect(csv).toContain("8.00%");
-    expect(csv).not.toContain("\"A\"");
+    expect(csv).toContain("\"Found on PortPass\"");
+    expect(csv).not.toContain("Buyer");
   });
 });

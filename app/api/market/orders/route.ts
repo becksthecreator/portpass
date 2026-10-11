@@ -18,7 +18,11 @@ import { dropPhase, soldOutMessage, type CatalogueVariant } from "@/lib/shop/rul
 // a payment request from the seller, the buyer is emailed the code and how
 // to pay the seller directly, and the seller's owners are told.
 
+// Each order holds stock and sends two emails, so it is limited per
+// address, per buyer email and per address for each seller.
 const limited = createRateLimiter(6, 60_000);
+const perEmail = createRateLimiter(3, 60 * 60_000);
+const perSeller = createRateLimiter(3, 10 * 60_000);
 
 // As loose as the slugs lib/slug.ts makes; the lookup is parameterised.
 const SLUG = /^[a-z0-9-]{1,80}$/;
@@ -32,6 +36,7 @@ const ERRORS: Record<string, { status: number; error: string }> = {
   BAD_ZONE: { status: 400, error: "Choose one of the seller's delivery areas." },
   BAD_METHOD: { status: 400, error: "Choose one of the ways this seller takes payment." },
   UNKNOWN_VARIANT: { status: 400, error: "One of those sizes isn't part of this product." },
+  TOO_MANY_OPEN: { status: 429, error: "You have unpaid orders waiting with this seller. Pay or cancel those first, or message the seller." },
 };
 
 export async function POST(request: NextRequest) {
@@ -56,6 +61,9 @@ export async function POST(request: NextRequest) {
 
   const parsed = parseOrderInput(body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  if (perEmail(parsed.value.buyerEmail) || perSeller(`${clientIp(request)}|${orgSlug}`)) {
+    return NextResponse.json({ error: "You've placed a few orders already. Give it a little while, or message the seller." }, { status: 429 });
+  }
 
   const attribution = parseAttributionCookie(request.cookies.get(shopAttributionCookie(orgSlug))?.value);
   const origin = new URL(request.url).origin;

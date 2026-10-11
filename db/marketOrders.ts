@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
 import type { Attribution } from "@/lib/attribution";
 import { nassauLocalToIso, nassauToday } from "@/lib/futprepTerms";
 import { buyerOrderEmail, sellerOrderEmail } from "@/lib/market/orderEmail";
@@ -7,6 +7,7 @@ import {
   allowedFrom,
   canMoveTo,
   DEFAULT_MARKET_SETTINGS,
+  MAX_OPEN_ORDERS_PER_BUYER,
   feeLines,
   invoicesMonth,
   isOrderStatus,
@@ -31,7 +32,7 @@ import {
 } from "@/lib/market/orders";
 import { viaPortpassFrom } from "@/lib/paymentRequests/email";
 import { balanceCents, defaultPrefix, methodsSetUp, payPath } from "@/lib/paymentRequests/rules";
-import { holdUntil, makeReferenceCode, resolveShopSource, whatsappHref, type CatalogueVariant, type Fulfilment, type ReservationItem, type ShopPaymentMethod, type ShopSource } from "@/lib/shop/rules";
+import { holdUntil, REFERENCE_ALPHABET, resolveShopSource, whatsappHref, type CatalogueVariant, type Fulfilment, type ReservationItem, type ShopPaymentMethod, type ShopSource } from "@/lib/shop/rules";
 import { sendEmail } from "@/lib/email";
 import { logAudit } from "./audit";
 import { draftMarketInvoice, listInvoices, type StoredInvoice } from "./billing";
@@ -120,6 +121,15 @@ export async function getOrderOptions(orgId: number, shop: Shop): Promise<OrderO
 
 // ---- placing an order ---------------------------------------------------------------
 
+// The order code: the shop's prefix and six letters or digits from the
+// alphabet Drops use, each drawn without bias (crypto.randomInt). It is the
+// key to /order/<code>.
+function orderCode(prefix: string): string {
+  let body = "";
+  for (let i = 0; i < 6; i += 1) body += REFERENCE_ALPHABET[randomInt(REFERENCE_ALPHABET.length)];
+  return `${prefix}-${body}`;
+}
+
 export type PlaceOrder = {
   org: Business;
   shop: Shop;
@@ -157,11 +167,15 @@ export async function placeMarketOrder(p: PlaceOrder): Promise<PlacedOrder> {
   if (!priced.ok) throw new Error(priced.soldOut?.length ? `SOLD_OUT:${priced.soldOut.join(",")}` : `PRICE:${priced.error}`);
   if (priced.totalCents <= 0) throw new Error("NOT_ORDERABLE");
 
+  // A buyer with unpaid orders already waiting here pays or cancels those
+  // first (by email or by phone, each matched exactly).
+  if ((await openOrdersFor(org.id, input.buyerEmail, input.buyerPhone)) >= MAX_OPEN_ORDERS_PER_BUYER) throw new Error("TOO_MANY_OPEN");
+
   const source = resolveShopSource(p.attribution);
   const hold = holdUntil(now, shop.holdHours).toISOString();
   let created: { id: number; referenceCode: string } | null = null;
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const referenceCode = makeReferenceCode(shop.referencePrefix, randomBytes(6));
+    const referenceCode = orderCode(shop.referencePrefix);
     const { data, error } = await db().rpc("market_create_order", {
       p: {
         reference_code: referenceCode,
@@ -262,6 +276,14 @@ export async function placeMarketOrder(p: PlaceOrder): Promise<PlacedOrder> {
   return { id: created.id, referenceCode: created.referenceCode, holdUntil: hold, totalCents: priced.totalCents, emailed: outcome === "sent" };
 }
 
+async function openOrdersFor(orgId: number, email: string, phone: string): Promise<number> {
+  const open = () => db().from("reservations").select("id").eq("organization_id", orgId).eq("kind", "order").eq("status", "active").eq("payment_status", "pending").limit(MAX_OPEN_ORDERS_PER_BUYER * 2);
+  const [byEmail, byPhone] = await Promise.all([open().eq("buyer_email", email), open().eq("buyer_phone", phone)]);
+  throwIfSupabaseError(byEmail.error, "Could not check the buyer's open orders");
+  throwIfSupabaseError(byPhone.error, "Could not check the buyer's open orders");
+  return new Set([...(byEmail.data ?? []), ...(byPhone.data ?? [])].map((row) => Number(row.id))).size;
+}
+
 // The seller's owners hear about a new order (after the buyer has their
 // answer). The buyer's name only; their contact details are on the orders
 // page behind the seller's sign-in.
@@ -290,7 +312,6 @@ export async function tellSellerAboutOrder(orgId: number, orderId: number, origi
 
 export type PublicOrder = {
   referenceCode: string;
-  buyerFirstName: string;
   items: ReservationItem[];
   subtotalCents: number;
   deliveryFeeCents: number;
@@ -303,8 +324,10 @@ export type PublicOrder = {
   holdUntil: string;
   createdAt: string;
   seller: { name: string; slug: string | null; whatsappE164: string | null; phoneE164: string | null; publicEmail: string | null; logoUrl: string | null; brandColor: string | null; pickupNote: string; verified: boolean };
-  // The seller's payment request for it: the page links to how to pay.
-  pay: { token: string; referenceCode: string } | null;
+  // The reference to quote on a bank transfer. The payment page itself is
+  // linked only from the buyer's own email: an order code is shared (in
+  // WhatsApp, on lists), and the payment page carries the buyer's name.
+  payReference: string | null;
 };
 
 // By its code only. What a buyer may see: the seller, what was ordered,
@@ -320,14 +343,13 @@ export async function getPublicOrder(code: string): Promise<PublicOrder | null> 
   const [org, shop, request] = await Promise.all([
     getBusiness(orgId),
     getShop(orgId),
-    order.paymentRequestId ? db().from("payment_requests").select("public_token,reference_code,status").eq("id", order.paymentRequestId).eq("organization_id", orgId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    order.paymentRequestId ? db().from("payment_requests").select("reference_code,status").eq("id", order.paymentRequestId).eq("organization_id", orgId).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
   throwIfSupabaseError(request.error, "Could not load the payment request");
   if (!org) return null;
-  const req = request.data as { public_token: string; reference_code: string; status: string } | null;
+  const req = request.data as { reference_code: string; status: string } | null;
   return {
     referenceCode: order.referenceCode,
-    buyerFirstName: order.buyerName.trim().split(/\s+/)[0] ?? "",
     items: order.items,
     subtotalCents: order.subtotalCents,
     deliveryFeeCents: order.deliveryFeeCents,
@@ -340,7 +362,7 @@ export async function getPublicOrder(code: string): Promise<PublicOrder | null> 
     holdUntil: order.holdUntil,
     createdAt: order.createdAt,
     seller: { name: org.name, slug: org.slug, whatsappE164: org.whatsappE164, phoneE164: org.phoneE164, publicEmail: org.publicEmail, logoUrl: org.logoUrl, brandColor: org.brandColor, pickupNote: shop?.sellerPickupNote ?? "", verified: shop?.sellerStatus === "verified" },
-    pay: req && req.status !== "void" ? { token: req.public_token, referenceCode: req.reference_code } : null,
+    payReference: req && req.status !== "void" ? req.reference_code : null,
   };
 }
 
@@ -429,21 +451,28 @@ export async function cancelOrder(orgId: number, orderId: number, actor: Actor):
   if (!canMoveTo(order.status, "cancelled", order.fulfilment, order.paid)) throw new Error("CONFLICT");
   const found = order.paymentRequestId ? await getPaymentRequest(orgId, order.paymentRequestId) : null;
   if (found && found.request.paidCents > 0) throw new Error("HAS_PAYMENTS");
+  // The request is voided first: voiding refuses once a payment is on it,
+  // and a void request takes no payment, so "Paid" tapped at the same
+  // moment can never leave money on a cancelled order.
+  if (!(await voidRequestFor(orgId, found?.request.id ?? null, "The order was cancelled.", actor))) throw new Error("HAS_PAYMENTS");
   const { data, error } = await db().rpc("shop_release_reservation", { p_id: orderId, p_status: "cancelled", p_only_expired: false });
   throwIfSupabaseError(error, "Could not cancel the order");
   if (!data) throw new Error("CONFLICT");
-  await voidRequestFor(orgId, found?.request.id ?? null, "The order was cancelled.", actor);
   await logAudit({ actorUserId: actor.userId, organizationId: orgId, action: "market.order.cancel", targetTable: "reservations", targetId: orderId, before: { status: order.status }, after: { reference: order.referenceCode, status: "cancelled" } });
   return (await getSellerOrder(orgId, orderId))!;
 }
 
-async function voidRequestFor(orgId: number, requestId: number | null, reason: string, actor: Actor): Promise<void> {
-  if (!requestId) return;
+// False when a payment is on the request (it can't be voided).
+async function voidRequestFor(orgId: number, requestId: number | null, reason: string, actor: Actor): Promise<boolean> {
+  if (!requestId) return true;
   try {
     await voidPaymentRequest(orgId, requestId, reason, actor);
+    return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    if (message !== "VOID" && message !== "HAS_PAYMENTS") throw error;
+    if (message === "VOID") return true;
+    if (message === "HAS_PAYMENTS") return false;
+    throw error;
   }
 }
 
@@ -458,10 +487,10 @@ export async function releaseExpiredOrders(orgId: number, ids: number[], actor: 
   for (const order of candidates) {
     const found = order.paymentRequestId ? await getPaymentRequest(orgId, order.paymentRequestId) : null;
     if (found && found.request.paidCents > 0) continue;
+    if (!(await voidRequestFor(orgId, found?.request.id ?? null, "Not paid within the hold; the seller released the order.", actor))) continue;
     const { data, error } = await db().rpc("shop_release_reservation", { p_id: order.id, p_status: "released", p_only_expired: true });
     throwIfSupabaseError(error, "Could not release the order");
     if (!data) continue;
-    await voidRequestFor(orgId, found?.request.id ?? null, "Not paid within the hold; the seller released the order.", actor);
     released.push(order.referenceCode);
   }
   if (released.length) await logAudit({ actorUserId: actor.userId, organizationId: orgId, action: "market.order.released_unpaid", targetTable: "reservations", targetId: null, after: { references: released } });
@@ -512,18 +541,16 @@ export async function marketFeesForMonth(month: string, settings: MarketSettings
   const demoId = await demoOrganizationIdOrNull();
   const from = dayStartIso(monthBounds(month).start);
   const until = dayStartIso(monthBounds(nextMonth(month)).start);
-  const [{ data: plans, error: plansError }, { data: paid, error: paidError }] = await Promise.all([
-    db().from("shops").select("organization_id").eq("seller_plan", "seller").eq("seller_status", "verified").lt("seller_verified_at", until).limit(1000),
-    db().from("reservations").select("organization_id,reference_code,paid_at,subtotal_cents,total_cents,buyer_name").eq("kind", "order").eq("commission_eligible", true).eq("payment_status", "paid").gte("paid_at", from).lt("paid_at", until).order("paid_at", { ascending: true }).limit(10000),
+  const [plans, paid] = await Promise.all([
+    allPages((lo, hi) => db().from("shops").select("organization_id").eq("seller_plan", "seller").eq("seller_status", "verified").lt("seller_verified_at", until).order("organization_id", { ascending: true }).range(lo, hi), "Could not load the Seller plans"),
+    allPages((lo, hi) => db().from("reservations").select("id,organization_id,reference_code,paid_at,subtotal_cents,total_cents,commission_reason").eq("kind", "order").eq("commission_eligible", true).eq("payment_status", "paid").gte("paid_at", from).lt("paid_at", until).order("paid_at", { ascending: true }).order("id", { ascending: true }).range(lo, hi), "Could not load the paid orders"),
   ]);
-  throwIfSupabaseError(plansError, "Could not load the Seller plans");
-  throwIfSupabaseError(paidError, "Could not load the paid orders");
-  const onPlan = new Set((plans ?? []).map((row) => Number(row.organization_id)));
+  const onPlan = new Set(plans.map((row) => Number(row.organization_id)));
   const ordersBy = new Map<number, CommissionableOrder[]>();
-  for (const row of paid ?? []) {
+  for (const row of paid) {
     const orgId = Number(row.organization_id);
     const list = ordersBy.get(orgId) ?? [];
-    list.push({ referenceCode: row.reference_code as string, paidAt: row.paid_at as string, subtotalCents: Number(row.subtotal_cents ?? 0), totalCents: Number(row.total_cents), buyerName: row.buyer_name as string });
+    list.push({ referenceCode: row.reference_code as string, paidAt: row.paid_at as string, subtotalCents: Number(row.subtotal_cents ?? 0), totalCents: Number(row.total_cents), reason: (row.commission_reason as string | null) ?? null });
     ordersBy.set(orgId, list);
   }
   const ids = Array.from(new Set([...onPlan, ...ordersBy.keys()])).filter((id) => id !== demoId);
@@ -538,6 +565,19 @@ export async function marketFeesForMonth(month: string, settings: MarketSettings
       return { organizationId: orgId, name: org.name as string, slug: (org.slug as string | null) ?? null, onSellerPlan: onPlan.has(orgId), orders, fees: monthFees({ onSellerPlan: onPlan.has(orgId), settings, orders }) };
     })
     .sort((a, b) => b.fees.totalCents - a.fees.totalCents || a.name.localeCompare(b.name));
+}
+
+// Every row, a page at a time: PostgREST answers 1,000 rows a request.
+async function allPages(page: (from: number, to: number) => PromiseLike<{ data: unknown; error: { message?: string; code?: string } | null }>, context: string): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = [];
+  for (let from = 0; from < 100_000; from += 1000) {
+    const { data, error } = await page(from, from + 999);
+    throwIfSupabaseError(error, context);
+    const batch = (data ?? []) as Record<string, unknown>[];
+    rows.push(...batch);
+    if (batch.length < 1000) break;
+  }
+  return rows;
 }
 
 export type MarketFeesRun = { month: string; dryRun: boolean; sellers: number; totalCents: number; drafted: number };

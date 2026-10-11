@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ContactBusiness, PayFrame } from "@/app/pay/PayFrame";
 import { getPublicOrder, type PublicOrder } from "@/db/marketOrders";
 import { normalizeOrderCode, timeline } from "@/lib/market/orders";
-import { payPath } from "@/lib/paymentRequests/rules";
 import { formatNassau, money } from "@/lib/shop/rules";
 import { ORDER_PAGE_METADATA, orderLookupAllowed } from "../lookup";
 import "@/app/pay/pay.css";
@@ -36,9 +35,12 @@ function NotFound({ title, detail }: { title: string; detail: string }) {
 
 // The buyer's page for one Market order (brief 25, C3): no sign-in, the
 // code is the key, rate-limited. Where the order is, what was ordered, how
-// to get it, how to pay the seller directly and how to reach them. Never
-// the buyer's phone or email. Nothing here takes or processes a payment,
-// and nothing moves (brief 22's Never list).
+// to get it, how to pay the seller directly and how to reach them. Never the buyer's name,
+// phone or email, and no link to the payment page (that page carries the
+// buyer's name; it is linked only from the buyer's own email), since an
+// order code is shared in WhatsApp messages and on the seller's lists.
+// Nothing here takes or processes a payment, and nothing moves (brief 22's
+// Never list).
 export default async function OrderPage({ params }: { params: Params }) {
   const { code: raw } = await params;
   if (!(await orderLookupAllowed())) return <NotFound title="Too many lookups" detail="Wait a minute, then open the link again." />;
@@ -65,7 +67,7 @@ export default async function OrderPage({ params }: { params: Params }) {
   return (
     <PayFrame view={view} foot={FOOT}>
       <div>
-        <p className="paypage-eyebrow">Order{order.buyerFirstName ? ` for ${order.buyerFirstName}` : ""}</p>
+        <p className="paypage-eyebrow">Order from {s.name}</p>
         <h1><span className="paypage-ref">{order.referenceCode}</span></h1>
       </div>
 
@@ -113,8 +115,7 @@ export default async function OrderPage({ params }: { params: Params }) {
             <p>Cash to {s.name} when you collect.</p>
           ) : (
             <>
-              <p>By bank transfer to {s.name}{order.pay ? <>, quoting <strong>{order.pay.referenceCode}</strong></> : null}. The bank details are on your payment page.</p>
-              {order.pay && <p><a className="paypage-btn" href={payPath(order.pay.token)}>See how to pay</a></p>}
+              <p>By bank transfer to {s.name}{order.payReference ? <>, quoting <strong>{order.payReference}</strong></> : null}. The bank details are on your payment page: open it from the email with your order code.</p>
             </>
           )}
         </section>
