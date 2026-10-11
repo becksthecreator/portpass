@@ -63,7 +63,9 @@ beforeAll(async () => {
   for (const s of sessions ?? []) sessionIds.push(Number(s.id));
   heldDay = String(past[past.length - 1].session_date);
   nextDay = String(coming[0].session_date);
-  heldCount = past.length;
+  // A session today counts as held for the rate (it has happened or is
+  // happening) and as the next session day for the tile.
+  heldCount = (sessions ?? []).filter((s) => String(s.session_date) <= today).length;
   const heldSessionId = Number(past[past.length - 1].id);
 
   const { data: regs, error: regError } = await admin
