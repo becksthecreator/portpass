@@ -95,7 +95,7 @@ export default async function AdminPeoplePage() {
 
       <section className="admin-group" aria-labelledby="futprep-owner">
         <h2 id="futprep-owner">Futprep owner access</h2>
-        <p className="admin-empty">Futprep&rsquo;s staff mark their CEO login as the owner in Staff accounts. That only asks: a founder gives the owner access here, after checking with the person. It is taken back by itself if the mark moves, the login is switched off or its email changes.</p>
+        <p className="admin-lede">Futprep&rsquo;s staff mark their CEO login as the owner in Staff accounts. That only asks: a founder gives the owner access here, after checking with the person. It is taken back by itself if the mark moves, the login is switched off or its email changes.</p>
         {futprepOwner === undefined || futprepOwner === null ? (
           <p className="admin-empty">{futprepOwner === null ? "No staff login is marked as the owner." : "Could not load Futprep's owner mark. Refresh to try again."}</p>
         ) : (
