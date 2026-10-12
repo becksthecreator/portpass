@@ -24,8 +24,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
-| `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
-| `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
+| `fix/futprep-session-scope` (rule 3, #205's follow-up: sessions, programmes, coaches, staff logins, private sessions) | #225 | CI and the Phase 1 run, then merge | Claude Code |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green | Antonio's OK |
 | `claude/keen-volta-6u6jdp` (WeddingWire, fixes a #183 finding) | #185 | Renumber its migration, apply it live, merge | Antonio: confirm the apply (it drops and re-adds columns) |
 | `chore/csp-enforce` (brief 26) | #183 | Merge after #185 | #185 |
@@ -69,6 +68,10 @@ Left open by the reviews of #200, #203 and #216 (not fixed):
 - `futprepOrganizationId()` falls back to a name match (`%futprep%`) when the slug is missing; it now gates children's writes, so the fallback should go.
 - Still unpaged in `db/staff.ts`: session counts (~252), session plans (~798), work logs (~819), the roster export's payments (~1399); the admin page builds the desk list twice.
 
+Rule 3 follow-up from #205's security review, in #225: Futprep's staff screens take session, programme, coach, staff-login and private-session ids of Futprep's own only. Left open by its reviews (not fixed):
+- Recording a private-session payment twice at once counts it twice (`db/coaches.ts` `recordPrivateSessionPayment`: insert, then sum, then update, with no idempotency key, unlike `payment_request_record_payment`).
+- A coach's roster still shows each child's emergency contact and pickup (`docs/futprep/roles.md`); whether it should is #197's question 4 for Antonio.
+
 Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
 - #185's migration `202610190002_weddingwire_widgets_structured.sql` clashes with `202610190002_private_sessions_from_the_database.sql` on `main`.
 - The CSP keeps `'unsafe-inline'` and is report-only until #183.
@@ -78,4 +81,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
 
 ## Last updated
-12 Oct 2026, `main` at `48a809e`, by Claude Code (PR #216).
+12 Oct 2026, `main` at `ab65e65`, by Claude Code (PR #225).
