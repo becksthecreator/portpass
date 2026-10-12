@@ -92,7 +92,7 @@ Each PR carries the full findings and what changed, in its body and comments. In
 | B | second pass after the admin pay-rate leak, the NOT NULL address and the per-term share were fixed | second pass: **Safe to merge** |
 | C | second pass: its one blocker (a flagged word in the staff email) was fixed, and the build is green | second pass and a check of the final change: **Safe to merge** |
 | D | second pass: the partial index upsert, the trigger on marks, and the admin's roster saying "no information" were fixed | third pass: **Safe to merge** (its Lows L1 and L3 fixed; L2 a follow-up) |
-| E | first pass: the walk now seeds TEST health markers and proves none reaches the family's page or a coach without the medical view; the suite list covers all of brief 31's; the walk re-runs when the staff header changes | **Safe to merge** (three Lows, no change needed) |
+| E | first pass: one Medium (the "no health detail" check had nothing to find: TEST health markers are now seeded and checked on the family's whole page and the coach's roster) and four Lows (all of brief 31's suites in the run, re-run on staff header changes, report wording, panel-only passport shots), fixed in 1fc752c; second pass: all six confirmed, merge once the walk is green | first pass: **Safe to merge** (three Lows, no change needed: the CLI version floats as in every workflow, the one-run PIN's old hash, a TEST emergency contact on the roster) |
 
 `tdd-guide` ran before C and D. The failing-first tests it listed are in each branch (listed in the PR bodies). `qa-runner` ran on C (below).
 
