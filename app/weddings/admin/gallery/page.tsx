@@ -17,7 +17,9 @@ export default async function WeddingGalleryAdminPage() {
           <div><span className="section-kicker">Gallery</span><h1>Real wedding photos.</h1></div>
           <p>Use one of our own photos: a path under /weddings/bahamas-by-the-sea/, or the link of a photo uploaded for Bahamas Weddings By The Sea on PortPass. Links to other websites can&apos;t be saved. Every photo needs a photographer credit where the name is known, and an image without confirmed rights should stay in draft.</p>
         </div>
-        <GalleryManager initialImages={images} />
+        {/* Our Supabase project's address, already in every uploaded photo's
+            public URL: the form previews only photos the save would take. */}
+        <GalleryManager initialImages={images} supabaseUrl={process.env.SUPABASE_URL ?? null} />
       </section>
     </main>
   );

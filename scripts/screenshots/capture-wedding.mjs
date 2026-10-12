@@ -24,6 +24,8 @@ async function refusedLink(page) {
   await addPhoto(page);
   const editor = page.locator(".wedding-admin-panel").last();
   await editor.locator('label:has-text("Image (path under") input').fill("https://tracker.example.com/pixel.gif");
+  // The form never previews (so never loads) a link the save would refuse.
+  if ((await editor.locator("img").count()) > 0) throw new Error("An outside link was previewed.");
   await editor.getByRole("button", { name: "Save" }).click();
   await editor.locator(".form-error").waitFor({ timeout: 30_000 });
 }

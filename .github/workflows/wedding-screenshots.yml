@@ -25,6 +25,9 @@ concurrency:
   group: wedding-screenshots-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   screenshots:
     runs-on: ubuntu-latest
