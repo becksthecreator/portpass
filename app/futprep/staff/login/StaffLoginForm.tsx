@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { canOpenCoachWorkspace } from "@/lib/futprepRoles";
 
 const ROLE_DESTINATION: Record<string, string> = {
   admin: "/futprep/staff/admin",
@@ -28,7 +29,7 @@ export function StaffLoginForm({ returnTo }: { returnTo: string }) {
       if (!response.ok) throw new Error(data.error ?? "Access denied.");
       // A link to one session's roster (the Saturday nudge) is followed;
       // otherwise each role goes to its own home.
-      const roster = returnTo.startsWith("/futprep/staff/coach?session=") && ["coach", "ceo", "helper"].includes(data.role ?? "");
+      const roster = returnTo.startsWith("/futprep/staff/coach?session=") && canOpenCoachWorkspace(data.role);
       window.location.href = roster ? returnTo : ROLE_DESTINATION[data.role ?? ""] ?? returnTo;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Access denied.");

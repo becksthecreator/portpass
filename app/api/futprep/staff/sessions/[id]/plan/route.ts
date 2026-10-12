@@ -4,7 +4,7 @@ import { saveFutprepSessionPlan } from "@/db/staff";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const role = await currentFutprepStaffRole();
-  if (role !== "coach" && role !== "ceo") {
+  if (role !== "coach" && role !== "ceo" && role !== "admin") {
     return NextResponse.json({ error: "Coach or CEO access required." }, { status: 403 });
   }
   const updatedBy = (await currentFutprepStaffName()) ?? role;

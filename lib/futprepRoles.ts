@@ -120,6 +120,8 @@ export function missingForLogin(state: LoginState): string[] {
 // The coaching workspace (roster, attendance, passports): coaches, the CEO,
 // helpers read-only, and (brief 31, D) admins, since Antonio coaches as
 // Coach Bex on an admin login.
-export function canOpenCoachWorkspace(role: FutprepRole | null | undefined): boolean {
-  return role === "coach" || role === "ceo" || role === "helper" || role === "admin";
+export const COACH_WORKSPACE_ROLES = ["coach", "ceo", "helper", "admin"] as const;
+
+export function canOpenCoachWorkspace(role: string | null | undefined): boolean {
+  return (COACH_WORKSPACE_ROLES as readonly string[]).includes(role ?? "");
 }

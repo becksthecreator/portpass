@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import type { StaffPassport } from "@/db/passports";
+import { canShare } from "@/lib/passports/rules";
 
 const SCORES = [1, 2, 3, 4, 5];
 
@@ -15,15 +16,18 @@ export function PassportPanel({ registrationId, childName }: { registrationId: n
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  // The desk and the CEO may put a mark right outside the windows.
+  const [canOverride, setCanOverride] = useState(false);
 
   async function load() {
     if (passport || busy) return;
     setBusy(true);
     const response = await fetch(`/api/futprep/staff/passports?registrationId=${registrationId}`).catch(() => null);
-    const data = response ? ((await response.json().catch(() => ({}))) as { passport?: StaffPassport; error?: string }) : { error: "No connection. Try again." };
+    const data = response ? ((await response.json().catch(() => ({}))) as { passport?: StaffPassport; canOverride?: boolean; error?: string }) : { error: "No connection. Try again." };
     setBusy(false);
     if (!response?.ok || !data.passport) return setError(data.error ?? "Could not open the passport.");
     setPassport(data.passport);
+    setCanOverride(data.canOverride === true);
   }
 
   async function post(path: string, body: Record<string, unknown>): Promise<boolean> {
@@ -38,11 +42,24 @@ export function PassportPanel({ registrationId, childName }: { registrationId: n
     return true;
   }
 
+  // One skill's start or end mark; onlyIf leaves it alone if a later tap
+  // has changed it since.
+  function setMark(skillId: number, phase: "start" | "end", value: number | null, onlyIf?: number) {
+    setPassport((current) => {
+      if (!current) return current;
+      const was = current.marks.find((m) => m.skillId === skillId) ?? { skillId, start: null, end: null };
+      if (onlyIf !== undefined && was[phase] !== onlyIf) return current;
+      const next = phase === "start" ? { ...was, start: value } : { ...was, end: value };
+      return { ...current, marks: [...current.marks.filter((m) => m.skillId !== skillId), next] };
+    });
+  }
+
   async function mark(skillId: number, phase: "start" | "end", score: number) {
     if (!passport) return;
-    const before = passport;
-    setPassport({ ...passport, marks: [...passport.marks.filter((m) => m.skillId !== skillId), { skillId, start: phase === "start" ? score : passport.marks.find((m) => m.skillId === skillId)?.start ?? null, end: phase === "end" ? score : passport.marks.find((m) => m.skillId === skillId)?.end ?? null }] });
-    if (!(await post("/api/futprep/staff/passports", { skillId, phase, score }))) setPassport(before);
+    const previous = passport.marks.find((m) => m.skillId === skillId)?.[phase] ?? null;
+    setMark(skillId, phase, score);
+    // A failed save undoes only this tap.
+    if (!(await post("/api/futprep/staff/passports", { skillId, phase, score }))) setMark(skillId, phase, previous, score);
   }
 
   async function saveNote(event: FormEvent<HTMLFormElement>) {
@@ -61,12 +78,14 @@ export function PassportPanel({ registrationId, childName }: { registrationId: n
   }
 
   const shared = passport?.status === "shared";
+  // Worked out from the marks on screen, so Share turns on with the last end mark.
+  const shareable = !!passport && !shared && canShare(passport.skills, passport.marks);
   const scoreRow = (skillId: number, phase: "start" | "end", open: boolean) => {
     const current = passport?.marks.find((m) => m.skillId === skillId)?.[phase] ?? null;
     return (
       <div className="passport-scores" role="group" aria-label={phase === "start" ? "Start of term" : "End of term"}>
         {SCORES.map((score) => (
-          <button key={score} type="button" className={current === score ? "is-active" : ""} disabled={shared || !open} aria-pressed={current === score} onClick={() => mark(skillId, phase, score)}>{score}</button>
+          <button key={score} type="button" className={current === score ? "is-active" : ""} disabled={shared || !(open || canOverride)} aria-pressed={current === score} onClick={() => mark(skillId, phase, score)}>{score}</button>
         ))}
       </div>
     );
@@ -81,7 +100,7 @@ export function PassportPanel({ registrationId, childName }: { registrationId: n
       {passport && (
         <div className="passport-body">
           <p className="passport-hint">
-            {shared ? "Shared with the family." : passport.windows.start ? "Start marks are open this week." : passport.windows.end ? "End marks are open: the last two weeks of term." : "Marks open in the first week of term and again in the last two weeks."} 1 is just starting, 5 is confident.
+            {shared ? "Shared with the family." : passport.windows.start ? "Start marks are open this week." : passport.windows.end ? "End marks are open: the last two weeks of term." : "Marks open in the first week of term and again in the last two weeks."}{!shared && canOverride ? " The desk can put a mark right any time." : ""} 1 is just starting, 5 is confident.
           </p>
           {passport.skills.map((skill) => (
             <div className="passport-skill" key={skill.id}>
@@ -104,7 +123,7 @@ export function PassportPanel({ registrationId, childName }: { registrationId: n
             </label>
             {!shared && <button type="submit">Save note</button>}
           </form>
-          {!shared && <button type="button" className="passport-share" disabled={!passport.canShare} onClick={share}>{passport.canShare ? "Share with the family" : "Share once every skill has an end mark"}</button>}
+          {!shared && <button type="button" className="passport-share" disabled={!shareable} onClick={share}>{shareable ? "Share with the family" : "Share once every skill has an end mark"}</button>}
         </div>
       )}
     </details>

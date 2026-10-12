@@ -17,6 +17,6 @@ export async function passportAccess(registrationId: number): Promise<{ ok: true
   if (!Number.isInteger(registrationId) || registrationId < 1) return { ok: false, response: NextResponse.json({ error: "Invalid request." }, { status: 400 }) };
   const coaches = await passportCoaches(registrationId);
   if (!coaches) return { ok: false, response: NextResponse.json({ error: "Not found." }, { status: 404 }) };
-  if (!canSeePassport(viewer, coaches)) return { ok: false, response: NextResponse.json({ error: "That child isn't in a class you coach." }, { status: 403 }) };
+  if (!canSeePassport(viewer, coaches)) return { ok: false, response: NextResponse.json({ error: "Only the class's lead coach scores passports. Ask the desk." }, { status: 403 }) };
   return { ok: true, account, viewer, everyone };
 }

@@ -38,6 +38,38 @@ describe("when a coach may score", () => {
     expect(camp("2026-12-24")).toMatchObject({ start: false, end: true });
   });
 
+  it("a cancelled last or second-to-last session moves the end window to the sessions that run", () => {
+    const lastOff = (today: string) => markWindows({ sessions: saturdays.map((date) => ({ date, cancelled: date === "2026-12-12" })), tasterDate: "2026-09-19", programType: "term", today });
+    expect(lastOff("2026-11-27")).toMatchObject({ end: false });
+    expect(lastOff("2026-11-28")).toMatchObject({ end: true });
+    expect(lastOff("2026-12-12")).toMatchObject({ end: true });
+    expect(lastOff("2026-12-13")).toMatchObject({ end: false });
+    const secondOff = (today: string) => markWindows({ sessions: saturdays.map((date) => ({ date, cancelled: date === "2026-12-05" })), tasterDate: "2026-09-19", programType: "term", today });
+    expect(secondOff("2026-11-27")).toMatchObject({ end: false });
+    expect(secondOff("2026-11-28")).toMatchObject({ end: true });
+    expect(secondOff("2026-12-19")).toMatchObject({ end: true });
+  });
+
+  it("a one- or two-session term opens both from its first session", () => {
+    const one = (today: string) => markWindows({ sessions: [{ date: "2026-10-03", cancelled: false }], tasterDate: null, programType: "term", today });
+    expect(one("2026-10-03")).toMatchObject({ start: true, end: true });
+    expect(one("2026-10-09")).toMatchObject({ start: true, end: true });
+    expect(one("2026-10-10")).toMatchObject({ start: false, end: true });
+    expect(one("2026-10-11")).toMatchObject({ start: false, end: false });
+    const two = (today: string) => markWindows({ sessions: ["2026-10-03", "2026-10-10"].map((date) => ({ date, cancelled: false })), tasterDate: null, programType: "term", today });
+    expect(two("2026-10-03")).toMatchObject({ start: true, end: true });
+    expect(two("2026-10-17")).toMatchObject({ start: false, end: true });
+    expect(two("2026-10-18")).toMatchObject({ start: false, end: false });
+  });
+
+  it("a taster that isn't the first date still doesn't count", () => {
+    const mid = (today: string) => markWindows({ sessions: ["2026-09-26", "2026-10-03", "2026-10-10", "2026-10-17"].map((date) => ({ date, cancelled: false })), tasterDate: "2026-10-03", programType: "term", today });
+    expect(mid("2026-09-26")).toMatchObject({ start: true, end: false });
+    expect(mid("2026-10-09")).toMatchObject({ end: false });
+    expect(mid("2026-10-10")).toMatchObject({ end: true });
+    expect(mid("2026-10-24")).toMatchObject({ end: true });
+  });
+
   it("with no sessions nothing opens", () => {
     expect(markWindows({ sessions: [], tasterDate: null, programType: "term", today: "2026-10-01" })).toMatchObject({ start: false, end: false });
   });

@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { POST as lookupPOST } from "@/app/api/futprep/registrations/lookup/route";
 import { nassauToday } from "@/lib/futprepTerms";
+import { assertLocalSupabase } from "@/lib/localStackOnly.mjs";
 import { getStaffPassport, passportCoaches, passportCounts, savePassportMark, savePassportNote, sharedPassportFor, sharePassport } from "./passports";
 import { createFutprepProgram } from "./programs";
 
@@ -43,8 +44,7 @@ async function child(key: keyof typeof reg, dob: string, photo: string, status =
 }
 
 beforeAll(async () => {
-  const url = process.env.SUPABASE_URL ?? "";
-  if (!url.includes("127.0.0.1") && !url.includes("localhost")) throw new Error("Refusing to run against anything but a local Supabase stack.");
+  assertLocalSupabase();
   const { data: org } = await db().from("organizations").select("id").eq("slug", "futprep").single();
   orgId = Number(org!.id);
   const { data: coaches, error } = await db().from("coach_profiles").insert(["lead", "staff", "other"].map((k) => ({ organization_id: orgId, slug: `test-delete-${k}-${tag}`, display_name: `${MARK} Coach ${k}`, member_type: "coach", active: true, public_visible: false, bookable: false }))).select("id,display_name");
@@ -139,7 +139,7 @@ describe("marks, notes and clips (brief 31, D)", () => {
     await savePassportMark({ registrationId: reg.older.id, skillId: skill, phase: "start", score: 3, actor: MARK });
     const { data: rows } = await db().from("passport_marks").select("start_score,end_score").eq("skill_id", skill).eq("passport_id", (await db().from("passports").select("id").eq("registration_id", reg.older.id).single()).data!.id);
     expect(rows).toEqual([{ start_score: 3, end_score: null }]);
-    const bad = await db().from("passport_marks").update({ end_score: 6 }).eq("skill_id", skill);
+    const bad = await db().from("passport_marks").update({ end_score: 6 }).eq("skill_id", skill).eq("passport_id", (await db().from("passports").select("id").eq("registration_id", reg.older.id).single()).data!.id);
     expect(bad.error).not.toBeNull();
   });
 

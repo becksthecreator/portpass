@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   try {
     const passport = await getStaffPassport(registrationId, access.account);
     if (!passport) return NextResponse.json({ error: "Not found." }, { status: 404 });
-    return NextResponse.json({ passport });
+    return NextResponse.json({ passport, canOverride: access.everyone });
   } catch (error) {
     console.error("passport load error", error instanceof Error ? error.message : "");
     return NextResponse.json({ error: "Could not open the passport." }, { status: 500 });

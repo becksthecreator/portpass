@@ -115,10 +115,13 @@ async function ensurePassport(subject: Subject, actor: string): Promise<Passport
   throwIfSupabaseError(error, "Could not load the passport");
   if (found) return found as PassportRow;
   const band = bandFor(subject.childDob, subject.termStart);
+  // A plain insert: the unique index on registration_id is partial, and a
+  // partial index can't be an upsert's conflict target. Two first opens at
+  // once: the other one made it (23505), which is fine.
   const { error: insertError } = await db
     .from("passports")
-    .upsert({ organization_id: subject.organizationId, registration_id: subject.registrationId, band, created_by: actor }, { onConflict: "registration_id", ignoreDuplicates: true });
-  throwIfSupabaseError(insertError, "Could not start the passport");
+    .insert({ organization_id: subject.organizationId, registration_id: subject.registrationId, band, created_by: actor });
+  if (insertError && insertError.code !== "23505") throwIfSupabaseError(insertError, "Could not start the passport");
   const { data: made, error: madeError } = await db.from("passports").select("id,band,status,shared_at").eq("registration_id", subject.registrationId).single();
   throwIfSupabaseError(madeError, "Could not load the passport");
   return made as PassportRow;

@@ -1,7 +1,7 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { requireFutprepStaff, currentFutprepStaffCanViewMedical, currentFutprepStaffId, currentFutprepStaffName } from "../../staff-auth";
-import { canSeeMedical } from "@/lib/futprepRoles";
+import { canSeeMedical, COACH_WORKSPACE_ROLES } from "@/lib/futprepRoles";
 import { coachSlotPrompt } from "@/db/coaches";
 import {
   getFutprepSessionPlan,
@@ -27,9 +27,13 @@ export default async function FutprepCoachPage({
   // usually signed out by then, so the session is kept through the sign-in.
   const { session, program } = await searchParams;
   // Brief 31 (D): admins too, for passports (Antonio coaches as Coach Bex on an admin login).
-  const role = await requireFutprepStaff(["coach","ceo","helper","admin"], session && /^[0-9]+$/.test(session) ? `/futprep/staff/coach?session=${session}` : "/futprep/staff/coach");
+  const role = await requireFutprepStaff([...COACH_WORKSPACE_ROLES], session && /^[0-9]+$/.test(session) ? `/futprep/staff/coach?session=${session}` : "/futprep/staff/coach");
   const readOnly = role === "helper";
-  const healthShown = !readOnly && canSeeMedical(role, await currentFutprepStaffCanViewMedical());
+  // An admin here gets the roster for passports and attendance, without the
+  // emergency, pickup and health columns: the desk's own views carry those
+  // (rule 3; brief 31 D review). Switch back: drop the two `admin` checks.
+  const admin = role === "admin";
+  const healthShown = !readOnly && !admin && canSeeMedical(role, await currentFutprepStaffCanViewMedical());
   const [staffName, sessions, staffId] = await Promise.all([
     currentFutprepStaffName(),
     listFutprepStaffSessions(),
@@ -57,7 +61,7 @@ export default async function FutprepCoachPage({
         // health columns, so they never reach that browser.
         // Brief 31 (A1): a coach login gets the health columns only when
         // the CEO has switched its medical view on; the CEO always does.
-        rosterForSession(selected.id, { includeSafety: !readOnly, includeHealth: healthShown }),
+        rosterForSession(selected.id, { includeSafety: !readOnly && !admin, includeHealth: healthShown }),
         listFutprepStaffRegistrations(),
         getFutprepSessionPlan(selected.id),
         getFutprepWorkLog(selected.id, staffName ?? role),
