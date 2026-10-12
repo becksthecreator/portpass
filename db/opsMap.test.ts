@@ -17,6 +17,7 @@ vi.mock("./coaches", () => ({
   listFutprepPrivateServices: vi.fn(async () => []),
 }));
 vi.mock("./futprepLocations", () => ({ listFutprepLocations: vi.fn(async () => []) }));
+vi.mock("./passports", () => ({ passportCounts: vi.fn(async () => []) }));
 vi.mock("./programs", () => ({
   futprepOrganizationId: vi.fn(async () => 1),
   listFutprepPrograms: vi.fn(async () => []),
