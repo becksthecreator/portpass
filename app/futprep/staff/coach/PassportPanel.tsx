@@ -19,8 +19,8 @@ export function PassportPanel({ registrationId, childName }: { registrationId: n
   // The desk and the CEO may put a mark right outside the windows.
   const [canOverride, setCanOverride] = useState(false);
 
-  async function load() {
-    if (passport || busy) return;
+  async function load(again = false) {
+    if ((passport && !again) || busy) return;
     setBusy(true);
     const response = await fetch(`/api/futprep/staff/passports?registrationId=${registrationId}`).catch(() => null);
     const data = response ? ((await response.json().catch(() => ({}))) as { passport?: StaffPassport; canOverride?: boolean; error?: string }) : { error: "No connection. Try again." };
@@ -42,13 +42,11 @@ export function PassportPanel({ registrationId, childName }: { registrationId: n
     return true;
   }
 
-  // One skill's start or end mark; onlyIf leaves it alone if a later tap
-  // has changed it since.
-  function setMark(skillId: number, phase: "start" | "end", value: number | null, onlyIf?: number) {
+  // One skill's start or end mark, shown at once.
+  function setMark(skillId: number, phase: "start" | "end", value: number) {
     setPassport((current) => {
       if (!current) return current;
       const was = current.marks.find((m) => m.skillId === skillId) ?? { skillId, start: null, end: null };
-      if (onlyIf !== undefined && was[phase] !== onlyIf) return current;
       const next = phase === "start" ? { ...was, start: value } : { ...was, end: value };
       return { ...current, marks: [...current.marks.filter((m) => m.skillId !== skillId), next] };
     });
@@ -56,10 +54,10 @@ export function PassportPanel({ registrationId, childName }: { registrationId: n
 
   async function mark(skillId: number, phase: "start" | "end", score: number) {
     if (!passport) return;
-    const previous = passport.marks.find((m) => m.skillId === skillId)?.[phase] ?? null;
     setMark(skillId, phase, score);
-    // A failed save undoes only this tap.
-    if (!(await post("/api/futprep/staff/passports", { skillId, phase, score }))) setMark(skillId, phase, previous, score);
+    // A failed save: the passport is read again, so the screen shows only
+    // what was saved (the error stays on screen).
+    if (!(await post("/api/futprep/staff/passports", { skillId, phase, score }))) await load(true);
   }
 
   async function saveNote(event: FormEvent<HTMLFormElement>) {

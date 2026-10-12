@@ -98,7 +98,9 @@ export default async function FutprepCoachPage({
           <div><span className="section-kicker">{staffName ?? "Coach"} · {readOnly ? "session helper" : "coaching operations"}</span><h1>{selected?.program_type === "camp" ? "Camp days." : selected?.program_type === "contract" ? "School sessions." : "Sessions."}</h1></div>
           <p>{readOnly
             ? "See which session is up, who's on the roster, and the coach's plan for it."
-            : "Plan sessions, tell parents what to expect for the future parent area, track your hours, view payment readiness, see safety information, and mark attendance."}</p>
+            : admin
+              ? "Plan sessions, track your hours, view payment readiness, score Progress Passports, and mark attendance. Safety and health details are on each registration at the desk."
+              : "Plan sessions, tell parents what to expect for the future parent area, track your hours, view payment readiness, see safety information, and mark attendance."}</p>
         </div>
 
         {slotPrompt?.needsSlots && (
@@ -143,7 +145,7 @@ export default async function FutprepCoachPage({
         {selected ? (
           <>
             <CoachSessionTools session={selected} initialPlan={sessionPlan} initialWorkLog={workLog} readOnly={readOnly} />
-            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} healthHidden={!readOnly && !healthShown} coachOptions={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={readOnly ? sessionStaff.entries.map((entry) => ({ ...entry, locked: false })) : sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
+            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} healthHidden={!readOnly && !healthShown} safetyHidden={admin} coachOptions={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={readOnly ? sessionStaff.entries.map((entry) => ({ ...entry, locked: false })) : sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
           </>
         ) : <div className="dashboard-empty"><h3>No sessions scheduled.</h3></div>}
       </section>

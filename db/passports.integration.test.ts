@@ -197,6 +197,12 @@ describe("sharing with the family (brief 31, D)", () => {
     const { data: p } = await db().from("passports").select("id").eq("registration_id", reg.older.id).single();
     expect((await db().from("passport_marks").update({ end_score: 1 }).eq("passport_id", p!.id)).error?.message ?? "").toContain("PASSPORT_SHARED");
     expect((await db().from("passports").update({ status: "draft" }).eq("id", p!.id)).error?.message ?? "").toContain("PASSPORT_SHARED");
+    expect((await db().from("passports").update({ band: "lil_kickers" }).eq("id", p!.id)).error?.message ?? "").toContain("PASSPORT_SHARED");
+    expect((await db().from("passport_marks").delete().eq("passport_id", p!.id)).error?.message ?? "").toContain("PASSPORT_SHARED");
+    expect((await db().from("passport_notes").delete().eq("passport_id", p!.id)).error?.message ?? "").toContain("PASSPORT_SHARED");
+    expect((await db().from("passport_notes").update({ note: "TEST changed" }).eq("passport_id", p!.id)).error?.message ?? "").toContain("PASSPORT_SHARED");
+    const { count: kept } = await db().from("passport_marks").select("id", { count: "exact", head: true }).eq("passport_id", p!.id);
+    expect(Number(kept)).toBe(passport.skills.length);
     const { count } = await db().from("audit_log").select("id", { count: "exact", head: true }).eq("action", "futprep.passport_shared").eq("target_table", "passports");
     expect(Number(count)).toBeGreaterThanOrEqual(1);
   });

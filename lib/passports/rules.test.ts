@@ -89,7 +89,7 @@ describe("what a mark, a note and a clip may be", () => {
   });
 
   it("refuses a note about a child's health: the desk keeps those", () => {
-    for (const note of ["Remember his EpiPen", "Peanut allergy, careful", "Needs her inhaler at half time", "Has ADHD", "Takes medication before class", "Diabetic: snack at 10", "Had a seizure last year"]) {
+    for (const note of ["Remember his EpiPen", "Peanut allergy, careful", "Needs her inhaler at half time", "Has ADHD", "Takes medication before class", "Diabetic: snack at 10", "Had a seizure last year", "Takes his meds at lunch", "No peanuts please", "Was in hospital in May", "Sprained ankle, go easy", "Anaphylactic to bees", "Had stitches last week"]) {
       expect(cleanNote(note)).toEqual({ ok: false, reason: "health" });
     }
     expect(cleanNote("Great first touch, practise the weaker foot").ok).toBe(true);
