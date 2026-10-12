@@ -10,6 +10,7 @@ vi.mock("./coachPay", () => ({
     calls.pay += 1;
     return [{ id: 1, name: "TEST Coach", active: true, defaultLeadPayCents: 5000, defaultAssistantPayCents: 2500, staffMemberId: null }];
   }),
+  listPrivateRateCoaches: vi.fn(async () => [{ id: 1, name: "TEST Coach", active: true, private30PayCents: 2000, private60PayCents: null }]),
 }));
 vi.mock("./coaches", () => ({
   listAllCoachProfiles: vi.fn(async () => ({ schemaReady: true, coaches: [] })),
@@ -36,6 +37,8 @@ describe("the operating map's pay rates (brief 31, B)", () => {
     const map = await loadOpsMap("admin");
     expect(map.pay).toBeNull();
     expect(calls.pay).toBe(0);
+    // Brief 31 (C5): an admin sets private-session pay, so gets those rates only.
+    expect(map.privateRates).toEqual([{ id: 1, name: "TEST Coach", active: true, private30PayCents: 2000, private60PayCents: null }]);
   });
 
   it("the CEO's map has them", async () => {
