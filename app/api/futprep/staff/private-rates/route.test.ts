@@ -11,7 +11,10 @@ vi.mock("@/app/futprep/staff-auth", () => ({
   currentFutprepStaffId: vi.fn(async () => 39),
 }));
 vi.mock("@/db/coachPay", () => ({
-  coachForStaffMember: vi.fn(async () => (auth.ownCoachId === null ? null : { id: auth.ownCoachId })),
+  coachForStaffMember: vi.fn(async () => {
+    if (auth.ownCoachId === -1) throw new Error("TEST lookup failed");
+    return auth.ownCoachId === null ? null : { id: auth.ownCoachId };
+  }),
   setPrivatePayRates: vi.fn(async (input: { coachId: number; private30Cents: number | null; private60Cents: number | null }) => {
     calls.saved.push({ coachId: input.coachId, private30Cents: input.private30Cents, private60Cents: input.private60Cents });
     return { id: input.coachId, private30PayCents: input.private30Cents, private60PayCents: input.private60Cents };
@@ -53,6 +56,12 @@ describe("private session pay rates (brief 31, C5)", () => {
     auth.role = "ceo";
     expect((await post({ coachId: 12, private30: "30" })).status).toBe(200);
     expect(calls.saved.map((s) => s.coachId)).toEqual([13, 12]);
+  });
+
+  it("an admin's save waits if it can't tell whose login it is", async () => {
+    auth.ownCoachId = -1;
+    expect((await post({ coachId: 12, private30: "90" })).status).toBe(503);
+    expect(calls.saved).toEqual([]);
   });
 
   it("refuses an amount that isn't one, and fields it never reads", async () => {

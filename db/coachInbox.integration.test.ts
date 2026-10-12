@@ -158,6 +158,9 @@ describe("days away and coaches who confirm a time (brief 31, C2 and C3)", () =>
     const id = await ask({ coachId: null, date: away });
     await expect(actOnPrivateSessionRequest({ id, action: "accept", coachId: 999999999, actor: MARK })).rejects.toThrow("COACH_NOT_AVAILABLE");
     await expect(actOnPrivateSessionRequest({ id, action: "accept", coachId: coachA, actor: MARK })).rejects.toThrow("COACH_AWAY");
+    // Already accepted by B: the desk can't move it to A on A's day away either.
+    await actOnPrivateSessionRequest({ id, action: "accept", coachId: coachB, actor: MARK });
+    await expect(actOnPrivateSessionRequest({ id, action: "accept", coachId: coachA, actor: MARK })).rejects.toThrow("COACH_AWAY");
   });
 
   it("a day can be opened again, with the open times it closed", async () => {

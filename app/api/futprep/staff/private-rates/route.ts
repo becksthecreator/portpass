@@ -28,8 +28,15 @@ export async function POST(request: Request) {
   const private60 = amount(read.value.private60);
   if (!Number.isInteger(coachId) || coachId < 1 || private30 === "bad" || private60 === "bad") return NextResponse.json({ error: "Enter each amount in dollars, or leave it blank." }, { status: 400 });
   if (role !== "ceo") {
+    // Fails closed: if it can't tell whose login this is, nothing is saved.
     const staffId = await currentFutprepStaffId();
-    const own = staffId ? await coachForStaffMember(staffId).catch(() => null) : null;
+    if (!staffId) return NextResponse.json({ error: "Sign in again." }, { status: 401 });
+    let own: { id: number } | null;
+    try {
+      own = await coachForStaffMember(staffId);
+    } catch {
+      return NextResponse.json({ error: "Could not check your login. Try again." }, { status: 503 });
+    }
     if (own && own.id === coachId) return NextResponse.json({ error: "Your own private session pay is set by the CEO." }, { status: 403 });
   }
   try {

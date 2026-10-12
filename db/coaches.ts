@@ -655,7 +655,7 @@ export async function actOnPrivateSessionRequest(input:{
     const {data:accepting,error:acceptingError}=await db.from("coach_profiles").select("id").eq("id",input.coachId).eq("organization_id",existing.organization_id).eq("active",true).eq("member_type","coach").maybeSingle();
     throwIfSupabaseError(acceptingError,"Could not check the coach");
     if(!accepting) throw new Error("COACH_NOT_AVAILABLE");
-    if(existing.requested_date&&existing.status!=="accepted"){
+    if(existing.requested_date&&!(existing.status==="accepted"&&Number(existing.assigned_coach_id)===Number(input.coachId))){
       const {data:away,error:awayError}=await db.from("coach_availability").select("id").eq("coach_id",input.coachId).eq("availability_date",existing.requested_date).eq("status","blocked").eq("start_time",DAY_AWAY.start).eq("end_time",DAY_AWAY.end).limit(1);
       throwIfSupabaseError(awayError,"Could not check the coach's days away");
       if((away??[]).length>0) throw new Error("COACH_AWAY");
