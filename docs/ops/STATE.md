@@ -6,6 +6,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 | Feature | PR | Merged |
 | --- | --- | --- |
 | Term 2 ready: the last place in a class goes to one child (one locked database call, `create_registration_within_cap`), desk balances read every payment, Futprep's doors open Futprep's classes only | #200, #203, #216 | 12 Oct |
+| Rule 3 (review of #216): Futprep's lookups by reference code (parent lookup, finish registration, join after a taster) find Futprep's registrations only; `futprepOrganizationId()` by slug alone, no name-match fallback | #222 | 12 Oct |
 | Rule 3 (audit 1, 3, 4): Futprep's desk reads Futprep's registrations only, notes behind the medical permission, pickup and emergency details out of lists and the CSV | #205 | 12 Oct |
 | One Mind: `docs/ops/STATE.md`, `/handoff`, Ponytail and shipping skills, the 19 Nov launch checklist | #198 | 12 Oct |
 | PortPass Market sellers: verification ("Made in The Bahamas"), always-on storefronts, Admin → Market | #184 | 11 Oct |
@@ -62,11 +63,10 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 ## Known issues
 Ponytail audit, 11 Oct (15 findings, in the brief 33 PR). The top five are fixed: 1, 3 and 4 by #205; 2 by #200 (migration `202610220001`, applied live 12 Oct); 5 by #203. Findings 6, 7 and 9 (sign-in) have their own PRs; 8 and 10–15 are not fixed.
 
-Left open by the reviews of #200, #203 and #216 (not fixed):
+Left open by the reviews of #200, #203, #216 and #222 (not fixed):
 - Promoting a child from the waitlist (`db/staff.ts` `updateFutprepRegistration`) and the business "Confirm the place" button (audit 10) count and then write without the class lock; moving a cancelled row back to pending has no cap check.
 - A child can get free tasters in two classes at the same moment (`TRIAL_ALREADY_USED` covers the business, the lock one class).
-- `getFutprepRegistrationStatus`, `getFutprepPendingRegistration` and `completeFutprepRegistration` match a reference code with no organisation filter, so `/api/futprep/registrations/lookup` (code + date of birth) could return another business's parent details (rule 3).
-- `futprepOrganizationId()` falls back to a name match (`%futprep%`) when the slug is missing; it now gates children's writes, so the fallback should go.
+- `db/coaches.ts` loads and writes `private_session_requests` and `coach_profiles` rows by id alone (behind the staff PIN; only Futprep has these rows today), and keeps `if (!organizationId)` guards that are dead now `futprepOrganizationId()` throws instead. Noted by the reviews of #222.
 - Still unpaged in `db/staff.ts`: session counts (~252), session plans (~798), work logs (~819), the roster export's payments (~1399); the admin page builds the desk list twice.
 
 Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
@@ -78,4 +78,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
 
 ## Last updated
-12 Oct 2026, `main` at `48a809e`, by Claude Code (PR #216).
+12 Oct 2026, `main` at `ab65e65`, by Claude Code (PR #222).
