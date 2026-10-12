@@ -5,77 +5,71 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 ## Live on production
 | Feature | PR | Merged |
 | --- | --- | --- |
-| Term 2 ready: the last place in a class goes to one child (one locked database call, `create_registration_within_cap`), desk balances read every payment, Futprep's doors open Futprep's classes only | #200, #203, #216 | 12 Oct |
-| Rule 3 (review of #216): Futprep's lookups by reference code (parent lookup, finish registration, join after a taster) find Futprep's registrations only; `futprepOrganizationId()` by slug alone, no name-match fallback | #222 | 12 Oct |
-| Rule 3 (audit 1, 3, 4): Futprep's desk reads Futprep's registrations only, notes behind the medical permission, pickup and emergency details out of lists and the CSV | #205 | 12 Oct |
-| One Mind: `docs/ops/STATE.md`, `/handoff`, Ponytail and shipping skills, the 19 Nov launch checklist | #198 | 12 Oct |
-| PortPass Market sellers: verification ("Made in The Bahamas"), always-on storefronts, Admin → Market | #184 | 11 Oct |
-| Futprep reset: Term 1 closed to new families, Term 2 opens 19 Nov, owner dashboard, three-tap registration, Flamingo Night | #191–#195 | 11 Oct |
-| Futprep private sessions: emails and log lines, 30 and 60 minutes from the database, FP-S references, coach working days, `/futprep/book` | #186–#189 | 8–9 Oct |
-| Harbour Motion (M1–M5) and the AA hero lede | #168, #175, #178–#182 | 6 Oct |
-| Hardening: scrypt staff PINs, `npm ci`, gitleaks fails on any error, planner limit | #169, #171, #172, #174 | 6 Oct |
-| Security Phase 1: fail-closed secrets, RLS on every table, sign-in limits, headers (CSP report-only), zod on public routes, alerts, backup docs | #150–#154, #156, #157, #165, #166 | 5–6 Oct |
-| Repo agents and commands in `.claude/` | #148, #167 | 5–6 Oct |
-| Phase 1 close-out: booking requests, page checklist, phone photos, Admin → Phase 1, the end-to-end run | #142–#147 | 5 Oct |
-| Public site from the data, sign-up, Get paid, registration for any business, `/demo` | #132–#139 | 4 Oct |
-| Payment requests and reconciliation (cash and bank transfer only) | #124 | 1 Oct |
-| Drops / Shop Bahamian pre-orders | #120, #122 | 1 Oct |
+| Futprep coaches (brief 31 A–C): one staff login and one role per person (duplicates switched off), the medical switch, the owner bridge; places and their costs, the field-cost estimate, the operating map `/futprep/staff/ops`; each coach's own inbox, My days, places on `/futprep/book`, private-session pay rates and a pay line per completed session | #197, #212, #209 | 12 Oct |
+| PortPass Market (brief 25 B–D): the public Market, orders through payment requests, PortPass Points as a ledger only | #196, #199, #207 | 11–12 Oct |
+| Term 2 ready: the last place in a class goes to one child, desk balances read every payment, Futprep's doors and lookups find Futprep's own only | #200, #203, #216, #222 | 12 Oct |
+| Rule 3 (audit 1, 3, 4): Futprep's desk reads Futprep's registrations only, notes behind the medical permission, pickup and emergency out of lists and the CSV | #205 | 12 Oct |
+| Sign-in hardening A–C and the secret-key scripts refuse anything but a local stack; database checks for views that read past RLS | #201, #202, #204, #211, #208 | 12 Oct |
+| One Mind: this file, `/handoff`, Ponytail and shipping skills, the 19 Nov launch checklist | #198 | 12 Oct |
+| PortPass Market sellers, Admin → Market | #184 | 11 Oct |
+| Futprep reset: Term 1 closed, Term 2 opens 19 Nov, owner dashboard, three-tap registration, Flamingo Night | #191–#195 | 11 Oct |
+| Futprep private sessions: emails, 30 and 60 minutes, FP-S references, coach working days, `/futprep/book` | #186–#189 | 8–9 Oct |
+| Harbour Motion; hardening; Security Phase 1; repo agents | #148–#182 | 5–6 Oct |
+| Phase 1 close-out, public site from the data, `/demo`, payment requests, Drops | #120–#147 | 1–5 Oct |
 
 ## In flight
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
-| `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
-| `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
-| `chore/graphify` (brief 30) | #190 | Nothing; CI green | Antonio's OK |
-| `claude/keen-volta-6u6jdp` (WeddingWire, fixes a #183 finding) | #185 | Renumber its migration, apply it live, merge | Antonio: confirm the apply (it drops and re-adds columns) |
+| `feat/coaches-d` (brief 31 D, the Progress Passport) | #213 | CI and the Phase 1 run on the rebased head, then merge. Both migrations applied live | Claude Code |
+| `feat/coaches-e` (brief 31 E, the proof run) | #214 (draft) | Rebase after D merges; the walk passed 9/9 before the header fix, re-running | Claude Code |
+| `fix/futprep-session-scope` | #225 | Futprep staff screens change Futprep's own rows only; gitleaks failing | its session |
+| `claude/zen-goodall-91swi2` | #224 | A private-session payment recorded once | its session |
+| `fix/desk-reads-paged` | #223 | The rest of the desk reads every row; gitleaks failing | its session |
+| `fix/export-private-notes` | #221 | The export leaves out private-session goal and notes (rule 3) | its session |
+| `fix/promotions-under-lock` | #220 (draft) | Waitlist promotions respect the cap; gitleaks failing | its session |
+| `claude/festive-galileo-agb7bb` | #219 | Team and the registration record fit 375px | its session |
+| `feat/wedding-gallery-image-check`, `claude/wonderful-bohr-t2k9hi` | #218, #215 | Wedding Desk photos must be BWS's own; #215's build failing | their sessions |
+| `fix/child-data-lock` (brief 34) | #217 (draft) | Lock children's data before launch | its session |
+| `claude/fervent-dijkstra-00tv4m` | #210 | BWS offerings follow its packages | its session |
+| `fix/signin-hardening-d` | #206 (draft) | The first-admin screen for a signed-in founder only | its session |
+| `chore/graphify` (brief 30) | #190 | Nothing; CI green | Antonio's decision |
+| `claude/keen-volta-6u6jdp` (WeddingWire) | #185 | Renumber its migration, apply it live | Antonio's decision |
 | `chore/csp-enforce` (brief 26) | #183 | Merge after #185 | #185 |
-| `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct) | A decision: merge or close |
+| `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase, re-run CI | Antonio's decision |
 
 ## Briefs
 | No. | Title | Status | Report |
 | --- | --- | --- | --- |
-| 19 | Phase 1 close-out | merged | none |
-| 20 | CLAUDE.md, agents, commands | merged | none |
-| 21 | Security hardening, Phase 1 | merged | none (`docs/security/`) |
-| 22 | Harbour Motion | merged | none (`docs/motion.md`) |
-| 23 | Agents from everything-claude-code | merged | none |
-| 24 | Hardening follow-ups | merged | none |
-| 25 | PortPass Market, Phase 1 | building (A merged, B in review) | none yet |
+| 19–24 | Phase 1 close-out; CLAUDE.md and agents; Security Phase 1; Harbour Motion; agents; hardening | merged | none (`docs/security/`, `docs/motion.md`) |
+| 25 | PortPass Market, Phase 1 | merged (A–D) | none yet |
 | 26 | Enforce the CSP | held | none |
 | 27 | Futprep reset | merged | [brief27](../briefs/brief27-futprep-reset-report.md) |
 | 29 | Private sessions | merged | [brief29](../briefs/brief29-private-sessions-report.md) |
 | 30 | graphify | held | [brief30](../briefs/brief30-graphify-report.md) |
-| 31 | Staff logins: one person, one login, one role | building | none yet |
+| 31 | The Futprep coaches back end | building (A–C merged, D in review, E draft) | [brief31](../briefs/brief31-coaches-report.md) |
 | 33 | One Mind: STATE.md and `/handoff` | merged | [brief33](../briefs/brief33-one-mind-report.md) |
+| 34 | Lock children's data before launch | building (#217) | none yet |
 
 Briefs 28 and 32 have left no trace in this repo; their status is in the HQ project.
 
 ## Waiting on Antonio
-- **First: set `CRON_SECRET`** (Vercel → Production). Production logs show `/api/cron/daily` and `/api/cron/attendance-nudge` refused with 503 on every run since at least 9 Oct, so the 90-day health-record purge (rule 3), billing, the demo reset and export pruning are not running.
-- **Also now: create the Wedding Desk's first staff account** at `/weddings/staff/login`. None has ever been made, so the page offers "Create the first account" to anyone, and whoever fills it in becomes its admin. The PIN-hardening session is adding a platform-owner sign-in to that screen on both desks.
-- #197 (brief 31 A): answer its four questions; nothing is switched until then.
-- #185: confirm its live migration once renumbered. #190: OK or no.
-- Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
-- Futprep data: clear or keep Term 2's 12 Dec taster date before 19 Nov; offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
-- The other brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
+- **First: set `CRON_SECRET`** (Vercel → Production). The daily crons are refused with 503, so the 90-day health purge (rule 3), billing, the demo reset and export pruning are not running.
+- **Create the Wedding Desk's first staff account** at `/weddings/staff/login` (the page offers "Create the first account" to anyone until then).
+- Brief 31: the nine questions in its report: row 10 "Coach Kione", Ronaldo's login (42), admin medical views, which coaches see health notes, Adon's login, the old place name on programs 1 and 2, place costs on Staff → Locations, a lead coach for camps 157 and 159, and whether Bex's admin login sees emergency and pickup on the roster.
+- #185, #176, #190: merge or close.
+- Futprep: make an owner (Admin → People); Term 2's 12 Dec taster date; offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
+- The other brief 21 dashboard switches in `docs/security/README.md`.
 
 ## Known issues
-Ponytail audit, 11 Oct (15 findings, in the brief 33 PR). The top five are fixed: 1, 3 and 4 by #205; 2 by #200 (migration `202610220001`, applied live 12 Oct); 5 by #203. Findings 6, 7 and 9 (sign-in) have their own PRs; 8 and 10–15 are not fixed.
+- Ponytail audit, 11 Oct: findings 1–5 fixed (#200, #203, #205); 6, 7, 9 have their own PRs; 8 and 10–15 open (#220 and #223 take some).
+- A child can get free tasters in two classes at once (`TRIAL_ALREADY_USED` covers the business, the lock one class).
+- Brief 31 follow-ups: deleting a default passport skill would cascade its marks off shared passports (retire with `active = false` instead); the static guard test checks files, not each handler; no time window on passport note and share for coaches.
+- gitleaks is failing on #220, #223 and #225.
+- #185's migration clashes with `202610190002` on `main`; the CSP is report-only until #183; 91 signed-in routes still take bodies without zod; lint not in CI (#176).
+- The owner dashboard's "Collected" counts payment requests only.
 
-Left open by the reviews of #200, #203, #216 and #222 (not fixed):
-- Promoting a child from the waitlist (`db/staff.ts` `updateFutprepRegistration`) and the business "Confirm the place" button (audit 10) count and then write without the class lock; moving a cancelled row back to pending has no cap check.
-- A child can get free tasters in two classes at the same moment (`TRIAL_ALREADY_USED` covers the business, the lock one class).
-- `db/coaches.ts` loads and writes `private_session_requests` and `coach_profiles` rows by id alone (behind the staff PIN; only Futprep has these rows today), and keeps `if (!organizationId)` guards that are dead now `futprepOrganizationId()` throws instead. Noted by the reviews of #222.
-- Still unpaged in `db/staff.ts`: session counts (~252), session plans (~798), work logs (~819), the roster export's payments (~1399); the admin page builds the desk list twice.
-
-Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
-- #185's migration `202610190002_weddingwire_widgets_structured.sql` clashes with `202610190002_private_sessions_from_the_database.sql` on `main`.
-- The CSP keeps `'unsafe-inline'` and is report-only until #183.
-- 91 signed-in API routes still take bodies without zod; `lib/api/body.static.test.ts` lists them and can only shrink.
-- Lint is not in CI (#176); 35 warnings remain.
-- The owner dashboard's "Collected" counts payment requests only; Term 1's desk payments are not in it.
-- A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
+Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md`.
 
 ## Last updated
-12 Oct 2026, `main` at `ab65e65`, by Claude Code (PR #222).
+12 Oct 2026, `main` at `67d3372`, by Claude Code (brief 31, branch `feat/coaches-e`).
