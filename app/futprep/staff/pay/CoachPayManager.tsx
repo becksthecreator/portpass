@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { PayCoach } from "@/db/coachPay";
-import { monthLabel, type PaySummary, type PnlLine } from "@/lib/coachPay";
+import type { PayCoach, PrivatePayLine } from "@/db/coachPay";
+import { monthLabel, monthOf, PRIVATE_PAY_BASIS_LABEL, type PaySummary, type PnlLine } from "@/lib/coachPay";
 
 function money(cents: number) {
   return new Intl.NumberFormat("en-BS", { style: "currency", currency: "BSD", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(cents / 100);
@@ -24,13 +24,19 @@ export function CoachPayManager({
   coaches,
   logins,
   pnl,
+  privateLines: initialPrivateLines = [],
 }: {
   canManage: boolean;
   summaries: PaySummary[];
   coaches: PayCoach[];
   logins: Array<{ id: number; name: string }>;
   pnl: PnlLine[];
+  // Brief 31 (C6): completed private sessions, one pay line each.
+  privateLines?: PrivatePayLine[];
 }) {
+  const [privateLines, setPrivateLines] = useState(initialPrivateLines);
+  const privateOwed = privateLines.filter((l) => !l.paidAt).reduce((sum, l) => sum + l.payCents, 0);
+  const privatePaid = privateLines.filter((l) => l.paidAt).reduce((sum, l) => sum + l.payCents, 0);
   const [summaries, setSummaries] = useState(initialSummaries);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
@@ -46,6 +52,8 @@ export function CoachPayManager({
     setBusy(null);
     if (!response || !response.ok) return setNotice("Couldn't mark it paid. Try again.");
     setSummaries((current) => current.map((s) => (s.coachId === summary.coachId && s.month === summary.month ? { ...s, paidCents: s.paidCents + s.owedCents, owedCents: 0 } : s)));
+    const now = new Date().toISOString();
+    setPrivateLines((current) => current.map((l) => (l.coachId === summary.coachId && monthOf(l.sessionDate) === summary.month && !l.paidAt && l.basis !== "not_set" ? { ...l, paidAt: now } : l)));
     setNotice(`${summary.coachName}: ${monthLabel(summary.month)} marked paid.`);
   }
 
@@ -120,6 +128,26 @@ export function CoachPayManager({
           ))}
         </div>
       </section>
+
+      {privateLines.length > 0 && (
+        <section className="pay-section" aria-labelledby="pay-private">
+          <div className="pay-section-head"><h2 id="pay-private">Private sessions</h2></div>
+          <p className="pay-note">Each completed private session, at the coach&apos;s rate for its length. Still owed {money(privateOwed)}, paid {money(privatePaid)}. They&apos;re in the month totals above, and &ldquo;Mark paid&rdquo; pays them with the month.</p>
+          <div className="pay-cards">
+            {privateLines.map((line) => (
+              <article className="pay-card" key={line.id}>
+                <div className="pay-card-head"><strong>{line.referenceCode}</strong><span>{line.sessionDate}</span></div>
+                <dl>
+                  {canManage && <div><dt>Coach</dt><dd>{line.coachName}</dd></div>}
+                  <div><dt>Length</dt><dd>{line.durationMinutes} min</dd></div>
+                  <div><dt>Pay<small className="pay-estimate">{PRIVATE_PAY_BASIS_LABEL[line.basis]}</small></dt><dd className={line.paidAt ? "" : "is-owed"}>{money(line.payCents)}</dd></div>
+                  <div><dt>Paid</dt><dd>{line.paidAt ? line.paidAt.slice(0, 10) : "Not yet"}</dd></div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {canManage && (
         <section className="pay-section" aria-labelledby="pay-rates">

@@ -112,7 +112,7 @@ describe("coach photos (brief 16, C2)", () => {
 
 describe("team lists never carry pay (brief 13 rule, brief 16 review)", () => {
   it("returns no pay rate or staff-login column to the Team page or the public page", async () => {
-    await db().from("coach_profiles").update({ default_lead_pay_cents: 5000, default_assistant_pay_cents: 2500, public_visible: true }).eq("id", bookableCoach);
+    await db().from("coach_profiles").update({ default_lead_pay_cents: 5000, default_assistant_pay_cents: 2500, private_30_pay_cents: 2000, private_60_pay_cents: 3500, public_visible: true }).eq("id", bookableCoach);
     const { coaches: all } = await listAllCoachProfiles();
     const { coaches: shown } = await listPublicCoachProfiles();
     const mine = [all.find((c) => c.id === bookableCoach), shown.find((c) => c.id === bookableCoach)];
@@ -122,6 +122,9 @@ describe("team lists never carry pay (brief 13 rule, brief 16 review)", () => {
       expect(keys).not.toContain("default_lead_pay_cents");
       expect(keys).not.toContain("default_assistant_pay_cents");
       expect(keys).not.toContain("staff_member_id");
+      // Brief 31 (C5): nor what a coach is paid for a private session.
+      expect(keys).not.toContain("private_30_pay_cents");
+      expect(keys).not.toContain("private_60_pay_cents");
     }
     await db().from("coach_profiles").update({ public_visible: false }).eq("id", bookableCoach);
   });

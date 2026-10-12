@@ -10,8 +10,10 @@ const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 // open times, accept or decline requests (accepting books the slot and
 // emails the parent), record payments against the reference.
 // `defaultCoachId` preselects the coach the "add your weekly slots" prompt
-// came from (brief 16, C1).
-export function PrivateSessionManager({ initialRequests, coaches, services, schemaReady, defaultCoachId, canRequestPayment = false }: { initialRequests: PrivateSessionRequest[]; coaches: CoachProfile[]; services: ServiceName[]; schemaReady: boolean; defaultCoachId?: number | null; canRequestPayment?: boolean }) {
+// came from (brief 16, C1). Brief 31 (C1): a coach (`seesAll` false) gets
+// only their own requests from the server, posts times for their own
+// profile, and accepts as themselves; the coach list stays for referrals.
+export function PrivateSessionManager({ initialRequests, coaches, services, schemaReady, defaultCoachId, canRequestPayment = false, seesAll = true, myCoachId = null }: { initialRequests: PrivateSessionRequest[]; coaches: CoachProfile[]; services: ServiceName[]; schemaReady: boolean; defaultCoachId?: number | null; canRequestPayment?: boolean; seesAll?: boolean; myCoachId?: number | null }) {
   const [requests, setRequests] = useState(initialRequests);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -58,6 +60,7 @@ export function PrivateSessionManager({ initialRequests, coaches, services, sche
   }
 
   const bookable = coaches.filter((c) => c.bookable);
+  const slotCoaches = seesAll ? bookable : bookable.filter((c) => c.id === myCoachId);
 
   return <div className="private-session-manager">
     {message && <p className="coach-manager-message" role="status">{message}</p>}
@@ -65,9 +68,9 @@ export function PrivateSessionManager({ initialRequests, coaches, services, sche
     <form className="team-admin-form private-slots-form" id="weekly-slots" onSubmit={addSlots}>
       <span className="section-kicker">Open times</span>
       <h2>Add weekly times.</h2>
-      <p>Pick a coach, a day and a time; parents see these on the coaches page and can book one.</p>
+      <p>{seesAll ? "Pick a coach, a day and a time; parents see these on the coaches page and can book one." : "Pick a day and a time; parents see these on the coaches page and can book one."}</p>
       <div className="team-form-two">
-        <label><span>Coach *</span><select name="coachId" required defaultValue={bookable.find((c) => c.id === defaultCoachId)?.id ?? bookable[0]?.id ?? ""}>{bookable.map((c) => <option key={c.id} value={c.id}>{c.display_name}</option>)}</select></label>
+        <label><span>Coach *</span><select name="coachId" required defaultValue={slotCoaches.find((c) => c.id === defaultCoachId)?.id ?? slotCoaches[0]?.id ?? ""}>{slotCoaches.map((c) => <option key={c.id} value={c.id}>{c.display_name}</option>)}</select></label>
         <label><span>Day *</span><select name="dayOfWeek" required defaultValue="Wednesday">{DAYS.map((d) => <option key={d}>{d}</option>)}</select></label>
       </div>
       <div className="team-form-two">
@@ -78,29 +81,33 @@ export function PrivateSessionManager({ initialRequests, coaches, services, sche
         <label><span>For how many weeks *</span><input name="weeks" type="number" min={1} max={26} defaultValue={6} required /></label>
         <label><span>Where</span><input name="location" placeholder="Lyford Cay Lower Campus Soccer Field" /></label>
       </div>
-      <button className="primary-button" disabled={busy || !schemaReady || !bookable.length}>{busy ? "Adding…" : "Add times →"}</button>
+      <button className="primary-button" disabled={busy || !schemaReady || !slotCoaches.length}>{busy ? "Adding…" : "Add times →"}</button>
+      {!slotCoaches.length && !seesAll && <p className="team-manager-hint">Your login isn&rsquo;t linked to a bookable coach profile yet. Ask Alex to link it.</p>}
     </form>
 
-    {!requests.length && <div className="dashboard-empty"><h3>No private-session requests yet.</h3><p>Requests from the public coaches page will appear here.</p></div>}
+    {!requests.length && <div className="dashboard-empty"><h3>{seesAll ? "No private-session requests yet." : "No requests for you yet."}</h3><p>{seesAll ? "Requests from the public coaches page will appear here." : "Requests that name you, or that the desk gives you, appear here."}</p></div>}
     {requests.map((request) => <article className="private-request-card" key={request.id}>
       <div className="private-request-head"><div><span className={`request-type request-${request.request_type}`}>{serviceName(request.service_slug) ?? (request.request_type === "birthday" ? "Birthday" : "Private lesson")}</span><h2>{request.child_name}, age {request.child_age}{(request.children_count ?? 1) > 1 ? ` · ${request.children_count} children` : ""}</h2><p>{request.parent_name} · {request.parent_phone} · {request.parent_email}</p><p><strong>{request.reference_code}</strong></p></div><span className={`request-status status-${request.status}`}>{request.status}</span></div>
       <div className="private-request-grid">
         <div><span>Requested</span><strong>{request.requested_date} · {request.requested_start_time}</strong><small>{request.duration_minutes} min{request.availability_id ? " · picked an open time" : " · suggested time"}</small></div>
         <div><span>Preferred coach</span><strong>{request.preferred_coach_name ?? "Any available coach"}</strong><small>Assigned: {request.assigned_coach_name ?? "Not yet"}</small></div>
         <div><span>Price</span><strong>{money(request.price_cents)}</strong><small>Paid {money(request.paid_cents)} · {request.payment_status}</small></div>
-        <div><span>Goal / occasion</span><strong>{request.session_goal || "Not provided"}</strong><small>{request.location_preference ? `Where: ${request.location_preference}. ` : ""}{request.notes}</small></div>
+        <div><span>Goal / occasion</span><strong>{request.session_goal || "Not provided"}</strong><small>{request.location_name ? `Where: ${request.location_name}. ` : request.location_preference ? `Where (parent's idea): ${request.location_preference}. ` : ""}{request.notes}</small></div>
       </div>
+      {request.time_to_confirm && (request.status === "pending" || request.status === "referred") && <p className="request-alert">{request.preferred_coach_name ?? "The coach"} has no working days set: they confirm a time with the parent. The desk sees this request too.</p>}
       {request.status === "declined" && request.decline_reason && <p className="request-alert">Decline reason: {request.decline_reason}</p>}
       {request.status === "referred" && !request.parent_notified_at && <p className="request-alert">Parent notification required before the handoff is considered complete.</p>}
       {request.parent_notified_at && <p className="request-ok">Parent informed ✓</p>}
-      <div className="private-request-actions">
+      {!seesAll && (request.assigned_coach_id ?? request.preferred_coach_id) !== myCoachId ? <p className="request-ok">With {request.assigned_coach_name ?? "another coach"} now.</p> : <>
+      {/* Completed is final (brief 31 C, QA): no Accept, Decline or Refer. */}
+      {request.status !== "completed" && <div className="private-request-actions">
         <select id={`coach-${request.id}`} defaultValue={request.assigned_coach_id ?? request.preferred_coach_id ?? ""}><option value="">Choose coach</option>{bookable.map((coach) => <option value={coach.id} key={coach.id}>{coach.display_name}</option>)}</select>
-        <button disabled={!schemaReady} onClick={() => { const el = document.getElementById(`coach-${request.id}`) as HTMLSelectElement | null; void act(request.id, "accept", Number(el?.value) || undefined); }}>Accept</button>
+        <button disabled={!schemaReady} onClick={() => { const el = document.getElementById(`coach-${request.id}`) as HTMLSelectElement | null; void act(request.id, "accept", seesAll ? Number(el?.value) || undefined : myCoachId ?? undefined); }}>Accept</button>
         <button disabled={!schemaReady} onClick={() => { const reason = prompt("Why are you declining this request?"); if (reason) void act(request.id, "decline", undefined, undefined, reason); }}>Decline</button>
         <button disabled={!schemaReady} onClick={() => { const el = document.getElementById(`coach-${request.id}`) as HTMLSelectElement | null; const target = Number(el?.value); if (!target) return alert("Choose the coach receiving the referral first."); const note = prompt("Referral note (optional):") ?? ""; void act(request.id, "refer", request.assigned_coach_id ?? undefined, target, note); }}>Refer</button>
         {request.status === "referred" && !request.parent_notified_at && <button disabled={!schemaReady} onClick={() => void act(request.id, "parent_notified")}>Parent informed</button>}
         {request.status === "accepted" && <button disabled={!schemaReady} onClick={() => void act(request.id, "complete")}>Complete</button>}
-      </div>
+      </div>}
       {(request.status === "accepted" || request.status === "completed") && request.payment_status !== "paid" && (
         <form className="private-request-payment" onSubmit={(e) => void recordPayment(e, request.id)}>
           <label><span>Received ($)</span><input name="amount" type="number" min="0.01" step="0.01" defaultValue={request.price_cents ? ((request.price_cents - request.paid_cents) / 100).toFixed(2) : ""} required /></label>
@@ -110,6 +117,7 @@ export function PrivateSessionManager({ initialRequests, coaches, services, sche
           {canRequestPayment && <a className="secondary-button" href={`/futprep/staff/payments/new?privateSession=${request.id}`}>Request payment</a>}
         </form>
       )}
+      </>}
     </article>)}
   </div>;
 }

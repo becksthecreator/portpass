@@ -290,11 +290,12 @@ describe("private-session emails and events (Brief 29, part A)", () => {
     expect(JSON.stringify(staff)).not.toContain("TEST Child");
   });
 
-  it("with no preferred coach, every bookable coach is told", async () => {
+  it("with no preferred coach, the desk is told and no coach is sent a link to a request they can't open (brief 31, C1)", async () => {
+    const before = (await lines(TEMPLATE.staffNew)).filter((l) => l.recipient === `${MARK} coach`).length;
     const { id } = await request({ preferredCoachId: null });
     await notifyNewPrivateSessionRequest(id);
     const staff = await lines(TEMPLATE.staffNew);
-    expect(staff.filter((l) => l.recipient === `${MARK} coach`).length).toBeGreaterThanOrEqual(2);
+    expect(staff.filter((l) => l.recipient === `${MARK} coach`).length).toBe(before);
   });
 
   it("tells the parent on a decline and a referral, and logs each", async () => {

@@ -14,6 +14,7 @@ const facts: RequestFacts = {
   childFirstName: "Tee",
   childAge: 8,
   locationPreference: "TEST field <Lyford Cay>",
+  placeName: null,
 };
 
 describe("the private-session emails (Brief 29, part A)", () => {

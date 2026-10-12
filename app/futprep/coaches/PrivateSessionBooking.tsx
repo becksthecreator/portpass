@@ -2,11 +2,14 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { PrivacyNote } from "@/app/_components/PrivacyNote";
-import { dayOffMessage, isWorkingDay, workingDaysLabel } from "@/lib/workingDays";
+import { dayNote, workingDaysLabel } from "@/lib/workingDays";
 import steamerStyles from "./SteamerLeft.module.css";
 
 export type BookingSlot = { id: number; date: string; startTime: string; endTime: string; location: string };
-export type BookingCoach = { id: number; displayName: string; slots: BookingSlot[]; workingDays?: number[] };
+// blockedDates (brief 31, C2): the coach's days away, as plain dates.
+export type BookingCoach = { id: number; displayName: string; slots: BookingSlot[]; workingDays?: number[]; blockedDates?: string[] };
+// Brief 31 (C4): Futprep's places that take private sessions.
+export type BookingPlace = { id: number; name: string };
 export type BookingService = {
   slug: string; name: string; priceCents: number | null; priceUnit: string | null; kind: "session" | "party"; durationMinutes: number;
   // Brief 13: tiers priced per child. A group is 4 to 8 children at a
@@ -34,13 +37,14 @@ const money = (cents: number | null) => (cents === null ? "" : `$${(cents / 100)
 export type BookingAttribution = { utmSource: string | null; utmMedium: string | null; utmCampaign: string | null; referrerHost: string | null; viaPortpass: boolean };
 
 export function PrivateSessionBooking({
-  coaches, services, schemaReady, preferredCoachId, preferredServiceSlug, defaultKind = "session", triggerLabel = "Book a private session →", inline = false, attribution,
+  coaches, services, schemaReady, preferredCoachId, preferredServiceSlug, defaultKind = "session", triggerLabel = "Book a private session →", inline = false, attribution, places = [],
 }: {
   coaches: BookingCoach[]; services: BookingService[]; schemaReady: boolean; preferredCoachId?: number; defaultKind?: "session" | "party"; triggerLabel?: string;
   // Brief 29, part D: /futprep/book opens the form on the page itself, with
   // a coach and a service already chosen, and passes on where the link came
   // from (brief 05's attribution).
   preferredServiceSlug?: string | null; inline?: boolean; attribution?: BookingAttribution | null;
+  places?: BookingPlace[];
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -52,15 +56,20 @@ export function PrivateSessionBooking({
   const [slotId, setSlotId] = useState<number | "suggest">("suggest");
   const [children, setChildren] = useState(4);
   const [suggestedDate, setSuggestedDate] = useState("");
+  const [place, setPlace] = useState<string>(places[0] ? String(places[0].id) : "suggest");
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const service = services.find((s) => s.slug === serviceSlug) ?? null;
   const coach = coaches.find((c) => c.id === coachId) ?? null;
   const slots = coach?.slots ?? [];
   // Brief 29, part C: a suggested date must be one of the coach's working
-  // days. The API enforces the same rule; this is the gentle message first.
+  // days; brief 31 (C2, C3): never a day the coach is away, and a coach with
+  // no days set confirms a time. The API enforces the same rules; these are
+  // the gentle messages first.
   const workingDays = coach?.workingDays ?? [];
-  const dayOff = coach && slotId === "suggest" && suggestedDate !== "" && !isWorkingDay(workingDays, suggestedDate) ? dayOffMessage(coach.displayName, workingDays) : "";
+  const note = coach && slotId === "suggest" ? dayNote({ name: coach.displayName, workingDays, blockedDates: coach.blockedDates ?? [] }, suggestedDate || null) : null;
+  const dayOff = note && note.kind !== "confirm" ? note.message : "";
+  const confirmNote = note?.kind === "confirm" ? note.message : "";
   const legacyType = service?.kind === "party" ? "birthday" : defaultKind === "party" ? "birthday" : "private_lesson";
   const variableChildren = service ? (service.maxChildren ?? 1) > (service.minChildren ?? 1) : false;
   const childrenCount = service ? (variableChildren ? Math.min(Math.max(children, service.minChildren ?? 1), service.maxChildren ?? 8) : service.minChildren ?? 1) : 1;
@@ -90,7 +99,8 @@ export function PrivateSessionBooking({
           requestedDate: usingSlot ? "" : form.get("requestedDate"),
           requestedStartTime: usingSlot ? "" : form.get("requestedStartTime"),
           durationMinutes: service?.durationMinutes ?? Number(form.get("durationMinutes") ?? 60),
-          locationPreference: form.get("locationPreference"),
+          locationId: !usingSlot && place !== "suggest" ? Number(place) : null,
+          locationPreference: !usingSlot && place === "suggest" ? form.get("locationPreference") : "",
           sessionGoal: form.get("sessionGoal"),
           notes: form.get("notes"),
           utmSource: attribution?.utmSource ?? null,
@@ -195,6 +205,7 @@ export function PrivateSessionBooking({
                 <label><span>Suggested date</span><input name="requestedDate" type="date" min={today} required value={suggestedDate} onChange={(e) => setSuggestedDate(e.target.value)} aria-invalid={dayOff ? true : undefined} /></label>
                 {coach && workingDays.length > 0 && <p className="private-session-days">{coach.displayName} works {workingDaysLabel(workingDays)}.</p>}
                 {dayOff && <p className="form-error" role="alert">{dayOff}</p>}
+                {confirmNote && <p className="private-session-days">{confirmNote}</p>}
                 <label><span>Suggested start time</span><input name="requestedStartTime" type="time" required /></label>
               </div>
             )}
@@ -218,9 +229,18 @@ export function PrivateSessionBooking({
             {!service && (
               <label><span>Length</span><select name="durationMinutes" defaultValue="60"><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option></select></label>
             )}
-            {slotId === "suggest" && <label><span>Where would suit you?</span><input name="locationPreference" placeholder="Lyford Cay, home, other…" /></label>}
+            {slotId === "suggest" && places.length > 0 && (
+              <label><span>Where</span>
+                <select value={place} onChange={(e) => setPlace(e.target.value)}>
+                  {places.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  <option value="suggest">Suggest a place</option>
+                </select>
+              </label>
+            )}
+            {slotId === "suggest" && place === "suggest" && <label><span>Where would suit you?</span><input name="locationPreference" placeholder="Lyford Cay, home, other…" /></label>}
             <label><span>{service?.kind === "party" ? "About the party (how many children, the occasion)" : "What should the coach focus on?"}</span><textarea name="sessionGoal" rows={3} placeholder={service?.kind === "party" ? "Up to 15 children, a 7th birthday…" : "Confidence, first touch, shooting…"} /></label>
             <label><span>Anything else?</span><textarea name="notes" rows={2} /></label>
+            <p className="private-session-days">Please don&apos;t put medical details here. Futprep&apos;s desk will ask for anything the coach needs to know.</p>
             {service && totalCents !== null && (
               <p className="private-session-price">
                 Price: <strong>{money(totalCents)}</strong>
