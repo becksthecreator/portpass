@@ -399,19 +399,29 @@ export async function listProgramPnl(): Promise<PnlLine[]> {
   throwIfSupabaseError(locationError, "Could not load location costs");
   const locationCost = new Map((locationRows ?? []).map((row): [number, LocationCost] => [Number(row.id), { costModel: (row.cost_model as LocationCostModel | null) ?? null, costCents: row.cost_cents === null ? null : Number(row.cost_cents) }]));
   const { scheduled } = await sessionCounts(db, termIds);
-  // A place paid by the term is shared by the programs using it in the same
-  // term (same name and start), so it is counted once.
-  const placeTermKey = (locationId: number | null, term: TermRow) => `${locationId}|${term.name}|${term.start_date}`;
-  const sharing = new Map<string, number>();
+  // A place paid by the term is shared by the programs that use it in the
+  // same term (same name and start) and appear on the P&L, split exactly
+  // (shareFee), so the lines add up to the place's cost, counted once. A
+  // program with its own field figure, or a school contract, doesn't share.
+  const placeTermKey = (locationId: number, term: TermRow) => `${locationId}|${term.name}|${term.start_date}`;
+  const sharers = new Map<string, { locationId: number; termIds: number[] }>();
   for (const term of terms) {
     const sharer = programs.find((p) => p.id === Number(term.program_id));
-    // Only programs costed from the place share it: one with its own field
-    // figure, or a school contract, isn't.
-    if (!sharer || sharer.field_cost_cents_per_term !== null || sharer.program_type === "contract") continue;
-    const locationId = sharer.location_id ?? null;
-    if (locationId === null) continue;
-    const key = placeTermKey(Number(locationId), term);
-    sharing.set(key, (sharing.get(key) ?? 0) + 1);
+    if (!sharer || sharer.field_cost_cents_per_term !== null || sharer.program_type === "contract" || sharer.location_id === null) continue;
+    const termId = Number(term.id);
+    if ((collected.get(termId) ?? 0) === 0 && (coachPay.get(termId) ?? 0) === 0) continue;
+    const locationId = Number(sharer.location_id);
+    const key = placeTermKey(locationId, term);
+    const entry = sharers.get(key) ?? { locationId, termIds: [] };
+    entry.termIds.push(termId);
+    sharers.set(key, entry);
+  }
+  const termShare = new Map<number, number>();
+  for (const { locationId, termIds } of sharers.values()) {
+    const cost = locationCost.get(locationId);
+    if (cost?.costModel !== "per_term" || cost.costCents === null) continue;
+    const shares = shareFee(cost.costCents, termIds.map(() => 1));
+    termIds.forEach((termId, i) => termShare.set(termId, shares[i]));
   }
 
   // The PortPass fee is capped per term across the classes that share it.
@@ -449,7 +459,9 @@ export async function listProgramPnl(): Promise<PnlLine[]> {
       feesCollectedCents,
       coachPayCents,
       ...(() => {
-        const estimate = estimateFieldCostCents(program.location_id === null ? null : locationCost.get(Number(program.location_id)) ?? null, scheduled.get(termId) ?? 0, sessionMinutes(program.start_time, program.end_time), program.location_id === null ? 1 : sharing.get(placeTermKey(Number(program.location_id), term)) ?? 1);
+        const estimate = termShare.has(termId)
+          ? termShare.get(termId)!
+          : estimateFieldCostCents(program.location_id === null ? null : locationCost.get(Number(program.location_id)) ?? null, scheduled.get(termId) ?? 0, sessionMinutes(program.start_time, program.end_time));
         const field = fieldCostFor(program.field_cost_cents_per_term === null ? null : Number(program.field_cost_cents_per_term), estimate);
         return { fieldCostCents: field.cents, fieldCostSource: field.source, fieldCostEstimateCents: estimate };
       })(),
