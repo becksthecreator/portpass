@@ -62,11 +62,17 @@ export function validScore(value: unknown): value is number {
 
 export const NOTE_MAX = 500;
 
-export function cleanNote(value: unknown): { ok: true; value: string } | { ok: false } {
+// Words that mean a note is about a child's health, which goes to the
+// family and so must never carry it (rule 3): the desk keeps those.
+const HEALTH_WORDS = /\b(allerg\w*|asthma\w*|inhaler\w*|epi-?pens?|medic\w*|diabet\w*|insulin|seizures?|epilep\w*|diagnos\w*|adhd|autis\w*|injur\w*|concussion\w*|prescri\w*)\b/i;
+
+export function cleanNote(value: unknown): { ok: true; value: string } | { ok: false; reason: "type" | "too_long" | "health" } {
   if (value === null || value === undefined) return { ok: true, value: "" };
-  if (typeof value !== "string") return { ok: false };
+  if (typeof value !== "string") return { ok: false, reason: "type" };
   const note = value.trim();
-  return note.length > NOTE_MAX ? { ok: false } : { ok: true, value: note };
+  if (note.length > NOTE_MAX) return { ok: false, reason: "too_long" };
+  if (HEALTH_WORDS.test(note)) return { ok: false, reason: "health" };
+  return { ok: true, value: note };
 }
 
 // Where a clip may live: a link out (never embedded), over https, on one

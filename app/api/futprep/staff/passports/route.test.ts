@@ -13,7 +13,7 @@ vi.mock("@/app/futprep/staff/private-sessions/viewer", () => ({
   currentInboxViewer: vi.fn(async () => ({ account: who.account, viewer: { role: who.role, coachId: who.coachId } })),
 }));
 vi.mock("@/db/passports", () => ({
-  passportCoaches: vi.fn(async (id: number) => (id === 1 ? { staffCoachIds: [11], defaultLeadCoachId: null } : id === 2 ? { staffCoachIds: [], defaultLeadCoachId: 12 } : null)),
+  passportCoaches: vi.fn(async (id: number) => (id === 1 ? { leadCoachId: 11 } : id === 2 ? { leadCoachId: 12 } : null)),
   passportWindows: vi.fn(async () => ({ ...state.windows, startOpens: null, startCloses: null, endOpens: null, endCloses: null })),
   savePassportMark: vi.fn(async (input: { registrationId: number; skillId: number; phase: string; score: number }) => {
     state.saved.push({ registrationId: input.registrationId, skillId: input.skillId, phase: input.phase, score: input.score });

@@ -51,9 +51,16 @@ describe("what a mark, a note and a clip may be", () => {
 
   it("keeps a note to 500 characters", () => {
     expect(cleanNote("x".repeat(500))).toEqual({ ok: true, value: "x".repeat(500) });
-    expect(cleanNote("x".repeat(501))).toEqual({ ok: false });
+    expect(cleanNote("x".repeat(501))).toEqual({ ok: false, reason: "too_long" });
     expect(cleanNote("   ")).toEqual({ ok: true, value: "" });
-    expect(cleanNote(5)).toEqual({ ok: false });
+    expect(cleanNote(5)).toEqual({ ok: false, reason: "type" });
+  });
+
+  it("refuses a note about a child's health: the desk keeps those", () => {
+    for (const note of ["Remember his EpiPen", "Peanut allergy, careful", "Needs her inhaler at half time", "Has ADHD", "Takes medication before class", "Diabetic: snack at 10", "Had a seizure last year"]) {
+      expect(cleanNote(note)).toEqual({ ok: false, reason: "health" });
+    }
+    expect(cleanNote("Great first touch, practise the weaker foot").ok).toBe(true);
   });
 
   it("takes a clip link only over https, from the allowed hosts", () => {

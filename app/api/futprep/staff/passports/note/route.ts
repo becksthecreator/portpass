@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const body = read.value;
   const registrationId = Number(body.registrationId);
   const note = cleanNote(body.note);
-  if (!note.ok) return NextResponse.json({ error: `Keep the note to ${NOTE_MAX} characters.` }, { status: 400 });
+  if (!note.ok) return NextResponse.json({ error: note.reason === "health" ? "Keep health details with the desk: this note goes to the family." : `Keep the note to ${NOTE_MAX} characters.` }, { status: 400 });
   const clip = cleanClipUrl(body.clipUrl);
   if (!clip.ok) return NextResponse.json({ error: "A clip must be a YouTube or Google Drive link starting https://." }, { status: 400 });
   const nextStep = body.nextStepOfferingId === null || body.nextStepOfferingId === undefined || body.nextStepOfferingId === "" ? null : Number(body.nextStepOfferingId);

@@ -79,18 +79,13 @@ async function loadSubject(registrationId: number): Promise<Subject | null> {
   };
 }
 
-// Who coaches this child's class this term: anyone on a session's staff,
-// and the program's default lead.
+// Who scores this child: the class's lead coach, as the desk set it
+// (programs.default_lead_coach_id). Being on a session's staff doesn't
+// count: a coach can add themselves to any session from the roster.
 export async function passportCoaches(registrationId: number): Promise<PassportCoaches | null> {
   const subject = await loadSubject(registrationId);
   if (!subject) return null;
-  const { data, error } = await getSupabaseAdmin()
-    .from("session_staff")
-    .select("coach_id,sessions!inner(program_id,term_id)")
-    .eq("sessions.program_id", subject.programId)
-    .eq("sessions.term_id", subject.termId);
-  throwIfSupabaseError(error, "Could not load who coaches the class");
-  return { staffCoachIds: [...new Set((data ?? []).map((row) => Number(row.coach_id)))], defaultLeadCoachId: subject.defaultLeadCoachId };
+  return { leadCoachId: subject.defaultLeadCoachId };
 }
 
 async function termWindows(subject: Subject, today: string = nassauToday()): Promise<MarkWindows> {
@@ -210,14 +205,13 @@ export async function savePassportMark(input: { registrationId: number; skillId:
   if (passport.status === "shared") throw new Error("SHARED");
   const skills = await skillsFor(passport.band, subject.organizationId);
   if (!skills.some((s) => s.id === input.skillId)) throw new Error("BAD_SKILL");
-  const db = getSupabaseAdmin();
+  // One upsert: only this phase's column is written, so the other stays.
+  // The database refuses it once the passport is shared (a trigger).
   const column = input.phase === "start" ? "start_score" : "end_score";
-  const { data: existing, error: loadError } = await db.from("passport_marks").select("id").eq("passport_id", passport.id).eq("skill_id", input.skillId).maybeSingle();
-  throwIfSupabaseError(loadError, "Could not load the mark");
-  const now = new Date().toISOString();
-  const { error } = existing
-    ? await db.from("passport_marks").update({ [column]: input.score, updated_by: input.actor, updated_at: now }).eq("id", existing.id)
-    : await db.from("passport_marks").insert({ passport_id: passport.id, skill_id: input.skillId, [column]: input.score, updated_by: input.actor, updated_at: now });
+  const { error } = await getSupabaseAdmin()
+    .from("passport_marks")
+    .upsert({ passport_id: passport.id, skill_id: input.skillId, [column]: input.score, updated_by: input.actor, updated_at: new Date().toISOString() }, { onConflict: "passport_id,skill_id" });
+  if (error?.message?.includes("PASSPORT_SHARED")) throw new Error("SHARED");
   throwIfSupabaseError(error, "Could not save the mark");
 }
 
@@ -234,6 +228,7 @@ export async function savePassportNote(input: { registrationId: number; note: st
     .from("passport_notes")
     .upsert({ passport_id: passport.id, note: input.note, clip_url: input.clipUrl, next_step_offering_id: input.nextStepOfferingId, updated_by: input.actor, updated_at: new Date().toISOString() }, { onConflict: "passport_id" });
   if (error?.message?.includes("CLIP_NOT_ALLOWED")) throw new Error("CLIP_NOT_ALLOWED");
+  if (error?.message?.includes("PASSPORT_SHARED")) throw new Error("SHARED");
   throwIfSupabaseError(error, "Could not save the note");
 }
 

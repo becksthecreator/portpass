@@ -126,11 +126,8 @@ describe("the skills and the passport (brief 31, D)", () => {
 });
 
 describe("whose players a coach sees (brief 31, D)", () => {
-  it("the class's default lead and anyone on its staff this term, nobody else", async () => {
-    const coaches = await passportCoaches(reg.older.id);
-    expect(coaches?.defaultLeadCoachId).toBe(lead);
-    expect(coaches?.staffCoachIds).toContain(staffCoach);
-    expect(coaches?.staffCoachIds).not.toContain(other);
+  it("the class's lead coach, as the desk set it; being on a session's staff doesn't count", async () => {
+    expect(await passportCoaches(reg.older.id)).toEqual({ leadCoachId: lead });
   });
 });
 
@@ -161,10 +158,13 @@ describe("marks, notes and clips (brief 31, D)", () => {
 
     await savePassportNote({ registrationId: reg.older.id, note: "TEST lovely first touch", clipUrl: "https://youtu.be/test", nextStepOfferingId: offeringId, actor: MARK });
     expect((await getStaffPassport(reg.older.id, MARK))?.clipUrl).toBe("https://youtu.be/test");
-    // Permission withdrawn: the clip is never shown again.
+    // Permission withdrawn: the clip is taken down, and doesn't come back
+    // if permission is given again.
     await db().from("registrations").update({ photo_consent: "no" }).eq("id", reg.older.id);
     expect((await getStaffPassport(reg.older.id, MARK))?.clipUrl).toBeNull();
     await db().from("registrations").update({ photo_consent: "yes" }).eq("id", reg.older.id);
+    expect((await getStaffPassport(reg.older.id, MARK))?.clipUrl).toBeNull();
+    await savePassportNote({ registrationId: reg.older.id, note: "TEST lovely first touch", clipUrl: "https://youtu.be/test", nextStepOfferingId: offeringId, actor: MARK });
   });
 
   it("suggests a next step only from Futprep's published offerings", async () => {
@@ -192,8 +192,11 @@ describe("sharing with the family (brief 31, D)", () => {
     expect(view).toMatchObject({ note: "TEST lovely first touch", clipUrl: "https://youtu.be/test", nextStep: { name: `${MARK} next step` } });
     expect(view?.skills).toHaveLength(5);
     expect(JSON.stringify(view)).not.toContain(HEALTH);
-    // Shared is final.
+    // Shared is final, in the app and in the database.
     await expect(savePassportMark({ registrationId: reg.older.id, skillId: passport.skills[0].id, phase: "end", score: 5, actor: MARK })).rejects.toThrow("SHARED");
+    const { data: p } = await db().from("passports").select("id").eq("registration_id", reg.older.id).single();
+    expect((await db().from("passport_marks").update({ end_score: 1 }).eq("passport_id", p!.id)).error?.message ?? "").toContain("PASSPORT_SHARED");
+    expect((await db().from("passports").update({ status: "draft" }).eq("id", p!.id)).error?.message ?? "").toContain("PASSPORT_SHARED");
     const { count } = await db().from("audit_log").select("id", { count: "exact", head: true }).eq("action", "futprep.passport_shared").eq("target_table", "passports");
     expect(Number(count)).toBeGreaterThanOrEqual(1);
   });

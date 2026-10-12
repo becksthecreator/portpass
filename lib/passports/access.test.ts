@@ -4,11 +4,13 @@ import { canSeePassport } from "./access";
 // Brief 31 (D): a coach sees only their own players' passports.
 const A = 11;
 const B = 12;
-const term = { staffCoachIds: [A], defaultLeadCoachId: null };
-const ledByB = { staffCoachIds: [], defaultLeadCoachId: B };
+const term = { leadCoachId: A };
+const ledByB = { leadCoachId: B };
+const noLead = { leadCoachId: null };
 
 describe("who sees a child's passport (brief 31, D)", () => {
-  it("a coach sees the children of a term they coached or lead, never another coach's", () => {
+  it("a coach sees the children of the classes they lead, never another coach's, nor a class with no lead", () => {
+    expect(canSeePassport({ role: "coach", coachId: A }, noLead)).toBe(false);
     expect(canSeePassport({ role: "coach", coachId: A }, term)).toBe(true);
     expect(canSeePassport({ role: "coach", coachId: B }, ledByB)).toBe(true);
     expect(canSeePassport({ role: "coach", coachId: B }, term)).toBe(false);
