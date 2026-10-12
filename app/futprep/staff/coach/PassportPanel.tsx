@@ -42,11 +42,13 @@ export function PassportPanel({ registrationId, childName }: { registrationId: n
     return true;
   }
 
-  // One skill's start or end mark, shown at once.
-  function setMark(skillId: number, phase: "start" | "end", value: number) {
+  // One skill's start or end mark, shown at once; onlyIf leaves it alone if
+  // a later tap has changed it since.
+  function setMark(skillId: number, phase: "start" | "end", value: number | null, onlyIf?: number) {
     setPassport((current) => {
       if (!current) return current;
       const was = current.marks.find((m) => m.skillId === skillId) ?? { skillId, start: null, end: null };
+      if (onlyIf !== undefined && was[phase] !== onlyIf) return current;
       const next = phase === "start" ? { ...was, start: value } : { ...was, end: value };
       return { ...current, marks: [...current.marks.filter((m) => m.skillId !== skillId), next] };
     });
@@ -54,10 +56,15 @@ export function PassportPanel({ registrationId, childName }: { registrationId: n
 
   async function mark(skillId: number, phase: "start" | "end", score: number) {
     if (!passport) return;
+    const previous = passport.marks.find((m) => m.skillId === skillId)?.[phase] ?? null;
     setMark(skillId, phase, score);
-    // A failed save: the passport is read again, so the screen shows only
-    // what was saved (the error stays on screen).
-    if (!(await post("/api/futprep/staff/passports", { skillId, phase, score }))) await load(true);
+    // A failed save: the tap is undone, then the passport is read again, so
+    // the screen shows only what was saved, even with no connection (the
+    // error stays on screen).
+    if (!(await post("/api/futprep/staff/passports", { skillId, phase, score }))) {
+      setMark(skillId, phase, previous, score);
+      await load(true);
+    }
   }
 
   async function saveNote(event: FormEvent<HTMLFormElement>) {

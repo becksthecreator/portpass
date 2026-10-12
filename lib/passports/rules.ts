@@ -64,7 +64,7 @@ export const NOTE_MAX = 500;
 
 // Words that mean a note is about a child's health, which goes to the
 // family and so must never carry it (rule 3): the desk keeps those.
-const HEALTH_WORDS = /\b(allerg\w*|asthma\w*|inhaler\w*|epi-?pens?|medic\w*|diabet\w*|insulin|seizures?|epilep\w*|diagnos\w*|adhd|autis\w*|injur\w*|concussion\w*|prescri\w*|meds?|peanuts?|nuts?|hospital\w*|sprain\w*|anaphyla\w*|stitch\w*)\b/i;
+const HEALTH_WORDS = /\b(allerg\w*|asthma\w*|inhaler\w*|epi[-\s]?pens?|medic\w*|diabet\w*|insulin|seizures?|epilep\w*|diagnos\w*|adhd|autis\w*|injur\w*|concuss\w*|prescri\w*|meds?|peanuts?|nuts?|hospital\w*|sprain\w*|anaphyla\w*|stitch\w*|puffers?|sickle|surger\w*|fractur\w*|doctors?)\b/i;
 
 export function cleanNote(value: unknown): { ok: true; value: string } | { ok: false; reason: "type" | "too_long" | "health" } {
   if (value === null || value === undefined) return { ok: true, value: "" };
