@@ -81,6 +81,20 @@ export async function coachForStaffMember(staffMemberId: number): Promise<PayCoa
 
 // ---- Who coached a session --------------------------------------------------
 
+// A session of Futprep's own, by its programme (rule 3; the same check as
+// the registration desk). Another business's session is treated exactly
+// like a missing one by every function below.
+async function futprepSession(sessionId: number): Promise<{ program_id: number } | null> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("sessions")
+    .select("program_id,programs!inner(organization_id)")
+    .eq("id", sessionId)
+    .eq("programs.organization_id", await futprepOrganizationId())
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load the session");
+  return data ? { program_id: Number(data.program_id) } : null;
+}
+
 // `locked`: this coach's entry for the session is closed and can't be
 // changed from the roster. It is closed once the coach has been paid for
 // the session, but the roster is never told that: whether a coach has been
@@ -90,6 +104,8 @@ export type SessionStaffEntry = { coachId: number; coachName: string; role: Staf
 // Names and roles only: the roster never shows pay.
 export async function getSessionStaff(sessionId: number): Promise<{ entries: SessionStaffEntry[]; suggestedLead: { coachId: number; coachName: string } | null }> {
   const db = getSupabaseAdmin();
+  const session = await futprepSession(sessionId);
+  if (!session) return { entries: [], suggestedLead: null };
   const { data: rows, error } = await db
     .from("session_staff")
     .select("coach_id,role,paid_at,coach_profiles(display_name)")
@@ -106,8 +122,6 @@ export async function getSessionStaff(sessionId: number): Promise<{ entries: Ses
 
   // Nobody recorded yet: suggest the class's default lead (Coach Bex for
   // Lil Kickers and Kickers).
-  const { data: session } = await db.from("sessions").select("program_id").eq("id", sessionId).maybeSingle();
-  if (!session) return { entries, suggestedLead: null };
   const { data: program } = await db.from("programs").select("default_lead_coach_id").eq("id", session.program_id).maybeSingle();
   if (!program?.default_lead_coach_id) return { entries, suggestedLead: null };
   const { data: lead } = await db.from("coach_profiles").select("id,display_name").eq("id", program.default_lead_coach_id).maybeSingle();
@@ -128,13 +142,9 @@ export async function setSessionStaff(sessionId: number, requested: Array<{ coac
   }
   if (wanted.size > 20) throw new Error("INVALID_STAFF");
 
-  const [{ data: session, error: sessionError }, { data: existing, error: existingError }] = await Promise.all([
-    db.from("sessions").select("id").eq("id", sessionId).maybeSingle(),
-    db.from("session_staff").select("id,coach_id,role,paid_at").eq("session_id", sessionId),
-  ]);
-  throwIfSupabaseError(sessionError, "Could not load the session");
+  if (!(await futprepSession(sessionId))) throw new Error("SESSION_NOT_FOUND");
+  const { data: existing, error: existingError } = await db.from("session_staff").select("id,coach_id,role,paid_at").eq("session_id", sessionId);
   throwIfSupabaseError(existingError, "Could not load the coaches for this session");
-  if (!session) throw new Error("SESSION_NOT_FOUND");
 
   const coachIds = Array.from(wanted.keys());
   const { data: coaches, error: coachError } = coachIds.length
@@ -185,7 +195,7 @@ export async function ensureDefaultLead(sessionId: number, actor: string): Promi
   const { count, error } = await db.from("session_staff").select("id", { count: "exact", head: true }).eq("session_id", sessionId);
   throwIfSupabaseError(error, "Could not check the coaches for this session");
   if (Number(count ?? 0) > 0) return;
-  const { data: session } = await db.from("sessions").select("program_id").eq("id", sessionId).maybeSingle();
+  const session = await futprepSession(sessionId);
   if (!session) return;
   const { data: program } = await db.from("programs").select("default_lead_coach_id").eq("id", session.program_id).maybeSingle();
   if (!program?.default_lead_coach_id) return;
