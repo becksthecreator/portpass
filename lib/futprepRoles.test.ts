@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { canBeOwner, canChangePrograms, canMarkOwner, canSeeMedical, canSetMedicalSwitch, FUTPREP_ROLES, missingForLogin, roleCan, withoutHealthDetail, withoutHealthInput } from "./futprepRoles";
+import { canBeOwner, canChangePrograms, canMarkOwner, canSeeMedical, canSetMedicalSwitch, FUTPREP_ROLES, missingForLogin, roleCan, rosterSafetyShown, withoutEmergencyDetail, withoutEmergencyInput, withoutHealthDetail, withoutHealthInput } from "./futprepRoles";
 
 // docs/futprep/roles.md is what Futprep was told; this keeps the code to it.
 const doc = readFileSync(join(process.cwd(), "docs/futprep/roles.md"), "utf8");
@@ -99,5 +99,37 @@ describe("Futprep roles (brief 31, Part A)", () => {
     expect(missingForLogin({ linked: true, hasEmail: false, hasPin: false, active: true })).toEqual(["No email", "No PIN yet"]);
     expect(missingForLogin({ linked: true, hasEmail: true, hasPin: true, active: false })).toEqual(["Login switched off"]);
     expect(missingForLogin({ linked: true, hasEmail: true, hasPin: true, active: true })).toEqual([]);
+  });
+});
+
+// Brief 34 (audit finding 4): emergency contact and authorised pickup are
+// shown on screen only, to logins with the medical view, and on the coach
+// roster to the coach on duty for that session's day.
+describe("who sees a child's emergency contact and pickup (brief 34)", () => {
+  const day = { sessionDate: "2026-11-21", today: "2026-11-21" };
+  it("the medical view always; a helper never", () => {
+    expect(rosterSafetyShown({ role: "ceo", canViewMedical: false, ...day, today: "2026-11-01", onDuty: false })).toBe(true);
+    expect(rosterSafetyShown({ role: "coach", canViewMedical: true, ...day, today: "2026-11-01", onDuty: false })).toBe(true);
+    expect(rosterSafetyShown({ role: "helper", canViewMedical: true, ...day, onDuty: true })).toBe(false);
+  });
+
+  it("a coach without the medical view: only on that session's day, and only while on duty for it", () => {
+    expect(rosterSafetyShown({ role: "coach", canViewMedical: false, ...day, onDuty: true })).toBe(true);
+    expect(rosterSafetyShown({ role: "coach", canViewMedical: false, ...day, onDuty: false })).toBe(false);
+    expect(rosterSafetyShown({ role: "coach", canViewMedical: false, sessionDate: "2026-11-21", today: "2026-11-20", onDuty: true })).toBe(false);
+    expect(rosterSafetyShown({ role: "coach", canViewMedical: false, sessionDate: "2026-11-21", today: "2026-11-22", onDuty: true })).toBe(false);
+  });
+
+  it("an admin without the medical view: never on the roster", () => {
+    expect(rosterSafetyShown({ role: "admin", canViewMedical: false, ...day, onDuty: true })).toBe(false);
+  });
+
+  it("the desk record without the medical view: emergency contact and pickup blanked, and never saved", () => {
+    const detail = { emergency_contact_name: "ZZNAME", emergency_contact_phone: "+12425550111", authorized_pickup: "ZZPICKUP", edits: [{ changes: { "Emergency contact name": ["a", "b"], "Emergency contact phone": ["e", "f"], "Authorized pickup": ["c", "d"], Status: ["x", "y"] } }] };
+    const shown = withoutEmergencyDetail(detail);
+    expect(shown).toMatchObject({ emergency_contact_name: null, emergency_contact_phone: null, authorized_pickup: null });
+    expect(JSON.stringify(shown)).not.toMatch(/ZZNAME|ZZPICKUP|5550111/);
+    expect(shown.edits).toEqual([{ changes: { Status: ["x", "y"] } }]);
+    expect(withoutEmergencyInput({ emergencyContactName: "x", emergencyContactPhone: "y", authorizedPickup: "z", childName: "kept" })).toEqual({ childName: "kept" });
   });
 });

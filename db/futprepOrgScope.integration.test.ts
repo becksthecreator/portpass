@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { addWeeklyCoachSlots } from "./coaches";
+import { ensureDefaultLead, getSessionStaff, setSessionStaff } from "./coachPay";
 import { createReturnLink, ensureFutprepPilotData, returnLinkPrefill } from "./registrations";
 import {
   clearFutprepAttendance,
@@ -8,6 +10,7 @@ import {
   markFutprepAttendance,
   recordFutprepPayment,
   rosterForSession,
+  setSessionCoaches,
   updateFutprepRegistration,
   updateFutprepRegistrationDetail,
   voidFutprepPayment,
@@ -38,6 +41,7 @@ let otherId = 0;
 let otherPaymentId = 0;
 let futprepProgramId = 0;
 let futprepId = 0;
+let otherCoachId = 0;
 
 function registration(organizationId: number, programId: number, termId: number, label: string) {
   const now = new Date().toISOString();
@@ -157,9 +161,28 @@ beforeAll(async () => {
     .single();
   if (paymentError || !payment) throw new Error(`Could not seed a TEST payment: ${paymentError?.message}`);
   otherPaymentId = Number(payment.id);
+
+  // Brief 34: the other business's own coach, its class's default lead,
+  // and who coached its first session.
+  const { data: coach, error: coachError } = await db()
+    .from("coach_profiles")
+    .insert({ organization_id: otherOrgId, slug: `test-delete-other-coach-${TAG}`, display_name: `${MARK} Other Coach`, active: true, bookable: true, public_visible: false })
+    .select("id")
+    .single();
+  if (coachError || !coach) throw new Error(`Could not seed a TEST coach: ${coachError?.message}`);
+  otherCoachId = Number(coach.id);
+  await db().from("programs").update({ default_lead_coach_id: otherCoachId }).eq("id", other.programId);
+  const { error: staffError } = await db().from("session_staff").insert({ session_id: otherSessionId, coach_id: otherCoachId, role: "lead", pay_cents: 0, created_by: MARK });
+  if (staffError) throw new Error(`Could not seed TEST session staff: ${staffError.message}`);
 });
 
 afterAll(async () => {
+  if (otherSessionId) await db().from("session_staff").delete().eq("session_id", otherSessionId);
+  if (otherCoachId) {
+    await db().from("coach_availability").delete().eq("coach_id", otherCoachId);
+    await db().from("programs").update({ default_lead_coach_id: null }).eq("id", otherProgramId);
+    await db().from("coach_profiles").delete().eq("id", otherCoachId);
+  }
   for (const programId of [otherProgramId, futprepProgramId].filter(Boolean)) {
     await db().from("registrations").delete().eq("program_id", programId);
     await db().from("sessions").delete().eq("program_id", programId);
@@ -269,5 +292,44 @@ describe("Futprep's desk never reaches another business's registration (rule 3)"
     // Futprep's own family still gets a link that fills in.
     const own = await createReturnLink(futprepId, MARK);
     expect((await returnLinkPrefill(own.token))?.childName).toBe(`${MARK} Child Futprep`);
+  });
+});
+
+// Brief 34 (audit finding 1, "every Futprep staff action"): the same rule
+// for the screens that take a session or a coach id. Found by #205's
+// security review: a Futprep PIN could set another business's "coaches
+// today" (and so its class's cap), rewrite who coached its session, or add
+// open times to its coach.
+describe("Futprep's session and coach screens never reach another business's (rule 3, brief 34)", () => {
+  it("coaches today: refused like a missing session, the other class's number left as it was", async () => {
+    expect(await outcome(setSessionCoaches(otherSessionId, 0))).toBe(await outcome(setSessionCoaches(MISSING, 0)));
+    expect(await outcome(setSessionCoaches(otherSessionId, 0))).toBe("refused SESSION_NOT_FOUND");
+    const { data: session } = await db().from("sessions").select("coaches_on_duty").eq("id", otherSessionId).single();
+    expect(session?.coaches_on_duty).toBeNull();
+  });
+
+  it("who coached: neither read nor rewritten, its row left as it was", async () => {
+    expect(await outcome(getSessionStaff(otherSessionId))).toBe(await outcome(getSessionStaff(MISSING)));
+    expect(await outcome(getSessionStaff(otherSessionId))).not.toContain("Other Coach");
+    expect(await outcome(setSessionStaff(otherSessionId, [], MARK))).toBe(await outcome(setSessionStaff(MISSING, [], MARK)));
+    expect(await outcome(setSessionStaff(otherSessionId, [], MARK))).toBe("refused SESSION_NOT_FOUND");
+    const { data: rows } = await db().from("session_staff").select("coach_id,role").eq("session_id", otherSessionId);
+    expect(rows).toEqual([{ coach_id: otherCoachId, role: "lead" }]);
+  });
+
+  it("the default lead after a mark: never recorded on another business's session", async () => {
+    await db().from("session_staff").delete().eq("session_id", otherSessionId);
+    await ensureDefaultLead(otherSessionId, MARK);
+    const { data: rows } = await db().from("session_staff").select("id").eq("session_id", otherSessionId);
+    expect(rows).toEqual([]);
+    await db().from("session_staff").insert({ session_id: otherSessionId, coach_id: otherCoachId, role: "lead", pay_cents: 0, created_by: MARK });
+  });
+
+  it("open times: never added to another business's coach", async () => {
+    const slots = { dayOfWeek: "Saturday", startTime: "9:00 AM", endTime: "10:00 AM", weeks: 2, location: "TEST field", actor: MARK };
+    expect(await outcome(addWeeklyCoachSlots({ coachId: otherCoachId, ...slots }))).toBe(await outcome(addWeeklyCoachSlots({ coachId: MISSING, ...slots })));
+    expect(await outcome(addWeeklyCoachSlots({ coachId: otherCoachId, ...slots }))).toBe("refused COACH_NOT_FOUND");
+    const { data: times } = await db().from("coach_availability").select("id").eq("coach_id", otherCoachId);
+    expect(times).toEqual([]);
   });
 });

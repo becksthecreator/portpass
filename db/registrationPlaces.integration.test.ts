@@ -121,6 +121,16 @@ describe("the last place in a class goes to one child (audit finding 2)", () => 
     expect((await rowsIn(target)).filter((r) => TAKES_A_PLACE.has(r.registration_status))).toHaveLength(3);
   });
 
+  it("twenty parents for a class of ten, all at once: ten get a place, ten are told the class is full (brief 34)", async () => {
+    const target = await newClass(10);
+
+    const { placed, refused } = await allAtOnce(Array.from({ length: 20 }, () => () => createFutprepRegistration(child(target))));
+
+    expect(placed).toHaveLength(10);
+    expect(refused).toEqual(Array(10).fill("PROGRAM_FULL"));
+    expect((await rowsIn(target)).filter((r) => TAKES_A_PLACE.has(r.registration_status))).toHaveLength(10);
+  });
+
   it("a full class still takes everyone who asks for the waitlist, all at once", async () => {
     const target = await newClass(1);
     await createFutprepRegistration(child(target));
