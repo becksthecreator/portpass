@@ -667,8 +667,11 @@ export async function createFutprepRegistration(
     .select("id,organization_id,capacity,name,age_min,age_max,age_min_months,age_max_months,children_per_coach,default_coaches,location,day_of_week,start_time,end_time,program_type,audience")
     .eq("slug", input.programSlug)
     .eq("active", true);
-  // A programme is only ever registered for through its own business.
-  if (scope) programQuery = programQuery.eq("organization_id", scope.organizationId);
+  // A programme is only ever registered for through its own business:
+  // the scoped form's, or Futprep's for /futprep/register. Slugs are
+  // unique across every business, so without this the Futprep form could
+  // reach another business's class (rule 3).
+  programQuery = programQuery.eq("organization_id", scope?.organizationId ?? (await futprepOrganizationId()));
   const { data: program, error: programError } = await programQuery.maybeSingle();
   throwIfSupabaseError(programError, "Could not load selected program");
   if (!program) throw new Error("INVALID_PROGRAM");
@@ -919,10 +922,13 @@ export async function createFutprepPendingRegistration(input: FutprepPendingRegi
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
 
+  // Futprep's classes only: the desk answers a duplicate with its
+  // reference code, which must never be another business's (rule 3).
   const { data: program, error: programError } = await db
     .from("programs")
     .select("id,organization_id,capacity,name,program_type")
     .eq("slug", input.programSlug)
+    .eq("organization_id", await futprepOrganizationId())
     .eq("active", true)
     .maybeSingle();
   throwIfSupabaseError(programError, "Could not load selected program");

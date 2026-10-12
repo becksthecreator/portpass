@@ -5,6 +5,9 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 ## Live on production
 | Feature | PR | Merged |
 | --- | --- | --- |
+| Term 2 ready: the last place in a class goes to one child (one locked database call, `create_registration_within_cap`), desk balances read every payment, Futprep's doors open Futprep's classes only | #200, #203, #216 | 12 Oct |
+| Rule 3 (audit 1, 3, 4): Futprep's desk reads Futprep's registrations only, notes behind the medical permission, pickup and emergency details out of lists and the CSV | #205 | 12 Oct |
+| One Mind: `docs/ops/STATE.md`, `/handoff`, Ponytail and shipping skills, the 19 Nov launch checklist | #198 | 12 Oct |
 | PortPass Market sellers: verification ("Made in The Bahamas"), always-on storefronts, Admin → Market | #184 | 11 Oct |
 | Futprep reset: Term 1 closed to new families, Term 2 opens 19 Nov, owner dashboard, three-tap registration, Flamingo Night | #191–#195 | 11 Oct |
 | Futprep private sessions: emails and log lines, 30 and 60 minutes from the database, FP-S references, coach working days, `/futprep/book` | #186–#189 | 8–9 Oct |
@@ -21,7 +24,6 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
-| `chore/one-mind` (brief 33) | #198 | CI, then merge | Claude Code |
 | `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
 | `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green | Antonio's OK |
@@ -44,7 +46,7 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | 29 | Private sessions | merged | [brief29](../briefs/brief29-private-sessions-report.md) |
 | 30 | graphify | held | [brief30](../briefs/brief30-graphify-report.md) |
 | 31 | Staff logins: one person, one login, one role | building | none yet |
-| 33 | One Mind: STATE.md and `/handoff` | building | [brief33](../briefs/brief33-one-mind-report.md) |
+| 33 | One Mind: STATE.md and `/handoff` | merged | [brief33](../briefs/brief33-one-mind-report.md) |
 
 Briefs 28 and 32 have left no trace in this repo; their status is in the HQ project.
 
@@ -58,12 +60,14 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 - The other brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
 
 ## Known issues
-Ponytail audit, 11 Oct (top five of 15, in the brief 33 PR; not fixed):
-1. Futprep's staff functions open, pay, cancel and mark a registration by id without checking it is Futprep's (`db/staff.ts`, e.g. `getFutprepRegistrationDetail`, `recordFutprepPayment`): another business's child's health record is one id away (rule 3).
-2. A class can be oversold when a term opens: the place count and the insert are separate steps (`db/registrations.ts`, ~726–808). Matters on 19 Nov.
-3. `additional_notes`, a health column, is loaded and shown as "Notes" outside the medical permission (`db/businessRegistrations.ts`) (rule 3).
-4. Emergency and pickup details reach a list and an export: "Authorised pickup" in the coach roster CSV (`lib/rosterCsv.ts`), the emergency contact on every desk card (rule 3).
-5. Desk balances read every received payment, unfiltered and unpaged (`db/staff.ts` ~142): past 1,000 rows, paid children show a balance.
+Ponytail audit, 11 Oct (15 findings, in the brief 33 PR). The top five are fixed: 1, 3 and 4 by #205; 2 by #200 (migration `202610220001`, applied live 12 Oct); 5 by #203. Findings 6, 7 and 9 (sign-in) have their own PRs; 8 and 10–15 are not fixed.
+
+Left open by the reviews of #200, #203 and #216 (not fixed):
+- Promoting a child from the waitlist (`db/staff.ts` `updateFutprepRegistration`) and the business "Confirm the place" button (audit 10) count and then write without the class lock; moving a cancelled row back to pending has no cap check.
+- A child can get free tasters in two classes at the same moment (`TRIAL_ALREADY_USED` covers the business, the lock one class).
+- `getFutprepRegistrationStatus`, `getFutprepPendingRegistration` and `completeFutprepRegistration` match a reference code with no organisation filter, so `/api/futprep/registrations/lookup` (code + date of birth) could return another business's parent details (rule 3).
+- `futprepOrganizationId()` falls back to a name match (`%futprep%`) when the slug is missing; it now gates children's writes, so the fallback should go.
+- Still unpaged in `db/staff.ts`: session counts (~252), session plans (~798), work logs (~819), the roster export's payments (~1399); the admin page builds the desk list twice.
 
 Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
 - #185's migration `202610190002_weddingwire_widgets_structured.sql` clashes with `202610190002_private_sessions_from_the_database.sql` on `main`.
@@ -74,4 +78,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
 
 ## Last updated
-11 Oct 2026, `main` at `2a7bb7f`, by Claude Code.
+12 Oct 2026, `main` at `48a809e`, by Claude Code (PR #216).
