@@ -30,6 +30,7 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green | Antonio's OK |
 | `claude/keen-volta-6u6jdp` (WeddingWire, fixes a #183 finding) | #185 | Renumber its migration, apply it live, merge | Antonio: confirm the apply (it drops and re-adds columns) |
 | `chore/csp-enforce` (brief 26) | #183 | Merge after #185 | #185 |
+| `claude/zen-goodall-91swi2` (a private session's payment recorded once, from the #209 reviews) | #224 | Nothing: CI and the Phase 1 run green; migration `202610230003` applied live | Antonio's merge |
 | `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct) | A decision: merge or close |
 
 ## Briefs
@@ -48,6 +49,7 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | 30 | graphify | held | [brief30](../briefs/brief30-graphify-report.md) |
 | 31 | Staff logins: one person, one login, one role | building | none yet |
 | 33 | One Mind: STATE.md and `/handoff` | merged | [brief33](../briefs/brief33-one-mind-report.md) |
+| 31 follow-up | A private session's payment recorded once | in review | [brief31-private-payment-once](../briefs/brief31-private-payment-once-report.md) |
 
 Briefs 28 and 32 have left no trace in this repo; their status is in the HQ project.
 
@@ -78,4 +80,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
 
 ## Last updated
-12 Oct 2026, `main` at `ab65e65`, by Claude Code (PR #222).
+12 Oct 2026, `main` at `ae4810a`, by Claude Code (#224).

@@ -171,15 +171,73 @@ describe("private sessions (brief 06 v2, Part B)", () => {
   it("records a payment against the reference and the stats count it", async () => {
     const full = price["private-1on1"];
     const before = await privateSessionStats();
-    const partial = await recordPrivateSessionPayment({ requestId, amountCents: 3000, method: "cash", reference: "", recordedBy: "TEST" });
+    const partial = await recordPrivateSessionPayment({ requestId, amountCents: 3000, method: "cash", reference: "", recordedBy: "TEST", idempotencyKey: crypto.randomUUID() });
     expect(partial).toEqual({ paymentStatus: "partial", paidCents: 3000 });
-    const paid = await recordPrivateSessionPayment({ requestId, amountCents: full - 3000, method: "bank_transfer", reference: "PS", recordedBy: "TEST" });
+    const paid = await recordPrivateSessionPayment({ requestId, amountCents: full - 3000, method: "bank_transfer", reference: "PS", recordedBy: "TEST", idempotencyKey: crypto.randomUUID() });
     expect(paid).toEqual({ paymentStatus: "paid", paidCents: full });
     const after = await privateSessionStats();
     expect(after.paid - before.paid).toBe(1);
     expect(after.revenueCents - before.revenueCents).toBe(full);
     const listed = (await listPrivateSessionRequests()).requests.find((r) => r.id === requestId)!;
     expect(listed).toMatchObject({ paid_cents: full, payment_status: "paid" });
+  });
+});
+
+// The PR #209 security review: a double tap on "Record payment" recorded it
+// twice. The form sends one key per payment; the database records a key
+// once and answers a repeat with the same payment.
+describe("a private session's payment is recorded once per key", () => {
+  let requestId = 0;
+  const count = async () => (await db().from("payments").select("id,amount_cents").eq("private_session_request_id", requestId)).data ?? [];
+  const pay = (amountCents: number, idempotencyKey: string) => recordPrivateSessionPayment({ requestId, amountCents, method: "cash", reference: "", recordedBy: "TEST", idempotencyKey });
+
+  beforeAll(async () => {
+    const { referenceCode } = await request({ serviceSlug: "private-1on1" });
+    const { data } = await db().from("private_session_requests").select("id").eq("reference_code", referenceCode).single();
+    requestId = Number(data!.id);
+  });
+
+  it("the same key twice gives one payment and the right total", async () => {
+    const key = crypto.randomUUID();
+    const first = await pay(1000, key);
+    expect(first).toEqual({ paymentStatus: "partial", paidCents: 1000 });
+    expect(await pay(1000, key)).toEqual(first);
+    expect(await count()).toHaveLength(1);
+    const { data: events } = await db().from("private_session_events").select("id").eq("request_id", requestId).eq("action", "payment");
+    expect(events).toHaveLength(1);
+  });
+
+  it("a double tap at the same moment gives one payment", async () => {
+    const key = crypto.randomUUID();
+    const both = await Promise.all([pay(500, key), pay(500, key)]);
+    expect(both[0]).toEqual({ paymentStatus: "partial", paidCents: 1500 });
+    expect(both[1]).toEqual(both[0]);
+    expect(await count()).toHaveLength(2);
+  });
+
+  it("two different keys give two payments, and the request is paid when they reach the price", async () => {
+    const full = price["private-1on1"];
+    await pay(500, crypto.randomUUID());
+    const last = await pay(full - 2000, crypto.randomUUID());
+    expect(last).toEqual({ paymentStatus: "paid", paidCents: full });
+    expect(await count()).toHaveLength(4);
+    const { data } = await db().from("private_session_requests").select("payment_status").eq("id", requestId).single();
+    expect(data!.payment_status).toBe("paid");
+  });
+
+  it("refuses a request that isn't there, a bad amount and a missing key, writing nothing", async () => {
+    await expect(recordPrivateSessionPayment({ requestId: 2147483000, amountCents: 100, method: "cash", reference: "", recordedBy: "TEST", idempotencyKey: crypto.randomUUID() })).rejects.toThrow("REQUEST_NOT_FOUND");
+    await expect(pay(0, crypto.randomUUID())).rejects.toThrow("INVALID_AMOUNT");
+    await expect(pay(100, "")).rejects.toThrow("INVALID_KEY");
+    expect(await count()).toHaveLength(4);
+  });
+
+  it("is closed to a browser", async () => {
+    const browser = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? "", { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error } = await browser.rpc("private_session_record_payment", { p: { request_id: requestId, amount_cents: 100, method: "cash", idempotency_key: crypto.randomUUID() } });
+    expect(data).toBeNull();
+    expect(error?.code).toBe("42501");
+    expect(await count()).toHaveLength(4);
   });
 });
 

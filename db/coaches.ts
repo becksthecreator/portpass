@@ -2,7 +2,7 @@ import { FUTPREP_BANK_DETAILS } from "@/app/futprep/config";
 import { sendPrivateSessionAcceptedEmail } from "@/lib/email";
 import { afterResponse } from "@/lib/afterResponse";
 import { defaultPrefix } from "@/lib/paymentRequests/rules";
-import { childrenAllowed, privatePaymentStatus, privateSessionCode, serviceFromRow, sessionTotalCents, weeklySlotDates, type PrivateService } from "@/lib/privateSessions";
+import { childrenAllowed, privateSessionCode, serviceFromRow, sessionTotalCents, weeklySlotDates, type PrivateService } from "@/lib/privateSessions";
 import { awayMessage, cleanWorkingDays, dayOffMessage, isWorkingDay } from "@/lib/workingDays";
 import { nassauToday } from "@/lib/futprepTerms";
 import type { Attribution } from "@/lib/attribution";
@@ -465,26 +465,20 @@ export async function addWeeklyCoachSlots(input:{
 }
 
 // Money received for a private session, against its reference; the
-// request's payment status follows what has been received.
+// request's payment status follows what has been received. One database
+// call (private_session_record_payment, migration 202610230003) inserts,
+// totals and updates with the request locked; the form's key makes a
+// double tap or a retry record it once.
 export async function recordPrivateSessionPayment(input:{
-  requestId:number; amountCents:number; method:"cash"|"bank_transfer"|"online_banking"; reference:string; recordedBy:string;
+  requestId:number; amountCents:number; method:"cash"|"bank_transfer"|"online_banking"; reference:string; recordedBy:string; idempotencyKey:string;
 }):Promise<{paymentStatus:"unpaid"|"partial"|"paid";paidCents:number}>{
   if(!Number.isInteger(input.amountCents)||input.amountCents<=0) throw new Error("INVALID_AMOUNT");
-  const db=getSupabaseAdmin();
-  const {data:request,error:loadError}=await db.from("private_session_requests").select("id,price_cents,status").eq("id",input.requestId).maybeSingle();
-  throwIfSupabaseError(loadError,"Could not load private session");
-  if(!request) throw new Error("REQUEST_NOT_FOUND");
-  const now=new Date().toISOString();
-  const {error}=await db.from("payments").insert({private_session_request_id:input.requestId,amount_cents:input.amountCents,method:input.method,reference:input.reference.trim()||null,recorded_by:input.recordedBy,received_at:now,status:"received",note:"Private session"});
+  const {data,error}=await getSupabaseAdmin().rpc("private_session_record_payment",{p:{request_id:input.requestId,amount_cents:input.amountCents,method:input.method,reference:input.reference,recorded_by:input.recordedBy,idempotency_key:input.idempotencyKey}});
+  const code=/PRIVATE_SESSION_PAYMENT_([A-Z_]+)/.exec(error?.message??"")?.[1];
+  if(code) throw new Error(code);
   throwIfSupabaseError(error,"Could not record the payment");
-  const {data:rows,error:sumError}=await db.from("payments").select("amount_cents").eq("private_session_request_id",input.requestId).eq("status","received");
-  throwIfSupabaseError(sumError,"Could not total the payments");
-  const paidCents=(rows??[]).reduce((sum,row)=>sum+Number(row.amount_cents),0);
-  const paymentStatus=privatePaymentStatus(request.price_cents===null?null:Number(request.price_cents),paidCents);
-  const {error:updateError}=await db.from("private_session_requests").update({payment_status:paymentStatus,updated_at:now}).eq("id",input.requestId);
-  throwIfSupabaseError(updateError,"Could not update the payment status");
-  await db.from("private_session_events").insert({request_id:input.requestId,actor_account:input.recordedBy,action:"payment",note:`Recorded ${input.amountCents} cents (${input.method})`});
-  return {paymentStatus,paidCents};
+  const result=data as {paid_cents:number;payment_status:"unpaid"|"partial"|"paid"};
+  return {paymentStatus:result.payment_status,paidCents:Number(result.paid_cents)};
 }
 
 // For the growth report (brief 05 Part 2 / 06 Part B): requested,

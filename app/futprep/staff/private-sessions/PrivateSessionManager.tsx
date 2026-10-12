@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import type { CoachProfile, PrivateSessionRequest } from "@/db/coaches";
 
 type ServiceName = { slug: string; name: string };
@@ -17,6 +17,9 @@ export function PrivateSessionManager({ initialRequests, coaches, services, sche
   const [requests, setRequests] = useState(initialRequests);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  // One key per payment, by request: a double tap or a retry sends the same
+  // one and the payment is recorded once; a new one after it is recorded.
+  const paymentKeys = useRef(new Map<number, string>());
   const serviceName = (slug: string | null) => services.find((s) => s.slug === slug)?.name ?? null;
 
   async function act(id: number, action: string, coachId?: number, targetCoachId?: number, reason?: string) {
@@ -51,9 +54,12 @@ export function PrivateSessionManager({ initialRequests, coaches, services, sche
     const formEl = event.currentTarget;
     const form = new FormData(formEl);
     setMessage("");
-    const response = await fetch(`/api/futprep/private-sessions/${id}/payments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amountDollars: Number(form.get("amount")), method: form.get("method"), reference: form.get("reference") }) });
+    const idempotencyKey = paymentKeys.current.get(id) ?? crypto.randomUUID();
+    paymentKeys.current.set(id, idempotencyKey);
+    const response = await fetch(`/api/futprep/private-sessions/${id}/payments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amountDollars: Number(form.get("amount")), method: form.get("method"), reference: form.get("reference"), idempotencyKey }) });
     const data = (await response.json()) as { error?: string; requests?: PrivateSessionRequest[] };
     if (!response.ok) { setMessage(data.error ?? "Could not record the payment."); return; }
+    if (paymentKeys.current.get(id) === idempotencyKey) paymentKeys.current.delete(id);
     if (data.requests) setRequests(data.requests);
     formEl.reset();
     setMessage("Payment recorded.");
