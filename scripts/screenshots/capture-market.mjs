@@ -161,6 +161,8 @@ try {
   }
   await shoot(seller, "market-c-seller-orders-375", `/business/${shop.slug}/shop/orders`, { focus: ".seller-reservations" });
   await shoot(seller, "market-c-order-paid-375", `/order/${first.data.referenceCode}`, { focus: ".ord-steps" });
+  // Part D: the owner's own PortPass Points on the account page.
+  await shoot(seller, "market-d-account-points-375", "/account", { focus: "#account-points" });
   await owner.close();
 
   // The TEST platform owner: Admin -> Market -> Sellers.

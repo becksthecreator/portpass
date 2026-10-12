@@ -28,6 +28,11 @@ const OWNER_ONLY = [
   // PortPass Market (brief 25): a Market order's lines, and the views over orders.
   "order_items", "orders", "market_products", "market_things_to_do",
 ];
+
+// Own rows (brief 25, D): a signed-in account reads only its own
+// (db/points.integration.test.ts proves it with two accounts); a browser
+// key without a session gets nothing, like the owner-only tables.
+const OWN_ROWS = ["points_accounts", "points_events"];
 const PLATFORM_ONLY = [
   "admin_links", "applications", "billing_accounts", "billing_events", "billing_reminders", "commission_plans", "interest_submissions", "job_runs", "leads",
   "organization_claim_links", "portpass_invoice_counters", "portpass_invoice_lines", "portpass_invoices", "portpass_receipts", "scout_lookups", "site_content",
@@ -106,7 +111,7 @@ describe.skipIf(!anonKey)("row level security, seen through a browser key", () =
   });
 
   it("every owner-only and platform-only table gives a browser key nothing", async () => {
-    for (const table of [...OWNER_ONLY, ...PLATFORM_ONLY]) await nothingComesBack(table);
+    for (const table of [...OWNER_ONLY, ...PLATFORM_ONLY, ...OWN_ROWS]) await nothingComesBack(table);
   });
 
   it("organizations: only published, non-demo rows, and only the public columns", async () => {
