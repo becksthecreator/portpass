@@ -152,7 +152,20 @@ async function main() {
   const { data: dreRow, error: dreRowError } = await db.from("staff_members").insert({ organization_id: 1, name: `${MARK} Coach Zed`, role: "coach", responsibilities: "", active: true }).select("id").single();
   if (dreRowError || !dreRow) throw new Error(`Could not seed Dre's staff row: ${dreRowError?.message}`);
   await db.from("coach_profiles").update({ staff_member_id: dreRow.id }).eq("id", dre);
-  await db.from("programs").update({ default_lead_coach_id: bex, field_cost_cents_per_term: 20000 }).eq("id", program.id);
+  // Brief 31 (B): a TEST place with its cost, used by the TEST class with
+  // no field cost of its own, so Coach pay shows one "estimated from
+  // location"; and a TEST place with no cost yet, for the operating map's
+  // Missing list.
+  const { data: places, error: placeError } = await db
+    .from("locations")
+    .insert([
+      { organization_id: org.id, name: `${MARK} field`, map_label: "TEST area", address: "TEST address", active: true, cost_model: "per_hour", cost_cents: 4000, surface: "grass", private_sessions_ok: true, days_available: [6], hours_note: "TEST Saturday mornings" },
+      { organization_id: org.id, name: `${MARK} gym`, map_label: "TEST area", address: "TEST address", active: true, cost_model: null, cost_cents: null, surface: null, private_sessions_ok: false, days_available: null, hours_note: null },
+    ])
+    .select("id,name");
+  if (placeError || !places?.length) throw new Error(`Could not seed the TEST places: ${placeError?.message}`);
+  const field = places.find((place) => place.name === `${MARK} field`)!;
+  await db.from("programs").update({ default_lead_coach_id: bex, field_cost_cents_per_term: null, location_id: field.id }).eq("id", program.id);
   const { data: played } = await db.from("sessions").select("id,session_date").eq("term_id", term.id).lt("session_date", iso(nextSaturday)).order("session_date");
   const staffing = (played ?? []).flatMap((s, i) => [
     { session_id: s.id, coach_id: bex, role: "lead", pay_cents: 5000, paid_at: i === 0 ? now : null, created_by: MARK },

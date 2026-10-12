@@ -6,6 +6,7 @@ import { summarizePay } from "@/lib/coachPay";
 import { StaffLogoutButton } from "../StaffLogoutButton";
 import { payNeedsStepUp, resolvePayAccess } from "./access";
 import { CoachPayManager } from "./CoachPayManager";
+import "../coaches.css";
 
 export const dynamic = "force-dynamic";
 

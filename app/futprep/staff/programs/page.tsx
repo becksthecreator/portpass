@@ -23,6 +23,7 @@ export default async function FutprepProgramsPage() {
           {role === "admin" && <Link href="/futprep/staff/admin">Registration desk</Link>}
           {role === "coach" && <Link href="/futprep/staff/coach">Coach workspace</Link>}
           {role === "ceo" && <Link href="/futprep/staff/ceo">CEO overview</Link>}
+          {(role === "admin" || role === "ceo") && <Link href="/futprep/staff/locations">Locations</Link>}
           <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
           <StaffLogoutButton />
         </nav>

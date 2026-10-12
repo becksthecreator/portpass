@@ -101,6 +101,14 @@ const SHOTS = [
   ["brief31-registration-no-medical-375", "test-desk", `/futprep/staff/admin/${fixture.registrationId}`, ".detail-panel-wide"],
   ["brief31-roster-no-health-375", "test-coach", `/futprep/staff/coach?session=${fixture.sessionId}`, ".coach-roster details[open]", ".coach-roster details > summary"],
   ["brief31-admin-futprep-owner-375", "admin", "/admin/people", "#futprep-owner"],
+  // Brief 31 (B): Locations (and one place's edit form), the operating
+  // map at phone and desk width, and Coach pay's field cost estimated
+  // from the place.
+  ["brief31-locations-375", "test-ceo", "/futprep/staff/locations", ".team-manager-grid"],
+  ["brief31-locations-edit-375", "test-desk", "/futprep/staff/locations", ".location-edit[open]", ".location-edit > summary"],
+  ["brief31-ops-375", "test-ceo", "/futprep/staff/ops", ".ops-missing"],
+  ["brief31-ops-1440", "test-desk", "/futprep/staff/ops", ".ops-missing"],
+  ["brief31-pay-estimate-375", "test-ceo", "/futprep/staff/pay", "#pay-pnl"],
   // Brief 05: the growth report, with the CEO login.
   ["brief05-growth-report-375", "test-ceo", "/futprep/staff/growth", ".growth-panel"],
   // Brief 08: Admin -> Businesses (approve, send back, publish, claim link,
@@ -325,6 +333,8 @@ try {
     let loaded = started;
     try {
       const page = await pageFor(account);
+      // Phone width unless the name says desk width (brief 31: "-1440").
+      await page.setViewportSize(name.endsWith("-1440") ? { width: 1440, height: 900 } : { width: 375, height: 812 });
       await page.goto(`${BASE}${path}`, { waitUntil: "networkidle", timeout: 60_000 });
       if (press) {
         await page.locator(press).first().click();

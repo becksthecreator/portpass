@@ -4,14 +4,19 @@
 // everyone's; a coach sees only their own.
 import {
   contractInvoiceCents,
+  estimateFieldCostCents,
+  fieldCostFor,
   leftForFutprep,
   monthOf,
   payForRole,
   portpassFeeCents,
+  sessionMinutes,
   shareFee,
   type ContractBilling,
   type ContractLine,
   type LedgerRow,
+  type LocationCost,
+  type LocationCostModel,
   type PnlLine,
   type StaffRole,
 } from "@/lib/coachPay";
@@ -281,6 +286,7 @@ export async function listStaffLogins(): Promise<Array<{ id: number; name: strin
 
 type ProgramRow = {
   id: number; name: string; program_type: string; field_cost_cents_per_term: number | null;
+  location_id: number | null; start_time: string | null; end_time: string | null;
   contract_client: string | null; contract_fee_cents: number | null; contract_billing: string | null;
 };
 type TermRow = { id: number; program_id: number; name: string; start_date: string };
@@ -290,7 +296,7 @@ async function loadProgramsAndTerms() {
   const organizationId = await futprepOrganizationId();
   const { data: programs, error } = await db
     .from("programs")
-    .select("id,name,program_type,field_cost_cents_per_term,contract_client,contract_fee_cents,contract_billing")
+    .select("id,name,program_type,field_cost_cents_per_term,contract_client,contract_fee_cents,contract_billing,location_id,start_time,end_time")
     .eq("organization_id", organizationId);
   throwIfSupabaseError(error, "Could not load programs");
   const programList = (programs ?? []) as ProgramRow[];
@@ -384,6 +390,40 @@ export async function listProgramPnl(): Promise<PnlLine[]> {
   }
   const contractLines = await listContractLines();
 
+  // Brief 31 (B3): a program with no field cost of its own is costed from
+  // its location and the term's scheduled sessions, and says so.
+  const locationIds = [...new Set(programs.map((p) => p.location_id).filter((id): id is number => id !== null))];
+  const { data: locationRows, error: locationError } = locationIds.length
+    ? await db.from("locations").select("id,cost_model,cost_cents").eq("organization_id", await futprepOrganizationId()).in("id", locationIds)
+    : { data: [], error: null };
+  throwIfSupabaseError(locationError, "Could not load location costs");
+  const locationCost = new Map((locationRows ?? []).map((row): [number, LocationCost] => [Number(row.id), { costModel: (row.cost_model as LocationCostModel | null) ?? null, costCents: row.cost_cents === null ? null : Number(row.cost_cents) }]));
+  const { scheduled } = await sessionCounts(db, termIds);
+  // A place paid by the term is shared by the programs that use it in the
+  // same term (same name and start) and appear on the P&L, split exactly
+  // (shareFee), so the lines add up to the place's cost, counted once. A
+  // program with its own field figure, or a school contract, doesn't share.
+  const placeTermKey = (locationId: number, term: TermRow) => `${locationId}|${term.name}|${term.start_date}`;
+  const sharers = new Map<string, { locationId: number; termIds: number[] }>();
+  for (const term of terms) {
+    const sharer = programs.find((p) => p.id === Number(term.program_id));
+    if (!sharer || sharer.field_cost_cents_per_term !== null || sharer.program_type === "contract" || sharer.location_id === null) continue;
+    const termId = Number(term.id);
+    if ((collected.get(termId) ?? 0) === 0 && (coachPay.get(termId) ?? 0) === 0) continue;
+    const locationId = Number(sharer.location_id);
+    const key = placeTermKey(locationId, term);
+    const entry = sharers.get(key) ?? { locationId, termIds: [] };
+    entry.termIds.push(termId);
+    sharers.set(key, entry);
+  }
+  const termShare = new Map<number, number>();
+  for (const { locationId, termIds } of sharers.values()) {
+    const cost = locationCost.get(locationId);
+    if (cost?.costModel !== "per_term" || cost.costCents === null) continue;
+    const shares = shareFee(cost.costCents, termIds.map(() => 1));
+    termIds.forEach((termId, i) => termShare.set(termId, shares[i]));
+  }
+
   // The PortPass fee is capped per term across the classes that share it.
   const programById = new Map(programs.map((p) => [p.id, p]));
   const groups = new Map<string, number[]>();
@@ -418,7 +458,13 @@ export async function listProgramPnl(): Promise<PnlLine[]> {
       kind,
       feesCollectedCents,
       coachPayCents,
-      fieldCostCents: Number(program.field_cost_cents_per_term ?? 0),
+      ...(() => {
+        const estimate = termShare.has(termId)
+          ? termShare.get(termId)!
+          : estimateFieldCostCents(program.location_id === null ? null : locationCost.get(Number(program.location_id)) ?? null, scheduled.get(termId) ?? 0, sessionMinutes(program.start_time, program.end_time));
+        const field = fieldCostFor(program.field_cost_cents_per_term === null ? null : Number(program.field_cost_cents_per_term), estimate);
+        return { fieldCostCents: field.cents, fieldCostSource: field.source, fieldCostEstimateCents: estimate };
+      })(),
       portpassFeeCents: fee.get(termId) ?? 0,
     };
     lines.push({ ...base, leftCents: leftForFutprep(base), startDate: term.start_date });
