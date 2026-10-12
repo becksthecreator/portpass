@@ -71,10 +71,35 @@ async function phone(browser) {
   return context.newPage();
 }
 
-// No horizontal scroll at 375px.
+// No horizontal scroll at 375px. A page that scrolls sideways is listed
+// with the elements that stick out (the innermost ones, outside any box
+// that scrolls on its own), and fails the run at the end, so the walk
+// still goes on to the next step.
+const tooWide = [];
 async function fits(page) {
-  const wide = await page.evaluate(() => document.documentElement.scrollWidth);
-  expect(wide <= 375, `The page is ${wide}px wide at 375px.`);
+  const found = await page.evaluate(() => {
+    const view = document.documentElement.clientWidth;
+    const width = document.documentElement.scrollWidth;
+    if (width <= view) return { width, offenders: [] };
+    const scrollsOwn = (el) => {
+      for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+        if (["auto", "scroll", "hidden", "clip"].includes(getComputedStyle(p).overflowX)) return true;
+      }
+      return false;
+    };
+    const over = (el) => el.getBoundingClientRect().right > view + 1;
+    const name = (el) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${typeof el.className === "string" && el.className.trim() ? `.${el.className.trim().split(/\s+/).join(".")}` : ""}`;
+    const offenders = [...document.querySelectorAll("body *")]
+      .filter((el) => over(el) && !scrollsOwn(el) && ![...el.children].some(over))
+      .slice(0, 6)
+      .map((el) => `${name(el)} ${Math.round(el.getBoundingClientRect().width)}px wide, ends at ${Math.round(el.getBoundingClientRect().right)}px; inside ${el.parentElement ? name(el.parentElement) : "body"}`);
+    return { width, offenders };
+  });
+  if (found.offenders.length || found.width > 375) {
+    const where = new URL(page.url()).pathname;
+    tooWide.push({ where, width: found.width, offenders: found.offenders });
+    console.error(`WIDE ${where}: ${found.width}px\n  ${found.offenders.join("\n  ")}`);
+  }
 }
 
 // The real PIN form, as a coach does it at the field.
@@ -235,4 +260,8 @@ await browser.close();
 
 console.log("\n| Step | Result | Time | Note |\n|---|---|---|---|");
 for (const r of results) console.log(`| ${r.name} | ${r.ok ? "ok" : "**FAIL**"} | ${(r.ms / 1000).toFixed(1)} s | ${r.note.replace(/\|/g, "/")} |`);
-if (failed) process.exit(1);
+const uniqueWide = [...new Map(tooWide.map((w) => [w.where, w])).values()];
+console.log(`\n| Page at 375px | Width | Sticks out |\n|---|---|---|`);
+for (const w of uniqueWide) console.log(`| ${w.where} | ${w.width}px | ${w.offenders.join("; ").replace(/\|/g, "/") || "—"} |`);
+if (!uniqueWide.length) console.log("| every page | 375px | nothing |");
+if (failed || uniqueWide.length) process.exit(1);
