@@ -14,13 +14,14 @@
 // needs to $MARKET_FIXTURE.
 import { writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 
 async function main() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;
   const out = process.env.MARKET_FIXTURE;
   if (!url || !key || !out) throw new Error("SUPABASE_URL, SUPABASE_SECRET_KEY and MARKET_FIXTURE must be set.");
-  if (!url.includes("127.0.0.1") && !url.includes("localhost")) throw new Error("Refusing to seed anything but a local Supabase stack.");
+  assertLocalSupabase();
   const db = createClient(url, key);
 
   const adminEmail = "test-delete-market-admin@test.portpass.local";

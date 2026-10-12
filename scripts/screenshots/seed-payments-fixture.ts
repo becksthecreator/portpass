@@ -8,6 +8,7 @@
 import { randomBytes } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 
 const nassauDay = (offsetDays: number) => new Date(Date.now() + offsetDays * 86_400_000).toLocaleDateString("en-CA", { timeZone: "America/Nassau" });
 const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
@@ -35,7 +36,7 @@ async function main() {
   const key = process.env.SUPABASE_SECRET_KEY;
   const out = process.env.SCREENSHOT_FIXTURE;
   if (!url || !key || !out) throw new Error("SUPABASE_URL, SUPABASE_SECRET_KEY and SCREENSHOT_FIXTURE must be set.");
-  if (!url.includes("127.0.0.1") && !url.includes("localhost")) throw new Error("Refusing to seed anything but a local Supabase stack.");
+  assertLocalSupabase();
   const db = createClient(url, key);
 
   const ownerEmail = "test-delete-pay-owner@test.portpass.local";

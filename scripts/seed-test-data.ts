@@ -15,7 +15,7 @@
 // simplest way around that for a script that only ever runs in CI/locally,
 // never inside the app itself.
 import { createClient } from "@supabase/supabase-js";
-import { assertLocalSupabase } from "../lib/localStackOnly";
+import { assertLocalSupabase } from "../lib/localStackOnly.mjs";
 
 async function main() {
   // A local Supabase stack only, never a real project (audit finding 7).

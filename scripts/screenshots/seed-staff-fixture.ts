@@ -13,6 +13,7 @@
 import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 
 const MARK = "TEST — delete";
 
@@ -32,7 +33,7 @@ async function main() {
   const pin = process.env.SCREENSHOT_PIN;
   const out = process.env.SCREENSHOT_FIXTURE;
   if (!url || !key || !pin || !out) throw new Error("SUPABASE_URL, SUPABASE_SECRET_KEY, SCREENSHOT_PIN and SCREENSHOT_FIXTURE must be set.");
-  if (!url.includes("127.0.0.1") && !url.includes("localhost")) throw new Error("Refusing to seed anything but a local Supabase stack.");
+  assertLocalSupabase();
   const db = createClient(url, key);
 
   const { data: org, error: orgError } = await db.from("organizations").select("id").eq("slug", "futprep").single();
