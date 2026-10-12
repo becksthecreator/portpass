@@ -49,3 +49,20 @@
 /* 44px tap targets on Coach pay and the operating map (brief 31 review). */
 .pay-rate-fields input,.pay-rate-fields select,.pay-field-edit input{min-height:44px}
 .pay-card button{min-height:44px}
+
+/* Progress Passport on the roster (brief 31, D): one tap per score, each a
+   44px target, five to a row at 375px. */
+.passport-panel{margin-top:10px}
+.passport-panel>summary{min-height:44px;display:flex;align-items:center;font-weight:800;cursor:pointer}
+.passport-body{display:grid;gap:12px;padding:6px 0 4px}
+.passport-hint{margin:0;font-size:.8rem;opacity:.8;line-height:1.45}
+.passport-skill{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center}
+.passport-skill>strong{grid-column:1/-1}
+.passport-phase{font-size:.72rem;opacity:.75}
+.passport-scores{display:grid;grid-template-columns:repeat(5,minmax(44px,1fr));gap:6px}
+.passport-scores button{min-height:44px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--text);font-weight:800;cursor:pointer}
+.passport-scores button.is-active{background:var(--signal);border-color:var(--signal);color:#fff}
+.passport-scores button:disabled{opacity:.45;cursor:default}
+.passport-scores button.is-active:disabled{opacity:.85}
+.passport-share{min-height:44px;padding:0 16px;border:0;border-radius:999px;background:var(--signal);color:#fff;font-weight:800;cursor:pointer;justify-self:start}
+.passport-share:disabled{opacity:.5;cursor:default}

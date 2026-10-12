@@ -119,6 +119,14 @@ const SHOTS = [
   ["brief31-ops-private-rates-375", "test-desk", "/futprep/staff/ops", "#ops-pay"],
   ["brief31-pay-private-375", "test-coach", "/futprep/staff/pay", "#pay-private"],
   ["brief31-book-place-375", "anon", "/futprep/book?coach=test-delete-coach-bex", ".private-session-two"],
+  // Brief 31 (D): a child's Progress Passport opened on the roster, and the
+  // family's lookup once it is shared.
+  ["brief31-passport-roster-375", "test-coach", `/futprep/staff/coach?session=${fixture.sessionId}`, ".passport-body", ".passport-panel > summary"],
+  ["brief31-passport-family-375", "anon", "/futprep/my/FP-TEST-0001", ".my-status-passport", null, async (page) => {
+    await page.locator('input[type="date"]').fill("2022-03-01");
+    await page.locator(".my-lookup-form button[type=submit]").click();
+    await page.locator(".my-status-passport").waitFor({ timeout: 30_000 });
+  }],
   // Brief 05: the growth report, with the CEO login.
   ["brief05-growth-report-375", "test-ceo", "/futprep/staff/growth", ".growth-panel"],
   // Brief 08: Admin -> Businesses (approve, send back, publish, claim link,

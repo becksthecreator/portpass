@@ -14,6 +14,7 @@ import { getSessionStaff, listPayCoaches } from "@/db/coachPay";
 import { CoachRoster } from "./CoachRoster";
 import { CoachSessionTools } from "./CoachSessionTools";
 import { StaffLogoutButton } from "../StaffLogoutButton";
+import "../coaches.css";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,8 @@ export default async function FutprepCoachPage({
   // The Saturday nudge email links to one session's roster. A coach is
   // usually signed out by then, so the session is kept through the sign-in.
   const { session, program } = await searchParams;
-  const role = await requireFutprepStaff(["coach","ceo","helper"], session && /^[0-9]+$/.test(session) ? `/futprep/staff/coach?session=${session}` : "/futprep/staff/coach");
+  // Brief 31 (D): admins too, for passports (Antonio coaches as Coach Bex on an admin login).
+  const role = await requireFutprepStaff(["coach","ceo","helper","admin"], session && /^[0-9]+$/.test(session) ? `/futprep/staff/coach?session=${session}` : "/futprep/staff/coach");
   const readOnly = role === "helper";
   const healthShown = !readOnly && canSeeMedical(role, await currentFutprepStaffCanViewMedical());
   const [staffName, sessions, staffId] = await Promise.all([

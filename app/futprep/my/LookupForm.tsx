@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import type { ParentPassport } from "@/lib/passports/rules";
 
 type StatusResult = {
   referenceCode: string;
@@ -39,6 +40,7 @@ export function LookupForm({ initialCode = "" }: { initialCode?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<StatusResult | null>(null);
+  const [passport, setPassport] = useState<ParentPassport | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,11 +52,13 @@ export function LookupForm({ initialCode = "" }: { initialCode?: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ referenceCode, childDob }),
       });
-      const data = (await response.json()) as { status?: StatusResult; error?: string };
+      const data = (await response.json()) as { status?: StatusResult; passport?: ParentPassport; error?: string };
       if (!response.ok || !data.status) throw new Error(data.error ?? "Lookup failed.");
       setResult(data.status);
+      setPassport(data.passport ?? null);
     } catch (e) {
       setResult(null);
+      setPassport(null);
       setError(e instanceof Error ? e.message : "Lookup failed.");
     } finally {
       setBusy(false);
@@ -103,6 +107,22 @@ export function LookupForm({ initialCode = "" }: { initialCode?: string }) {
           </div>
         )}
 
+        {/* Brief 31 (D): the Progress Passport, once Futprep has shared it. */}
+        {passport && (
+          <section className="my-status-passport" aria-labelledby="passport-title">
+            <span className="choice-heading" id="passport-title">{passport.childFirstName}&apos;s Progress Passport · {passport.termName}</span>
+            <p className="my-status-note">Where {passport.childFirstName} started this term, and where they finished, from 1 (just starting) to 5 (confident).</p>
+            <dl className="my-status-grid">
+              {passport.skills.map((skill) => (
+                <div key={skill.name}><dt>{skill.name}</dt><dd>{skill.start ?? "–"} → {skill.end ?? "–"}</dd></div>
+              ))}
+            </dl>
+            {passport.note && <p className="my-status-note">&ldquo;{passport.note}&rdquo;</p>}
+            {passport.clipUrl && <a className="secondary-button" href={passport.clipUrl} target="_blank" rel="noopener noreferrer">Watch the clip ↗</a>}
+            {passport.nextStep && <p className="my-status-note">Next step the coach suggests: <strong>{passport.nextStep.name}</strong></p>}
+          </section>
+        )}
+
         <a
           className="secondary-button"
           href={`/futprep/register?${new URLSearchParams({
@@ -114,7 +134,7 @@ export function LookupForm({ initialCode = "" }: { initialCode?: string }) {
         >
           Register another child →
         </a>
-        <button type="button" className="my-status-back" onClick={() => setResult(null)}>← Look up a different registration</button>
+        <button type="button" className="my-status-back" onClick={() => { setResult(null); setPassport(null); }}>← Look up a different registration</button>
       </section>
     );
   }

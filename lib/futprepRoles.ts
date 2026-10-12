@@ -27,11 +27,13 @@ export type FutprepCapability =
   | "own_pay"
   | "all_pay"
   | "own_passports"
+  // Brief 31 (D): every child's passport, to score or share.
+  | "all_passports"
   | "roster";
 
 const CAN: Record<FutprepRole, FutprepCapability[]> = {
-  ceo: ["prices", "pay_rates", "private_pay_rates", "locations", "team", "accounts", "registrations", "payments", "schedules", "own_sessions", "own_inbox", "all_inboxes", "own_days", "own_pay", "all_pay", "own_passports", "roster"],
-  admin: ["private_pay_rates", "locations", "team", "accounts", "registrations", "payments", "schedules", "own_inbox", "all_inboxes", "own_days", "own_pay"],
+  ceo: ["prices", "pay_rates", "private_pay_rates", "locations", "team", "accounts", "registrations", "payments", "schedules", "own_sessions", "own_inbox", "all_inboxes", "own_days", "own_pay", "all_pay", "own_passports", "all_passports", "roster"],
+  admin: ["private_pay_rates", "locations", "team", "accounts", "registrations", "payments", "schedules", "own_inbox", "all_inboxes", "own_days", "own_pay", "all_passports", "roster"],
   coach: ["own_sessions", "own_inbox", "own_days", "own_pay", "own_passports", "roster"],
   helper: ["roster"],
 };
@@ -113,4 +115,11 @@ export function missingForLogin(state: LoginState): string[] {
   if (!state.hasPin) out.push("No PIN yet");
   if (!state.active) out.push("Login switched off");
   return out;
+}
+
+// The coaching workspace (roster, attendance, passports): coaches, the CEO,
+// helpers read-only, and (brief 31, D) admins, since Antonio coaches as
+// Coach Bex on an admin login.
+export function canOpenCoachWorkspace(role: FutprepRole | null | undefined): boolean {
+  return role === "coach" || role === "ceo" || role === "helper" || role === "admin";
 }

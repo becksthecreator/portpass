@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AttendanceRow, RosterPayment, StaffSession } from "@/db/staff";
 import { ratioSummary } from "@/lib/futprepClasses";
 import type { SessionStaffEntry } from "@/db/coachPay";
+import { PassportPanel } from "./PassportPanel";
 
 type StaffPick = SessionStaffEntry & { unsaved?: boolean };
 
@@ -408,6 +409,8 @@ export function CoachRoster({
                   emergency details: for a helper the page's roster query
                   doesn't select those columns at all (db/staff.ts). */}
               {!readOnly && !isContract && <details><summary>Safety notes</summary><p><b>Emergency:</b> {row.emergency_contact_name ? `${row.emergency_contact_name} · ${row.emergency_contact_phone ?? ""}` : "No information on file yet"}</p><p><b>Authorized pickup:</b> {row.authorized_pickup ?? "No information on file yet"}</p>{healthHidden ? <p><b>Health notes:</b> shown to the coaches Alex has allowed. Ask the desk before the session.</p> : <><p><b>Allergies:</b> {row.allergies === null ? "No information on file yet" : row.allergies || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Medical:</b> {row.medical_conditions === null ? "No information on file yet" : row.medical_conditions || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Medications:</b> {row.medications === null ? "No information on file yet" : row.medications || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Special needs:</b> {row.special_needs === null ? "No information on file yet" : row.special_needs || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p></>}</details>}
+              {/* Brief 31 (D): the child's Progress Passport, opened on tap. */}
+              {!readOnly && !isContract && row.registration_status !== "trial" && <PassportPanel registrationId={row.registration_id} childName={row.child_name} />}
               {readOnly ? (
                 <div className="attendance-actions attendance-actions-readonly">
                   <span className={row.attendance_status ? "is-active" : ""}>{row.attendance_status ?? "Not marked yet"}</span>

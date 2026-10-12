@@ -5,7 +5,7 @@ Who can do what on the Futprep staff screens (`/futprep/staff/…`, staff PIN si
 | Role | Who today | Can |
 |---|---|---|
 | `ceo` (owner) | Alex | Everything: prices, pay rates, locations, team, money, medical view |
-| `admin` | Antonio, Adon, Kiki | Registrations, payments, team, locations, schedules (programs, with the fees Alex sets), private-session pay rates, everyone's private-session inbox, medical view only if `can_view_medical` |
+| `admin` | Antonio, Adon, Kiki | Registrations, payments, team, locations, schedules (programs, with the fees Alex sets), private-session pay rates, everyone's private-session inbox, every child's Progress Passport (and the coaching workspace), medical view only if `can_view_medical` |
 | `coach` | Ronaldo, Dre, Ricardo (Bex coaches on admin login 39) | Own sessions, own private-session inbox, own days and blocked dates, own pay (read-only), passports for own players, children's health notes on the roster only if `can_view_medical` |
 | `helper` | (none yet) | The roster for the session they're on, read-only: names and parent phone, no safety or health notes |
 

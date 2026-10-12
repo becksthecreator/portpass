@@ -3853,6 +3853,9 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .my-status-note{border-left:3px solid var(--line);font-size:.92rem;line-height:1.5;margin:0;padding:4px 0 4px 14px}
 .my-status-sessions ul{list-style:none;margin:10px 0 0;max-height:200px;overflow-y:auto;padding:0}
 .my-status-sessions li{border-top:1px solid var(--line);font-size:.85rem;padding:9px 0}
+/* Brief 31 (D): the Progress Passport on the family's status card. */
+.my-status-passport{border-top:1px solid var(--line);display:grid;gap:10px;margin-top:18px;padding-top:16px}
+.my-status-passport .secondary-button{justify-self:start}
 .my-status-back{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:.8rem;padding:0;text-align:left;text-decoration:underline}
 @media(max-width:560px){
   .my-status-grid{grid-template-columns:1fr}

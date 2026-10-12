@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { canBeOwner, canChangePrograms, canMarkOwner, canSeeMedical, canSetMedicalSwitch, FUTPREP_ROLES, missingForLogin, roleCan, withoutHealthDetail, withoutHealthInput } from "./futprepRoles";
+import { canOpenCoachWorkspace, canBeOwner, canChangePrograms, canMarkOwner, canSeeMedical, canSetMedicalSwitch, FUTPREP_ROLES, missingForLogin, roleCan, withoutHealthDetail, withoutHealthInput } from "./futprepRoles";
 
 // docs/futprep/roles.md is what Futprep was told; this keeps the code to it.
 const doc = readFileSync(join(process.cwd(), "docs/futprep/roles.md"), "utf8");
@@ -32,6 +32,17 @@ describe("Futprep roles (brief 31, Part A)", () => {
     for (const capability of ["all_inboxes", "all_pay", "registrations", "payments", "team", "prices"] as const) {
       expect(roleCan("coach", capability)).toBe(false);
     }
+  });
+
+  it("gives every passport to admins and the owner, a coach only their own, a helper none (brief 31, D)", () => {
+    expect(FUTPREP_ROLES.filter((role) => roleCan(role, "all_passports")).sort()).toEqual(["admin", "ceo"]);
+    expect(FUTPREP_ROLES.filter((role) => roleCan(role, "own_passports")).sort()).toEqual(["ceo", "coach"]);
+    expect(roleCan("helper", "own_passports") || roleCan("helper", "all_passports")).toBe(false);
+  });
+
+  it("lets an admin login open the coaching workspace (Coach Bex is admin login 39)", () => {
+    for (const role of ["coach", "ceo", "helper", "admin"] as const) expect(canOpenCoachWorkspace(role)).toBe(true);
+    expect(canOpenCoachWorkspace(null)).toBe(false);
   });
 
   it("gives a helper the roster and nothing else", () => {

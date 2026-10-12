@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { bodyOf, readJson } from "@/lib/api/body";
 import { getFutprepRegistrationStatus } from "@/db/registrations";
+import { sharedPassportFor } from "@/db/passports";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_ATTEMPTS = 8;
@@ -41,7 +42,13 @@ export async function POST(request: Request) {
     if (!status) {
       return NextResponse.json({ error: "We couldn't find a registration matching that code and date of birth." }, { status: 404 });
     }
-    return NextResponse.json({ status });
+    // Brief 31 (D): the child's Progress Passport, once Futprep has shared
+    // it. A draft answers exactly as no passport does.
+    const passport = await sharedPassportFor(status.referenceCode).catch((error) => {
+      console.error("Futprep passport lookup error", error instanceof Error ? error.message : "");
+      return null;
+    });
+    return NextResponse.json(passport ? { status, passport } : { status });
   } catch (error) {
     console.error("Futprep registration lookup error", error);
     return NextResponse.json({ error: "Lookup is temporarily unavailable." }, { status: 500 });

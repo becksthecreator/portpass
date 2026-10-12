@@ -1,6 +1,7 @@
 import { listPayCoaches, listPrivateRateCoaches, type PayCoach, type PrivateRateCoach } from "./coachPay";
 import { listAllCoachProfiles, listFutprepPrivateServices, type CoachProfile } from "./coaches";
 import { listFutprepLocations } from "./futprepLocations";
+import { passportCounts, type PassportCount } from "./passports";
 import { futprepOrganizationId, listFutprepPrograms, type FutprepProgramSummary } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 import type { FutprepLocation } from "@/lib/futprepLocations";
@@ -25,18 +26,21 @@ export type OpsMap = {
   // Brief 31 (C5): what each coach is paid for a private session, for the
   // CEO and admins who set it. Never the class rates.
   privateRates: PrivateRateCoach[] | null;
+  // Brief 31 (D): how far each term's Progress Passports have got. Counts only.
+  passports: PassportCount[];
 };
 
 export async function loadOpsMap(role: FutprepRole): Promise<OpsMap> {
   const db = getSupabaseAdmin();
   const organizationId = await futprepOrganizationId();
-  const [programs, locations, services, profiles, pay, privateRates, { data: rules, error }] = await Promise.all([
+  const [programs, locations, services, profiles, pay, privateRates, passports, { data: rules, error }] = await Promise.all([
     listFutprepPrograms(organizationId),
     listFutprepLocations(),
     listFutprepPrivateServices(),
     listAllCoachProfiles({ withLogin: true }),
     roleCan(role, "all_pay") ? listPayCoaches() : Promise.resolve(null),
     roleCan(role, "private_pay_rates") ? listPrivateRateCoaches() : Promise.resolve(null),
+    passportCounts(),
     db.from("programs").select("id,default_coaches,children_per_coach").eq("organization_id", organizationId),
   ]);
   throwIfSupabaseError(error, "Could not load class sizes");
@@ -49,5 +53,6 @@ export async function loadOpsMap(role: FutprepRole): Promise<OpsMap> {
     coaches: coaches.filter((coach) => coach.organization_id === organizationId),
     pay,
     privateRates,
+    passports,
   };
 }

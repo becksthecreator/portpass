@@ -207,6 +207,19 @@ async function main() {
     if (reg.reference_code === "FP-TEST-0001") await db.from("registrations").update({ commission_eligible: true }).eq("id", reg.id);
   }
 
+  // Brief 31 (D): a shared Progress Passport for TEST child A (FP-TEST-0001),
+  // start and end marks on every football skill and a note, so the
+  // family's lookup shows it; the roster opens the others as drafts.
+  const { data: childA } = await db.from("registrations").select("id").eq("program_id", program.id).eq("reference_code", "FP-TEST-0001").single();
+  const { data: footballSkills } = await db.from("passport_skills").select("id").is("organization_id", null).eq("band", "football").order("sort_order");
+  if (!childA || !footballSkills?.length) throw new Error("Could not find the TEST child or the passport skills");
+  const { data: passport, error: passportError } = await db.from("passports").insert({ organization_id: org.id, registration_id: childA.id, band: "football", status: "shared", shared_at: now, shared_by: MARK, created_by: MARK }).select("id").single();
+  if (passportError || !passport) throw new Error(`Could not seed the TEST passport: ${passportError?.message}`);
+  const { error: marksError } = await db.from("passport_marks").insert(footballSkills.map((skill, i) => ({ passport_id: passport.id, skill_id: skill.id, start_score: 2 + (i % 2), end_score: 4 + (i % 2), updated_by: MARK })));
+  if (marksError) throw new Error(`Could not seed the TEST marks: ${marksError.message}`);
+  const { error: noteError } = await db.from("passport_notes").insert({ passport_id: passport.id, note: "TEST: much more confident on the ball this term. Keep practising the weaker foot.", updated_by: MARK });
+  if (noteError) throw new Error(`Could not seed the TEST note: ${noteError.message}`);
+
   // Brief 05: the growth report. The TEST families registered before the
   // term began, one of them brought by PortPass; six children came to all
   // three Saturdays played, two came to none; and some views and taps of

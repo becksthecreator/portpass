@@ -133,6 +133,26 @@ export default async function FutprepOpsPage() {
           )}
         </section>
 
+        <section className="pay-section" aria-labelledby="ops-passports">
+          <div className="pay-section-head"><h2 id="ops-passports">Progress Passports</h2></div>
+          <p className="pay-note">Per term: passports opened, with start marks, with end marks, and shared with the family. Coaches score from the roster.</p>
+          {map.passports.length === 0 ? <p className="pay-note">No passports opened yet.</p> : (
+            <div className="pay-cards">
+              {map.passports.map((count) => (
+                <article className="pay-card" key={count.termName}>
+                  <div className="pay-card-head"><strong>{count.termName}</strong></div>
+                  <dl>
+                    <div><dt>Opened</dt><dd>{count.started}</dd></div>
+                    <div><dt>Start marks</dt><dd>{count.startMarked}</dd></div>
+                    <div><dt>End marks</dt><dd>{count.endMarked}</dd></div>
+                    <div><dt>Shared</dt><dd>{count.shared}</dd></div>
+                  </dl>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
         {map.privateRates && <section className="pay-section" aria-labelledby="ops-pay">
           <div className="pay-section-head"><h2 id="ops-pay">Coach pay rates</h2>{role === "ceo" && <Link className="secondary-button" href="/futprep/staff/pay">Set on Coach pay</Link>}</div>
           <p className="pay-note">{map.pay ? "Class rates as Alex set them on Coach pay. " : ""}What a coach is paid for a private session is set here, for 30 and 60 minutes; another length is worked out pro rata. A completed private session becomes a pay line on Coach pay. A record of what Futprep owes; PortPass never pays coaches.</p>
