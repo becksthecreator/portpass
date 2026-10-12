@@ -184,13 +184,23 @@ export async function currentFutprepStaffName(): Promise<string | null> {
 }
 
 // Brief 31 (A): whether the signed-in login may see a child's medical
-// details on the registration record (lib/futprepRoles.ts canSeeMedical).
+// details (lib/futprepRoles.ts canSeeMedical). The switch is read from the
+// database every time, not from the 30-second account cache, so turning it
+// off takes effect at once on every server.
 export async function currentFutprepStaffCanViewMedical(): Promise<boolean> {
   const accountKey = await currentFutprepStaffAccount();
   if (!accountKey) return false;
   const account = await accountByKey(accountKey);
   if (!account) return false;
-  return canSeeMedical(account.role, account.canViewMedical);
+  if (account.role === "ceo") return true;
+  const { data, error } = await getSupabaseAdmin()
+    .from("staff_members")
+    .select("can_view_medical,active")
+    .eq("organization_id", FUTPREP_ORG_ID)
+    .eq("account_key", accountKey)
+    .maybeSingle();
+  if (error || !data?.active) return false;
+  return canSeeMedical(account.role, Boolean(data.can_view_medical));
 }
 
 export function canManageFutprepTeam(role: FutprepStaffRole) {

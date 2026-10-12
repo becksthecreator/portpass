@@ -100,11 +100,20 @@ export async function markFutprepOwner(input: { staffId: number; actorName: stri
   if (!row.is_owner) {
     const { data: previous, error: previousError } = await db.from("staff_members").select("id").eq("organization_id", FUTPREP_ORG_ID).eq("is_owner", true).neq("id", row.id);
     throwIfSupabaseError(previousError, "Could not find the previous owner mark");
-    if ((previous ?? []).length > 0 && input.actorRole !== "ceo") throw new Error("CEO_ONLY_MOVE");
-    const { error: clearError } = await db.from("staff_members").update({ is_owner: false }).eq("organization_id", FUTPREP_ORG_ID).eq("is_owner", true).neq("id", row.id);
-    throwIfSupabaseError(clearError, "Could not move the owner mark");
-    const { error: markError } = await db.from("staff_members").update({ is_owner: true }).eq("id", row.id).eq("organization_id", FUTPREP_ORG_ID);
-    throwIfSupabaseError(markError, "Could not mark the owner");
+    if (input.actorRole !== "ceo") {
+      // The desk marks only when no login is marked, and never clears a
+      // mark: if the CEO marked one a moment ago, the one-owner index
+      // (staff_members_one_owner) refuses this write.
+      if ((previous ?? []).length > 0) throw new Error("CEO_ONLY_MOVE");
+      const { error: markError } = await db.from("staff_members").update({ is_owner: true }).eq("id", row.id).eq("organization_id", FUTPREP_ORG_ID);
+      if (markError?.code === "23505") throw new Error("CEO_ONLY_MOVE");
+      throwIfSupabaseError(markError, "Could not mark the owner");
+    } else {
+      const { error: clearError } = await db.from("staff_members").update({ is_owner: false }).eq("organization_id", FUTPREP_ORG_ID).eq("is_owner", true).neq("id", row.id);
+      throwIfSupabaseError(clearError, "Could not move the owner mark");
+      const { error: markError } = await db.from("staff_members").update({ is_owner: true }).eq("id", row.id).eq("organization_id", FUTPREP_ORG_ID);
+      throwIfSupabaseError(markError, "Could not mark the owner");
+    }
     await logAudit({ organizationId: FUTPREP_ORG_ID, action: "staff.owner_marked", targetTable: "staff_members", targetId: row.id, after: { name: row.name, by: input.actorName } });
   }
   // Any other login that still carries a grant loses it, marked or not.

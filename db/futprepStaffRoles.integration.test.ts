@@ -213,9 +213,11 @@ describe("the owner bridge", () => {
     if (!anonKey) return;
     const anon = createClient(process.env.SUPABASE_URL!, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const pike = idOf("Owner Pike");
-    expect((await anon.rpc("futprep_owner_grant", { p_org: 1, p_staff_id: pike, p_email: ownerEmail, p_user: userId, p_founder: userId })).error).not.toBeNull();
-    expect((await anon.rpc("futprep_owner_revoke", { p_org: 1, p_staff_id: pike, p_reason: "x", p_actor: "x" })).error).not.toBeNull();
-    expect((await anon.rpc("futprep_staff_set_email", { p_org: 1, p_staff_id: pike, p_email: "x@example.com", p_actor: "x" })).error).not.toBeNull();
+    // Refused at the function, not merely by the table it touches.
+    const refused = (error: { message?: string } | null) => expect(error?.message ?? "").toMatch(/permission denied for function/);
+    refused((await anon.rpc("futprep_owner_grant", { p_org: 1, p_staff_id: pike, p_email: ownerEmail, p_user: userId, p_founder: userId })).error);
+    refused((await anon.rpc("futprep_owner_revoke", { p_org: 1, p_staff_id: pike, p_reason: "x", p_actor: "x" })).error);
+    refused((await anon.rpc("futprep_staff_set_email", { p_org: 1, p_staff_id: pike, p_email: "x@example.com", p_actor: "x" })).error);
   });
 });
 

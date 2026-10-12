@@ -120,6 +120,19 @@ export async function upsertMembership(input: { organizationId: number; userId: 
     { onConflict: "organization_id,user_id" },
   );
   throwIfSupabaseError(error, "Could not save membership");
+  await forgetFutprepOwnerGrant(input.organizationId, input.userId);
+}
+
+// Brief 31 (A4): a membership a founder or an invitation has just set is
+// theirs, not the Futprep owner bridge's, so the bridge must never take it
+// back: forget any record that points at it (staff_members.owner_member_id).
+export async function forgetFutprepOwnerGrant(organizationId: number, userId: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from("organization_members").select("id").eq("organization_id", organizationId).eq("user_id", userId).maybeSingle();
+  throwIfSupabaseError(error, "Could not load the membership");
+  if (!data) return;
+  const { error: clearError } = await supabase.from("staff_members").update({ owner_member_id: null, owner_user_id: null }).eq("owner_member_id", Number(data.id));
+  throwIfSupabaseError(clearError, "Could not clear the owner grant record");
 }
 
 export function canViewMedical(membership: { role: OrgRole; canViewMedical: boolean }): boolean {
