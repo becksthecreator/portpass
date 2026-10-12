@@ -510,11 +510,15 @@ export async function rosterForSession(
   const includeHealth = includeSafety && (options.includeHealth ?? false);
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
 
+  // Futprep's own sessions and children only (rule 3): another business's
+  // session is answered like a missing one.
   const { data: session, error: sessionError } = await db
     .from("sessions")
-    .select("program_id,term_id,session_date")
+    .select("program_id,term_id,session_date,programs!inner(organization_id)")
     .eq("id", sessionId)
+    .eq("programs.organization_id", organizationId)
     .maybeSingle();
   throwIfSupabaseError(sessionError, "Could not load session roster");
   if (!session) throw new Error("SESSION_NOT_FOUND");
@@ -536,6 +540,7 @@ export async function rosterForSession(
     ? db
         .from("registrations")
         .select("id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs,health_purged_at")
+        .eq("organization_id", organizationId)
         .eq("program_id", session.program_id)
         .eq("term_id", session.term_id)
         .or(who)
@@ -544,6 +549,7 @@ export async function rosterForSession(
     ? db
         .from("registrations")
         .select("id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup")
+        .eq("organization_id", organizationId)
         .eq("program_id", session.program_id)
         .eq("term_id", session.term_id)
         .or(who)
@@ -551,6 +557,7 @@ export async function rosterForSession(
     : db
         .from("registrations")
         .select("id,reference_code,registration_status,child_name,parent_name,parent_phone")
+        .eq("organization_id", organizationId)
         .eq("program_id", session.program_id)
         .eq("term_id", session.term_id)
         .or(who)

@@ -7,6 +7,7 @@ import {
   getFutprepRegistrationDetail,
   markFutprepAttendance,
   recordFutprepPayment,
+  rosterForSession,
   updateFutprepRegistration,
   updateFutprepRegistrationDetail,
   voidFutprepPayment,
@@ -220,6 +221,8 @@ describe("Futprep's desk never reaches another business's registration (rule 3)"
     expect(await outcome(clearFutprepAttendance({ sessionId: otherSessionId, registrationId: otherId }))).toBe(await outcome(clearFutprepAttendance({ sessionId: otherSessionId, registrationId: MISSING })));
     const { data: marks } = await db().from("attendance").select("status,marked_by").eq("registration_id", otherId);
     expect(marks).toEqual([{ status: "present", marked_by: MARK }]);
+    // Nor does a coach's roster open another business's session.
+    expect(await outcome(rosterForSession(otherSessionId, { includeSafety: true, includeHealth: true }))).toBe("refused SESSION_NOT_FOUND");
     // Nor is a Futprep child marked on another business's session.
     expect(await outcome(markFutprepAttendance({ registrationId: futprepId, ...mark }))).toBe("refused SESSION_NOT_FOUND");
     const { data: mine } = await db().from("attendance").select("id").eq("registration_id", futprepId);
