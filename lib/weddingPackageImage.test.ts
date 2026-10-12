@@ -46,6 +46,7 @@ describe("readPackageImage", () => {
       "/weddings/bahamas-by-the-sea/catalogue-01.webp#x",
       "/weddings/bahamas-by-the-sea/logo.svg",
       "/weddings/bahamas-by-the-sea//evil.example/x.jpg",
+      "/WEDDINGS/BAHAMAS-BY-THE-SEA/catalogue-01.webp",
     ]) expect(readPackageImage(value, SUPABASE)).toBeNull();
   });
 
@@ -59,6 +60,7 @@ describe("readPackageImage", () => {
       `${SUPABASE}/storage/v1/object/sign/org-assets/org/12/photo/${UUID}.jpg?token=x`,
       `${OURS}coach/3/${UUID}.jpg`,
       `${OURS}org/012/photo/${UUID}.jpg`,
+      `${OURS}ORG/12/photo/${UUID}.jpg`,
       `${OURS}org/12/../13/photo/${UUID}.jpg`,
       `${OURS}org/12/photo/${UUID}.jpg?t=1`,
       `${OURS}org/12/photo/a%2Fb.jpg`,

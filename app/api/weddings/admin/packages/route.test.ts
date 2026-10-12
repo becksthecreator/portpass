@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // The Wedding Desk's package save, with the staff session and the database
 // replaced by fakes: a photo that is not one of BWS's own is a 400 with a
@@ -30,7 +30,11 @@ function save(imageUrl: unknown) {
 beforeEach(() => {
   auth.role = "wedding_desk";
   db.calls = 0;
-  process.env.SUPABASE_URL = "https://abc.supabase.co";
+  vi.stubEnv("SUPABASE_URL", "https://abc.supabase.co");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("POST /api/weddings/admin/packages", () => {

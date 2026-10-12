@@ -12,14 +12,15 @@ import { ORG_ASSETS_BUCKET } from "@/lib/imageUpload";
 //    build (getPublicUrl: {SUPABASE_URL}/storage/v1/object/public/org-assets/org/{id}/...)
 //
 // Only letters, digits, "-", "_" and "." are allowed in a name, so no
-// "..", "?", "#", "%" or "@" can lead the URL anywhere else.
-export const SITE_PHOTO_FOLDER = "/weddings/bahamas-by-the-sea/";
+// "..", "?", "#", "%" or "@" can lead the URL anywhere else. Folders match
+// exactly as written: storage and site paths are case-sensitive, so
+// "ORG/{id}/" is not BWS's folder.
 
-const SITE_PHOTO = /^\/weddings\/bahamas-by-the-sea\/[A-Za-z0-9][A-Za-z0-9._-]*\.(?:webp|jpe?g|png|avif)$/i;
+const SITE_PHOTO = /^\/weddings\/bahamas-by-the-sea\/[A-Za-z0-9][A-Za-z0-9._-]*\.(?:webp|jpe?g|png|avif)$/;
 // What follows `org-assets/`: the business's folder, then what the upload
 // routes write there (`{kind}/{uuid}.{ext}`). org-assets takes PNG, JPEG
 // and WebP only.
-const UPLOADED_PHOTO = /^org\/([1-9][0-9]*)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9][A-Za-z0-9._-]*\.(?:webp|jpe?g|png)$/i;
+const UPLOADED_PHOTO = /^org\/([1-9][0-9]*)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9][A-Za-z0-9._-]*\.(?:webp|jpe?g|png)$/;
 
 // The photo to save (null for none), and for an upload, the organisation
 // whose folder it is in; the caller checks that is BWS. null when the value
