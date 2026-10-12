@@ -29,6 +29,7 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green | Antonio's OK |
 | `claude/keen-volta-6u6jdp` (WeddingWire, fixes a #183 finding) | #185 | Renumber its migration, apply it live, merge | Antonio: confirm the apply (it drops and re-adds columns) |
 | `chore/csp-enforce` (brief 26) | #183 | Merge after #185 | #185 |
+| `fix/export-private-notes` (rule 3, from the #209 review: the business export drops a parent's private-session goal and notes) | see branch | CI green, merge | Antonio's OK |
 | `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct) | A decision: merge or close |
 
 ## Briefs
@@ -68,6 +69,10 @@ Left open by the reviews of #200, #203 and #216 (not fixed):
 - `getFutprepRegistrationStatus`, `getFutprepPendingRegistration` and `completeFutprepRegistration` match a reference code with no organisation filter, so `/api/futprep/registrations/lookup` (code + date of birth) could return another business's parent details (rule 3).
 - `futprepOrganizationId()` falls back to a name match (`%futprep%`) when the slug is missing; it now gates children's writes, so the fallback should go.
 - Still unpaged in `db/staff.ts`: session counts (~252), session plans (~798), work logs (~819), the roster export's payments (~1399); the admin page builds the desk list twice.
+
+Business export (`db/businessExport.ts`), found while fixing its private-session notes (not fixed):
+- It orders every table by `id`, but `organization_categories`, `shops`, `organization_payment_settings` and `drop_items` have no `id` column, so the export probably fails for every business (from the code; not run against a database).
+- Two link keys are exported: `reservations.receipt_token` and `drops.followers_token`.
 
 Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
 - #185's migration `202610190002_weddingwire_widgets_structured.sql` clashes with `202610190002_private_sessions_from_the_database.sql` on `main`.
