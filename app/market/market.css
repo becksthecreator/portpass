@@ -89,6 +89,17 @@
 .mkt-returns p{white-space:pre-line;line-height:1.55;margin:10px 0 0}
 .mkt-more{margin:0}
 
+/* The order form (brief 25, part C): under the product, the page's width,
+   44px controls. It holds still. */
+.mkt-order{max-width:1080px;margin:0 auto;padding:8px 16px 24px}
+.mkt-order-form{max-width:640px;margin:0 auto}
+.mkt-order-form h2{font-size:1.3rem;margin:0}
+.mkt-order-form .shop-qty button{width:44px;height:44px}
+.mkt-order-form .shop-size{min-height:48px}
+.mkt-order-qty{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;font-weight:800}
+.mkt-order-qty small{color:var(--muted);font-weight:600}
+.mkt-order-hint{color:var(--muted);font-size:.8rem;line-height:1.4}
+
 @media(min-width:760px){
   .mkt-hero{padding:46px 5vw 34px}
   /* The padding sits inside the max width, so it is added to it: the body lines up with the hero. */

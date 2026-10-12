@@ -78,16 +78,21 @@ export function isFutprepPath(pathname: string): boolean {
 // Shops (brief 15): the same first-party attribution, one cookie per shop
 // (pp_shop_<org slug>), so a visit to one shop never counts for another.
 // The reservation route reads the cookie of the shop being ordered from.
+// PortPass Market (brief 25, part C): a seller's product pages on the
+// Market (/market/p/<org>/<product>) share that seller's cookie, and the
+// order route reads it. Arriving there from /market, a category or any
+// other PortPass page is "found on PortPass"; moving between the seller's
+// own storefront and its own product pages is not.
 export const SHOP_ATTRIBUTION_COOKIE_PREFIX = "pp_shop_";
 export function shopSlugFromPath(pathname: string): string | null {
-  const match = /^\/shop\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/|$)/.exec(pathname);
+  const match = /^\/(?:shop|market\/p)\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/|$)/.exec(pathname);
   return match ? match[1] : null;
 }
 export function shopAttributionCookie(orgSlug: string): string {
   return `${SHOP_ATTRIBUTION_COOKIE_PREFIX}${orgSlug}`;
 }
 export function isShopOwnPath(orgSlug: string): (pathname: string) => boolean {
-  return (pathname) => pathname === `/shop/${orgSlug}` || pathname.startsWith(`/shop/${orgSlug}/`);
+  return (pathname) => pathname === `/shop/${orgSlug}` || pathname.startsWith(`/shop/${orgSlug}/`) || pathname.startsWith(`/market/p/${orgSlug}/`);
 }
 
 export type Attribution = {
