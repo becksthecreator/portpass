@@ -189,34 +189,32 @@ export async function ensureFutprepPilotData() {
 
 // Insert-if-missing only: a program that already exists (by slug) is left
 // exactly as it is, including its terms and whether they are active.
+// The organisation is found by its slug alone (futprepOrganizationId); a
+// database without it is left as it is, since a programme with no business
+// is one Futprep's doors can't open (#216). Every organisation read calls
+// this, so that case is not an error here.
 async function seedFutprepPilot() {
   const db = getSupabaseAdmin();
   const now = new Date().toISOString();
 
-  const { data: organizations, error: organizationError } = await db
-    .from("organizations")
-    .select("id,name")
-    .or("name.ilike.%futprep%,name.ilike.%footprep%")
-    .order("id", { ascending: true })
-    .limit(1);
-  throwIfSupabaseError(organizationError, "Could not locate Futprep organization");
+  const organizationId = await futprepOrganizationId().catch((error: unknown) => {
+    if (error instanceof Error && error.message === "FUTPREP_ORG_NOT_FOUND") return null;
+    throw error;
+  });
+  if (!organizationId) return;
 
-  const organization = (organizations?.[0] ?? null) as { id: number; name: string } | null;
-
-  if (organization) {
-    const { error: locationError } = await db.from("locations").upsert(
-      {
-        organization_id: organization.id,
-        name: FUTPREP_TERM.location,
-        address: "Lyford Cay Lower Campus, New Providence, The Bahamas",
-        map_label: "Lyford Cay Lower Campus Soccer Field",
-        active: true,
-        created_at: now,
-      },
-      { onConflict: "organization_id,name", ignoreDuplicates: true },
-    );
-    throwIfSupabaseError(locationError, "Could not seed Futprep location");
-  }
+  const { error: locationError } = await db.from("locations").upsert(
+    {
+      organization_id: organizationId,
+      name: FUTPREP_TERM.location,
+      address: "Lyford Cay Lower Campus, New Providence, The Bahamas",
+      map_label: "Lyford Cay Lower Campus Soccer Field",
+      active: true,
+      created_at: now,
+    },
+    { onConflict: "organization_id,name", ignoreDuplicates: true },
+  );
+  throwIfSupabaseError(locationError, "Could not seed Futprep location");
 
   for (const configured of FUTPREP_PROGRAMS) {
     const { data: existingProgram, error: existingError } = await db
@@ -230,7 +228,7 @@ async function seedFutprepPilot() {
     const { data: storedProgram, error: programError } = await db
       .from("programs")
       .insert({
-        organization_id: organization?.id ?? null,
+        organization_id: organizationId,
         slug: configured.slug,
         name: configured.name,
         age_min: configured.ageMin,
@@ -563,6 +561,9 @@ export async function getFutprepRegistrationStatus(
     .from("registrations")
     .select("id,reference_code,child_name,child_dob,program_id,term_id,payment_frequency,payment_method,amount_due_cents,payment_status,registration_status,parent_name,parent_email,parent_phone,relationship")
     .eq("reference_code", code)
+    // Futprep's registrations only: codes are unique across every business,
+    // so another business's code must read as not found (rule 3).
+    .eq("organization_id", await futprepOrganizationId())
     .maybeSingle();
   throwIfSupabaseError(error, "Could not look up registration");
   if (!registration || registration.child_dob !== childDob) return null;
@@ -1021,6 +1022,7 @@ export async function getFutprepPendingRegistration(referenceCode: string): Prom
     .from("registrations")
     .select("reference_code,child_name,program_id,registration_status")
     .eq("reference_code", code)
+    .eq("organization_id", await futprepOrganizationId())
     .maybeSingle();
   throwIfSupabaseError(error, "Could not look up registration");
   if (!registration || registration.registration_status !== "pending_details") return null;
@@ -1076,6 +1078,7 @@ export async function completeFutprepRegistration(input: FutprepCompletionInput)
     .from("registrations")
     .select("id,program_id,term_id,registration_status")
     .eq("reference_code", code)
+    .eq("organization_id", await futprepOrganizationId())
     .maybeSingle();
   throwIfSupabaseError(error, "Could not look up registration");
   if (!registration) throw new Error("NOT_FOUND");

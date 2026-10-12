@@ -107,26 +107,17 @@ async function uniqueSlug(base: string) {
   throw new Error("Could not generate a unique program slug");
 }
 
+// The slug alone, never a name match: this id now gates every read and
+// write of Futprep's children (#205, #216, and the lookups by reference
+// code), so a database without the slug gets an error, not a guess at
+// which business is Futprep. CI's seed (scripts/seed-test-data.ts) sets it;
+// production has had it since migration 202609092002.
 export async function futprepOrganizationId(): Promise<number> {
   const db = getSupabaseAdmin();
-
-  const { data: bySlug, error: slugError } = await db
-    .from("organizations")
-    .select("id")
-    .eq("slug", "futprep")
-    .maybeSingle();
-  throwIfSupabaseError(slugError, "Could not locate Futprep organization");
-  if (bySlug) return Number(bySlug.id);
-
-  // Fallback for any environment where the slug backfill
-  // (supabase/migrations/202609092002_organizations_slug_theme.sql) hasn't
-  // run yet, or the organization predates it.
   const { data, error } = await db
     .from("organizations")
     .select("id")
-    .or("name.ilike.%futprep%,name.ilike.%footprep%")
-    .order("id", { ascending: true })
-    .limit(1)
+    .eq("slug", "futprep")
     .maybeSingle();
   throwIfSupabaseError(error, "Could not locate Futprep organization");
   if (!data) throw new Error("FUTPREP_ORG_NOT_FOUND");
