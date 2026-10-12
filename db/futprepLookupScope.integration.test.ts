@@ -9,6 +9,7 @@ import {
   ensureFutprepPilotData,
   getFutprepPendingRegistration,
   getFutprepRegistrationStatus,
+  trialJoinQuote,
   type FutprepCompletionInput,
   type FutprepRegistrationInput,
 } from "./registrations";
@@ -189,6 +190,19 @@ describe("Futprep's lookups by reference code find Futprep's registrations only 
     const theirCode = await theirRegistration("pending_details");
     expect(await refused(completeFutprepRegistration(completion(theirCode)))).toBe("NOT_FOUND");
     expect(await statusOf(theirCode)).toBe("pending_details");
+  });
+
+  it("the join-after-a-taster quote can't price another business's trial row", async () => {
+    const theirCode = await theirRegistration();
+    const { data: session, error: sessionError } = await db()
+      .from("sessions")
+      .insert({ program_id: otherClass.programId, term_id: otherClass.termId, session_date: "2098-09-06", start_time: "9:00 AM", location: "TEST field" })
+      .select("id")
+      .single();
+    expect(sessionError).toBeNull();
+    const { error } = await db().from("registrations").update({ registration_status: "trial", trial_session_id: Number(session!.id) }).eq("reference_code", theirCode);
+    expect(error).toBeNull();
+    expect(await trialJoinQuote(theirCode)).toBeNull();
   });
 
   it("Futprep's own codes still work in all three", async () => {

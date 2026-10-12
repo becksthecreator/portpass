@@ -1257,6 +1257,7 @@ export async function trialJoinQuote(referenceCode: string): Promise<{ registrat
     .from("registrations")
     .select("id,program_id,term_id,trial_session_id,registration_status,child_name")
     .eq("reference_code", code)
+    .eq("organization_id", await futprepOrganizationId())
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load the trial");
   if (!trial || trial.registration_status !== "trial" || !trial.trial_session_id) return null;
