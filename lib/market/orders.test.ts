@@ -58,6 +58,7 @@ const order = (over: Partial<ListedOrder> = {}): ListedOrder => ({
   collectedAt: null,
   deliveredAt: null,
   cancelledAt: null,
+  payToken: null,
   ...over,
 });
 

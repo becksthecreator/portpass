@@ -41,7 +41,10 @@ function matches(order: ListedOrder, status: StatusFilter, paid: PaidFilter, q: 
 // seller sends it), filters, the two spreadsheets and the numbers. Unpaid
 // orders past the hold are offered back to stock behind a "Release now?"
 // confirm, never on their own, and nobody is messaged. Holds still.
-export function OrdersBoard(props: { orgId: number; orgName: string; holdHours: number; canHandlePayments: boolean; initial: ListedOrder[] }) {
+// siteOrigin: this site's address, from the server, for the payment page
+// link in the WhatsApp message (the same on the server's first render and
+// in the browser).
+export function OrdersBoard(props: { orgId: number; orgName: string; holdHours: number; canHandlePayments: boolean; siteOrigin: string; initial: ListedOrder[] }) {
   const [list, setList] = useState(props.initial);
   const [status, setStatus] = useState<StatusFilter>("open");
   const [paid, setPaid] = useState<PaidFilter>("all");
@@ -67,7 +70,8 @@ export function OrdersBoard(props: { orgId: number; orgName: string; holdHours: 
       const response = await fetch(`${base}/${order.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
       const data = (await response.json().catch(() => ({}))) as { error?: string; order?: ListedOrder };
       if (!response.ok || !data.order) throw new Error(data.error ?? "That didn't save.");
-      setList((current) => current.map((row) => (row.id === order.id ? data.order! : row)));
+      // The answer has no payment page token: keep the card's while it is unpaid.
+      setList((current) => current.map((row) => (row.id === order.id ? { ...data.order!, payToken: data.order!.paid || data.order!.status === "cancelled" ? null : row.payToken } : row)));
     } catch (e) {
       setError(e instanceof Error ? e.message : "That didn't save.");
     } finally {
@@ -181,7 +185,7 @@ export function OrdersBoard(props: { orgId: number; orgName: string; holdHours: 
                         {ORDER_ACTION_LABEL[action]}
                       </button>
                     ))}
-                    <a className="seller-wa" href={whatsappHref(o.buyerPhone, buyerWhatsappText(o, props.orgName, o.payToken && !o.paid && typeof window !== "undefined" ? `${window.location.origin}/pay/${o.payToken}` : null))} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                    <a className="seller-wa" href={whatsappHref(o.buyerPhone, buyerWhatsappText(o, props.orgName, o.payToken && !o.paid ? `${props.siteOrigin}/pay/${o.payToken}` : null))} target="_blank" rel="noopener noreferrer">WhatsApp</a>
                     {actions.includes("cancel") && (
                       <details className="seller-more">
                         <summary>More</summary>

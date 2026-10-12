@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteFooter } from "@/app/_components/SiteFooter";
@@ -30,7 +31,11 @@ export default async function ShopOrdersPage({ params }: { params: Promise<{ slu
   if (!business) notFound();
   const shop = await getShop(business.id);
   if (!shop) notFound();
-  const [orders, canHandlePayments] = await Promise.all([listSellerOrders(business.id), handlesPayments(access)]);
+  const [orders, canHandlePayments, h] = await Promise.all([listSellerOrders(business.id), handlesPayments(access), headers()]);
+  // This deployment's own address (production or a preview), for the
+  // payment page link the seller can send.
+  const host = h.get("host");
+  const siteOrigin = host ? `${host.startsWith("localhost") ? "http" : "https"}://${host}` : "https://portpassbahamas.com";
 
   return (
     <main className="form-page auth-page theme-night seller-page">
@@ -40,7 +45,7 @@ export default async function ShopOrdersPage({ params }: { params: Promise<{ slu
         <h1 className="seller-title">Orders</h1>
         <p className="auth-lead">Orders from PortPass Market. Each buyer has their order code and a payment request from you; they pay you directly. Mark an order paid when the money reaches you.</p>
         {!canHandlePayments && <p className="seller-note">Marking paid and cancelling are for whoever handles this business&rsquo;s payments. You can move orders along.</p>}
-        <OrdersBoard orgId={business.id} orgName={business.name} holdHours={shop.holdHours} canHandlePayments={canHandlePayments} initial={orders} />
+        <OrdersBoard orgId={business.id} orgName={business.name} holdHours={shop.holdHours} canHandlePayments={canHandlePayments} siteOrigin={siteOrigin} initial={orders} />
         <p className="seller-note"><Link href={`/business/${slug}/shop`}>← Back to the shop</Link></p>
       </div>
       <SiteFooter />
