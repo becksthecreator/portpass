@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { currentInboxViewer, inboxRequests } from "@/app/futprep/staff/private-sessions/viewer";
 import { privateSessionOwners, recordPrivateSessionPayment } from "@/db/coaches";
 import { bodyOf, readJson } from "@/lib/api/body";
-import { canSeeRequest } from "@/lib/privateSessionAccess";
+import { canActOnRequest, canSeeRequest } from "@/lib/privateSessionAccess";
 
 const Body = bodyOf(["amountDollars", "method", "reference"]);
 
@@ -25,6 +25,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const owners = await privateSessionOwners(requestId);
   if (!owners || !canSeeRequest(viewer, owners)) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (!canActOnRequest(viewer, owners)) return NextResponse.json({ error: "This request is with another coach now." }, { status: 403 });
   try {
     const result = await recordPrivateSessionPayment({ requestId, amountCents, method, reference: String(body.reference ?? "").slice(0, 80), recordedBy: account });
     const { requests } = await inboxRequests(viewer);

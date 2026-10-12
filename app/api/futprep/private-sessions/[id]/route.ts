@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { currentInboxViewer, inboxRequests } from "@/app/futprep/staff/private-sessions/viewer";
 import { actOnPrivateSessionRequest, privateSessionOwners } from "@/db/coaches";
 import { bodyOf, readJson } from "@/lib/api/body";
-import { acceptingCoachId, canSeeRequest } from "@/lib/privateSessionAccess";
+import { acceptingCoachId, canActOnRequest, canSeeRequest } from "@/lib/privateSessionAccess";
 
 const Body = bodyOf(["action", "coachId", "targetCoachId", "reason"]);
 const ACTIONS = ["accept", "decline", "refer", "parent_notified", "complete"] as const;
@@ -25,6 +25,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const owners = await privateSessionOwners(requestId);
   if (!owners || !canSeeRequest(viewer, owners)) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (!canActOnRequest(viewer, owners)) return NextResponse.json({ error: "This request is with another coach now." }, { status: 403 });
   try {
     await actOnPrivateSessionRequest({ id: requestId, action, coachId: acceptingCoachId(viewer, Number(body.coachId) || null), targetCoachId: Number(body.targetCoachId) || null, reason: String(body.reason ?? ""), actor: account });
     const { requests } = await inboxRequests(viewer);
@@ -36,6 +37,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (message === "SLOT_TAKEN") return NextResponse.json({ error: "That time is already booked. Decline or refer this request, or agree a new time with the parent." }, { status: 409 });
     if (message === "NOT_ACCEPTED") return NextResponse.json({ error: "Accept the session before marking it completed." }, { status: 409 });
     if (message === "REQUEST_NOT_FOUND") return NextResponse.json({ error: "Not found." }, { status: 404 });
+    if (message === "NOT_YET") return NextResponse.json({ error: "Mark a session completed on or after its day." }, { status: 409 });
+    if (message === "COMPLETED") return NextResponse.json({ error: "This session is completed; it can't change now." }, { status: 409 });
+    if (message === "COACH_NOT_AVAILABLE") return NextResponse.json({ error: "Choose one of Futprep's coaches." }, { status: 400 });
     return NextResponse.json({ error: "Could not update the session request." }, { status: 500 });
   }
 }

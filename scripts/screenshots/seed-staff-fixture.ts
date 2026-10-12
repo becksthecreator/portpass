@@ -189,7 +189,7 @@ async function main() {
   const { data: requests, error: requestError } = await db.from("private_session_requests").insert([request(1, bex, "pending", 60), request(2, dre, "pending", 30), request(3, null, "pending", 60), request(4, bex, "completed", 30)]).select("id,reference_code");
   if (requestError || !requests) throw new Error(`Could not seed the TEST private sessions: ${requestError?.message}`);
   const done = requests.find((r) => r.reference_code === "FP-S-TEST4")!;
-  const { error: payLineError } = await db.from("private_session_pay").insert({ organization_id: org.id, request_id: done.id, coach_id: bex, duration_minutes: 30, pay_cents: 2000, rate_basis: "rate_30", created_by: MARK });
+  const { error: payLineError } = await db.from("private_session_pay").insert({ organization_id: org.id, request_id: done.id, reference_code: "FP-S-TEST4", session_date: iso(requestDay), coach_id: bex, duration_minutes: 30, pay_cents: 2000, rate_basis: "rate_30", created_by: MARK });
   if (payLineError) throw new Error(`Could not seed the TEST pay line: ${payLineError.message}`);
   const { data: played } = await db.from("sessions").select("id,session_date").eq("term_id", term.id).lt("session_date", iso(nextSaturday)).order("session_date");
   const staffing = (played ?? []).flatMap((s, i) => [

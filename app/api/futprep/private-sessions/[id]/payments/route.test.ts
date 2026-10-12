@@ -10,7 +10,7 @@ vi.mock("@/app/futprep/staff/private-sessions/viewer", () => ({
   inboxRequests: vi.fn(async () => ({ schemaReady: true, requests: [] })),
 }));
 vi.mock("@/db/coaches", () => ({
-  privateSessionOwners: vi.fn(async (id: number) => (id === 1 ? { preferred_coach_id: 11, assigned_coach_id: null } : id === 2 ? { preferred_coach_id: 12, assigned_coach_id: null } : null)),
+  privateSessionOwners: vi.fn(async (id: number) => (id === 1 ? { preferred_coach_id: 11, assigned_coach_id: null } : id === 2 ? { preferred_coach_id: 12, assigned_coach_id: null } : id === 3 ? { preferred_coach_id: 12, assigned_coach_id: 11 } : null)),
   recordPrivateSessionPayment: vi.fn(async (input: { requestId: number }) => {
     calls.recorded.push(input.requestId);
     return { paymentStatus: "paid", paidCents: 3500 };
@@ -41,6 +41,11 @@ describe("recording a private-session payment (brief 31, C1)", () => {
     who.coachId = null;
     expect((await post(1, PAID)).status).toBe(201);
     expect(calls.recorded).toEqual([2, 1]);
+  });
+
+  it("the coach a request was referred away from can't record a payment on it", async () => {
+    expect((await post(3, PAID)).status).toBe(403);
+    expect(calls.recorded).toEqual([]);
   });
 
   it("refuses a bad amount and fields it never reads", async () => {

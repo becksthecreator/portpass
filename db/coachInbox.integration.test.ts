@@ -106,6 +106,13 @@ describe("each coach's own inbox (brief 31, C1)", () => {
     expect(await privateSessionOwners(forA)).toEqual({ preferred_coach_id: coachA, assigned_coach_id: null });
   });
 
+  it("refers only to one of Futprep's active coaches", async () => {
+    const id = await ask({ coachId: coachA });
+    const { data: stranger } = await db().from("coach_profiles").insert({ organization_id: orgId, slug: `test-delete-off-${tag}`, display_name: `${MARK} Coach Off`, member_type: "coach", active: false, public_visible: false, bookable: false }).select("id").single();
+    await expect(actOnPrivateSessionRequest({ id, action: "refer", coachId: coachA, targetCoachId: Number(stranger!.id), reason: "TEST", actor: MARK })).rejects.toThrow("COACH_NOT_AVAILABLE");
+    await db().from("coach_profiles").delete().eq("id", stranger!.id);
+  });
+
   it("a request referred to another coach shows in both coaches' lists", async () => {
     const id = await ask({ coachId: coachA });
     await actOnPrivateSessionRequest({ id, action: "refer", coachId: coachA, targetCoachId: coachB, reason: "TEST", actor: MARK });
@@ -180,8 +187,13 @@ describe("a completed private session is a pay line (brief 31, C5 and C6)", () =
     expect((await listPrivatePayLines({ coachId: coachA })).filter((l) => l.referenceCode)).toHaveLength(0);
 
     await actOnPrivateSessionRequest({ id, action: "accept", coachId: coachA, actor: MARK });
+    // Never before the session's day.
+    await expect(actOnPrivateSessionRequest({ id, action: "complete", actor: MARK })).rejects.toThrow("NOT_YET");
+    await db().from("private_session_requests").update({ requested_date: new Date().toISOString().slice(0, 10) }).eq("id", id);
     await actOnPrivateSessionRequest({ id, action: "complete", actor: MARK });
     await actOnPrivateSessionRequest({ id, action: "complete", actor: MARK });
+    // Completed is final.
+    await expect(actOnPrivateSessionRequest({ id, action: "decline", reason: "TEST", actor: MARK })).rejects.toThrow("COMPLETED");
     const lines = await listPrivatePayLines({ coachId: coachA });
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatchObject({ coachId: coachA, durationMinutes: 60, payCents: 3500, basis: "rate_60", paidAt: null });
@@ -191,6 +203,7 @@ describe("a completed private session is a pay line (brief 31, C5 and C6)", () =
   it("a coach with no rate gets a $0 line marked rate not set, and never another coach's lines", async () => {
     const id = await ask({ coachId: coachB, minutes: 30 });
     await actOnPrivateSessionRequest({ id, action: "accept", coachId: coachB, actor: MARK });
+    await db().from("private_session_requests").update({ requested_date: new Date().toISOString().slice(0, 10) }).eq("id", id);
     await actOnPrivateSessionRequest({ id, action: "complete", actor: MARK });
     const mine = await listPrivatePayLines({ coachId: coachB });
     expect(mine).toEqual([expect.objectContaining({ payCents: 0, basis: "not_set" })]);

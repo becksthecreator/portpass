@@ -4,6 +4,7 @@ import { afterResponse } from "@/lib/afterResponse";
 import { defaultPrefix } from "@/lib/paymentRequests/rules";
 import { childrenAllowed, privatePaymentStatus, privateSessionCode, serviceFromRow, sessionTotalCents, weeklySlotDates, type PrivateService } from "@/lib/privateSessions";
 import { awayMessage, cleanWorkingDays, dayOffMessage, isWorkingDay } from "@/lib/workingDays";
+import { nassauToday } from "@/lib/futprepTerms";
 import type { Attribution } from "@/lib/attribution";
 import { channelFromAttribution } from "@/lib/growth";
 import { recordPrivatePayLine } from "./coachPay";
@@ -644,6 +645,9 @@ export async function actOnPrivateSessionRequest(input:{
 
   let patch:Record<string,unknown>={updated_at:now};
   let note="";
+  // Brief 31 (C, security review): a completed session is final; its pay
+  // line stands.
+  if(existing.status==="completed"&&input.action!=="complete"&&input.action!=="parent_notified") throw new Error("COMPLETED");
   if(input.action==="accept"){
     if(!input.coachId) throw new Error("COACH_REQUIRED");
     // The parent picked one of a coach's open slots: accepting books it,
@@ -661,6 +665,9 @@ export async function actOnPrivateSessionRequest(input:{
     note=input.reason.trim();
   }else if(input.action==="refer"){
     if(!input.targetCoachId) throw new Error("COACH_REQUIRED");
+    const {data:target,error:targetError}=await db.from("coach_profiles").select("id").eq("id",input.targetCoachId).eq("organization_id",existing.organization_id).eq("active",true).eq("member_type","coach").maybeSingle();
+    throwIfSupabaseError(targetError,"Could not check the coach");
+    if(!target) throw new Error("COACH_NOT_AVAILABLE");
     patch={...patch,status:"referred",referred_from_coach_id:existing.assigned_coach_id??input.coachId??null,assigned_coach_id:input.targetCoachId,referral_note:input.reason?.trim()??"",parent_notified_at:null};
     note=input.reason?.trim() || `Referred to coach #${input.targetCoachId}`;
   }else if(input.action==="parent_notified"){
@@ -669,6 +676,8 @@ export async function actOnPrivateSessionRequest(input:{
   }else{
     // Brief 31 (C6): only a session that was accepted can be completed.
     if(existing.status!=="accepted" && existing.status!=="completed") throw new Error("NOT_ACCEPTED");
+    // A session is completed on its day or after, never before.
+    if(String(existing.requested_date)>nassauToday()) throw new Error("NOT_YET");
     patch={...patch,status:"completed"};
     note="Session marked completed.";
   }

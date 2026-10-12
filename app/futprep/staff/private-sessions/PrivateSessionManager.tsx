@@ -98,6 +98,7 @@ export function PrivateSessionManager({ initialRequests, coaches, services, sche
       {request.status === "declined" && request.decline_reason && <p className="request-alert">Decline reason: {request.decline_reason}</p>}
       {request.status === "referred" && !request.parent_notified_at && <p className="request-alert">Parent notification required before the handoff is considered complete.</p>}
       {request.parent_notified_at && <p className="request-ok">Parent informed ✓</p>}
+      {!seesAll && (request.assigned_coach_id ?? request.preferred_coach_id) !== myCoachId ? <p className="request-ok">With {request.assigned_coach_name ?? "another coach"} now.</p> : <>
       <div className="private-request-actions">
         <select id={`coach-${request.id}`} defaultValue={request.assigned_coach_id ?? request.preferred_coach_id ?? ""}><option value="">Choose coach</option>{bookable.map((coach) => <option value={coach.id} key={coach.id}>{coach.display_name}</option>)}</select>
         <button disabled={!schemaReady} onClick={() => { const el = document.getElementById(`coach-${request.id}`) as HTMLSelectElement | null; void act(request.id, "accept", seesAll ? Number(el?.value) || undefined : myCoachId ?? undefined); }}>Accept</button>
@@ -115,6 +116,7 @@ export function PrivateSessionManager({ initialRequests, coaches, services, sche
           {canRequestPayment && <a className="secondary-button" href={`/futprep/staff/payments/new?privateSession=${request.id}`}>Request payment</a>}
         </form>
       )}
+      </>}
     </article>)}
   </div>;
 }

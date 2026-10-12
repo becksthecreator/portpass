@@ -2,7 +2,7 @@ import "server-only";
 import { coachForStaffMember } from "@/db/coachPay";
 import { listPrivateSessionRequests, type PrivateSessionRequest } from "@/db/coaches";
 import { inboxFor, seesEveryRequest, type InboxViewer } from "@/lib/privateSessionAccess";
-import { currentFutprepStaffAccount, currentFutprepStaffId, currentFutprepStaffRole } from "../../staff-auth";
+import { currentFutprepStaffAccount, currentFutprepStaffCanViewMedical, currentFutprepStaffId, currentFutprepStaffRole } from "../../staff-auth";
 
 // Who is looking at the private-session inbox (brief 31, C1): the staff
 // login's role and the coach profile tied to it (Team -> Coach pay links
@@ -10,8 +10,8 @@ import { currentFutprepStaffAccount, currentFutprepStaffId, currentFutprepStaffR
 export async function currentInboxViewer(): Promise<{ account: string | null; viewer: InboxViewer }> {
   const [account, role, staffId] = await Promise.all([currentFutprepStaffAccount(), currentFutprepStaffRole(), currentFutprepStaffId()]);
   if (!account || !role) return { account: null, viewer: { role: null, coachId: null } };
-  const coach = staffId ? await coachForStaffMember(staffId).catch(() => null) : null;
-  return { account, viewer: { role, coachId: coach?.id ?? null } };
+  const [coach, canViewNotes] = await Promise.all([staffId ? coachForStaffMember(staffId).catch(() => null) : Promise.resolve(null), currentFutprepStaffCanViewMedical()]);
+  return { account, viewer: { role, coachId: coach?.id ?? null, canViewNotes } };
 }
 
 // The viewer's own inbox: every request for the CEO and admins; a coach's

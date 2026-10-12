@@ -10,6 +10,7 @@ const REQUESTS = vi.hoisted(() => [
   { id: 1, preferred_coach_id: 11, assigned_coach_id: null, notes: "TEST note A" },
   { id: 2, preferred_coach_id: 12, assigned_coach_id: null, notes: "TEST note B" },
   { id: 3, preferred_coach_id: null, assigned_coach_id: null, notes: "TEST any" },
+  { id: 4, preferred_coach_id: 11, assigned_coach_id: 12, notes: "TEST referred to B" },
 ]);
 
 vi.mock("@/app/futprep/staff/private-sessions/viewer", async () => {
@@ -51,7 +52,7 @@ describe("a coach's own private-session inbox (brief 31, C1)", () => {
     expect(response.status).toBe(200);
     expect(calls.acted).toEqual([{ id: 2, action: "accept", coachId: 12 }]);
     const { requests } = await response.json();
-    expect(requests.map((r: { id: number }) => r.id)).toEqual([2]);
+    expect(requests.map((r: { id: number }) => r.id)).toEqual([2, 4]);
     expect(requests[0].notes).toBe("");
   });
 
@@ -73,7 +74,16 @@ describe("a coach's own private-session inbox (brief 31, C1)", () => {
     const response = await patch(3, { action: "accept", coachId: 11 });
     expect(response.status).toBe(200);
     expect(calls.acted).toEqual([{ id: 3, action: "accept", coachId: 11 }]);
-    expect((await response.json()).requests).toHaveLength(3);
+    expect((await response.json()).requests).toHaveLength(4);
+  });
+
+  it("a request referred away shows to the coach it came from, who can no longer act on it", async () => {
+    who.account = "test-coach-a";
+    who.coachId = 11;
+    for (const action of ["accept", "decline", "complete"]) expect((await patch(4, { action, reason: "TEST" })).status).toBe(403);
+    who.coachId = 12;
+    expect((await patch(4, { action: "complete" })).status).toBe(200);
+    expect(calls.acted).toEqual([{ id: 4, action: "complete", coachId: 12 }]);
   });
 
   it("refuses unknown actions and fields", async () => {

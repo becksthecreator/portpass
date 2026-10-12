@@ -32,7 +32,11 @@ export async function POST(request: Request) {
       await setCoachWorkingDays(viewer.coachId, days);
     } else {
       const date = typeof body.date === "string" ? body.date : "";
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || typeof body.away !== "boolean") return NextResponse.json({ error: "Choose a date." }, { status: 400 });
+      const real = /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(`${date}T12:00:00Z`)) && new Date(`${date}T12:00:00Z`).toISOString().slice(0, 10) === date;
+      if (!real || typeof body.away !== "boolean") return NextResponse.json({ error: "Choose a date." }, { status: 400 });
+      const yearAhead = new Date();
+      yearAhead.setUTCDate(yearAhead.getUTCDate() + 366);
+      if (date > yearAhead.toISOString().slice(0, 10)) return NextResponse.json({ error: "Choose a date within the next year." }, { status: 400 });
       if (body.away && date < new Date().toISOString().slice(0, 10)) return NextResponse.json({ error: "Choose today or a later date." }, { status: 400 });
       await setCoachDayAway({ coachId: viewer.coachId, date, away: body.away, actor: account });
     }

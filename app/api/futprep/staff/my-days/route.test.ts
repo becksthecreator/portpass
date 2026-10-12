@@ -20,6 +20,9 @@ vi.mock("@/db/coaches", () => ({
 
 import { POST } from "./route";
 
+// A day within the next year (the route refuses later ones).
+const SOON = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+
 const post = (body: unknown) => POST(new Request("http://localhost/api/futprep/staff/my-days", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }));
 
 beforeEach(() => {
@@ -33,10 +36,10 @@ beforeEach(() => {
 describe("My days (brief 31, C2)", () => {
   it("saves the signed-in coach's own working days and days away", async () => {
     expect((await post({ workingDays: [5, 1, 3] })).status).toBe(200);
-    expect((await post({ date: "2099-01-05", away: true })).status).toBe(200);
-    expect((await post({ date: "2099-01-05", away: false })).status).toBe(200);
+    expect((await post({ date: SOON, away: true })).status).toBe(200);
+    expect((await post({ date: SOON, away: false })).status).toBe(200);
     expect(calls.days).toEqual([{ coachId: 12, days: [1, 3, 5] }]);
-    expect(calls.away).toEqual([{ coachId: 12, date: "2099-01-05", away: true }, { coachId: 12, date: "2099-01-05", away: false }]);
+    expect(calls.away).toEqual([{ coachId: 12, date: SOON, away: true }, { coachId: 12, date: SOON, away: false }]);
   });
 
   it("never takes a coach from the request", async () => {
@@ -61,6 +64,8 @@ describe("My days (brief 31, C2)", () => {
     expect((await post({ workingDays: "Monday" })).status).toBe(400);
     expect((await post({ date: "soon", away: true })).status).toBe(400);
     expect((await post({ date: "2000-01-03", away: true })).status).toBe(400);
+    expect((await post({ date: "2027-02-31", away: true })).status).toBe(400);
+    expect((await post({ date: "2099-01-05", away: true, extra: 1 })).status).toBe(400);
     expect((await post({ workingDays: [1], date: "2099-01-05", away: true })).status).toBe(400);
   });
 });

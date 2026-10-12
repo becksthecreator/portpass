@@ -257,20 +257,19 @@ export async function listPrivatePayLines(filter: { coachId?: number } = {}): Pr
   const organizationId = await futprepOrganizationId();
   let query = db
     .from("private_session_pay")
-    .select("id,coach_id,duration_minutes,pay_cents,rate_basis,paid_at,private_session_requests(reference_code,requested_date),coach_profiles(display_name)")
+    .select("id,coach_id,duration_minutes,pay_cents,rate_basis,paid_at,reference_code,session_date,coach_profiles(display_name)")
     .eq("organization_id", organizationId)
     .order("id", { ascending: true });
   if (filter.coachId) query = query.eq("coach_id", filter.coachId);
   const { data, error } = await query;
   throwIfSupabaseError(error, "Could not load private session pay");
   return (data ?? []).map((row) => {
-    const request = row.private_session_requests as unknown as { reference_code: string; requested_date: string } | null;
     return {
       id: Number(row.id),
       coachId: Number(row.coach_id),
       coachName: String((row.coach_profiles as unknown as { display_name: string } | null)?.display_name ?? "Coach"),
-      sessionDate: String(request?.requested_date ?? ""),
-      referenceCode: String(request?.reference_code ?? ""),
+      sessionDate: String(row.session_date ?? ""),
+      referenceCode: String(row.reference_code ?? ""),
       durationMinutes: Number(row.duration_minutes),
       payCents: Number(row.pay_cents),
       basis: row.rate_basis as PrivatePayBasis,
@@ -306,7 +305,7 @@ export async function recordPrivatePayLine(input: { requestId: number; actor: st
   const db = getSupabaseAdmin();
   const { data: request, error } = await db
     .from("private_session_requests")
-    .select("id,organization_id,status,duration_minutes,assigned_coach_id,preferred_coach_id")
+    .select("id,organization_id,status,duration_minutes,assigned_coach_id,preferred_coach_id,reference_code,requested_date")
     .eq("id", input.requestId)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load the private session");
@@ -321,7 +320,7 @@ export async function recordPrivatePayLine(input: { requestId: number; actor: st
   const { data: inserted, error: insertError } = await db
     .from("private_session_pay")
     .upsert(
-      { organization_id: Number(request.organization_id), request_id: Number(request.id), coach_id: coachId, duration_minutes: Number(request.duration_minutes), pay_cents: pay.cents, rate_basis: pay.basis, created_by: input.actor },
+      { organization_id: Number(request.organization_id), request_id: Number(request.id), reference_code: String(request.reference_code), session_date: String(request.requested_date), coach_id: coachId, duration_minutes: Number(request.duration_minutes), pay_cents: pay.cents, rate_basis: pay.basis, created_by: input.actor },
       { onConflict: "request_id", ignoreDuplicates: true },
     )
     .select("id");
