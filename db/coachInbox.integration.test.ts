@@ -69,8 +69,8 @@ beforeAll(async () => {
   const { data: places, error: placeError } = await db()
     .from("locations")
     .insert([
-      { organization_id: orgId, name: `${MARK} field`, active: true, private_sessions_ok: true, cost_model: "per_hour", cost_cents: 4000 },
-      { organization_id: orgId, name: `${MARK} school`, active: true, private_sessions_ok: false },
+      { organization_id: orgId, name: `${MARK} field`, address: "TEST address", active: true, private_sessions_ok: true, cost_model: "per_hour", cost_cents: 4000 },
+      { organization_id: orgId, name: `${MARK} school`, address: "TEST address", active: true, private_sessions_ok: false },
     ])
     .select("id,name");
   expect(placeError).toBeNull();
