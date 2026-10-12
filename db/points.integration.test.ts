@@ -78,13 +78,18 @@ beforeAll(async () => {
   for (const s of sessions ?? []) sessionIds.push(Number(s.id));
   if (sessionIds.length < 2) throw new Error("the TEST term has too few sessions");
 
-  const registration = (first: string, parentPersonId: number | null) => ({
+  const registration = (first: string, parentEmail: string, parentPersonId: number | null) => ({
     reference_code: `FP-TESTP-${first.slice(0, 1)}${tag.toUpperCase()}`, organization_id: orgId, program_id: programId, term_id: term.id,
-    parent_name: `${MARK} Guardian`, parent_email: guardianEmail, parent_phone: "242-555-0109", parent_person_id: parentPersonId,
+    parent_name: `${MARK} Guardian`, parent_email: parentEmail, parent_phone: "242-555-0109", parent_person_id: parentPersonId,
     child_name: `${first} TEST`, payment_frequency: "weekly", amount_due_cents: 4500,
     registration_status: "confirmed", payment_status: "pending", consent_version: "test", consent_accepted: true, submitted_at: new Date().toISOString(),
   });
-  const { data: regs, error: regError } = await admin.from("registrations").insert([registration("Amara", personIds[0]), registration("Bodie", null), registration("Cleo", personIds[1])]).select("id,child_name");
+  const { data: regs, error: regError } = await admin.from("registrations").insert([
+    // Signed in before: linked by person. Registered by someone with no PortPass account. Registered by the business's own staff member.
+    registration("Amara", guardianEmail, personIds[0]),
+    registration("Bodie", `test-delete-points-no-account-${tag}@example.com`, null),
+    registration("Cleo", staffEmail, personIds[1]),
+  ]).select("id,child_name");
   if (regError || !regs) throw new Error(`could not create the TEST registrations: ${regError?.message}`);
   const idOf = (first: string) => Number(regs.find((r) => String(r.child_name).startsWith(first))!.id);
   registrationId = idOf("Amara");
@@ -139,6 +144,21 @@ describe("earning by attending", () => {
     const { data: row } = await admin.from("points_events").select("*").limit(1).maybeSingle();
     const columns = Object.keys(row ?? {}).sort();
     expect(columns).toEqual(["account_id", "created_at", "created_by", "delta", "expired_at", "expires_at", "id", "organization_id", "reason", "ref_id", "ref_type"]);
+  });
+});
+
+describe("who earns for a registration", () => {
+  it("follows the registration's parent email as it stands, even before the guardian's next sign-in links it", async () => {
+    // A registration made by a signed-in guardian, not linked to a person yet.
+    const { data: reg, error } = await admin.from("registrations").insert({ reference_code: `FP-TESTP-D${tag.toUpperCase()}`, organization_id: orgId, program_id: programId, term_id: (await admin.from("program_terms").select("id").eq("program_id", programId).single()).data!.id, parent_name: `${MARK} Guardian`, parent_email: guardianEmail.toUpperCase(), parent_phone: "242-555-0109", parent_person_id: null, child_name: "Dara TEST", payment_frequency: "weekly", amount_due_cents: 4500, registration_status: "confirmed", payment_status: "pending", consent_version: "test", consent_accepted: true, submitted_at: new Date().toISOString() }).select("id").single();
+    if (error || !reg) throw new Error(`could not create the TEST registration: ${error?.message}`);
+    const before = (await account(guardian))?.balance ?? 0;
+    await admin.from("attendance").insert({ registration_id: reg.id, session_id: sessionIds[0], status: "present", marked_by: MARK });
+    expect((await account(guardian))?.balance).toBe(before + 10);
+    // Undone again so the counts below stay as they were.
+    await admin.from("attendance").delete().eq("registration_id", reg.id);
+    expect((await account(guardian))?.balance).toBe(before);
+    await admin.from("registrations").delete().eq("id", reg.id);
   });
 });
 

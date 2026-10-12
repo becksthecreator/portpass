@@ -41,6 +41,6 @@ export function formatPointsDelta(delta: number): string {
 export function howPointsAreEarned(rules: { perDollar: number; perAttendance: number }): string {
   const parts: string[] = [];
   if (rules.perDollar > 0) parts.push(`${rules.perDollar === 1 ? "1 point" : `${rules.perDollar} points`} for each dollar of a PortPass Market order, once the business marks it paid`);
-  if (rules.perAttendance > 0) parts.push(`${rules.perAttendance} points the first time you, or a child you registered, attend something you booked`);
+  if (rules.perAttendance > 0) parts.push(`${rules.perAttendance} points the first time you, or a child you registered, attend a class or programme you signed up for`);
   return parts.length ? `You earn ${parts.join(", and ")}.` : "Earning is paused for now.";
 }

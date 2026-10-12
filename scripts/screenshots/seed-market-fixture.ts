@@ -75,6 +75,17 @@ async function main() {
   const { error: publishError } = await db.from("products").update({ is_published: true }).eq("id", tee.id);
   if (publishError) throw new Error(`Could not publish the TEST tee: ${publishError.message}`);
 
+  // Part D: TEST points for the TEST shop owner's own account page (made-up
+  // reference numbers, no business, settled through the database's own
+  // function as a real mark or payment would be).
+  const { data: owner } = await db.from("organization_members").select("user_id").eq("organization_id", kit.id).eq("role", "org_owner").limit(1).maybeSingle();
+  if (owner) {
+    for (const [refType, refId, amount, reason] of [["registration", 990001, 10, "booking_attended"], ["reservation", 990002, 65, "order_paid"]] as const) {
+      const { error: pointsError } = await db.rpc("points_settle", { p_user_id: owner.user_id, p_ref_type: refType, p_ref_id: refId, p_earned: true, p_amount: amount, p_reason: reason, p_organization_id: null });
+      if (pointsError) throw new Error(`Could not seed TEST points: ${pointsError.message}`);
+    }
+  }
+
   writeFileSync(out, JSON.stringify({ adminEmail, kitShopId: kit.id }, null, 2));
   console.log("Seeded the TEST Market admin and sellers.");
 }

@@ -5,8 +5,11 @@
 --
 -- Who earns: an adult PortPass account holder, never a child. Children do
 -- not have PortPass accounts; a child's registration is held by its
--- guardian's account (registrations.parent_person_id -> people.auth_user_id),
--- so a child's attendance earns to that guardian. An event records why
+-- guardian's account: the account signed in with the registration's
+-- parent email as it stands now (the same match the account page lists
+-- registrations by), or else the person linked when the guardian first
+-- signed in (registrations.parent_person_id). A child's attendance earns
+-- to that guardian. An event records why
 -- (reason) and what for (ref_type + ref_id: 'registration' and the
 -- registration's id, 'reservation' and the order's id) and the business,
 -- nothing else: no child's name, age or any other identifier, ever. A
@@ -111,7 +114,7 @@ $$;
 create or replace function public.points_on_attendance()
 returns trigger
 language plpgsql
-set search_path = public, pg_temp
+set search_path = public, extensions, pg_temp
 as $$
 declare
   v_registration bigint := case when tg_op = 'DELETE' then old.registration_id else new.registration_id end;
@@ -120,10 +123,11 @@ declare
   v_points integer;
 begin
   begin
-    select pe.auth_user_id, r.organization_id into v_user, v_org
+    select coalesce(by_email.auth_user_id, linked.auth_user_id), r.organization_id into v_user, v_org
       from public.registrations r
-      join public.people pe on pe.id = r.parent_person_id
       join public.organizations o on o.id = r.organization_id and not o.is_demo
+      left join public.people by_email on by_email.email = nullif(btrim(r.parent_email), '')::extensions.citext and by_email.auth_user_id is not null
+      left join public.people linked on linked.id = r.parent_person_id
      where r.id = v_registration;
     if v_user is null or exists (select 1 from public.organization_members m where m.organization_id = v_org and m.user_id = v_user) then
       return null;
@@ -234,10 +238,10 @@ grant select on public.points_events to authenticated;
 
 drop policy if exists points_accounts_own on public.points_accounts;
 create policy points_accounts_own on public.points_accounts
-  for select to authenticated using (user_id = auth.uid());
+  for select to authenticated using (user_id = (select auth.uid()));
 drop policy if exists points_events_own on public.points_events;
 create policy points_events_own on public.points_events
-  for select to authenticated using (account_id in (select id from public.points_accounts where user_id = auth.uid()));
+  for select to authenticated using (account_id in (select id from public.points_accounts where user_id = (select auth.uid())));
 
 revoke all on function public.points_settle(uuid, text, bigint, boolean, integer, text, bigint) from public, anon, authenticated;
 revoke all on function public.points_on_attendance() from public, anon, authenticated;

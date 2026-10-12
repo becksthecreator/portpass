@@ -126,7 +126,7 @@ export default async function AccountPage() {
           <section className="account-section" aria-labelledby="account-points">
             <h2 id="account-points">Your PortPass Points</h2>
             <p className="account-points-balance"><strong>{points.balance.toLocaleString("en-US")}</strong> {points.balance === 1 ? "point" : "points"}</p>
-            <p className="auth-lead">{howPointsAreEarned(points.rules)} There&rsquo;s nothing to spend them on yet.</p>
+            <p className="auth-lead">{howPointsAreEarned(points.rules)} They can&rsquo;t be spent on anything.</p>
             {points.events.length > 0 && (
               <ul className="account-list">
                 {points.events.map((event) => (
