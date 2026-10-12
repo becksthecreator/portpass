@@ -16,7 +16,7 @@
 .staff-workspace-header>div{align-items:center;display:flex;gap:24px}
 .staff-workspace-header .brand-mark{background:var(--sky);color:var(--bg)}
 .staff-workspace-label{border-left:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);font-size:.7rem;padding-left:24px}
-.staff-workspace-header nav{display:flex;gap:22px}
+.staff-workspace-header nav{display:flex;flex-wrap:wrap;gap:10px 22px}
 .staff-workspace-header nav a{color:rgba(255,255,255,.85);font-size:.72rem;font-weight:800}
 .staff-workspace-content{margin:0 auto;max-width:1220px;padding:54px 24px 90px}
 .staff-page-intro{align-items:end;display:grid;gap:50px;grid-template-columns:1.3fr .7fr;margin-bottom:38px}
@@ -117,7 +117,7 @@
 }
 @media(max-width:560px){
   .staff-workspace-header{align-items:flex-start;flex-direction:column;gap:12px}
-  .staff-workspace-header nav{gap:14px}
+  .staff-workspace-header nav{gap:10px 14px}
   .staff-role-choice,.staff-summary,.medical-details dl{grid-template-columns:1fr}
   .staff-info-grid{grid-template-columns:1fr}
   .staff-info-grid>div{border-left:0;border-top:1px solid var(--line);padding:12px 0}
@@ -138,7 +138,7 @@
 /* Named Futprep staff accounts and operations */
 .staff-role-choice-three{grid-template-columns:repeat(3,1fr)}
 .staff-logout-button{background:transparent;border:0;color:rgba(255,255,255,.85);cursor:pointer;font-size:.72rem;font-weight:800;padding:0}
-.staff-nav-actions{align-items:center;display:flex;gap:16px}
+.staff-nav-actions{align-items:center;display:flex;flex-wrap:wrap;gap:10px 16px}
 .change-pin-page{max-width:480px}
 .change-pin-form{background:var(--paper);border:1px solid var(--line);display:flex;flex-direction:column;gap:20px;padding:32px}
 .change-pin-form label{display:flex;flex-direction:column;gap:8px}
@@ -359,6 +359,18 @@
 @media (max-width:900px){
   .detail-grid{grid-template-columns:1fr}
   .detail-record-payment-fields{grid-template-columns:1fr 1fr}
+}
+/* The payment history on a phone: one block per payment, each value under
+   its label (as .admin-table does), so seven columns never push the page
+   sideways. Empty cells are left out. */
+@media(max-width:700px){
+  .detail-table thead{display:none}
+  .detail-table tr{border-bottom:1px solid var(--line);display:block;padding:8px 0}
+  .detail-table tr:last-child{border-bottom:0}
+  .detail-table td{border:0;display:block;overflow-wrap:anywhere;padding:3px 0}
+  .detail-table td:empty{display:none}
+  .detail-table td::before{color:var(--muted);content:attr(data-label);display:block;font-size:.62rem;text-transform:uppercase}
+  .detail-table td:last-child{padding-top:8px}
 }
 @media(max-width:850px){.team-manager-grid,.team-admin-panels{grid-template-columns:1fr}.private-request-grid{grid-template-columns:1fr 1fr}.private-request-grid>div:nth-child(3){border-left:0}}
 @media(max-width:560px){.team-form-two,.team-profile-details dl,.private-request-grid{grid-template-columns:1fr}.private-request-grid>div{border-left:0;border-top:1px solid var(--line);padding:10px 0}.private-request-head{flex-direction:column;gap:10px}}
