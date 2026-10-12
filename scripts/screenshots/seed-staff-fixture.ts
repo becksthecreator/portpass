@@ -264,6 +264,17 @@ async function main() {
   if (regProgramError || !regPrograms) throw new Error(`Could not seed the TEST registration programmes: ${regProgramError?.message}`);
   const { error: regTermError } = await db.from("program_terms").insert(regPrograms.map((program) => ({ program_id: program.id, name: "TEST Autumn term", start_date: regDay(-7), end_date: regDay(49), weekly_fee_cents: 2500, term_fee_cents: 18000, active: true })));
   if (regTermError) throw new Error(`Could not seed the TEST registration terms: ${regTermError.message}`);
+  // Rule 3 (Ponytail audit, 11 Oct, finding 3): one TEST child with a note
+  // from the parent, so the registration record shows the note stays
+  // hidden from anyone without the medical permission (PortPass staff too).
+  const kidsDance = regPrograms.find((p) => p.slug === "test-delete-kids-dance")!;
+  const { data: kidsTerm } = await db.from("program_terms").select("id").eq("program_id", kidsDance.id).single();
+  const { data: businessRegistration, error: businessRegistrationError } = await db
+    .from("registrations")
+    .insert({ ...rows[0], reference_code: "TPB-TEST-0001", parent_phone: "+12425550125", organization_id: booth.id, program_id: kidsDance.id, term_id: kidsTerm!.id, child_name: `${MARK} Dancer`, additional_notes: "TEST — delete: a note from the parent", registration_status: "pending", payment_status: "pending", amount_due_cents: 18000 })
+    .select("id")
+    .single();
+  if (businessRegistrationError || !businessRegistration) throw new Error(`Could not seed the TEST business registration: ${businessRegistrationError?.message}`);
   const { error: regPayError } = await db.from("organization_payment_settings").upsert({ organization_id: booth.id, reference_prefix: "TPB", accepted_methods: ["cash", "bank_transfer"], bank_name: "TEST Bank of Nassau", account_name: "TEST Photo Booth", account_number_last4: "0042", transfer_instructions: "TEST — transit 00000." }, { onConflict: "organization_id" });
   if (regPayError) throw new Error(`Could not seed the TEST payment settings: ${regPayError.message}`);
 
@@ -362,7 +373,7 @@ async function main() {
   const { data: guide, error: guideError } = await db.from("guides").select("id").eq("slug", "things-to-do-in-nassau-with-kids").single();
   if (guideError || !guide) throw new Error(`Could not find the seeded guide: ${guideError?.message ?? "none"}`);
 
-  writeFileSync(out, JSON.stringify({ guideId: guide.id, billingOrgId: org.id, billingDraftId: Number(draft.data),  programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date, adminEmail, leadId, registrationId }, null, 2));
+  writeFileSync(out, JSON.stringify({ guideId: guide.id, billingOrgId: org.id, billingDraftId: Number(draft.data),  programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date, adminEmail, leadId, registrationId, businessRegistrationId: businessRegistration.id }, null, 2));
   console.log(`Seeded TEST staff fixture: program ${program.id}, term ${term.id}, session ${session.id} on ${session.session_date}.`);
 }
 

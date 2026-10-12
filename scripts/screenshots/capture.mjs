@@ -81,7 +81,8 @@ async function quickDone(page) {
 // [file name, account, path, element to also capture on its own, link to press first]
 // account "admin" is the TEST platform owner; "anon" is a visitor; "demo"
 // is a visitor who pressed "Open the demo"; anything else is a staff PIN
-// account. The fifth item, when there is one, is pressed after the page
+// account. An account ending "@1440" is the same account on a 1440px-wide
+// screen. The fifth item, when there is one, is pressed after the page
 // loads and the screen it opens is the one captured.
 const SHOTS = [
   ["brief12-roster-coaches-today-375", "test-coach", `/futprep/staff/coach?session=${fixture.sessionId}`, ".coach-ratio"],
@@ -199,6 +200,12 @@ const SHOTS = [
   ["brief18-demo-growth-375", "demo", "/demo/growth", ".growth-panel"],
   // A real (TEST) business's own attendance register.
   ["brief18-business-attendance-375", "admin", "/business/test-delete-photo-booth/attendance", null],
+  // Rule 3 (Ponytail audit, 11 Oct): the registration desk's cards carry no
+  // emergency contact (finding 4), and a business's registration record
+  // keeps the parent's note behind the medical permission (finding 3).
+  ["rule3-desk-list-375", "test-ceo", "/futprep/staff/admin", ".staff-registration-card"],
+  ["rule3-desk-list-1440", "test-ceo@1440", "/futprep/staff/admin", ".staff-registration-card"],
+  ["rule3-business-registration-375", "admin", `/business/test-delete-photo-booth/registrations/${fixture.businessRegistrationId}`, ".account-details"],
 ];
 
 // RFC 6238: the six-digit code an authenticator app would show right now.
@@ -259,7 +266,9 @@ const contexts = new Map();
 const reports = new Map();
 async function pageFor(account) {
   if (!contexts.has(account)) {
-    const context = await browser.newContext({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    const wide = account.endsWith("@1440");
+    const who = account.replace(/@1440$/, "");
+    const context = await browser.newContext(wide ? { viewport: { width: 1440, height: 900 } } : { viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     const page = await context.newPage();
     // What keeps a page from settling: every request this browser makes
     // (the page's and the service worker's) is timed, and the ones that
@@ -280,9 +289,9 @@ async function pageFor(account) {
       return lines;
     });
     // "anon" is a visitor who hasn't signed in.
-    if (account === "admin") await adminSignIn(page);
-    else if (account === "demo") await demoStart(page);
-    else if (account !== "anon") await staffSignIn(page, account);
+    if (who === "admin") await adminSignIn(page);
+    else if (who === "demo") await demoStart(page);
+    else if (who !== "anon") await staffSignIn(page, who);
     contexts.set(account, { context, page });
   }
   return contexts.get(account).page;

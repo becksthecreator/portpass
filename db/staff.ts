@@ -1,10 +1,14 @@
 import { derivePaymentStatus } from "@/lib/payments";
 import { ageOnDate } from "@/lib/scheduling";
 import { effectiveCap } from "@/lib/futprepClasses";
+import { missingRegistrationFields } from "@/lib/futprepRegistrations";
 import { effectiveCapForTerm, ensureFutprepPilotData, type PaymentFrequency, type PaymentMethod } from "./registrations";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, pageAll, throwIfSupabaseError } from "./supabase";
 
+// One child on the registration desk's list. A list, so it carries no
+// health, emergency or pickup detail (CLAUDE.md rule 3, lib/health.ts):
+// those are on the child's own record (getFutprepRegistrationDetail).
 export type StaffRegistration = {
   id: number;
   reference_code: string;
@@ -22,13 +26,10 @@ export type StaffRegistration = {
   parent_name: string | null;
   parent_email: string | null;
   parent_phone: string | null;
-  emergency_contact_name: string | null;
-  emergency_contact_phone: string | null;
-  allergies: string | null;
-  medical_conditions: string | null;
-  medications: string | null;
-  special_needs: string | null;
-  authorized_pickup: string | null;
+  // What a pending_details registration still lacks ("emergency contact",
+  // "medical information", ...), worked out here from columns that never
+  // leave this function.
+  missing_details: string[];
   photo_consent: string | null;
   signature_name: string | null;
   payment_frequency: string;
@@ -139,7 +140,10 @@ export async function listFutprepStaffRegistrations(): Promise<
     (from, to) =>
       db
         .from("registrations")
-        .select("id,reference_code,program_id,term_id,child_name,child_dob,gender,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,authorized_pickup,photo_consent,signature_name,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,submitted_at")
+        // The emergency and health columns are read only to work out
+        // missing_details below; they are not returned.
+        .select("id,reference_code,program_id,term_id,child_name,child_dob,gender,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,photo_consent,signature_name,payment_frequency,payment_method,amount_due_cents,registration_status,payment_status,submitted_at")
+        .eq("organization_id", organizationId)
         .in("program_id", programIds)
         .neq("registration_status", "cancelled")
         .order("child_name", { ascending: true })
@@ -190,13 +194,18 @@ export async function listFutprepStaffRegistrations(): Promise<
         parent_name: asNullableString(row.parent_name),
         parent_email: asNullableString(row.parent_email),
         parent_phone: asNullableString(row.parent_phone),
-        emergency_contact_name: asNullableString(row.emergency_contact_name),
-        emergency_contact_phone: asNullableString(row.emergency_contact_phone),
-        allergies: asNullableString(row.allergies),
-        medical_conditions: asNullableString(row.medical_conditions),
-        medications: asNullableString(row.medications),
-        special_needs: asNullableString(row.special_needs),
-        authorized_pickup: asNullableString(row.authorized_pickup),
+        missing_details: missingRegistrationFields({
+          registration_status: String(row.registration_status),
+          child_dob: asNullableString(row.child_dob),
+          emergency_contact_name: asNullableString(row.emergency_contact_name),
+          emergency_contact_phone: asNullableString(row.emergency_contact_phone),
+          allergies: asNullableString(row.allergies),
+          medical_conditions: asNullableString(row.medical_conditions),
+          medications: asNullableString(row.medications),
+          special_needs: asNullableString(row.special_needs),
+          photo_consent: asNullableString(row.photo_consent),
+          signature_name: asNullableString(row.signature_name),
+        }),
         photo_consent: asNullableString(row.photo_consent),
         signature_name: asNullableString(row.signature_name),
         payment_frequency: String(row.payment_frequency),
@@ -320,6 +329,21 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
   );
 }
 
+// Every desk function that takes a registration id reads and changes
+// Futprep's own rows only (CLAUDE.md rule 3; Ponytail audit finding 1).
+// All businesses' registrations share one table, so another business's
+// registration is treated exactly like a missing one.
+async function isFutprepRegistration(registrationId: number, organizationId: number): Promise<boolean> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("registrations")
+    .select("id")
+    .eq("id", registrationId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load registration");
+  return Boolean(data);
+}
+
 export async function recordFutprepPayment(input: {
   registrationId: number;
   amountCents: number;
@@ -331,11 +355,15 @@ export async function recordFutprepPayment(input: {
 }) {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
 
+  // Futprep's own registrations only: another business's id is treated
+  // as a missing one, so no payment is written and no email goes out.
   const { data: registration, error } = await db
     .from("registrations")
     .select("id,amount_due_cents,payment_frequency,parent_name,parent_email,child_name")
     .eq("id", input.registrationId)
+    .eq("organization_id", organizationId)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load payment registration");
   if (!registration) throw new Error("REGISTRATION_NOT_FOUND");
@@ -386,7 +414,8 @@ export async function recordFutprepPayment(input: {
   const { error: updateError } = await db
     .from("registrations")
     .update({ payment_status: nextStatus })
-    .eq("id", input.registrationId);
+    .eq("id", input.registrationId)
+    .eq("organization_id", organizationId);
   throwIfSupabaseError(updateError, "Could not update payment status");
 
   return {
@@ -406,13 +435,14 @@ export async function updateFutprepRegistration(input: {
 }) {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
 
   const updates: Record<string, string> = {};
   if (input.registrationStatus) {
     // Promoting from the waitlist (brief 06 v2, Part C) takes a class
     // spot, so it needs one free.
     if (input.registrationStatus !== "cancelled") {
-      const { data: current, error: currentError } = await db.from("registrations").select("registration_status,program_id,term_id").eq("id", input.registrationId).maybeSingle();
+      const { data: current, error: currentError } = await db.from("registrations").select("registration_status,program_id,term_id").eq("id", input.registrationId).eq("organization_id", organizationId).maybeSingle();
       throwIfSupabaseError(currentError, "Could not load registration");
       if (current?.registration_status === "waitlist") {
         const [{ count }, cap] = await Promise.all([
@@ -432,6 +462,7 @@ export async function updateFutprepRegistration(input: {
     .from("registrations")
     .update(updates)
     .eq("id", input.registrationId)
+    .eq("organization_id", organizationId)
     .select("id,program_id,parent_name,parent_email,child_name")
     .maybeSingle();
   throwIfSupabaseError(error, "Could not update registration");
@@ -489,11 +520,15 @@ export async function rosterForSession(
   const includeHealth = includeSafety && (options.includeHealth ?? false);
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
 
+  // Futprep's own sessions and children only (rule 3): another business's
+  // session is answered like a missing one.
   const { data: session, error: sessionError } = await db
     .from("sessions")
-    .select("program_id,term_id,session_date")
+    .select("program_id,term_id,session_date,programs!inner(organization_id)")
     .eq("id", sessionId)
+    .eq("programs.organization_id", organizationId)
     .maybeSingle();
   throwIfSupabaseError(sessionError, "Could not load session roster");
   if (!session) throw new Error("SESSION_NOT_FOUND");
@@ -515,6 +550,7 @@ export async function rosterForSession(
     ? db
         .from("registrations")
         .select("id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,allergies,medical_conditions,medications,special_needs,health_purged_at")
+        .eq("organization_id", organizationId)
         .eq("program_id", session.program_id)
         .eq("term_id", session.term_id)
         .or(who)
@@ -523,6 +559,7 @@ export async function rosterForSession(
     ? db
         .from("registrations")
         .select("id,reference_code,registration_status,child_name,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup")
+        .eq("organization_id", organizationId)
         .eq("program_id", session.program_id)
         .eq("term_id", session.term_id)
         .or(who)
@@ -530,6 +567,7 @@ export async function rosterForSession(
     : db
         .from("registrations")
         .select("id,reference_code,registration_status,child_name,parent_name,parent_phone")
+        .eq("organization_id", organizationId)
         .eq("program_id", session.program_id)
         .eq("term_id", session.term_id)
         .or(who)
@@ -601,15 +639,18 @@ export async function markFutprepAttendance(input: {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
   const now = new Date().toISOString();
+  const organizationId = await futprepOrganizationId();
+  if (!(await isFutprepRegistration(input.registrationId, organizationId))) throw new Error("REGISTRATION_NOT_FOUND");
 
   // is_backfill is computed here, from the session's own date, rather than
   // trusted from the client -- a coach marking today's session and a coach
   // catching up on 5 September should both get the right answer even if
-  // one of them has a wrong device clock.
+  // one of them has a wrong device clock. Futprep's own sessions only.
   const { data: session, error: sessionError } = await db
     .from("sessions")
-    .select("session_date")
+    .select("session_date,programs!inner(organization_id)")
     .eq("id", input.sessionId)
+    .eq("programs.organization_id", organizationId)
     .maybeSingle();
   throwIfSupabaseError(sessionError, "Could not load session for attendance");
   if (!session) throw new Error("SESSION_NOT_FOUND");
@@ -638,6 +679,9 @@ export async function markFutprepAttendance(input: {
 export async function clearFutprepAttendance(input: { sessionId: number; registrationId: number }) {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  // A missing registration has no mark to clear; nor, here, has another
+  // business's.
+  if (!(await isFutprepRegistration(input.registrationId, await futprepOrganizationId()))) return;
   const { error } = await db
     .from("attendance")
     .delete()
@@ -934,6 +978,7 @@ export async function getFutprepRegistrationDetail(
     .from("registrations")
     .select(DETAIL_COLUMNS)
     .eq("id", registrationId)
+    .eq("organization_id", await futprepOrganizationId())
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load registration");
   if (!registration) return null;
@@ -1079,6 +1124,7 @@ export async function updateFutprepRegistrationDetail(
 ) {
   await ensureFutprepPilotData();
   const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
 
   const { data: current, error } = await db
     .from("registrations")
@@ -1086,6 +1132,7 @@ export async function updateFutprepRegistrationDetail(
       "id,program_id,term_id,child_name,child_dob,gender,relationship,parent_name,parent_email,parent_phone,emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,authorized_pickup,photo_consent,payment_frequency,payment_method,amount_due_cents,additional_notes",
     )
     .eq("id", registrationId)
+    .eq("organization_id", organizationId)
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load registration to update");
   if (!current) throw new Error("REGISTRATION_NOT_FOUND");
@@ -1136,6 +1183,8 @@ export async function updateFutprepRegistrationDetail(
       .from("programs")
       .select("id,name")
       .eq("slug", input.programSlug)
+      // A child moves between Futprep's own programmes only.
+      .eq("organization_id", organizationId)
       .eq("active", true)
       .maybeSingle();
     throwIfSupabaseError(programError, "Could not load selected programme");
@@ -1203,7 +1252,7 @@ export async function updateFutprepRegistrationDetail(
   }
   if (programNameChange) changes.Programme = programNameChange;
 
-  const { error: updateError } = await db.from("registrations").update(updates).eq("id", registrationId);
+  const { error: updateError } = await db.from("registrations").update(updates).eq("id", registrationId).eq("organization_id", organizationId);
   throwIfSupabaseError(updateError, "Could not update registration");
 
   if (Object.keys(changes).length) {
@@ -1235,7 +1284,8 @@ export async function updateFutprepRegistrationDetail(
     const { error: statusError } = await db
       .from("registrations")
       .update({ payment_status: nextStatus })
-      .eq("id", registrationId);
+      .eq("id", registrationId)
+      .eq("organization_id", organizationId);
     throwIfSupabaseError(statusError, "Could not update payment status");
   }
 }
@@ -1259,6 +1309,12 @@ export async function voidFutprepPayment(input: {
     .maybeSingle();
   throwIfSupabaseError(error, "Could not load payment");
   if (!payment) throw new Error("PAYMENT_NOT_FOUND");
+  // A payment on another business's registration, or on none (a private
+  // session's), is not the desk's to void: treated as a missing one.
+  const organizationId = await futprepOrganizationId();
+  if (payment.registration_id === null || !(await isFutprepRegistration(Number(payment.registration_id), organizationId))) {
+    throw new Error("PAYMENT_NOT_FOUND");
+  }
   // A payment recorded through a payment request has a receipt the parent
   // may already hold (brief 17): it is refunded on the request, never
   // deleted here.
@@ -1273,6 +1329,7 @@ export async function voidFutprepPayment(input: {
     .from("registrations")
     .select("payment_frequency,amount_due_cents")
     .eq("id", payment.registration_id)
+    .eq("organization_id", organizationId)
     .maybeSingle();
   throwIfSupabaseError(registrationError, "Could not load registration for payment void");
 
@@ -1295,7 +1352,8 @@ export async function voidFutprepPayment(input: {
   const { error: statusError } = await db
     .from("registrations")
     .update({ payment_status: paymentStatus })
-    .eq("id", payment.registration_id);
+    .eq("id", payment.registration_id)
+    .eq("organization_id", organizationId);
   throwIfSupabaseError(statusError, "Could not update payment status after void");
 
   const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -1377,8 +1435,8 @@ export async function getFutprepMoneySummary(): Promise<FutprepMoneySummary> {
 // ---- camp roster export (brief 06 v2, A1.7) --------------------------------
 
 // Everything the camp roster spreadsheet needs for one program-in-a-term,
-// and nothing more: the registrations select names only non-medical
-// columns, and the row type (lib/rosterCsv.ts) has no medical field to
+// and nothing more: the registrations select names no health, emergency
+// or pickup column, and the row type (lib/rosterCsv.ts) has no field to
 // put one in. Attendance comes per camp day.
 export async function rosterExportForTerm(programId: number, termId: number): Promise<{ programName: string; termName: string; days: string[]; rows: import("@/lib/rosterCsv").RosterExportRow[] } | null> {
   await ensureFutprepPilotData();
@@ -1396,7 +1454,8 @@ export async function rosterExportForTerm(programId: number, termId: number): Pr
   const [{ data: registrations, error }, { data: sessions, error: sessionsError }] = await Promise.all([
     db
       .from("registrations")
-      .select("id,reference_code,child_name,child_dob,parent_name,parent_phone,parent_email,authorized_pickup,photo_consent,registration_status,payment_status,amount_due_cents")
+      .select("id,reference_code,child_name,child_dob,parent_name,parent_phone,parent_email,photo_consent,registration_status,payment_status,amount_due_cents")
+      .eq("organization_id", organizationId)
       .eq("program_id", programId)
       .eq("term_id", termId)
       .in("registration_status", ["pending_details", "pending", "confirmed"])
@@ -1447,7 +1506,6 @@ export async function rosterExportForTerm(programId: number, termId: number): Pr
         parentName: str(r.parent_name),
         parentPhone: str(r.parent_phone),
         parentEmail: str(r.parent_email),
-        authorizedPickup: str(r.authorized_pickup),
         photoConsent: str(r.photo_consent),
         registrationStatus: String(r.registration_status),
         paymentStatus: String(r.payment_status),

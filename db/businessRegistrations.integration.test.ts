@@ -5,9 +5,9 @@ import { createFutprepRegistration, listFutprepOffers } from "./registrations";
 
 // A business's own Registrations screen (brief 18, D4) against CI's local
 // Supabase stack: a business adds a children's class and an adults' class,
-// people register, and the team sees them. Health details are never in
-// the list and are read only for someone allowed; another business's rows
-// can't be reached. Every row is "TEST — delete" and removed.
+// people register, and the team sees them. Health details, and the notes
+// a parent writes in the health step, are never in the list and are read
+// only for someone allowed; another business's rows can't be reached. Every row is "TEST — delete" and removed.
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
 const TAG = crypto.randomUUID().slice(0, 6);
 let actor = "";
@@ -25,7 +25,7 @@ const person = (over: Record<string, unknown> = {}) => ({
   parentName: "TEST delete Parent", parentEmail: `reg-${crypto.randomUUID().slice(0, 8)}@test.portpass.local`, parentPhone: "+12425550150", relationship: "Mother",
   childName: `Amara TEST delete ${TAG}`, childDob: day(-365 * 6), gender: "Female",
   emergencyContactName: `ZZEMERGENCY${TAG}`, emergencyContactPhone: "+12425550151",
-  allergies: `ZZPEANUT${TAG}`, medicalConditions: `ZZASTHMA${TAG}`, medications: "", specialNeeds: "", authorizedPickup: `ZZPICKUP${TAG}`, additionalNotes: "",
+  allergies: `ZZPEANUT${TAG}`, medicalConditions: `ZZASTHMA${TAG}`, medications: "", specialNeeds: "", authorizedPickup: `ZZPICKUP${TAG}`, additionalNotes: `ZZNOTE${TAG}`,
   programSlug: kidsSlug, paymentFrequency: "term" as const, paymentMethod: "cash" as const, photoConsent: "no" as const, consentAccepted: true, signatureName: "TEST delete Parent",
   heardAboutUs: "instagram" as const,
   ...over,
@@ -111,19 +111,26 @@ describe("the team sees who registered", () => {
     childRegistration = list.find((r) => r.reference === child.referenceCode)!.id;
     adultRegistration = list.find((r) => r.reference === adult.referenceCode)!.id;
     expect(list.find((r) => r.id === adultRegistration)).toMatchObject({ participantIsAdult: true, programName: `TEST delete ${TAG} Adults`, termName: "TEST term", status: "pending", paymentStatus: "pending" });
-    expect(JSON.stringify(list)).not.toMatch(/ZZPEANUT|ZZASTHMA|ZZEMERGENCY|ZZPICKUP/);
+    expect(JSON.stringify(list)).not.toMatch(/ZZPEANUT|ZZASTHMA|ZZEMERGENCY|ZZPICKUP|ZZNOTE/);
     expect(await listBusinessRegistrations(otherOrgId)).toEqual([]);
   });
 
   it("shows a child's health details only to someone allowed, and an adult has none", async () => {
     const hidden = (await getBusinessRegistration(orgId, childRegistration, { mayViewHealth: false }))!;
     expect(hidden.health).toBeNull();
-    expect(JSON.stringify(hidden)).not.toMatch(/ZZPEANUT|ZZASTHMA|ZZEMERGENCY|ZZPICKUP/);
+    // The notes too (rule 3; Ponytail audit, 11 Oct, finding 3).
+    expect(hidden.additionalNotes).toBeNull();
+    expect(JSON.stringify(hidden)).not.toMatch(/ZZPEANUT|ZZASTHMA|ZZEMERGENCY|ZZPICKUP|ZZNOTE/);
     const shown = (await getBusinessRegistration(orgId, childRegistration, { mayViewHealth: true }))!;
     expect(shown.health).toMatchObject({ allergies: `ZZPEANUT${TAG}`, medicalConditions: `ZZASTHMA${TAG}`, emergencyContactName: `ZZEMERGENCY${TAG}`, authorizedPickup: `ZZPICKUP${TAG}` });
+    expect(shown.additionalNotes).toBe(`ZZNOTE${TAG}`);
     const adult = (await getBusinessRegistration(orgId, adultRegistration, { mayViewHealth: true }))!;
     expect(adult.health).toBeNull();
-    expect(adult).toMatchObject({ participantIsAdult: true, childDob: null, gender: null });
+    expect(adult).toMatchObject({ participantIsAdult: true, childDob: null, gender: null, additionalNotes: `ZZNOTE${TAG}` });
+    // An adult's notes, too, only for someone allowed.
+    const adultHidden = (await getBusinessRegistration(orgId, adultRegistration, { mayViewHealth: false }))!;
+    expect(JSON.stringify(adultHidden)).not.toContain("ZZNOTE");
+    expect([hidden.notesHidden, adultHidden.notesHidden, shown.notesHidden, adult.notesHidden]).toEqual([true, true, false, false]);
     // Another business can't open it.
     expect(await getBusinessRegistration(otherOrgId, childRegistration, { mayViewHealth: true })).toBeNull();
   });

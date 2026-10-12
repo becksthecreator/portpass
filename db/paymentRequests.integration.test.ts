@@ -330,8 +330,11 @@ describe("Futprep: request payment from a registration", () => {
     expect(registration!.payment_status).toBe("paid");
     const { data: payment } = await admin.from("payments").select("registration_id,payment_request_id,receipt_number").eq("id", paid.paymentId).single();
     expect(payment).toMatchObject({ registration_id: registrationId, payment_request_id: id });
-    // The desk can't delete a payment that has a receipt: it's refunded on the request.
-    await expect(voidFutprepPayment({ paymentId: paid.paymentId, voidedBy: MARK })).rejects.toThrow("payment request");
+    // Futprep's desk can't delete it: this registration is a TEST
+    // business's, not Futprep's (rule 3), and it has a receipt besides. The
+    // receipt rule on Futprep's own payments is in futprepOrgScope.
+    await expect(voidFutprepPayment({ paymentId: paid.paymentId, voidedBy: MARK })).rejects.toThrow("PAYMENT_NOT_FOUND");
+    expect((await admin.from("payments").select("id").eq("id", paid.paymentId).maybeSingle()).data).not.toBeNull();
     expect((await prefillFromRegistration(orgId, registrationId))!.lines).toEqual([]);
   });
 });

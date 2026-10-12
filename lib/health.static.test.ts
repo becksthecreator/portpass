@@ -56,6 +56,10 @@ function walk(dir: string): string[] {
 
 const repoPath = (file: string) => relative(process.cwd(), file).split(sep).join("/");
 const COLUMN = new RegExp(`\\b(${PROTECTED_CHILD_COLUMNS.join("|")})\\b`);
+// The same names as the app's own records spell them (authorizedPickup,
+// emergencyContactName): a row type or a header map uses these.
+const camel = (column: string) => column.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+const KEY = new RegExp(`\\b(${PROTECTED_CHILD_COLUMNS.flatMap((column) => [column, camel(column)]).join("|")})\\b`);
 
 describe("rule 3, read against the source", () => {
   const dbFiles = walk(join(process.cwd(), "db"));
@@ -73,19 +77,36 @@ describe("rule 3, read against the source", () => {
     for (const allowed of MAY_SELECT_PROTECTED) expect(offenders, `${allowed} is on the allow-list but no longer selects a protected column; remove it`).toContain(allowed);
   });
 
-  it("no email, CSV, export, report or prompt module names a protected column", () => {
+  it("no email, CSV, export, report or prompt module names a protected column, in either spelling", () => {
     const files = [...walk(join(process.cwd(), "lib")), ...walk(join(process.cwd(), "app", "api"))].filter((file) => TRAVELLING.test(repoPath(file)) && repoPath(file) !== "lib/health.ts" && repoPath(file) !== "lib/health.static.test.ts");
     expect(files.length).toBeGreaterThan(5);
     const offenders = files.filter((file) => {
       const source = readFileSync(file, "utf8").replace(/\/\/[^\n]*/g, "");
-      return COLUMN.test(source);
+      return KEY.test(source);
     }).map(repoPath);
     expect(offenders, `mentions a protected column outside a comment: ${offenders.join(", ")}`).toEqual([]);
   });
 
+  it("the spelling check catches a camelCase key", () => {
+    expect(KEY.test("row.authorizedPickup")).toBe(true);
+    expect(KEY.test("emergencyContactPhone: x")).toBe(true);
+    expect(KEY.test("additionalNotes")).toBe(true);
+    expect(KEY.test("authorizedPickupLabel parentName")).toBe(false);
+  });
+
   it("the roster CSV has no column for any of them", () => {
     const source = readFileSync(join(process.cwd(), "lib/rosterCsv.ts"), "utf8").replace(/\/\/[^\n]*/g, "");
-    expect(COLUMN.test(source)).toBe(false);
-    for (const word of ["Allergies", "Medications", "Medical", "Emergency"]) expect(source.includes(`"${word}`), `${word} is a roster CSV column`).toBe(false);
+    expect(KEY.test(source)).toBe(false);
+    for (const word of ["Allergies", "Medications", "Medical", "Emergency", "Authorised", "Authorized", "Pickup", "Pick-up"]) expect(source.includes(`"${word}`), `${word} is a roster CSV column`).toBe(false);
+  });
+
+  // The registration desk lists every child. Its rows reach the browser,
+  // so they carry no health, emergency or pickup field; "missing details"
+  // is worked out on the server (db/staff.ts listFutprepStaffRegistrations).
+  it("the desk list names no protected field", () => {
+    for (const file of ["app/futprep/staff/admin/page.tsx", "app/futprep/staff/admin/AdminRegistrationManager.tsx"]) {
+      const source = readFileSync(join(process.cwd(), file), "utf8").replace(/\/\/[^\n]*/g, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+      expect(KEY.test(source), `${file} names a protected field`).toBe(false);
+    }
   });
 });

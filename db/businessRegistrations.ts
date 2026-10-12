@@ -8,10 +8,11 @@ import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 // for any business, through the signed-in team's membership. Every
 // function takes the business's id and reads or changes only its rows.
 //
-// Health, emergency and pickup details are never in the list. They are
-// read for one registration only when the caller says the person may see
-// them (the "can see medical details" permission on the team), and an
-// adult's registration has none.
+// Health, emergency and pickup details, and the "Additional notes" a
+// parent writes in the health step, are never in the list. They are read
+// for one registration only when the caller says the person may see them
+// (the "can see medical details" permission on the team). An adult's
+// registration has only the notes.
 
 export type BusinessRegistration = {
   id: number;
@@ -46,7 +47,12 @@ export type BusinessRegistrationDetail = BusinessRegistration & {
   gender: string | null;
   paymentMethod: string | null;
   photoConsent: string | null;
+  // A health column (lib/health.ts): null unless the person may see medical
+  // details, whatever was written.
   additionalNotes: string | null;
+  // The person may not see medical details, so the notes (and a child's
+  // health block) were not read: the screen says why, never whether any exist.
+  notesHidden: boolean;
   heardAboutUs: string | null;
   // null: the person may not see them, or this is an adult's registration.
   health: BusinessRegistrationHealth | null;
@@ -54,7 +60,7 @@ export type BusinessRegistrationDetail = BusinessRegistration & {
 
 type Row = Record<string, unknown>;
 const LIST_COLUMNS = "id,reference_code,child_name,participant_is_adult,program_id,term_id,registration_status,payment_status,amount_due_cents,payment_frequency,submitted_at,parent_name,parent_email,parent_phone";
-const HEALTH_COLUMNS = "emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,authorized_pickup";
+const HEALTH_COLUMNS = "emergency_contact_name,emergency_contact_phone,allergies,medical_conditions,medications,special_needs,authorized_pickup,additional_notes";
 const text = (value: unknown): string | null => (typeof value === "string" && value.trim() ? value : null);
 
 async function names(programIds: number[], termIds: number[]): Promise<{ program: Map<number, string>; term: Map<number, string> }> {
@@ -100,12 +106,13 @@ export async function listBusinessRegistrations(organizationId: number): Promise
 }
 
 // One registration of this business. `mayViewHealth` decides whether the
-// health columns are even read; an adult's registration has none to read.
+// health columns, notes included, are even read; an adult's registration
+// has only the notes to read.
 export async function getBusinessRegistration(organizationId: number, id: number, options: { mayViewHealth: boolean }): Promise<BusinessRegistrationDetail | null> {
   const db = getSupabaseAdmin();
   const { data, error } = await db
     .from("registrations")
-    .select(`${LIST_COLUMNS},relationship,child_dob,gender,payment_method,photo_consent,additional_notes,heard_about_us`)
+    .select(`${LIST_COLUMNS},relationship,child_dob,gender,payment_method,photo_consent,heard_about_us`)
     .eq("organization_id", organizationId)
     .eq("id", id)
     .maybeSingle();
@@ -114,19 +121,24 @@ export async function getBusinessRegistration(organizationId: number, id: number
   const row = data as Row;
   const lookup = await names([Number(row.program_id)], row.term_id ? [Number(row.term_id)] : []);
   let health: BusinessRegistrationHealth | null = null;
-  if (options.mayViewHealth && !row.participant_is_adult) {
-    const { data: healthRow, error: healthError } = await db.from("registrations").select(HEALTH_COLUMNS).eq("organization_id", organizationId).eq("id", id).maybeSingle();
+  let additionalNotes: string | null = null;
+  if (options.mayViewHealth) {
+    const adult = Boolean(row.participant_is_adult);
+    const { data: healthRow, error: healthError } = await db.from("registrations").select(adult ? "additional_notes" : HEALTH_COLUMNS).eq("organization_id", organizationId).eq("id", id).maybeSingle();
     throwIfSupabaseError(healthError, "Could not load the health details");
     const h = (healthRow ?? {}) as Row;
-    health = {
-      emergencyContactName: text(h.emergency_contact_name),
-      emergencyContactPhone: text(h.emergency_contact_phone),
-      allergies: text(h.allergies),
-      medicalConditions: text(h.medical_conditions),
-      medications: text(h.medications),
-      specialNeeds: text(h.special_needs),
-      authorizedPickup: text(h.authorized_pickup),
-    };
+    additionalNotes = text(h.additional_notes);
+    if (!adult) {
+      health = {
+        emergencyContactName: text(h.emergency_contact_name),
+        emergencyContactPhone: text(h.emergency_contact_phone),
+        allergies: text(h.allergies),
+        medicalConditions: text(h.medical_conditions),
+        medications: text(h.medications),
+        specialNeeds: text(h.special_needs),
+        authorizedPickup: text(h.authorized_pickup),
+      };
+    }
   }
   return {
     ...toRegistration(row, lookup),
@@ -135,7 +147,8 @@ export async function getBusinessRegistration(organizationId: number, id: number
     gender: text(row.gender),
     paymentMethod: text(row.payment_method),
     photoConsent: text(row.photo_consent),
-    additionalNotes: text(row.additional_notes),
+    additionalNotes,
+    notesHidden: !options.mayViewHealth,
     heardAboutUs: text(row.heard_about_us),
     health,
   };

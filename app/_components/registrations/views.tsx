@@ -142,7 +142,11 @@ export function RegistrationDetail({
           {!r.participantIsAdult && r.gender && <div><dt>Gender</dt><dd>{r.gender}</dd></div>}
           <div><dt>Payment</dt><dd>{PAYMENT[r.paymentStatus] ?? r.paymentStatus}{r.amountDueCents > 0 ? ` · ${dollars(r.amountDueCents)}${r.paymentFrequency === "weekly" ? " a week" : ""}` : ""}{r.paymentMethod ? ` · ${METHOD[r.paymentMethod] ?? r.paymentMethod}` : ""}</dd></div>
           <div><dt>Photos</dt><dd>{r.photoConsent === "yes" ? "Permission given" : r.photoConsent === "no" ? "No permission" : "Not answered"}</dd></div>
-          {r.additionalNotes && <div><dt>Notes</dt><dd>{r.additionalNotes}</dd></div>}
+          {/* Loaded only for someone allowed to see medical details; a
+              child's are under Health and safety. */}
+          {r.participantIsAdult && (r.notesHidden
+            ? <div><dt>Notes</dt><dd>Shown only to team members allowed to see medical details</dd></div>
+            : r.additionalNotes && <div><dt>Notes</dt><dd>{r.additionalNotes}</dd></div>)}
         </dl>
       </section>
 
@@ -167,11 +171,12 @@ export function RegistrationDetail({
               <div><dt>Medication</dt><dd>{r.health.medications ?? "None given"}</dd></div>
               <div><dt>Needs</dt><dd>{r.health.specialNeeds ?? "None given"}</dd></div>
               <div><dt>Pickup</dt><dd>{r.health.authorizedPickup ?? "—"}</dd></div>
+              <div><dt>Notes</dt><dd>{r.additionalNotes ?? "None given"}</dd></div>
             </dl>
           ) : demo ? (
             <p className="auth-lead">The demo holds no health, emergency or pickup details for any child. In a real business they are shown here, and only to the team members the owner allows.</p>
           ) : (
-            <p className="auth-lead">Health, emergency and pickup details are shown only to team members allowed to see medical details. The owner sets that in Settings → Team.</p>
+            <p className="auth-lead">Health, emergency and pickup details, and the parent&rsquo;s notes, are shown only to team members allowed to see medical details. The owner sets that in Settings → Team.</p>
           )}
         </section>
       )}
