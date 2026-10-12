@@ -1,9 +1,23 @@
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addWeeklyCoachSlots } from "./coaches";
-import { ensureDefaultLead, getSessionStaff, setSessionStaff } from "./coachPay";
-import { createReturnLink, ensureFutprepPilotData, returnLinkPrefill } from "./registrations";
+import {
+  actOnPrivateSessionRequest,
+  addWeeklyCoachSlots,
+  listAllCoachProfiles,
+  listPrivateSessionRequests,
+  listPublicCoachProfiles,
+  privateSessionStats,
+  recordPrivateSessionPayment,
+  restoreCoach,
+  saveCoachAvailability,
+  saveCoachProfile,
+  setCoachPhoto,
+  softDeleteCoach,
+} from "./coaches";
+import { ensureDefaultLead, getSessionStaff, setCoachPayDefaults, setSessionStaff } from "./coachPay";
+import { setFutprepProgramActive } from "./programs";
+import { createFutprepPendingRegistration, createReturnLink, ensureFutprepPilotData, returnLinkPrefill } from "./registrations";
 import {
   clearFutprepAttendance,
   getFutprepRegistrationDetail,
@@ -42,6 +56,11 @@ let otherPaymentId = 0;
 let futprepProgramId = 0;
 let futprepId = 0;
 let otherCoachId = 0;
+let otherTermId = 0;
+let otherRequestId = 0;
+let futprepRequestId = 0;
+let otherStaffId = 0;
+let futprepCoachId = 0;
 
 function registration(organizationId: number, programId: number, termId: number, label: string) {
   const now = new Date().toISOString();
@@ -130,6 +149,7 @@ beforeAll(async () => {
   otherProgramSlug = `test-delete-other-kids-${TAG}`;
   const other = await seedProgram(otherOrgId, otherProgramSlug);
   otherProgramId = other.programId;
+  otherTermId = other.termId;
   const mine = await seedProgram(Number(futprep!.id), `test-delete-futprep-kids-${TAG}`);
   futprepProgramId = mine.programId;
 
@@ -174,9 +194,49 @@ beforeAll(async () => {
   await db().from("programs").update({ default_lead_coach_id: otherCoachId }).eq("id", other.programId);
   const { error: staffError } = await db().from("session_staff").insert({ session_id: otherSessionId, coach_id: otherCoachId, role: "lead", pay_cents: 0, created_by: MARK });
   if (staffError) throw new Error(`Could not seed TEST session staff: ${staffError.message}`);
+
+  // Brief 34: a private session request for each business, the other
+  // business's staff login, and a Futprep coach (hidden, switched off).
+  const request = (organizationId: number, label: string) => ({
+    reference_code: `FP-S-TEST-${TAG.toUpperCase()}-${label}`,
+    organization_id: organizationId,
+    parent_name: `${MARK} Parent ${label}`,
+    parent_email: `test-delete-${crypto.randomUUID().slice(0, 8)}@example.com`,
+    parent_phone: "242-555-0125",
+    child_name: `${MARK} Child ${label}`,
+    child_age: 6,
+    requested_date: "2098-09-06",
+    requested_start_time: "4:00 PM",
+    duration_minutes: 60,
+    location_preference: "TEST field",
+    status: "pending",
+    price_cents: 5000,
+  });
+  const { data: requests, error: requestError } = await db().from("private_session_requests").insert([request(otherOrgId, "OTHER"), request(Number(futprep!.id), "FUTPREP")]).select("id,reference_code");
+  if (requestError || !requests) throw new Error(`Could not seed TEST private session requests: ${requestError?.message}`);
+  otherRequestId = Number(requests.find((r) => r.reference_code.endsWith("OTHER"))!.id);
+  futprepRequestId = Number(requests.find((r) => r.reference_code.endsWith("FUTPREP"))!.id);
+  const { data: staff, error: staffMemberError } = await db().from("staff_members").insert({ organization_id: otherOrgId, name: `${MARK} Other Login`, role: "coach", responsibilities: "", active: true }).select("id").single();
+  if (staffMemberError || !staff) throw new Error(`Could not seed a TEST staff login: ${staffMemberError?.message}`);
+  otherStaffId = Number(staff.id);
+  const { data: mine, error: mineError } = await db()
+    .from("coach_profiles")
+    .insert({ organization_id: Number(futprep!.id), slug: `test-delete-futprep-coach-${TAG}`, display_name: `${MARK} Futprep Coach`, active: false, bookable: false, public_visible: false })
+    .select("id")
+    .single();
+  if (mineError || !mine) throw new Error(`Could not seed a TEST Futprep coach: ${mineError?.message}`);
+  futprepCoachId = Number(mine.id);
 });
 
 afterAll(async () => {
+  const requestIds = [otherRequestId, futprepRequestId].filter(Boolean);
+  if (requestIds.length) {
+    await db().from("private_session_events").delete().in("request_id", requestIds);
+    await db().from("payments").delete().in("private_session_request_id", requestIds);
+    await db().from("private_session_requests").delete().in("id", requestIds);
+  }
+  if (futprepCoachId) await db().from("coach_profiles").delete().eq("id", futprepCoachId);
+  if (otherStaffId) await db().from("staff_members").delete().eq("id", otherStaffId);
   if (otherSessionId) await db().from("session_staff").delete().eq("session_id", otherSessionId);
   if (otherCoachId) {
     await db().from("coach_availability").delete().eq("coach_id", otherCoachId);
@@ -331,5 +391,111 @@ describe("Futprep's session and coach screens never reach another business's (ru
     expect(await outcome(addWeeklyCoachSlots({ coachId: otherCoachId, ...slots }))).toBe("refused COACH_NOT_FOUND");
     const { data: times } = await db().from("coach_availability").select("id").eq("coach_id", otherCoachId);
     expect(times).toEqual([]);
+  });
+});
+
+// Brief 34, the rest of finding 1 (found by the tdd-guide's read of every
+// Futprep staff action): private session requests and their payments, the
+// Team screen and the public coach pages, switching a class on or off, the
+// desk's quick add and a coach's login link. Each answers another
+// business's id like a missing one, and leaves its rows as they were.
+describe("Futprep's private sessions, team and classes never reach another business's (rule 3, brief 34)", () => {
+  async function otherRequest() {
+    const { data } = await db().from("private_session_requests").select("status,assigned_coach_id,payment_status,parent_notified_at").eq("id", otherRequestId).single();
+    return data;
+  }
+
+  it("a private session request: every action refused like a missing one, nothing booked or recorded", async () => {
+    const before = await otherRequest();
+    const actions = [
+      { action: "accept" as const, coachId: otherCoachId },
+      { action: "decline" as const, reason: "TEST reason" },
+      { action: "refer" as const, targetCoachId: otherCoachId },
+      { action: "parent_notified" as const },
+      { action: "complete" as const },
+    ];
+    for (const act of actions) {
+      const theirs = await outcome(actOnPrivateSessionRequest({ id: otherRequestId, actor: MARK, ...act }));
+      expect(theirs).toBe(await outcome(actOnPrivateSessionRequest({ id: MISSING, actor: MARK, ...act })));
+      expect(theirs).toBe("refused REQUEST_NOT_FOUND");
+    }
+    expect(await otherRequest()).toEqual(before);
+    const { data: events } = await db().from("private_session_events").select("id").eq("request_id", otherRequestId);
+    expect(events).toEqual([]);
+  });
+
+  it("a Futprep request is never given to another business's coach", async () => {
+    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "accept", coachId: otherCoachId, actor: MARK }))).toBe("refused COACH_NOT_FOUND");
+    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "refer", targetCoachId: otherCoachId, actor: MARK }))).toBe("refused COACH_NOT_FOUND");
+    const { data } = await db().from("private_session_requests").select("status,assigned_coach_id").eq("id", futprepRequestId).single();
+    expect(data).toEqual({ status: "pending", assigned_coach_id: null });
+  });
+
+  it("a private session payment: refused like a missing one, no money recorded", async () => {
+    const pay = (requestId: number) => recordPrivateSessionPayment({ requestId, amountCents: 100, method: "cash", reference: "", recordedBy: MARK });
+    expect(await outcome(pay(otherRequestId))).toBe(await outcome(pay(MISSING)));
+    expect(await outcome(pay(otherRequestId))).toBe("refused REQUEST_NOT_FOUND");
+    const { data: payments } = await db().from("payments").select("id").eq("private_session_request_id", otherRequestId);
+    expect(payments).toEqual([]);
+    expect((await otherRequest())?.payment_status).not.toBe("partial");
+  });
+
+  it("the private sessions list and its numbers are Futprep's only", async () => {
+    const { requests } = await listPrivateSessionRequests();
+    expect(requests.map((r) => Number(r.id))).toContain(futprepRequestId);
+    expect(requests.map((r) => Number(r.id))).not.toContain(otherRequestId);
+    // The other business's request, dated after anything another test
+    // makes, paid in full: counted nowhere.
+    await db().from("private_session_requests").update({ created_at: "2099-01-02T00:00:00Z", status: "accepted", accepted_at: "2099-01-02T00:00:00Z", payment_status: "paid" }).eq("id", otherRequestId);
+    await db().from("payments").insert({ private_session_request_id: otherRequestId, amount_cents: 7777, method: "cash", status: "received", recorded_by: MARK, received_at: new Date().toISOString() });
+    expect(await privateSessionStats("2099-01-01T00:00:00Z")).toEqual({ requested: 0, accepted: 0, paid: 0, revenueCents: 0 });
+  });
+
+  it("the Team screen: another business's coach is neither listed nor changed", async () => {
+    const { coaches } = await listAllCoachProfiles();
+    expect(coaches.map((c) => Number(c.id))).toContain(futprepCoachId);
+    expect(coaches.map((c) => Number(c.id))).not.toContain(otherCoachId);
+
+    const profile = (id: number) => saveCoachProfile({ id, displayName: `${MARK} Renamed`, slug: `test-delete-renamed-${TAG}`, positionTitle: "Coach", memberType: "coach", bio: "", licenses: [], playedAt: [], favoritePlayer: "", favoriteTeam: "", photoUrl: "https://example.com/test.jpg", introVideoUrl: "", testimonialQuote: "", testimonialName: "", publicVisible: true, bookable: true, sortOrder: 1 });
+    const slot = (coachId: number) => saveCoachAvailability({ coachId, date: "2098-09-06", startTime: "9:00 AM", endTime: "10:00 AM", status: "available", location: "TEST field", note: "", actor: MARK });
+    const calls: Array<(id: number) => Promise<unknown>> = [profile, softDeleteCoach, restoreCoach, slot, (id) => setCoachPhoto(id, null)];
+    for (const call of calls) {
+      expect(await outcome(call(otherCoachId))).toBe(await outcome(call(MISSING)));
+      expect(await outcome(call(otherCoachId))).toBe("refused COACH_NOT_FOUND");
+    }
+    const { data: coach } = await db().from("coach_profiles").select("organization_id,display_name,active,public_visible,photo_url").eq("id", otherCoachId).single();
+    expect(coach).toEqual({ organization_id: otherOrgId, display_name: `${MARK} Other Coach`, active: true, public_visible: false, photo_url: null });
+    const { data: times } = await db().from("coach_availability").select("id").eq("coach_id", otherCoachId);
+    expect(times).toEqual([]);
+  });
+
+  it("Futprep's public coach pages never show another business's coach", async () => {
+    await db().from("coach_profiles").update({ public_visible: true }).eq("id", otherCoachId);
+    try {
+      const { coaches } = await listPublicCoachProfiles();
+      expect(coaches.map((c) => Number(c.id))).not.toContain(otherCoachId);
+    } finally {
+      await db().from("coach_profiles").update({ public_visible: false }).eq("id", otherCoachId);
+    }
+  });
+
+  it("switching a class on or off: never another business's", async () => {
+    expect(await outcome(setFutprepProgramActive(otherProgramId, false))).toBe(await outcome(setFutprepProgramActive(MISSING, false)));
+    expect(await outcome(setFutprepProgramActive(otherProgramId, false))).toBe("refused PROGRAM_NOT_FOUND");
+    const { data } = await db().from("programs").select("active").eq("id", otherProgramId).single();
+    expect(data?.active).toBe(true);
+  });
+
+  it("the desk's quick add: never into another business's class", async () => {
+    const childName = `${MARK} quick add ${TAG}`;
+    expect(await outcome(createFutprepPendingRegistration({ childName, programSlug: otherProgramSlug, termId: otherTermId, enteredByStaff: MARK }))).toBe("refused INVALID_PROGRAM");
+    const { data } = await db().from("registrations").select("id").eq("program_id", otherProgramId).eq("child_name", childName);
+    expect(data).toEqual([]);
+  });
+
+  it("a coach's login link: never another business's staff login", async () => {
+    expect(await outcome(setCoachPayDefaults({ coachId: futprepCoachId, leadCents: null, assistantCents: null, staffMemberId: otherStaffId, actor: MARK }))).toBe("refused STAFF_NOT_FOUND");
+    const { data } = await db().from("coach_profiles").select("staff_member_id").eq("id", futprepCoachId).single();
+    expect(data?.staff_member_id).toBeNull();
   });
 });
