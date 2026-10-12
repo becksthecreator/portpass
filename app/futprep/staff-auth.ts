@@ -219,16 +219,17 @@ export async function changeFutprepPin(
   return makeStaffToken(accountKey, newPin);
 }
 
-// True once at least one active account with credentials exists. The staff
-// login page shows a "create the first admin account" setup screen instead
-// of the normal login form until this is true.
+// True once any account with credentials has ever been made, switched on
+// or off. The staff login page shows a "create the first admin account"
+// setup screen, which needs no sign-in, instead of the normal login form
+// until this is true. Switched-off logins count, so switching every login
+// off never opens that screen to a stranger again (audit finding 9).
 export async function hasAnyStaffAccount(): Promise<boolean> {
   const supabase = getSupabaseAdmin();
   const { count, error } = await supabase
     .from("staff_members")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", FUTPREP_ORG_ID)
-    .eq("active", true)
     .not("account_key", "is", null)
     .not("pin_hash", "is", null);
   throwIfSupabaseError(error, "Could not check for an existing staff account");

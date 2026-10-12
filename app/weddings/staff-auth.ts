@@ -202,6 +202,9 @@ export async function changeWeddingPin(
   return makeWeddingStaffToken(accountKey, newPin);
 }
 
+// Switched-off logins count, as in Futprep's hasAnyStaffAccount: once any
+// login has been made, the no-sign-in setup screen stays shut (audit
+// finding 9).
 export async function hasAnyWeddingStaffAccount(): Promise<boolean> {
   const supabase = getSupabaseAdmin();
   const orgId = await weddingOrgId();
@@ -209,7 +212,6 @@ export async function hasAnyWeddingStaffAccount(): Promise<boolean> {
     .from("staff_members")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", orgId)
-    .eq("active", true)
     .not("account_key", "is", null)
     .not("pin_hash", "is", null);
   throwIfSupabaseError(error, "Could not check for an existing wedding staff account");
