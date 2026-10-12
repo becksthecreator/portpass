@@ -18,3 +18,24 @@ Left out, on purpose:
 - `mcp-configs/`: a list of third-party MCP servers (`npx` packages and hosted URLs) nobody here has vetted.
 - `contexts/` and the session memory under `~/.claude/sessions`: they persist session state across runs, which no PortPass agent does.
 - The agents' blockchain, wallet, coverage-target and `npm install --save-dev` content: PortPass holds no money (rule 1) and adds tools by brief, not by agent.
+
+## Skills copied in (brief 33, 11 Oct 2026)
+
+Five skills in `.claude/skills/`, copied from two pinned commits after reading every file. The clones were made in a scratch folder outside the repo and deleted. No plugin, hook, statusline, `plugin.json`, settings, agent or command came with them, and nothing from either repo was run. Each copied `SKILL.md` starts with a note naming its source; `CLAUDE.md` wins where they clash.
+
+**Ponytail**, https://github.com/DietrichGebert/ponytail at `9b58c1ffb790c075ca32e70a89cf1d80588f4abf`:
+
+- Taken: `skills/ponytail/SKILL.md`, `skills/ponytail-review/SKILL.md`, `skills/ponytail-audit/SKILL.md`, unchanged under the note.
+- Left: the plugin and its hooks (a session-start hook loads the persona into every session and subagent and nudges a statusline into settings); `plugin.json`; `ponytail-debt`, `ponytail-gain` and `ponytail-help` (the brief named three skills).
+
+**agent-skills** (Addy Osmani), https://github.com/addyosmani/agent-skills at `1be8e34187e34647bb83adc3a1323b26ae6f6abe`:
+
+- Taken: `skills/shipping-and-launch/` and `skills/performance-optimization/` (with its `references/optimization-patterns.md`), and the four shared checklists they link to (`definition-of-done`, `security-checklist`, `performance-checklist`, `accessibility-checklist`), now in `.claude/skills/shipping-and-launch/references/` with the links re-pointed.
+- Changed: every line that installs or runs a package is gone (`npx bundlesize`, `npx lhci`, `npx lighthouse`, the bundle analysers, `npx axe-core`, `npx pa11y`, and the security checklist's install matrix and install-script gate), replaced by a pointer to what PortPass already runs. The security checklist's `git diff --cached | grep` for secrets prints any match, so it became "CI's gitleaks scan; name the file, never print a match" (rule 6).
+- Left: the other 23 skills (among them `using-agent-skills`, which tells the agent to load a skill on any hint of a match), the other three shared references, the repo's `CLAUDE.md` and `AGENTS.md`, `hooks/`, `agents/`, `commands/`, `scripts/`, `evals/`, `docs/`, `plugin.json` and the per-tool plugin folders (the brief named two skills).
+
+**Not taken, and why:**
+
+- **everything-claude-code** (`affaan-m/ecc`): only the idea of a plain Markdown handoff, built here as `docs/ops/STATE.md` and `/handoff`. No plugin, npm runtime, hooks, MCP server or Memory Vault.
+- **OmniRoute**: it routes our data through many third-party free tiers and needs many provider keys. Not for a product that holds families' data.
+- **Agent Reach**: it works through browser cookies and logged-in sessions for Instagram, X and Reddit, which breaks our no-log-in, no-scraping rules (rules 5 and 6).
