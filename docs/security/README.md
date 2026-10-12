@@ -75,7 +75,7 @@ What they count is in `security_events` (kept 90 days) and `admin_devices`; both
 
 ## What the database enforces
 
-Every public table has row level security on and a policy (`supabase/migrations/202610180001_rls_policies.sql`): the public site's own rows are readable by a browser key, nothing else is, and no browser role can write anywhere. `admin_database_checks()` keeps five counts at zero and CI fails when one moves (`db/adminHealth.integration.test.ts`): tables without RLS, tables with RLS but no policy, tables a browser role could write, functions without a fixed search path, privileged functions a browser could call. Admin → Health shows the same five.
+Every public table has row level security on and a policy (`supabase/migrations/202610180001_rls_policies.sql`): the public site's own rows are readable by a browser key, nothing else is, and no browser role can write anywhere. `admin_database_checks()` keeps six counts at zero and CI fails when one moves (`db/adminHealth.integration.test.ts`): tables without RLS, tables with RLS but no policy, tables a browser role could write, functions without a fixed search path, privileged functions a browser could call, and views a browser role could read that are not `security_invoker` (such a view reads its tables as its owner, past their RLS; `supabase/migrations/202610230001_admin_check_views.sql`). Admin → Health shows the same six.
 
 ## Where the records are
 

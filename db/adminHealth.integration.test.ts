@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, describe, expect, it } from "vitest";
-import { countMessageProblems, countSiteErrors, databaseChecks, getBackupHeartbeat, listMessages, listSiteErrors, markDelivery, pruneHealthRecords, recordSiteError, saveBackupHeartbeat } from "./adminHealth";
+import { countMessageProblems, countSiteErrors, DATABASE_CHECK_LABEL, databaseChecks, getBackupHeartbeat, listMessages, listSiteErrors, markDelivery, pruneHealthRecords, recordSiteError, saveBackupHeartbeat } from "./adminHealth";
 import { logMessage } from "./growth";
 
 // Admin Control Center, build C (brief 08) against CI's local Supabase
@@ -98,12 +98,15 @@ describe("the backup heartbeat", () => {
 
 describe("the database's safety checks", () => {
   // This is also a guard on every future migration: a new table without
-  // row level security, a function without a fixed search path, or a
-  // privileged function a browser role may call fails here, before deploy.
+  // row level security, a function without a fixed search path, a
+  // privileged function a browser role may call, or a view a browser role
+  // can read that skips row level security fails here, before deploy.
   it("finds nothing wrong with the schema the migrations build", async () => {
     const checks = await databaseChecks();
-    expect(checks.map((c) => c.name).sort()).toEqual(["definer_functions_open_to_browser_roles", "functions_without_search_path", "tables_browser_roles_can_write", "tables_with_rls_but_no_policy", "tables_without_rls"]);
+    expect(checks.map((c) => c.name).sort()).toEqual(["definer_functions_open_to_browser_roles", "definer_views_open_to_browser_roles", "functions_without_search_path", "tables_browser_roles_can_write", "tables_with_rls_but_no_policy", "tables_without_rls"]);
     expect(checks.filter((c) => c.problems > 0)).toEqual([]);
+    // Admin -> Health shows each one in words, never its raw name.
+    expect(checks.filter((c) => !DATABASE_CHECK_LABEL[c.name]).map((c) => c.name)).toEqual([]);
   });
 
   it("can't be run by a browser role", async () => {
