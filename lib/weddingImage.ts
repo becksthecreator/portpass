@@ -1,11 +1,13 @@
 import { ORG_ASSETS_BUCKET } from "@/lib/imageUpload";
 
-// A Wedding Desk package's photo (db/weddingPackages.ts). It shows on the
+// A photo saved from the Wedding Desk: a package's (db/weddingPackages.ts)
+// or a gallery photo's (db/weddingSite.ts). A package photo shows on the
 // bespoke page and, once a package is copied onto Bahamas Weddings By The
 // Sea's offerings (202610240001), on its generic listing and its cards on
-// /weddings/officiants and /weddings/planning too. So it must be one of
-// BWS's own photos, never an outside image or a tracking pixel. Two forms
-// are taken, as the admin field's hint says:
+// /weddings/officiants and /weddings/planning too; gallery rows are read
+// back by getPublicWeddingGallery. So it must be one of BWS's own photos,
+// never an outside image or a tracking pixel. Two forms are taken, as the
+// admin fields' hints say:
 //
 //  * a photo that ships with the site, in public/weddings/bahamas-by-the-sea/
 //  * a photo uploaded for a business, by the public URL the upload routes
@@ -23,11 +25,11 @@ const SITE_PHOTO = /^\/weddings\/bahamas-by-the-sea\/[A-Za-z0-9][A-Za-z0-9._-]*\
 const UPLOADED_PHOTO = /^org\/([1-9][0-9]*)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9][A-Za-z0-9._-]*\.(?:webp|jpe?g|png)$/;
 
 // The photo to save (null for none), and for an upload, the organisation
-// whose folder it is in; the caller checks that is BWS. null when the value
-// is neither form.
-export type PackageImage = { url: string | null; orgFolder: number | null };
+// whose folder it is in; db/weddingImage.ts checks that is BWS. null when
+// the value is neither form.
+export type WeddingImage = { url: string | null; orgFolder: number | null };
 
-export function readPackageImage(value: unknown, supabaseUrl: string | undefined): PackageImage | null {
+export function readWeddingImage(value: unknown, supabaseUrl: string | undefined): WeddingImage | null {
   if (value === null || value === undefined) return { url: null, orgFolder: null };
   if (typeof value !== "string") return null;
   const url = value.trim();

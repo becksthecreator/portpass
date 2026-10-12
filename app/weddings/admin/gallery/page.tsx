@@ -15,7 +15,7 @@ export default async function WeddingGalleryAdminPage() {
       <section className="staff-workspace-content">
         <div className="staff-page-intro">
           <div><span className="section-kicker">Gallery</span><h1>Real wedding photos.</h1></div>
-          <p>Paste a link to an already-hosted photo (from a photo host, cloud drive, or WeddingWire once downloaded and re-hosted). Every photo needs a photographer credit where the name is known, and an image without confirmed rights should stay in draft.</p>
+          <p>Use one of our own photos: a path under /weddings/bahamas-by-the-sea/, or the link of a photo uploaded for Bahamas Weddings By The Sea on PortPass. Links to other websites can&apos;t be saved. Every photo needs a photographer credit where the name is known, and an image without confirmed rights should stay in draft.</p>
         </div>
         <GalleryManager initialImages={images} />
       </section>

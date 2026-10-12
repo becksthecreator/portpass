@@ -1,6 +1,6 @@
 import { bumpListings } from "@/lib/revalidate";
-import { readPackageImage } from "@/lib/weddingPackageImage";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
+import { ownWeddingImageUrl } from "./weddingImage";
 
 export type PublicWeddingPackage = {
   id: number;
@@ -86,13 +86,6 @@ export type WeddingPackageInput = {
 };
 
 const SLUG_PATTERN = /^[a-z0-9-]{2,60}$/;
-const WEDDING_ORG_SLUG = "bahamas-weddings";
-
-async function weddingOrgId(): Promise<number | null> {
-  const { data, error } = await getSupabaseAdmin().from("organizations").select("id").eq("slug", WEDDING_ORG_SLUG).maybeSingle();
-  throwIfSupabaseError(error, "Could not load the wedding organization");
-  return data ? Number(data.id) : null;
-}
 
 export async function upsertWeddingPackage(id: number | null, input: WeddingPackageInput, currency = "BSD"): Promise<void> {
   const slug = input.slug.trim().toLowerCase();
@@ -100,10 +93,9 @@ export async function upsertWeddingPackage(id: number | null, input: WeddingPack
   if (!SLUG_PATTERN.test(slug)) throw new Error("INVALID_SLUG");
   if (!name) throw new Error("NAME_REQUIRED");
   if (input.priceFromCents !== null && (!Number.isInteger(input.priceFromCents) || input.priceFromCents < 0)) throw new Error("INVALID_PRICE");
-  // Only BWS's own photos: one shipped with the site, or one uploaded to its
-  // own folder (lib/weddingPackageImage.ts). Checked before anything is written.
-  const image = readPackageImage(input.imageUrl, process.env.SUPABASE_URL);
-  if (!image || (image.orgFolder !== null && image.orgFolder !== (await weddingOrgId()))) throw new Error("INVALID_IMAGE");
+  // Only BWS's own photos, or none (db/weddingImage.ts). Checked before
+  // anything is written.
+  const imageUrl = await ownWeddingImageUrl(input.imageUrl);
 
   const supabase = getSupabaseAdmin();
   const record = {
@@ -117,7 +109,7 @@ export async function upsertWeddingPackage(id: number | null, input: WeddingPack
     currency,
     visibility: input.visibility,
     is_featured: input.isFeatured,
-    image_url: image.url,
+    image_url: imageUrl,
     sort_order: input.sortOrder,
     updated_at: new Date().toISOString(),
   };

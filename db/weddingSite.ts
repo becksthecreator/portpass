@@ -1,5 +1,6 @@
 import { bumpListings } from "@/lib/revalidate";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
+import { ownWeddingImageUrl } from "./weddingImage";
 
 export type WeddingSiteSettings = {
   reviewCount: number;
@@ -132,7 +133,10 @@ export type WeddingGalleryImageInput = {
 };
 
 export async function upsertWeddingGalleryImage(id: number | null, input: WeddingGalleryImageInput): Promise<void> {
-  const imageUrl = input.imageUrl.trim();
+  // Only one of BWS's own photos (db/weddingImage.ts): an outside link
+  // throws INVALID_IMAGE before anything is written. Blank comes back null,
+  // and a gallery photo is required.
+  const imageUrl = await ownWeddingImageUrl(input.imageUrl);
   if (!imageUrl) throw new Error("IMAGE_URL_REQUIRED");
 
   const supabase = getSupabaseAdmin();

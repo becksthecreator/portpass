@@ -71,7 +71,7 @@ function ImageEditor({ id, initial, onSaved, onDeleted }: { id: number | null; i
     <div className="wedding-admin-panel">
       {draft.imageUrl && <img src={draft.imageUrl} alt="" style={{ maxWidth: 220, maxHeight: 160, objectFit: "cover", marginBottom: 12 }} />}
       <div className="wedding-admin-field-grid">
-        <label className="wedding-admin-field-full"><span>Image URL</span><input value={draft.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="https://…" /></label>
+        <label className="wedding-admin-field-full"><span>Image (path under /weddings/bahamas-by-the-sea/, or a photo uploaded for BWS)</span><input value={draft.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="/weddings/bahamas-by-the-sea/bws-11.webp" /></label>
         <label className="wedding-admin-field-full"><span>Caption</span><input value={draft.caption} onChange={(e) => set("caption", e.target.value)} /></label>
         <label><span>Photographer name</span><input value={draft.photographerName} onChange={(e) => set("photographerName", e.target.value)} /></label>
         <label><span>Photographer link (optional)</span><input value={draft.photographerUrl} onChange={(e) => set("photographerUrl", e.target.value)} placeholder="https://…" /></label>
