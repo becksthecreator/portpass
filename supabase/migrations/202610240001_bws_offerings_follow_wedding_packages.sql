@@ -37,11 +37,6 @@ begin
      where organization_id = bws_id and slug = old.slug and is_published;
     return null;
   end if;
-  if tg_op = 'UPDATE' and new.slug is distinct from old.slug then
-    update public.offerings
-       set is_published = false, updated_at = now()
-     where organization_id = bws_id and slug = old.slug and is_published;
-  end if;
 
   insert into public.offerings as o (
     organization_id, type, slug, name, summary, price_cents, price_unit, inclusions,
@@ -65,9 +60,20 @@ begin
     is_featured = excluded.is_featured,
     is_published = excluded.is_published,
     updated_at = now();
+
+  -- After the new slug's row is in, so renaming the only live package
+  -- never leaves the business without a priced offering for a moment
+  -- (offerings_unpublish_organization would take it off the site).
+  if tg_op = 'UPDATE' and new.slug is distinct from old.slug then
+    update public.offerings
+       set is_published = false, updated_at = now()
+     where organization_id = bws_id and slug = old.slug and is_published;
+  end if;
   return null;
 end;
 $$;
+
+revoke all on function public.bws_offering_from_wedding_package() from public, anon, authenticated;
 
 drop trigger if exists wedding_packages_to_bws_offerings on public.wedding_packages;
 create trigger wedding_packages_to_bws_offerings
