@@ -41,6 +41,7 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green. Parked by the growth plan | The fifth paid invoice |
 | `chore/csp-enforce` (brief 26) | #183 | #185 is in; rebase on `main`. Parked by the growth plan | The fifth paid invoice |
 | `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct). Parked by the growth plan | The fifth paid invoice |
+| `fix/export-private-notes` (rule 3: the business export leaves out a parent's private-session goal and notes) | #221 | Rebased 23 Nov; CI, then Security & QA's re-review | Bex's OK to merge |
 
 **19 Oct 2026: PortPass is sports, fitness and gyms only.** Weddings, Venues, Tours, Entertainment, Food & Drink, Services and Shop are hidden in Admin → Sections; PortPass Market, Drops and orders redirect home on portpassbahamas.com; the wedding pages redirect to Bahamas Weddings By The Sea's own domain, which renders it through `/sites` (the business stays published for that, unlisted from the directory and filtered out of search). No code was deleted: each section comes back by un-hiding it and deleting its redirect lines in `next.config.ts`. This PR is the one exception to the no-PRs rule below.
 
@@ -98,6 +99,10 @@ Left open by the reviews of #200, #203, #216 and #222 (not fixed):
 - A child can get free tasters in two classes at the same moment (`TRIAL_ALREADY_USED` covers the business, the lock one class).
 - `db/coaches.ts` loads and writes `private_session_requests` and `coach_profiles` rows by id alone (behind the staff PIN; only Futprep has these rows today), and keeps `if (!organizationId)` guards that are dead now `futprepOrganizationId()` throws instead. Noted by the reviews of #222.
 - Still unpaged in `db/staff.ts`: session counts (~252), session plans (~798), work logs (~819), the roster export's payments (~1399); the admin page builds the desk list twice.
+
+Business export (`db/businessExport.ts`), found while fixing its private-session notes (not fixed):
+- It orders every table by `id`, but `organization_categories`, `shops`, `organization_payment_settings` and `drop_items` have no `id` column, so the export probably fails for every business (from the code; not run against a database).
+- Two link keys are exported: `reservations.receipt_token` and `drops.followers_token`.
 
 Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
 - The CSP keeps `'unsafe-inline'` and is report-only until #183.

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Rule 3: a parent's free-text notes on a private-session request can carry
+// Rule 3: a parent's free text on a private-session request (goal, notes) can carry
 // the child's health details, so the business export leaves them off. The
 // database and the exports bucket are fakes; the test reads the file as it
 // would be stored.
@@ -49,18 +49,19 @@ beforeEach(() => {
   fake.rows = {
     organizations: [{ id: 9, name: "TEST Football", slug: "test-football" }],
     private_session_requests: [
-      { id: 1, organization_id: 9, reference_code: "FP-S-TEST1", parent_name: "TEST Parent", parent_email: "parent@example.com", parent_phone: "242-555-0101", child_name: "TEST Child", session_goal: "Passing", notes: "TEST asthma, inhaler in the bag" },
+      { id: 1, organization_id: 9, reference_code: "FP-S-TEST1", parent_name: "TEST Parent", parent_email: "parent@example.com", parent_phone: "242-555-0101", child_name: "TEST Child", session_goal: "TEST passing, mind the asthma", notes: "TEST asthma, inhaler in the bag" },
     ],
   };
 });
 
 describe("the business export", () => {
-  it("leaves a parent's notes off every private-session request", async () => {
+  it("leaves a parent's goal and notes off every private-session request", async () => {
     await exportBusinessData(9, "test-user", new Date("2026-10-12T12:00:00Z"));
     const file = JSON.parse(fake.body);
     const [request] = file.data.private_session_requests;
     expect(request).not.toHaveProperty("notes");
-    expect(request).toMatchObject({ reference_code: "FP-S-TEST1", session_goal: "Passing" });
-    expect(fake.body).not.toContain("inhaler");
+    expect(request).not.toHaveProperty("session_goal");
+    expect(request).toMatchObject({ reference_code: "FP-S-TEST1", child_name: "TEST Child" });
+    expect(fake.body).not.toMatch(/inhaler|asthma/);
   });
 });

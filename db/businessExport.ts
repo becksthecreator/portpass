@@ -14,8 +14,8 @@ import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 //  - children's health, allergy, medication, emergency and pickup fields
 //    (CLAUDE.md rule 3: never in an export; lib/health.ts), and the
 //    registration edit history, which can hold earlier versions of them;
-//  - a parent's free-text notes on a private-session request, which can
-//    carry the same details (brief 31 C: the medical view only);
+//  - a parent's free text on a private-session request (its goal and
+//    notes), where parents write health facts (lib/privateSessionEmails.ts);
 //  - staff PIN hashes, invitation and claim tokens, a customer's booking
 //    link token: none is the business's data, each is a key;
 //  - PortPass's own books about the business (billing, invoices, receipts,
@@ -34,7 +34,7 @@ const PAGE = 1000;
 // staff screen, as its migration promises.
 const STRIP = new Set(["pin_hash", "token", "token_hash", "public_token", "invite_token", "staff_note"]);
 // Left off one table only (rule 3, above).
-const STRIP_BY_TABLE: Record<string, ReadonlySet<string>> = { private_session_requests: new Set(["notes"]) };
+const STRIP_BY_TABLE: Record<string, ReadonlySet<string>> = { private_session_requests: new Set(["session_goal", "notes"]) };
 
 type Row = Record<string, unknown>;
 
@@ -87,7 +87,7 @@ export async function exportBusinessData(orgId: number, actorUserId: string, now
   const file = {
     exported_at: now.toISOString(),
     business: { id: orgId, name: (organization as Row).name, slug: (organization as Row).slug },
-    note: "Everything PortPass holds for this business, except children's health, allergy, medication, emergency-contact and pickup details and parents' notes on private sessions (never exported), staff PIN hashes and link tokens (keys, not data), and PortPass's own billing records (sent as invoices).",
+    note: "Everything PortPass holds for this business, except children's health, allergy, medication, emergency-contact and pickup details and parents' goals and notes on private sessions (never exported), staff PIN hashes and link tokens (keys, not data), and PortPass's own billing records (sent as invoices).",
     tables,
     data: sections,
   };
