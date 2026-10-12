@@ -17,6 +17,14 @@ paths = [
   # Hashes of brand assets and screenshots are not secrets.
   '''\.(png|jpg|jpeg|webp|avif|svg|ico|woff2?)$''',
 ]
+commits = [
+  # #224's unit test for recording a private session's payment once
+  # (app/api/futprep/private-sessions/[id]/payments/route.test.ts) holds a
+  # made-up idempotency key with a mocked database: a TEST value, not a
+  # credential. The scan reads every branch, so it fails every PR while
+  # that branch exists.
+  "f2689c41090d37fdb7aea4b997dace7f5e96a3c1",
+]
 regexes = [
   # The tests' own made-up values say so in their names.
   '''not-real''',
