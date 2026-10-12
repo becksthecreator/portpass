@@ -8,12 +8,13 @@
 import { createHmac } from "node:crypto";
 import { mkdirSync, readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 import { chromium } from "playwright";
 
 const BASE = process.env.SCREENSHOT_BASE_URL ?? "http://localhost:3000";
 // A secret key issues the sign-in codes here, so this only ever runs
 // against a local Supabase stack and the app on localhost.
-if (!process.env.SUPABASE_URL?.includes("127.0.0.1") && !process.env.SUPABASE_URL?.includes("localhost")) throw new Error("Refusing to sign in to anything but a local Supabase stack.");
+assertLocalSupabase();
 if (!["localhost", "127.0.0.1"].includes(new URL(BASE).hostname)) throw new Error("Refusing to run against anything but the app on localhost.");
 const PIN = process.env.SCREENSHOT_PIN;
 const fixture = JSON.parse(readFileSync(process.env.SCREENSHOT_FIXTURE, "utf8"));
@@ -92,6 +93,22 @@ const SHOTS = [
   // "add your weekly slots" prompt; the Team page's photo upload.
   ["brief16-coaches-own-prompt-375", "test-coach", "/futprep/coaches", ".coach-own-prompt"],
   ["brief16-team-photo-upload-375", "test-ceo", "/futprep/staff/team", ".team-photo-actions"],
+  // Brief 31 (A): Team with the red "No email" / "No PIN yet" chips, Staff
+  // accounts (owner button, medical switch, give a login), and the
+  // registration record for an admin login without the medical switch.
+  ["brief31-team-chips-375", "test-ceo", "/futprep/staff/team", ".flag-missing"],
+  ["brief31-accounts-375", "test-ceo", "/futprep/staff/accounts", ".team-without-login"],
+  ["brief31-registration-no-medical-375", "test-desk", `/futprep/staff/admin/${fixture.registrationId}`, ".detail-panel-wide"],
+  ["brief31-roster-no-health-375", "test-coach", `/futprep/staff/coach?session=${fixture.sessionId}`, ".coach-roster details[open]", ".coach-roster details > summary"],
+  ["brief31-admin-futprep-owner-375", "admin", "/admin/people", "#futprep-owner"],
+  // Brief 31 (B): Locations (and one place's edit form), the operating
+  // map at phone and desk width, and Coach pay's field cost estimated
+  // from the place.
+  ["brief31-locations-375", "test-ceo", "/futprep/staff/locations", ".team-manager-grid"],
+  ["brief31-locations-edit-375", "test-desk", "/futprep/staff/locations", ".location-edit[open]", ".location-edit > summary"],
+  ["brief31-ops-375", "test-ceo", "/futprep/staff/ops", ".ops-missing"],
+  ["brief31-ops-1440", "test-desk", "/futprep/staff/ops", ".ops-missing"],
+  ["brief31-pay-estimate-375", "test-ceo", "/futprep/staff/pay", "#pay-pnl"],
   // Brief 05: the growth report, with the CEO login.
   ["brief05-growth-report-375", "test-ceo", "/futprep/staff/growth", ".growth-panel"],
   // Brief 08: Admin -> Businesses (approve, send back, publish, claim link,
@@ -316,6 +333,8 @@ try {
     let loaded = started;
     try {
       const page = await pageFor(account);
+      // Phone width unless the name says desk width (brief 31: "-1440").
+      await page.setViewportSize(name.endsWith("-1440") ? { width: 1440, height: 900 } : { width: 375, height: 812 });
       await page.goto(`${BASE}${path}`, { waitUntil: "networkidle", timeout: 60_000 });
       if (press) {
         await page.locator(press).first().click();

@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { getBusinessBySlug } from "@/db/business";
+import { getOrderOptions, listSellerOrders } from "@/db/marketOrders";
 import { getSellerRecords } from "@/db/marketSellers";
 import { getShop, listDrops, listProducts } from "@/db/shop";
 import { requireOrgRole } from "@/lib/auth/guards";
 import { canEditShop } from "@/lib/shop/access";
+import { isFinished } from "@/lib/market/orders";
 import { dropPhase, formatNassau, licenceLabel, money, paymentMethodLabel, SHOP_PAYMENT_METHODS } from "@/lib/shop/rules";
 import { SellerSettings } from "./SellerSettings";
 import { ShopSettingsForm } from "./ShopSettingsForm";
@@ -30,7 +32,10 @@ export default async function BusinessShopPage({ params, searchParams }: { param
   const access = await requireOrgRole({ slug }, "org_staff", `/business/${slug}/shop`);
   const business = await getBusinessBySlug(slug);
   if (!business) notFound();
-  const [shop, products, drops] = await Promise.all([getShop(business.id), listProducts(business.id), listDrops(business.id)]);
+  const [shop, products, drops, orders] = await Promise.all([getShop(business.id), listProducts(business.id), listDrops(business.id), listSellerOrders(business.id)]);
+  const openOrders = orders.filter((o) => !isFinished(o.status)).length;
+  const unpaidOrders = orders.filter((o) => o.status !== "cancelled" && !o.paid).length;
+  const orderOptions = shop ? await getOrderOptions(business.id, shop) : null;
   const canEdit = canEditShop(access);
   // The records PortPass checks are shown to owners and admins only.
   const records = canEdit && shop ? await getSellerRecords(business.id) : null;
@@ -54,6 +59,29 @@ export default async function BusinessShopPage({ params, searchParams }: { param
           <p className="form-error">Customers can&rsquo;t reserve until you choose how they pay you. {canEdit && <Link href={`/business/${slug}/settings?step=5`}>Set payment methods →</Link>}</p>
         ) : (
           <p className="seller-note">Buyers pay you by {methods.map((m) => paymentMethodLabel(m).toLowerCase()).join(" or ")}. {canEdit && <Link href={`/business/${slug}/settings?step=5`}>Change</Link>}</p>
+        )}
+
+        {shop && (
+          <section className="seller-block" aria-labelledby="seller-orders">
+            <div className="seller-block-head">
+              <h2 id="seller-orders">Orders</h2>
+            </div>
+            <ul className="seller-list">
+              <li>
+                <Link className="seller-row" href={`/business/${slug}/shop/orders`}>
+                  <strong>PortPass Market orders</strong>
+                  <span>{orders.length === 0 ? "No orders yet." : `${openOrders} open · ${unpaidOrders} not paid · ${orders.length} in all`}</span>
+                  <b>Orders →</b>
+                </Link>
+              </li>
+            </ul>
+            {orderOptions && !orderOptions.canOrder && (
+              <p className="seller-hint">
+                Buyers can&rsquo;t order on PortPass Market yet. They need a way to get it (your pickup note or delivery areas, below) and a way to pay you (bank transfer in Get paid, or cash on pickup).{" "}
+                {canEdit && <Link href={`/business/${slug}/payments/settings`}>Set up Get paid →</Link>}
+              </p>
+            )}
+          </section>
         )}
 
         <section className="seller-block" aria-labelledby="seller-drops">

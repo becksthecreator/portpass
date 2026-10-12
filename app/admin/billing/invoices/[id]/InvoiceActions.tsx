@@ -58,7 +58,7 @@ export function InvoiceActions({ id, number, status, kind, owedCents, paidCents,
 
   async function voidInvoice(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const period = kind === "subscription" ? " Its period can be drafted again: the daily run does that for the latest period, and \"Draft this period again\" does it for an earlier one. To not bill the period at all, give a free-month credit on the account." : kind === "commission" ? " Its fees go back to \"to invoice\" and are picked up by the next daily run." : "";
+    const period = kind === "subscription" ? " Its period can be drafted again: the daily run does that for the latest period, and \"Draft this period again\" does it for an earlier one. To not bill the period at all, give a free-month credit on the account." : kind === "commission" ? " Its fees go back to \"to invoice\" and are picked up by the next daily run." : kind === "market" ? " The next daily run drafts that month's Market fees again, from the orders as they stand." : "";
     if (!confirm(`Void ${number}? Its number stays used and it can't be undone.${period}`)) return;
     const data = await act("void", { reason });
     if (data) setDone("Voided.");

@@ -8,6 +8,7 @@
 import { randomBytes } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 
 function jersey(body: string, trim: string, label: string): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="#e9eef3"/><path d="M130 70 L170 50 Q200 80 230 50 L270 70 L350 130 L315 190 L285 170 L285 430 L115 430 L115 170 L85 190 L50 130 Z" fill="${body}" stroke="${trim}" stroke-width="8"/><text x="200" y="300" font-family="Arial" font-size="72" font-weight="700" fill="${trim}" text-anchor="middle">${label}</text></svg>`;
@@ -27,7 +28,7 @@ async function main() {
   const key = process.env.SUPABASE_SECRET_KEY;
   const out = process.env.SCREENSHOT_FIXTURE;
   if (!url || !key || !out) throw new Error("SUPABASE_URL, SUPABASE_SECRET_KEY and SCREENSHOT_FIXTURE must be set.");
-  if (!url.includes("127.0.0.1") && !url.includes("localhost")) throw new Error("Refusing to seed anything but a local Supabase stack.");
+  assertLocalSupabase();
   const db = createClient(url, key);
 
   const ownerEmail = "test-delete-shop-owner@test.portpass.local";

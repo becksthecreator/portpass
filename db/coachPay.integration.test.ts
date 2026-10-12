@@ -219,3 +219,30 @@ describe("field hire on the P&L (brief 13)", () => {
     await expect(setProgramFieldCost({ programId: classId, cents: -5, actor: MARK })).rejects.toThrow("INVALID_AMOUNT");
   });
 });
+
+describe("field cost from the location (brief 31, B3)", () => {
+  it("costs a program with no field figure of its own from its place, and a typed figure wins", async () => {
+    const { data: place } = await db().from("locations").select("id").eq("organization_id", orgId).eq("name", locationName).single();
+    await db().from("locations").update({ cost_model: "per_hour", cost_cents: 4000 }).eq("id", place!.id);
+    await db().from("programs").update({ location_id: place!.id }).eq("id", classId);
+    await setProgramFieldCost({ programId: classId, cents: null, actor: MARK });
+    const { count: sessions } = await db().from("sessions").select("id", { count: "exact", head: true }).eq("term_id", classTermId).neq("status", "cancelled");
+    // $40 an hour, 45 minutes a session (10:00 to 10:45 AM).
+    const estimate = Math.round((4000 * Number(sessions) * 45) / 60);
+    expect(Number(sessions)).toBeGreaterThan(0);
+
+    const estimated = (await listProgramPnl()).find((l) => l.programId === classId)!;
+    expect(estimated).toMatchObject({ fieldCostSource: "estimated", fieldCostCents: estimate, fieldCostEstimateCents: estimate });
+    expect(estimated.leftCents).toBe(estimated.feesCollectedCents - estimated.coachPayCents - estimate - estimated.portpassFeeCents);
+
+    await setProgramFieldCost({ programId: classId, cents: 15000, actor: MARK });
+    const stored = (await listProgramPnl()).find((l) => l.programId === classId)!;
+    expect(stored).toMatchObject({ fieldCostSource: "stored", fieldCostCents: 15000, fieldCostEstimateCents: estimate });
+
+    // A place with no cost yet: nothing is guessed.
+    await db().from("locations").update({ cost_model: null, cost_cents: null }).eq("id", place!.id);
+    await setProgramFieldCost({ programId: classId, cents: null, actor: MARK });
+    const none = (await listProgramPnl()).find((l) => l.programId === classId)!;
+    expect(none).toMatchObject({ fieldCostSource: "none", fieldCostCents: 0, fieldCostEstimateCents: null });
+  });
+});

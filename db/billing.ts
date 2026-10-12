@@ -211,11 +211,12 @@ function toInvoice(row: Row): StoredInvoice {
 
 const toReceipt = (row: Row): Receipt => ({ id: Number(row.id), invoiceId: Number(row.invoice_id), organizationId: Number(row.organization_id), amountCents: Number(row.amount_cents), method: row.method as ReceiptMethod, reference: text(row.reference), receivedOn: String(row.received_on), note: text(row.note), createdAt: String(row.created_at), reversedAt: (row.reversed_at as string | null) ?? null, reversedReason: text(row.reversed_reason) });
 
-export async function listInvoices(filter: { organizationId?: number | null; statuses?: InvoiceStatus[] } = {}): Promise<StoredInvoice[]> {
+export async function listInvoices(filter: { organizationId?: number | null; statuses?: InvoiceStatus[]; kind?: Invoice["kind"] } = {}): Promise<StoredInvoice[]> {
   const rows = await allRows((from, to) => {
     let query = getSupabaseAdmin().from("portpass_invoices").select(INVOICE_COLUMNS).order("issued_on", { ascending: false }).order("id", { ascending: false });
     if (filter.organizationId) query = query.eq("organization_id", filter.organizationId);
     if (filter.statuses?.length) query = query.in("status", filter.statuses);
+    if (filter.kind) query = query.eq("kind", filter.kind);
     return query.range(from, to);
   }, "invoices");
   return rows.map(toInvoice);
@@ -254,6 +255,20 @@ async function raiseInvoice(input: NewInvoice): Promise<number | null> {
   const id = data === null || data === undefined ? null : Number(data);
   if (id) await logAudit({ actorUserId: input.createdBy, organizationId: input.organizationId, action: "billing.invoice.drafted", targetTable: "portpass_invoices", targetId: id, after: { kind: input.kind, period_start: input.periodStart, period_end: input.periodEnd, total_cents: input.lines.reduce((sum, line) => sum + line.amountCents, 0) } });
   return id;
+}
+
+// PortPass Market fees (brief 25, part C): the Seller plan and the
+// commission on orders PortPass brought, one invoice per seller per month,
+// drafted by the daily job only once market_settings.fees_live is on. Its
+// own kind, so it never takes the place of the business's plan or
+// booking-fee invoice for the month; null when that month is drafted
+// already. A draft, like every invoice the job raises: a founder sends it.
+export async function draftMarketInvoice(input: { organizationId: number; periodStart: string; periodEnd: string; issuedOn: string; lines: Array<{ description: string; amountCents: number; source: "plan" | "commission" }> }): Promise<number | null> {
+  const lines: DraftLine[] = input.lines
+    .filter((line) => line.amountCents > 0)
+    .map((line) => ({ description: line.description.trim().slice(0, 300), qty: 1, unitCents: line.amountCents, amountCents: line.amountCents, source: line.source }));
+  if (!lines.length) return null;
+  return raiseInvoice({ organizationId: input.organizationId, kind: "market", periodStart: input.periodStart, periodEnd: input.periodEnd, issuedOn: input.issuedOn, lines, createdBy: null });
 }
 
 // A founder's own invoice: any lines, and (for something billed before

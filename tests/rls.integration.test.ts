@@ -25,11 +25,20 @@ const OWNER_ONLY = [
   "registrations", "reservations", "session_plans", "session_staff", "sessions", "shops", "staff_members", "staff_work_logs",
   "wedding_lead_notes", "wedding_leads", "wedding_site_settings",
   "wedding_unavailable_dates",
+  // PortPass Market (brief 25): a Market order's lines, and the views over orders.
+  "order_items", "orders", "market_products", "market_things_to_do",
 ];
+
+// Own rows (brief 25, D): a signed-in account reads only its own
+// (db/points.integration.test.ts proves it with two accounts); a browser
+// key without a session gets nothing, like the owner-only tables.
+const OWN_ROWS = ["points_accounts", "points_events"];
 const PLATFORM_ONLY = [
   "admin_links", "applications", "billing_accounts", "billing_events", "billing_reminders", "commission_plans", "interest_submissions", "job_runs", "leads",
   "organization_claim_links", "portpass_invoice_counters", "portpass_invoice_lines", "portpass_invoices", "portpass_receipts", "scout_lookups", "site_content",
   "site_errors", "sponsors", "staff_login_attempts",
+  // PortPass Market (brief 25): the seller plan price, the commission rate.
+  "market_settings",
 ];
 // Each with the columns a browser may read, and a row test the migration states.
 const PUBLIC_READ = [
@@ -102,7 +111,7 @@ describe.skipIf(!anonKey)("row level security, seen through a browser key", () =
   });
 
   it("every owner-only and platform-only table gives a browser key nothing", async () => {
-    for (const table of [...OWNER_ONLY, ...PLATFORM_ONLY]) await nothingComesBack(table);
+    for (const table of [...OWNER_ONLY, ...PLATFORM_ONLY, ...OWN_ROWS]) await nothingComesBack(table);
   });
 
   it("organizations: only published, non-demo rows, and only the public columns", async () => {
@@ -145,9 +154,26 @@ describe.skipIf(!anonKey)("row level security, seen through a browser key", () =
       const { error } = await anon.from(table).select("*").limit(1);
       // organizations and a few others grant only some columns: "*" is
       // refused there by design, and the test above checks them by name.
-      if (["organizations", "venues", "products", "drops", "guides"].includes(table)) continue;
+      if (["organizations", "venues", "products", "drops", "guides", "locations"].includes(table)) continue;
       expect(error, `anon should be able to read ${table}: ${error?.message}`).toBeNull();
     }
+  });
+
+  it("a location's name is public, what the business pays for it is not (brief 31, B)", async () => {
+    const { error: seedError } = await admin.from("locations").insert({ organization_id: ids.published, name: `TEST — delete ${TAG} field`, address: "TEST address", active: true, cost_model: "per_hour", cost_cents: 4000, cost_note: "TEST" });
+    expect(seedError).toBeNull();
+    const named = await anon.from("locations").select("name").eq("organization_id", ids.published);
+    expect(named.error).toBeNull();
+    expect((named.data ?? []).map((row) => row.name)).toContain(`TEST — delete ${TAG} field`);
+    for (const column of ["cost_model", "cost_cents", "cost_note", "private_sessions_ok", "days_available", "hours_note", "surface"]) {
+      const hidden = await anon.from("locations").select(column).eq("organization_id", ids.published).limit(1);
+      expect(hidden.error, `anon must not be able to select locations.${column}`).not.toBeNull();
+    }
+    // Nor "everything", which would include them: this is what a later
+    // blanket grant would break.
+    const star = await anon.from("locations").select("*").eq("organization_id", ids.published).limit(1);
+    expect(star.error).not.toBeNull();
+    await admin.from("locations").delete().eq("organization_id", ids.published);
   });
 
   it("people and registrations: no name, contact, child or health field ever reaches a browser key", async () => {

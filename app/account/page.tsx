@@ -6,6 +6,8 @@ import { SiteFooter } from "@/app/_components/SiteFooter";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { listAccountBookings, type AccountBookings, type AccountRegistration } from "@/db/accountBookings";
 import { getMemberCard, listMemberRedemptions, type MemberRedemption } from "@/db/memberPerks";
+import { getMyPoints, type MyPoints } from "@/db/points";
+import { formatPointsDelta, howPointsAreEarned, pointsEventLabel, POINTS_RULES } from "@/lib/points";
 import { requireSignedIn } from "@/lib/auth/guards";
 import { destinationsFor } from "@/lib/auth/routing";
 import { NameForm } from "./NameForm";
@@ -34,13 +36,17 @@ export default async function AccountPage() {
   const session = await requireSignedIn("/account");
   const places = destinationsFor(session).filter((d) => d.kind !== "account");
   // Decoration on the page: a failed read shows an empty list, never an error.
-  const [perksUsed, booked, card] = await Promise.all([
+  const [perksUsed, booked, card, points] = await Promise.all([
     listMemberRedemptions(session.userId).catch((): MemberRedemption[] => []),
     listAccountBookings(session.email).catch((error): AccountBookings => {
       console.error("account: bookings not loaded", (error as { code?: string } | null)?.code ?? "");
       return { registrations: [], bookings: [] };
     }),
     getMemberCard(session.userId).catch(() => null),
+    getMyPoints(session.userId).catch((error): MyPoints | null => {
+      console.error("account: points not loaded", (error as { code?: string } | null)?.code ?? "");
+      return null;
+    }),
   ]);
   // A name made from the email address is only a stand-in ("Member" to a
   // business): ask for the real one here.
@@ -115,6 +121,28 @@ export default async function AccountPage() {
             </>
           )}
         </section>
+
+        {points && (
+          <section className="account-section" aria-labelledby="account-points">
+            <h2 id="account-points">Your PortPass Points</h2>
+            <p className="account-points-balance"><strong>{points.balance.toLocaleString("en-US")}</strong> {points.balance === 1 ? "point" : "points"}</p>
+            <p className="auth-lead">{howPointsAreEarned(points.rules)} They can&rsquo;t be spent on anything.</p>
+            {points.events.length > 0 && (
+              <ul className="account-list">
+                {points.events.map((event) => (
+                  <li key={event.id}>
+                    <div>
+                      <strong>{pointsEventLabel(event)}</strong>
+                      <span>{day(event.createdAt)}{event.expiresAt && event.delta > 0 && !event.settled ? ` · expires ${day(event.expiresAt)}` : ""}</span>
+                    </div>
+                    <div className="account-list-state"><b>{formatPointsDelta(event.delta)}</b></div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="account-points-rules">{POINTS_RULES}</p>
+          </section>
+        )}
 
         <section className="account-section" aria-labelledby="account-security">
           <h2 id="account-security">Security</h2>

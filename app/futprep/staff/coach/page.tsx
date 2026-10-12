@@ -1,6 +1,7 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
-import { requireFutprepStaff, currentFutprepStaffId, currentFutprepStaffName } from "../../staff-auth";
+import { requireFutprepStaff, currentFutprepStaffCanViewMedical, currentFutprepStaffId, currentFutprepStaffName } from "../../staff-auth";
+import { canSeeMedical } from "@/lib/futprepRoles";
 import { coachSlotPrompt } from "@/db/coaches";
 import {
   getFutprepSessionPlan,
@@ -26,6 +27,7 @@ export default async function FutprepCoachPage({
   const { session, program } = await searchParams;
   const role = await requireFutprepStaff(["coach","ceo","helper"], session && /^[0-9]+$/.test(session) ? `/futprep/staff/coach?session=${session}` : "/futprep/staff/coach");
   const readOnly = role === "helper";
+  const healthShown = !readOnly && canSeeMedical(role, await currentFutprepStaffCanViewMedical());
   const [staffName, sessions, staffId] = await Promise.all([
     currentFutprepStaffName(),
     listFutprepStaffSessions(),
@@ -51,7 +53,9 @@ export default async function FutprepCoachPage({
     ? await Promise.all([
         // A helper's roster is fetched without the emergency, pickup and
         // health columns, so they never reach that browser.
-        rosterForSession(selected.id, { includeSafety: !readOnly }),
+        // Brief 31 (A1): a coach login gets the health columns only when
+        // the CEO has switched its medical view on; the CEO always does.
+        rosterForSession(selected.id, { includeSafety: !readOnly, includeHealth: healthShown }),
         listFutprepStaffRegistrations(),
         getFutprepSessionPlan(selected.id),
         getFutprepWorkLog(selected.id, staffName ?? role),
@@ -132,7 +136,7 @@ export default async function FutprepCoachPage({
         {selected ? (
           <>
             <CoachSessionTools session={selected} initialPlan={sessionPlan} initialWorkLog={workLog} readOnly={readOnly} />
-            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} coachOptions={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={readOnly ? sessionStaff.entries.map((entry) => ({ ...entry, locked: false })) : sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
+            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} healthHidden={!readOnly && !healthShown} coachOptions={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={readOnly ? sessionStaff.entries.map((entry) => ({ ...entry, locked: false })) : sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
           </>
         ) : <div className="dashboard-empty"><h3>No sessions scheduled.</h3></div>}
       </section>

@@ -7,16 +7,21 @@
 // Adds: a TEST platform owner (the workflow puts the address in
 // PLATFORM_OWNER_EMAILS for the run), a TEST seller waiting to be verified
 // and a TEST seller PortPass suspended, so Admin -> Market -> Sellers shows
-// each state. Writes what the capture script needs to $MARKET_FIXTURE.
+// each state. Part C: TEST bank-transfer details for the TEST Kit Shop,
+// so its order form offers bank transfer and cash (the details are TEST
+// words and a 0000 ending, nothing real), and a TEST product outside its
+// open drop, which is ordered on its Market page. Writes what the capture script
+// needs to $MARKET_FIXTURE.
 import { writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 
 async function main() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;
   const out = process.env.MARKET_FIXTURE;
   if (!url || !key || !out) throw new Error("SUPABASE_URL, SUPABASE_SECRET_KEY and MARKET_FIXTURE must be set.");
-  if (!url.includes("127.0.0.1") && !url.includes("localhost")) throw new Error("Refusing to seed anything but a local Supabase stack.");
+  assertLocalSupabase();
   const db = createClient(url, key);
 
   const adminEmail = "test-delete-market-admin@test.portpass.local";
@@ -52,7 +57,37 @@ async function main() {
     if (shopError) throw new Error(`Could not seed the shop for ${s.name}: ${shopError.message}`);
   }
 
-  writeFileSync(out, JSON.stringify({ adminEmail }, null, 2));
+  const { data: kit, error: kitError } = await db.from("organizations").select("id").eq("slug", "test-kit-shop").single();
+  if (kitError || !kit) throw new Error(`Could not find the TEST Kit Shop: ${kitError?.message}`);
+  const { error: payError } = await db.from("organization_payment_settings").upsert({ organization_id: kit.id, reference_prefix: "TKP", accepted_methods: ["bank_transfer", "cash"], bank_name: "TEST Bank", account_name: "TEST Kit Shop", account_number_last4: "0000", transfer_instructions: "TEST — not a real account", cash_note: "TEST — at the studio" });
+  if (payError) throw new Error(`Could not seed the TEST payment settings: ${payError.message}`);
+  // On the Seller plan since well before this month, so Income shows its fee.
+  const { error: planError } = await db.from("shops").update({ seller_plan: "seller", seller_plan_since: new Date(Date.now() - 40 * 86400_000).toISOString() }).eq("organization_id", kit.id);
+  if (planError) throw new Error(`Could not put the TEST shop on the Seller plan: ${planError.message}`);
+
+  const { data: tee, error: teeError } = await db.from("products").insert({ organization_id: kit.id, slug: "training-tee", title: "TEST Training tee", description: "TEST — delete. Light cotton, made in Nassau.", price_cents: 3000, photos: [], market_category: "kits-apparel", sort_order: 9, is_published: false }).select("id").single();
+  if (teeError || !tee) throw new Error(`Could not seed the TEST tee: ${teeError?.message}`);
+  const { error: sizeError } = await db.from("product_variants").insert([
+    { product_id: tee.id, label: "S", stock: 4, sort_order: 0 },
+    { product_id: tee.id, label: "M", stock: 6, sort_order: 1 },
+    { product_id: tee.id, label: "L", stock: null, sort_order: 2 },
+  ]);
+  if (sizeError) throw new Error(`Could not seed the TEST tee's sizes: ${sizeError.message}`);
+  const { error: publishError } = await db.from("products").update({ is_published: true }).eq("id", tee.id);
+  if (publishError) throw new Error(`Could not publish the TEST tee: ${publishError.message}`);
+
+  // Part D: TEST points for the TEST shop owner's own account page (made-up
+  // reference numbers, no business, settled through the database's own
+  // function as a real mark or payment would be).
+  const { data: owner } = await db.from("organization_members").select("user_id").eq("organization_id", kit.id).eq("role", "org_owner").limit(1).maybeSingle();
+  if (owner) {
+    for (const [refType, refId, amount, reason] of [["registration", 990001, 10, "booking_attended"], ["reservation", 990002, 65, "order_paid"]] as const) {
+      const { error: pointsError } = await db.rpc("points_settle", { p_user_id: owner.user_id, p_ref_type: refType, p_ref_id: refId, p_earned: true, p_amount: amount, p_reason: reason, p_organization_id: null });
+      if (pointsError) throw new Error(`Could not seed TEST points: ${pointsError.message}`);
+    }
+  }
+
+  writeFileSync(out, JSON.stringify({ adminEmail, kitShopId: kit.id }, null, 2));
   console.log("Seeded the TEST Market admin and sellers.");
 }
 

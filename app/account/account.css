@@ -18,3 +18,7 @@
   .account-list li{flex-direction:column}
   .account-list-state{justify-items:start;text-align:left}
 }
+/* PortPass Points (brief 25, part D): the balance and the rules line. */
+.account-points-balance{margin:0 0 6px;font-size:1rem}
+.account-points-balance strong{font-size:2rem;font-weight:800;margin-right:4px}
+.account-points-rules{margin:12px 0 0;color:var(--muted);font-size:.84rem;line-height:1.45}

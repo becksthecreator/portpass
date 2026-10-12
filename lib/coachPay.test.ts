@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contractInvoiceCents, contractsCsv, leftForFutprep, monthLabel, payCsv, payForRole, portpassFeeCents, shareFee, summarizePay, type LedgerRow } from "./coachPay";
+import { clockMinutes, contractInvoiceCents, contractsCsv, estimateFieldCostCents, fieldCostFor, leftForFutprep, monthLabel, payCsv, payForRole, portpassFeeCents, sessionMinutes, shareFee, summarizePay, type LedgerRow } from "./coachPay";
 
 const BEX = { defaultLeadPayCents: 5000, defaultAssistantPayCents: null };
 
@@ -43,7 +43,7 @@ describe("the PortPass fee (Money Model: Founding Partner)", () => {
   });
 
   it("leaves what's left for Futprep", () => {
-    expect(leftForFutprep({ programId: 2, programName: "Kickers", termName: "Term 1", kind: "term", feesCollectedCents: 462000, coachPayCents: 60000, fieldCostCents: 0, portpassFeeCents: 3360 })).toBe(398640);
+    expect(leftForFutprep({ feesCollectedCents: 462000, coachPayCents: 60000, fieldCostCents: 0, portpassFeeCents: 3360 })).toBe(398640);
   });
 });
 
@@ -60,5 +60,46 @@ describe("school contracts (brief 13)", () => {
       '"Client","Program","Term","Billing","Fee (BSD)","Sessions delivered","Sessions scheduled","To invoice (BSD)"\r\n' +
         '"St Andrew\'s School","St Andrew\'s coaching","Fall 2026","Per session","150.00","6","12","900.00"\r\n',
     );
+  });
+});
+
+describe("field cost from the location (brief 31, B3)", () => {
+  it("reads the clock times programs are stored with", () => {
+    expect(clockMinutes("10:00 AM")).toBe(600);
+    expect(clockMinutes("12:15 PM")).toBe(735);
+    expect(clockMinutes("12:00 AM")).toBe(0);
+    expect(clockMinutes("6:30pm")).toBe(1110);
+    expect(clockMinutes("18:30")).toBe(1110);
+    expect(clockMinutes("13:00 PM")).toBeNull();
+    expect(clockMinutes("")).toBeNull();
+    expect(clockMinutes(null)).toBeNull();
+    expect(sessionMinutes("10:00 AM", "10:45 AM")).toBe(45);
+    expect(sessionMinutes("10:45 AM", "10:00 AM")).toBeNull();
+    expect(sessionMinutes("10:00 AM", null)).toBeNull();
+  });
+
+  it("works out a term from what the place charges", () => {
+    expect(estimateFieldCostCents({ costModel: "per_hour", costCents: 4000 }, 12, 45)).toBe(36000);
+    expect(estimateFieldCostCents({ costModel: "per_session", costCents: 2500 }, 10, null)).toBe(25000);
+    expect(estimateFieldCostCents({ costModel: "per_term", costCents: 80000 }, 10, 60)).toBe(80000);
+    // Four programs at one place paid by the term share it: counted once.
+    expect(estimateFieldCostCents({ costModel: "per_term", costCents: 80000 }, 10, 60, 4)).toBe(20000);
+    expect(estimateFieldCostCents({ costModel: "per_term", costCents: 10000 }, 10, 60, 3)).toBe(3333);
+    expect(estimateFieldCostCents({ costModel: "free", costCents: null }, 10, 60)).toBe(0);
+    expect(estimateFieldCostCents({ costModel: "school_pays", costCents: 5000 }, 10, 60)).toBe(0);
+  });
+
+  it("says nothing rather than guess", () => {
+    expect(estimateFieldCostCents(null, 10, 60)).toBeNull();
+    expect(estimateFieldCostCents({ costModel: null, costCents: 4000 }, 10, 60)).toBeNull();
+    expect(estimateFieldCostCents({ costModel: "per_hour", costCents: null }, 10, 60)).toBeNull();
+    expect(estimateFieldCostCents({ costModel: "per_hour", costCents: 4000 }, 10, null)).toBeNull();
+  });
+
+  it("what Alex typed for the program wins over the estimate", () => {
+    expect(fieldCostFor(30000, 36000)).toEqual({ cents: 30000, source: "stored" });
+    expect(fieldCostFor(0, 36000)).toEqual({ cents: 0, source: "stored" });
+    expect(fieldCostFor(null, 36000)).toEqual({ cents: 36000, source: "estimated" });
+    expect(fieldCostFor(null, null)).toEqual({ cents: 0, source: "none" });
   });
 });

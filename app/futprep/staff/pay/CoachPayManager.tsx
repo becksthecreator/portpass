@@ -52,7 +52,7 @@ export function CoachPayManager({
   // Field hire per term (the Money Model's "ask Alex" box), per program.
   const [pnlLines, setPnlLines] = useState(pnl);
   const [fieldInputs, setFieldInputs] = useState<Record<number, string>>(() =>
-    Object.fromEntries(pnl.map((line) => [line.programId, line.fieldCostCents ? dollarsField(line.fieldCostCents) : ""])),
+    Object.fromEntries(pnl.map((line) => [line.programId, line.fieldCostSource === "stored" ? dollarsField(line.fieldCostCents) : ""])),
   );
 
   async function saveField(line: PnlLine) {
@@ -68,8 +68,11 @@ export function CoachPayManager({
     setBusy(null);
     const data = response ? ((await response.json().catch(() => ({}))) as { error?: string }) : {};
     if (!response || !response.ok) return setNotice(data.error ?? "Couldn't save the field cost.");
-    const field = cents ?? 0;
-    setPnlLines((current) => current.map((l) => (l.programId === line.programId ? { ...l, fieldCostCents: field, leftCents: l.feesCollectedCents - l.coachPayCents - field - l.portpassFeeCents } : l)));
+    // Brief 31 (B3): clearing the program's own figure falls back to the
+    // location's estimate.
+    const field = cents ?? line.fieldCostEstimateCents ?? 0;
+    const source = cents !== null ? "stored" : line.fieldCostEstimateCents !== null ? "estimated" : "none";
+    setPnlLines((current) => current.map((l) => (l.programId === line.programId ? { ...l, fieldCostCents: field, fieldCostSource: source, leftCents: l.feesCollectedCents - l.coachPayCents - field - l.portpassFeeCents } : l)));
     setNotice(`${line.programName}: field cost saved.`);
   }
 
@@ -155,13 +158,13 @@ export function CoachPayManager({
                 <dl>
                   <div><dt>{line.kind === "contract" ? "To invoice" : "Fees collected"}</dt><dd>{money(line.feesCollectedCents)}</dd></div>
                   <div><dt>Coach pay</dt><dd>−{money(line.coachPayCents)}</dd></div>
-                  <div><dt>Field</dt><dd>−{money(line.fieldCostCents)}</dd></div>
+                  <div><dt>Field{line.fieldCostSource === "estimated" ? <small className="pay-estimate"> estimated from location</small> : line.fieldCostSource === "none" ? <small className="pay-estimate"> not set</small> : null}</dt><dd>−{money(line.fieldCostCents)}</dd></div>
                   <div><dt>PortPass fee</dt><dd>−{money(line.portpassFeeCents)}</dd></div>
                   <div className="pay-left"><dt>Left for Futprep</dt><dd>{money(line.leftCents)}</dd></div>
                 </dl>
                 <div className="pay-field-edit">
                   <label><span>Field hire per term ($)</span>
-                    <input inputMode="decimal" placeholder="Not set" value={fieldInputs[line.programId] ?? ""} onChange={(e) => setFieldInputs((f) => ({ ...f, [line.programId]: e.target.value }))} />
+                    <input inputMode="decimal" placeholder={line.fieldCostEstimateCents !== null ? `Location estimate ${money(line.fieldCostEstimateCents)}` : "Not set"} value={fieldInputs[line.programId] ?? ""} onChange={(e) => setFieldInputs((f) => ({ ...f, [line.programId]: e.target.value }))} />
                   </label>
                   <button type="button" disabled={busy === `field:${line.programId}`} onClick={() => saveField(line)}>Save</button>
                 </div>

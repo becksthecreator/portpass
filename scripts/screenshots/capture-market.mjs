@@ -8,12 +8,13 @@
 import { createHmac } from "node:crypto";
 import { mkdirSync, readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 import { chromium } from "playwright";
 
 const BASE = process.env.SCREENSHOT_BASE_URL ?? "http://localhost:3000";
 // A secret key issues the sign-in codes here, so this only ever runs
 // against a local Supabase stack and the app on localhost.
-if (!process.env.SUPABASE_URL?.includes("127.0.0.1") && !process.env.SUPABASE_URL?.includes("localhost")) throw new Error("Refusing to sign in to anything but a local Supabase stack.");
+assertLocalSupabase();
 if (!["localhost", "127.0.0.1"].includes(new URL(BASE).hostname)) throw new Error("Refusing to run against anything but the app on localhost.");
 const shop = JSON.parse(readFileSync(process.env.SCREENSHOT_FIXTURE, "utf8"));
 const market = JSON.parse(readFileSync(process.env.MARKET_FIXTURE, "utf8"));
@@ -41,6 +42,30 @@ async function post(page, url, body) {
     const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     return { status: response.status, data: await response.json().catch(() => ({})) };
   }, { url, body });
+}
+
+async function patch(page, url, body) {
+  return page.evaluate(async ({ url, body }) => {
+    const response = await fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    return { status: response.status, data: await response.json().catch(() => ({})) };
+  }, { url, body });
+}
+
+// Ids from the local TEST stack (the secret key there is the stack's own).
+async function variantId(orgSlug, productSlug, label) {
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
+  const { data: org } = await supabase.from("organizations").select("id").eq("slug", orgSlug).single();
+  const { data, error } = await supabase.from("products").select("product_variants(id,label)").eq("organization_id", org.id).eq("slug", productSlug).single();
+  const variant = (data?.product_variants ?? []).find((v) => v.label === label);
+  if (error || !variant) throw new Error(`No TEST size ${label} on ${productSlug}`);
+  return variant.id;
+}
+
+async function orderIdsByCode(orgId, codes) {
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
+  const { data, error } = await supabase.from("reservations").select("id,reference_code").eq("organization_id", orgId).in("reference_code", codes);
+  if (error || !data?.length) throw new Error("Could not find the TEST orders");
+  return codes.map((code) => data.find((row) => row.reference_code === code).id);
 }
 
 async function codeSignIn(page, email) {
@@ -98,6 +123,20 @@ try {
   await shoot(anon, "market-b-product-375", `/market/p/${shop.slug}/home-jersey`, { focus: ".mkt-sizes" });
   await shoot(anon, "market-b-things-to-do-375", "/market?tab=do", { focus: ".mkt-tabs" });
   await shoot(anon, "market-b-home-strip-375", "/", { focus: ".home-market" });
+
+  // Part C: the order form, then two TEST orders through the real route
+  // (an example address: nothing is ever sent), arriving from /market so
+  // they count as brought by PortPass, and the buyer's order page.
+  // The TEST tee is outside the shop's open drop (a product in an open
+  // drop is reserved in the drop instead).
+  await anon.goto(`${BASE}/market/p/${shop.slug}/training-tee`, { waitUntil: "load", timeout: 60_000, referer: `${BASE}/market` });
+  await shoot(anon, "market-c-order-form-375", `/market/p/${shop.slug}/training-tee`, { focus: "#order" });
+  const sizeL = await variantId(shop.slug, "training-tee", "L");
+  const orderBody = (name, phone) => ({ org: shop.slug, product: "training-tee", items: [{ variantId: sizeL, qty: 1 }], buyerName: name, buyerPhone: phone, buyerEmail: "test-delete-market-buyer@example.com", fulfilment: "pickup", paymentMethod: "bank_transfer" });
+  const first = await post(anon, "/api/market/orders", orderBody("TEST Buyer Market One", "242-555-0171"));
+  const second = await post(anon, "/api/market/orders", orderBody("TEST Buyer Market Two", "242-555-0172"));
+  if (first.status !== 201 || second.status !== 201) throw new Error(`Placing the TEST orders returned ${first.status} / ${second.status}: ${first.data.error ?? second.data.error ?? ""}`);
+  await shoot(anon, "market-c-order-375", `/order/${first.data.referenceCode}`, { focus: ".ord-steps" });
   await visitor.close();
 
   const desk = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
@@ -113,6 +152,17 @@ try {
   await codeSignIn(seller, shop.ownerEmail);
   await shoot(seller, "market-a-sell-form-375", "/sell", { focus: ".application-form" });
   await shoot(seller, "market-a-seller-market-375", `/business/${shop.slug}/shop`, { focus: "#seller-market" });
+  // Part C: the seller marks the first TEST order paid and ready, through
+  // the real route; the orders list, and the buyer's page after.
+  const orderIds = await orderIdsByCode(market.kitShopId, [first.data.referenceCode]);
+  for (const action of ["paid", "ready"]) {
+    const moved = await patch(seller, `/api/business/orgs/${market.kitShopId}/shop/orders/${orderIds[0]}`, { action });
+    if (moved.status !== 200) throw new Error(`Marking the TEST order ${action} returned ${moved.status}`);
+  }
+  await shoot(seller, "market-c-seller-orders-375", `/business/${shop.slug}/shop/orders`, { focus: ".seller-reservations" });
+  await shoot(seller, "market-c-order-paid-375", `/order/${first.data.referenceCode}`, { focus: ".ord-steps" });
+  // Part D: the owner's own PortPass Points on the account page.
+  await shoot(seller, "market-d-account-points-375", "/account", { focus: "#account-points" });
   await owner.close();
 
   // The TEST platform owner: Admin -> Market -> Sellers.
@@ -120,6 +170,7 @@ try {
   const admin = await founders.newPage();
   await adminSignIn(admin);
   await shoot(admin, "market-a-admin-sellers-375", "/admin/market", { focus: ".mkt-admin-table" });
+  await shoot(admin, "market-c-admin-income-375", "/admin/market/income", { focus: ".mkt-admin-settings" });
   await founders.close();
 } finally {
   await browser.close();

@@ -29,7 +29,7 @@ export async function POST(request:Request){
     }else return NextResponse.json({error:"Unknown team action."},{status:400});
     // The Futprep home page shows the team grid from ISR (brief 16, C3).
     bumpListings();
-    const result=await listAllCoachProfiles();
+    const result=await listAllCoachProfiles({withLogin:true});
     return NextResponse.json({ok:true,coaches:result.coaches});
   }catch(error){
     const message=error instanceof Error?error.message:"Could not save.";

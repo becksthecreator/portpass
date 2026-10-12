@@ -23,6 +23,12 @@ describe("redactAnalyticsUrl", () => {
     expect(redactAnalyticsUrl(`${SITE}/futprep/my`)).toBe(`${SITE}/futprep/my`);
   });
 
+  it("replaces a Market order code and a payment request token (brief 25)", () => {
+    expect(redactAnalyticsUrl(`${SITE}/order/TK-ABC234`)).toBe(`${SITE}/order/[code]`);
+    expect(redactAnalyticsUrl(`${SITE}/pay/0123456789abcdef0123456789abcdef01234567`)).toBe(`${SITE}/pay/[token]`);
+    expect(redactAnalyticsUrl(`${SITE}/pay/0123456789abcdef0123456789abcdef01234567/receipt`)).toBe(`${SITE}/pay/[token]/receipt`);
+  });
+
   it("drops every query parameter except the campaign tags", () => {
     expect(redactAnalyticsUrl(`${SITE}/signup?email=parent%40example.com&name=Jane+Doe&next=%2Faccount`)).toBe(`${SITE}/signup`);
     expect(redactAnalyticsUrl(`${SITE}/futprep/register?program=kickers&term=3&join=FP-2026-AB12CD34&utm_campaign=taster_join`)).toBe(`${SITE}/futprep/register?utm_campaign=taster_join`);

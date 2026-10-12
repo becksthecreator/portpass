@@ -1,6 +1,7 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { requireFutprepStaff } from "../../staff-auth";
+import { canChangePrograms } from "@/lib/futprepRoles";
 import { listFutprepPrograms, listFutprepSites } from "@/db/programs";
 import { AddProgramManager } from "./AddProgramManager";
 import { StaffLogoutButton } from "../StaffLogoutButton";
@@ -22,6 +23,7 @@ export default async function FutprepProgramsPage() {
           {role === "admin" && <Link href="/futprep/staff/admin">Registration desk</Link>}
           {role === "coach" && <Link href="/futprep/staff/coach">Coach workspace</Link>}
           {role === "ceo" && <Link href="/futprep/staff/ceo">CEO overview</Link>}
+          {(role === "admin" || role === "ceo") && <Link href="/futprep/staff/locations">Locations</Link>}
           <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
           <StaffLogoutButton />
         </nav>
@@ -31,7 +33,7 @@ export default async function FutprepProgramsPage() {
           <div><span className="section-kicker">Programs by site</span><h1>Programs.</h1></div>
           <p>Create a new class — a new age group, a new day, or a whole new location like Futprep Out East — and it shows up for parents on the registration page immediately, with sessions scheduled automatically for the term.</p>
         </div>
-        <AddProgramManager initialPrograms={programs} sites={sites} />
+        <AddProgramManager initialPrograms={programs} sites={sites} canChange={canChangePrograms(role)} />
       </section>
     </main>
   );

@@ -50,6 +50,7 @@ export default async function AdminMarketPage({ searchParams }: { searchParams: 
     >
       <nav className="admin-filters" aria-label="Market">
         <Link href="/admin/market" aria-current="page">Sellers</Link>
+        <Link href="/admin/market/income">Income</Link>
       </nav>
 
       <div className="admin-tiles">
@@ -84,6 +85,7 @@ export default async function AdminMarketPage({ searchParams }: { searchParams: 
                   <span className={`admin-pill mkt-status-${seller.sellerStatus}`}>{SHORT_STATUS[seller.sellerStatus]}</span>
                   <br /><small>{seller.sellerStatus === "verified" ? `Since ${when(seller.verifiedAt)}` : seller.sellerStatus === "suspended" ? seller.statusReason ?? "" : SELLER_STATUS_LABEL[seller.sellerStatus]}</small>
                   {!seller.shopOpen && <><br /><small>Shop not open yet</small></>}
+                  <br /><small>{seller.onSellerPlan ? "On the Seller plan" : "Not on the Seller plan"}</small>
                 </td>
                 <td data-label="Records">
                   <small>Licence: {seller.licenceNumber ?? <em>not on file</em>}</small>
@@ -97,7 +99,7 @@ export default async function AdminMarketPage({ searchParams }: { searchParams: 
                 <td data-label="Products">{seller.productsPublished} published / {seller.productsTotal}</td>
                 <td data-label="Applied">{when(seller.appliedAt)}</td>
                 <td data-label="Decide">
-                  {canDecide ? <SellerActions orgId={seller.orgId} name={seller.name} status={seller.sellerStatus} licenceNumber={seller.licenceNumber} contactPerson={seller.contactPerson} /> : "—"}
+                  {canDecide ? <SellerActions orgId={seller.orgId} name={seller.name} status={seller.sellerStatus} licenceNumber={seller.licenceNumber} contactPerson={seller.contactPerson} onSellerPlan={seller.onSellerPlan} /> : "—"}
                 </td>
               </tr>
             ))}

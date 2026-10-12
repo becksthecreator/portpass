@@ -1,0 +1,43 @@
+/* Brief 31: the Futprep coaches back end on the staff screens (Team,
+   Staff accounts, and later the ops map, my days and passports). Its own
+   file, imported by those pages only. Phone first: 44px tap targets. */
+
+.team-manager-flags{flex-wrap:wrap}
+.flag-missing{background:#fde2e2;color:#a3161c}
+
+.team-manager-switch{display:flex;align-items:center;gap:10px;margin:12px 0 4px;font-size:.88rem;font-weight:700;min-height:44px;cursor:pointer}
+.team-manager-switch input{width:22px;height:22px;flex:none;margin:0}
+.team-manager-hint{font-size:.8rem;opacity:.8;line-height:1.5;margin:8px 0 0}
+
+.team-without-login{margin-top:34px}
+.team-without-login h2{margin:4px 0 6px}
+.team-login-form{display:grid;gap:10px;margin-top:12px}
+.team-login-form label{display:grid;gap:4px;min-width:0}
+.team-login-form span{font-size:.72rem;opacity:.75}
+.team-login-form input,.team-login-form select{min-width:0;width:100%;min-height:44px}
+.team-login-form button{min-height:44px}
+
+.team-login-status{margin:4px 0 0;font-size:.8rem;opacity:.85}
+
+/* 44px tap targets for the account and team actions (brief 31 review). */
+.team-manager-actions button{min-height:44px}
+
+/* Coach pay P&L: where the field cost came from (brief 31, B3). */
+.pay-estimate{display:block;font-size:.68rem;font-weight:600;opacity:.75;text-transform:none;letter-spacing:0}
+
+/* Locations (brief 31, B1): the days as tap-sized boxes, the edit form
+   folded away until asked for. */
+.location-days{display:flex;flex-wrap:wrap;gap:6px;border:0;padding:0;margin:0}
+.location-days legend{font-size:.72rem;opacity:.75;margin-bottom:4px;padding:0}
+.location-days label{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.location-days input{width:18px;height:18px;margin:0}
+.location-edit summary{min-height:44px;display:flex;align-items:center;font-weight:700;cursor:pointer}
+
+/* Operating map (brief 31, B2): the Missing list as tap-sized links. */
+.ops-missing{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.ops-missing a{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--text);text-decoration:none;font-weight:700}
+.ops-missing a span{color:var(--signal-text,#FF6B6E)}
+.ops-subhead{margin:8px 0 0;font-size:1rem}
+.ops-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.ops-list li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.ops-list li span{color:var(--muted)}

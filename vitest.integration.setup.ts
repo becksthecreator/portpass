@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import { assertLocalSupabase } from "./lib/localStackOnly";
+import { assertLocalSupabase } from "./lib/localStackOnly.mjs";
 
 // Integration tests write to the database with the secret key: they run
 // against a local Supabase stack only, never a real project (audit

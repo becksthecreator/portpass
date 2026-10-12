@@ -14,12 +14,16 @@ Roles come from the database (`profiles.platform_role`, `organization_members.ro
 | `org_admin` | Someone the owner trusts | The same, except changing the owner | — | None |
 | `org_staff` | Staff | Day-to-day: registrations, bookings, attendance, payments if given the payments permission; health details only with the team permission | Settings, team, bank details | None |
 | `org_viewer` | Read-only | See | Change | None |
-| Futprep staff: `admin`, `ceo`, `coach`, `helper` | Futprep's own team, by account name and PIN | Their staff screens (`/futprep/staff/*`); `admin` and `ceo` manage accounts and payments; a `coach` sees their own sessions' roster | Anything outside Futprep | None; 8-hour session; 5 wrong PINs lock the account 15 minutes |
+| Futprep staff: `admin`, `ceo`, `coach`, `helper` | Futprep's own team, by account name and PIN | Their staff screens (`/futprep/staff/*`), as `docs/futprep/roles.md` sets out; `admin` and `ceo` manage accounts and payments; a `coach` sees the session roster, with children's health notes only when the CEO switches that login's medical view on (off for every new login) | Anything outside Futprep. Marking the CEO's login as the owner only asks: a founder gives the owner membership in Admin → People | None; 8-hour session; 5 wrong PINs lock the account 15 minutes |
 | Wedding Desk staff | Bahamas Weddings' team, by account name and PIN | `/weddings/staff/*` and `/weddings/admin/*` | Anything outside the wedding site | The same |
 | Customer | A parent, a buyer | Their own account page, bookings, Member Pass | Anything else | None |
 | Demo session | Anyone, on `/demo` | The demo business only; nothing is sent | The real data | None |
 
 PortPass Market sellers (brief 25): a business's licence number and contact person (`organizations.licences`, `primary_contact`) are never public. They are seen by that business's own `org_owner` and `org_admin` (the PortPass Market block on its shop page) and by `platform_owner` and `platform_admin` (Admin -> Market -> Sellers). Only a `platform_owner` verifies or suspends a seller, after the second step, and verifies only the records shown on screen when the button was pressed.
+
+PortPass Market orders (brief 25, part C): a buyer orders without an account (`POST /api/market/orders`, rate-limited) and follows the order at `/order/<code>` (rate-limited; the code is the only key; never the buyer's phone or email). The seller's `org_staff` move an order along (Confirm, Ready, Collected); marking it paid, cancelling it and releasing unpaid orders past the hold are for whoever handles the business's payments (owners and admins, and staff with the payments permission), since each touches the order's payment request. Market fees (the Seller plan price, the commission rate, switching fees on) and putting a seller on the Seller plan are `platform_owner` only, after the second step; the commission CSV is for `platform_owner` and `platform_admin`.
+
+PortPass Points (brief 25, part D): a ledger only, nothing to spend. Points belong to an adult account holder: a child has no PortPass account, so a child's attendance earns to the guardian's account through the registration, and an event records only the reason, the business and a reference (`registration` or `reservation` and its id), never anything about the child. A signed-in account reads its own points and history (RLS, `points_accounts_own` and `points_events_own`); no browser role writes. Points are written only by the database: triggers on attendance and on a Market order becoming paid or refunded, and the daily expiry.
 
 ## Accounts outside the app
 
@@ -37,9 +41,10 @@ PortPass Market sellers (brief 25): a business's licence number and contact pers
 
 1. Which role, for which business, and why. Write it in the Beckford HQ project.
 2. **A business team member:** the owner invites them from their business area (an email invitation, 14 days, one use). They sign in with a code; the role is on the membership. Health details need the team permission, given separately and only when the job needs it.
-3. **Futprep or Wedding Desk staff:** an admin makes the account on the staff screen with a first PIN of six digits or more, told in person; they change it on first sign-in.
-4. **A platform admin:** `platform_owner` grants it in Admin → People. They set up an authenticator before `/admin` opens.
-5. **An outside account** (Vercel, Supabase, GitHub): invite with the least role that does the job; 2FA before anything else.
+3. **Futprep or Wedding Desk staff:** an admin makes the account on the staff screen with a first PIN of six digits or more, told in person; they change it on first sign-in. For someone already on Futprep's team, the admin gives their own row a login ("Give a login") rather than making a second row. A Futprep coach or admin sees children's medical details only once the CEO switches it on for that login.
+4. **Futprep's owner on PortPass:** Futprep marks the CEO's staff login as the owner in Staff accounts. Once that person has signed in to PortPass with the login's email, a `platform_owner` checks with them and presses "Give owner access" in Admin → People. It is taken back by itself when the mark moves, the login is switched off or its email changes.
+5. **A platform admin:** `platform_owner` grants it in Admin → People. They set up an authenticator before `/admin` opens.
+6. **An outside account** (Vercel, Supabase, GitHub): invite with the least role that does the job; 2FA before anything else.
 
 ## Leaver checklist
 

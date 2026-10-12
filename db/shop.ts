@@ -698,7 +698,9 @@ export async function updateReservation(orgId: number, reservationId: number, ac
   const now = new Date().toISOString();
   if (action === "cancel") {
     // The database function works by id alone: make sure it is this shop's.
-    const { data: own, error: ownError } = await supabase.from("reservations").select("id").eq("id", reservationId).eq("organization_id", orgId).maybeSingle();
+    // Drops' list only: a Market order is moved along on its own screen,
+    // where Paid and Cancel go through its payment request (brief 25).
+    const { data: own, error: ownError } = await supabase.from("reservations").select("id").eq("id", reservationId).eq("organization_id", orgId).eq("kind", "drop").maybeSingle();
     throwIfSupabaseError(ownError, "Could not load reservation");
     if (!own) throw new Error("CONFLICT");
     const { data, error } = await supabase.rpc("shop_release_reservation", { p_id: reservationId, p_status: "cancelled", p_only_expired: false });
@@ -716,7 +718,7 @@ export async function updateReservation(orgId: number, reservationId: number, ac
             : action === "collected"
               ? table().update({ collected_at: now, updated_at: now }).eq("status", "active").is("collected_at", null)
               : table().update({ collected_at: null, updated_at: now }).not("collected_at", "is", null);
-    const { data, error } = await query.eq("id", reservationId).eq("organization_id", orgId).select("id").maybeSingle();
+    const { data, error } = await query.eq("id", reservationId).eq("organization_id", orgId).eq("kind", "drop").select("id").maybeSingle();
     throwIfSupabaseError(error, "Could not update reservation");
     if (!data) throw new Error("CONFLICT");
   }
@@ -839,7 +841,8 @@ export async function listShopOverview(): Promise<ShopOverview[]> {
   const [{ data: shops, error }, { data: drops, error: dropsError }, { data: reservations, error: resError }] = await Promise.all([
     supabase.from("shops").select("organization_id,is_published,organizations(name,slug)"),
     supabase.from("drops").select("organization_id"),
-    supabase.from("reservations").select("organization_id,status,payment_status,collected_at,source,commission_eligible,total_cents"),
+    // Drops' reservations: Market orders have their own numbers (Admin -> Market).
+    supabase.from("reservations").select("organization_id,status,payment_status,collected_at,source,commission_eligible,total_cents").eq("kind", "drop"),
   ]);
   throwIfSupabaseError(error ?? dropsError ?? resError, "Could not load shops");
   return (shops ?? []).map((row) => {

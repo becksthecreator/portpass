@@ -1,7 +1,8 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireFutprepStaff } from "../../../staff-auth";
+import { currentFutprepStaffCanViewMedical, requireFutprepStaff } from "../../../staff-auth";
+import { withoutHealthDetail } from "@/lib/futprepRoles";
 import { getFutprepRegistrationDetail } from "@/db/staff";
 import { getFutprepAvailability } from "@/db/registrations";
 import { StaffLogoutButton } from "../../StaffLogoutButton";
@@ -19,11 +20,15 @@ export default async function FutprepRegistrationDetailPage({
   const registrationId = Number(id);
   if (!Number.isInteger(registrationId)) notFound();
 
-  const [detail, availability] = await Promise.all([
+  const [found, availability, canViewMedical] = await Promise.all([
     getFutprepRegistrationDetail(registrationId),
     getFutprepAvailability(),
+    currentFutprepStaffCanViewMedical(),
   ]);
-  if (!detail) notFound();
+  if (!found) notFound();
+  // Brief 31 (A1): an admin login without the medical switch never gets
+  // the child's health fields in this page at all.
+  const detail = canViewMedical ? found : withoutHealthDetail(found);
 
   // One entry per program (a program with two open terms appears once).
   const programs = availability.filter((program, index, all) => all.findIndex((other) => other.slug === program.slug) === index).map((program) => ({
@@ -46,7 +51,7 @@ export default async function FutprepRegistrationDetailPage({
         </nav>
       </header>
       <section className="staff-workspace-content">
-        <RegistrationDetailEditor detail={detail} programs={programs} />
+        <RegistrationDetailEditor detail={detail} programs={programs} healthHidden={!canViewMedical} />
       </section>
     </main>
   );
