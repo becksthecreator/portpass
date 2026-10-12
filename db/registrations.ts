@@ -656,6 +656,37 @@ async function insertWithinCap(db: ReturnType<typeof getSupabaseAdmin>, row: Rec
   return { id: Number(result.id), registrationStatus: result.registration_status as RegistrationStatus };
 }
 
+// A status change that may TAKE a place (a child promoted from the
+// waitlist, or a cancelled one brought back) goes through the same lock
+// (set_registration_status_within_cap, migration 202610260001), so two
+// promotions at the same moment, or a promotion racing a parent's
+// registration, can't put a class over its cap. The cap is the one the
+// coaches on duty allow (brief 12). A child who already has a place is
+// confirmed, re-opened or cancelled freely. Returns null when the
+// registration is not this business's; throws PROGRAM_FULL.
+export async function setRegistrationStatusWithinCap(
+  db: ReturnType<typeof getSupabaseAdmin>,
+  input: { registrationId: number; organizationId: number; status: RegistrationStatus },
+): Promise<{ previousStatus: RegistrationStatus } | null> {
+  const { data: row, error: rowError } = await db.from("registrations").select("program_id,term_id").eq("id", input.registrationId).eq("organization_id", input.organizationId).maybeSingle();
+  throwIfSupabaseError(rowError, "Could not load registration");
+  if (!row) return null;
+  const takesAPlace = ACTIVE_REGISTRATION_STATUSES.includes(input.status);
+  const cap = takesAPlace ? await effectiveCapForTerm(Number(row.program_id), Number(row.term_id)) : null;
+  const { data, error } = await db.rpc("set_registration_status_within_cap", {
+    p_registration_id: input.registrationId,
+    p_organization_id: input.organizationId,
+    p_status: input.status,
+    p_cap: cap,
+    p_active_statuses: ACTIVE_REGISTRATION_STATUSES,
+  });
+  throwIfSupabaseError(error, "Could not change registration status");
+  const result = data as { refused?: string; previous_status?: RegistrationStatus };
+  if (result.refused === "NOT_FOUND") return null;
+  if (result.refused) throw new Error(result.refused);
+  return { previousStatus: result.previous_status as RegistrationStatus };
+}
+
 export async function createFutprepRegistration(
   input: FutprepRegistrationInput,
   scope?: RegistrationScope,
