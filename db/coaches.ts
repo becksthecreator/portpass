@@ -663,10 +663,6 @@ export async function actOnPrivateSessionRequest(input:{
   if(isMissingTable(loadError)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
   throwIfSupabaseError(loadError,"Could not load private session request");
   if(!existing) throw new Error("REQUEST_NOT_FOUND");
-  // The coach it goes to must be one of Futprep's own.
-  if(input.action==="accept" && input.coachId && !(await isFutprepCoach(input.coachId))) throw new Error("COACH_REQUIRED");
-  if(input.action==="refer" && input.targetCoachId && !(await isFutprepCoach(input.targetCoachId))) throw new Error("COACH_REQUIRED");
-  if(input.action==="refer" && input.coachId && !(await isFutprepCoach(input.coachId))) throw new Error("COACH_REQUIRED");
 
   let patch:Record<string,unknown>={updated_at:now};
   let note="";
@@ -703,6 +699,8 @@ export async function actOnPrivateSessionRequest(input:{
     const {data:target,error:targetError}=await db.from("coach_profiles").select("id").eq("id",input.targetCoachId).eq("organization_id",existing.organization_id).eq("active",true).eq("member_type","coach").maybeSingle();
     throwIfSupabaseError(targetError,"Could not check the coach");
     if(!target) throw new Error("COACH_NOT_AVAILABLE");
+    // The coach it is recorded as coming from is one of Futprep's own too.
+    if(existing.assigned_coach_id==null && input.coachId && !(await isFutprepCoach(input.coachId))) throw new Error("COACH_NOT_AVAILABLE");
     patch={...patch,status:"referred",referred_from_coach_id:existing.assigned_coach_id??input.coachId??null,assigned_coach_id:input.targetCoachId,referral_note:input.reason?.trim()??"",parent_notified_at:null};
     note=input.reason?.trim() || `Referred to coach #${input.targetCoachId}`;
   }else if(input.action==="parent_notified"){

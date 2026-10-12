@@ -285,10 +285,10 @@ describe("Futprep's staff screens never reach another business's private-session
   });
 
   it("Futprep's own request goes only to one of Futprep's coaches", async () => {
-    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "accept", coachId: otherCoachId, actor: MARK }))).toBe("refused COACH_REQUIRED");
-    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "refer", targetCoachId: otherCoachId, actor: MARK }))).toBe("refused COACH_REQUIRED");
+    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "accept", coachId: otherCoachId, actor: MARK }))).toBe("refused COACH_NOT_AVAILABLE");
+    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "refer", targetCoachId: otherCoachId, actor: MARK }))).toBe("refused COACH_NOT_AVAILABLE");
     // Nor is another business's coach recorded as the one it came from.
-    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "refer", coachId: otherCoachId, targetCoachId: futprepCoachId, actor: MARK }))).toBe("refused COACH_REQUIRED");
+    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "refer", coachId: otherCoachId, targetCoachId: futprepCoachId, actor: MARK }))).toBe("refused COACH_NOT_AVAILABLE");
     const { data: request } = await db().from("private_session_requests").select("status,assigned_coach_id").eq("id", futprepRequestId).single();
     expect(request).toEqual({ status: "pending", assigned_coach_id: null });
     // It is on Futprep's list, and a Futprep coach can still be given it.
