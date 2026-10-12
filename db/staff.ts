@@ -1494,28 +1494,34 @@ export async function rosterExportForTerm(programId: number, termId: number): Pr
   throwIfSupabaseError(termError, "Could not load term");
   if (!program || !term || Number(program.organization_id) !== organizationId || Number(term.program_id) !== programId) return null;
 
-  const [{ data: registrations, error }, { data: sessions, error: sessionsError }] = await Promise.all([
-    db
-      .from("registrations")
-      .select("id,reference_code,child_name,child_dob,parent_name,parent_phone,parent_email,photo_consent,registration_status,payment_status,amount_due_cents")
-      .eq("organization_id", organizationId)
-      .eq("program_id", programId)
-      .eq("term_id", termId)
-      .in("registration_status", ["pending_details", "pending", "confirmed"])
-      .order("child_name", { ascending: true }),
-    db.from("sessions").select("id,session_date,status").eq("program_id", programId).eq("term_id", termId).neq("status", "cancelled").order("session_date", { ascending: true }),
+  const [regRows, sessionRows] = await Promise.all([
+    pageAll<Record<string, unknown>>(
+      (from, to) =>
+        db
+          .from("registrations")
+          .select("id,reference_code,child_name,child_dob,parent_name,parent_phone,parent_email,photo_consent,registration_status,payment_status,amount_due_cents")
+          .eq("organization_id", organizationId)
+          .eq("program_id", programId)
+          .eq("term_id", termId)
+          .in("registration_status", ["pending_details", "pending", "confirmed"])
+          .order("child_name", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      "Could not load roster",
+    ),
+    pageAll<{ id: number; session_date: string }>(
+      (from, to) => db.from("sessions").select("id,session_date,status").eq("program_id", programId).eq("term_id", termId).neq("status", "cancelled").order("session_date", { ascending: true }).order("id", { ascending: true }).range(from, to),
+      "Could not load camp days",
+    ),
   ]);
-  throwIfSupabaseError(error, "Could not load roster");
-  throwIfSupabaseError(sessionsError, "Could not load camp days");
-
-  const regRows = (registrations ?? []) as Array<Record<string, unknown>>;
-  const sessionRows = (sessions ?? []) as Array<{ id: number; session_date: string }>;
   const ids = regRows.map((r) => Number(r.id));
   // Payments and attendance for these children, 200 ids a request and
   // each request in pages: a weekly payer's class can pass 1,000 payments.
+  // A child's attendance can only be on this term's days, and a mark on a
+  // day not in `dayBySession` (a cancelled one) is skipped below, so the
+  // registration ids are filter enough: no list of session ids in the URL.
   const payments: Array<{ registration_id: number; amount_cents: number }> = [];
   const attendance: Array<{ registration_id: number; session_id: number; status: string }> = [];
-  const sessionIds = sessionRows.map((s) => s.id);
   for (const chunk of chunks(ids)) {
     payments.push(
       ...(await pageAll<{ registration_id: number; amount_cents: number }>(
@@ -1523,10 +1529,10 @@ export async function rosterExportForTerm(programId: number, termId: number): Pr
         "Could not load payments",
       )),
     );
-    if (sessionIds.length) {
+    if (sessionRows.length) {
       attendance.push(
         ...(await pageAll<{ registration_id: number; session_id: number; status: string }>(
-          (from, to) => db.from("attendance").select("registration_id,session_id,status").in("registration_id", chunk).in("session_id", sessionIds).order("id", { ascending: true }).range(from, to),
+          (from, to) => db.from("attendance").select("registration_id,session_id,status").in("registration_id", chunk).order("id", { ascending: true }).range(from, to),
           "Could not load attendance",
         )),
       );
