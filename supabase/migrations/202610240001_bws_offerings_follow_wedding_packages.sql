@@ -10,13 +10,15 @@
 -- on the real page, and Pear and Bronze were missing. The Market reads
 -- wedding_packages for BWS directly (202610200002); this fixes the rest.
 --
--- From here on each package keeps one offering in step with it: the same
--- slug, name, line, price and inclusions, published exactly while the
--- package is live. A package that is removed, or moved to a new slug,
--- takes its old offering off the page (kept, not deleted, so a booking
--- request or a perk that points at it keeps its row). The photo is the
--- offering's own unless the package has one. action_url sends the button
--- to the planner, and also keeps the generic booking form off these rows
+-- From here on each package keeps one offering in step with it, read the
+-- way its own page reads it (app/weddings/bahamas-weddings-by-the-sea):
+-- the same slug, name, line, price, price wording ("From" only when the
+-- Wedding Desk says so), inclusions in their order, and photo. It is
+-- published while the package is live and priced (no price, no publish).
+-- A package that is removed, or moved to a new slug, takes its old
+-- offering off the page (kept, not deleted, so a booking request or a perk
+-- that points at it keeps its row). action_url sends the button to the
+-- planner, and also keeps the generic booking form off these rows
 -- (lib/bookings/rules.ts isBookable). Prices are BSD.
 create or replace function public.bws_offering_from_wedding_package()
 returns trigger
@@ -38,15 +40,18 @@ begin
     return null;
   end if;
 
-  insert into public.offerings as o (
+  insert into public.offerings (
     organization_id, type, slug, name, summary, price_cents, price_unit, inclusions,
     image_url, action_url, sort_order, is_featured, is_published
   )
   values (
-    bws_id, 'service', new.slug, new.name, new.tagline, new.price_from_cents, 'from',
-    case when jsonb_typeof(new.includes) = 'array' then array(select jsonb_array_elements_text(new.includes)) else '{}'::text[] end,
+    bws_id, 'service', new.slug, new.name, new.tagline, new.price_from_cents,
+    case when new.price_note = 'from' then 'from' end,
+    case when jsonb_typeof(new.includes) = 'array'
+      then array(select item from jsonb_array_elements_text(new.includes) with ordinality as i(item, n) order by n)
+      else '{}'::text[] end,
     new.image_url, '/weddings/bahamas-weddings-by-the-sea/plan?tier=' || new.slug,
-    new.sort_order, new.is_featured, new.visibility = 'live'
+    new.sort_order, new.is_featured, new.visibility = 'live' and new.price_from_cents is not null
   )
   on conflict (organization_id, slug) do update set
     name = excluded.name,
@@ -54,7 +59,7 @@ begin
     price_cents = excluded.price_cents,
     price_unit = excluded.price_unit,
     inclusions = excluded.inclusions,
-    image_url = coalesce(excluded.image_url, o.image_url),
+    image_url = excluded.image_url,
     action_url = excluded.action_url,
     sort_order = excluded.sort_order,
     is_featured = excluded.is_featured,
@@ -81,6 +86,7 @@ create trigger wedding_packages_to_bws_offerings
   for each row execute function public.bws_offering_from_wedding_package();
 
 -- Every package through the trigger once: the four old rows take the real
--- prices and inclusions, and Pear and Bronze get their rows. Nothing in
--- wedding_packages itself changes.
+-- prices, wording, inclusions and photos (none yet, as on its own page),
+-- and Pear and Bronze get their rows. Nothing in wedding_packages itself
+-- changes.
 update public.wedding_packages set slug = slug;
