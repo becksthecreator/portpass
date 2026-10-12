@@ -404,7 +404,11 @@ export async function listProgramPnl(): Promise<PnlLine[]> {
   const placeTermKey = (locationId: number | null, term: TermRow) => `${locationId}|${term.name}|${term.start_date}`;
   const sharing = new Map<string, number>();
   for (const term of terms) {
-    const locationId = programs.find((p) => p.id === Number(term.program_id))?.location_id ?? null;
+    const sharer = programs.find((p) => p.id === Number(term.program_id));
+    // Only programs costed from the place share it: one with its own field
+    // figure, or a school contract, isn't.
+    if (!sharer || sharer.field_cost_cents_per_term !== null || sharer.program_type === "contract") continue;
+    const locationId = sharer.location_id ?? null;
     if (locationId === null) continue;
     const key = placeTermKey(Number(locationId), term);
     sharing.set(key, (sharing.get(key) ?? 0) + 1);

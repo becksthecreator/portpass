@@ -19,7 +19,8 @@ const rate = (cents: number | null) => (cents === null ? "Not set" : formatPrice
 
 // Futprep's operating map (brief 31, B2): the CEO and admin logins. What
 // runs where, at what price, with whom; what each place costs; private
-// sessions and who takes them; pay rates; and what's still missing.
+// sessions and who takes them; everyone's class pay rates (the CEO only);
+// and what's still missing.
 export default async function FutprepOpsPage() {
   const role = await requireFutprepStaff(["admin", "ceo"], "/futprep/staff/ops");
   const map = await loadOpsMap(role);
@@ -55,7 +56,7 @@ export default async function FutprepOpsPage() {
       <section className="staff-workspace-content">
         <div className="staff-page-intro">
           <div><span className="section-kicker">{role === "ceo" ? "CEO" : "Admin"} · how Futprep runs</span><h1>Operating map.</h1></div>
-          <p>Every program, place, private session and pay rate on one page, as Futprep has entered them. Anything still missing is listed first, with a link to the screen that fixes it.</p>
+          <p>Every program, place and private session{role === "ceo" ? ", and every coach's pay rate," : ""} on one page, as Futprep has entered them. Anything still missing is listed first, with a link to the screen that fixes it.</p>
         </div>
 
         <section className="pay-section" aria-labelledby="ops-missing">
