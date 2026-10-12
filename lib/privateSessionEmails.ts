@@ -75,7 +75,7 @@ export function newRequestStaffEmail(f: RequestFacts, portalUrl: string): { subj
         ${f.placeName ? row("Where", escapeHtml(f.placeName)) : f.locationPreference ? row("Where they suggested", escapeHtml(f.locationPreference)) : ""}
       </table>
       ${futprepEmailButton(portalUrl, "Accept, refer or decline in the staff portal →")}
-      <p style="color:#647069;font-size:13px">The parent's goal for the session is in the portal, not in this email.</p>
+      <p style="color:#647069;font-size:13px">What the parent wants to work on is in the portal, not in this email.</p>
       <p style="color:#647069;font-size:13px">The parent has been told it is not confirmed until a coach accepts. Accepting emails them the time, place, price and how to pay.</p>
     `);
   return { subject, html };

@@ -391,23 +391,30 @@ export async function markCoachMonthPaid(input: { coachId: number; month: string
   const now = new Date().toISOString();
   const classIds = rows.filter((row) => row.source === "session_staff").map((row) => row.id);
   const privateIds = rows.filter((row) => row.source === "private_session_pay").map((row) => row.id);
+  // Only what these updates marked counts, so two presses at once never
+  // count a line twice.
+  const marked = new Set<string>();
   if (classIds.length) {
-    const { error } = await db.from("session_staff").update({ paid_at: now }).in("id", classIds).is("paid_at", null);
+    const { data, error } = await db.from("session_staff").update({ paid_at: now }).in("id", classIds).is("paid_at", null).select("id");
     throwIfSupabaseError(error, "Could not mark the pay as paid");
+    for (const row of data ?? []) marked.add(`session_staff:${row.id}`);
   }
   if (privateIds.length) {
-    const { error } = await db.from("private_session_pay").update({ paid_at: now, paid_by: input.actor }).in("id", privateIds).is("paid_at", null);
+    const { data, error } = await db.from("private_session_pay").update({ paid_at: now, paid_by: input.actor }).in("id", privateIds).is("paid_at", null).select("id");
     throwIfSupabaseError(error, "Could not mark the private session pay as paid");
+    for (const row of data ?? []) marked.add(`private_session_pay:${row.id}`);
   }
-  const totalCents = rows.reduce((sum, row) => sum + row.payCents, 0);
+  const paid = rows.filter((row) => marked.has(`${row.source}:${row.id}`));
+  if (paid.length === 0) return { sessions: 0, totalCents: 0 };
+  const totalCents = paid.reduce((sum, row) => sum + row.payCents, 0);
   await logAudit({
     organizationId: await futprepOrganizationId(),
     action: "futprep.coach_pay_marked_paid",
     targetTable: "session_staff",
     targetId: input.coachId,
-    after: { coachId: input.coachId, month: input.month, sessions: rows.length, totalCents, by: input.actor },
+    after: { coachId: input.coachId, month: input.month, sessions: paid.length, totalCents, by: input.actor },
   });
-  return { sessions: rows.length, totalCents };
+  return { sessions: paid.length, totalCents };
 }
 
 // Alex sets a coach's default rates and which staff login is theirs.

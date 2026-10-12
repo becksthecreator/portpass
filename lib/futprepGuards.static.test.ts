@@ -14,7 +14,17 @@ const OPEN = new Map<string, string>([
   ["app/futprep/staff/login/page.tsx", "the PIN sign-in page itself"],
   ["app/api/futprep/staff/session/route.ts", "the PIN sign-in itself (rate-limited and locked after five wrong PINs)"],
   ["app/api/futprep/staff/bootstrap-admin/route.ts", "the first-admin door, shut once any login exists (brief 21 and #204)"],
+  ["app/api/futprep/availability/route.ts", "the open times parents pick from: dates and times only"],
+  ["app/api/futprep/private-sessions/route.ts", "the parents' request form (rate-limited, checked by zod)"],
+  ["app/api/futprep/registrations/route.ts", "the public registration form (rate-limited)"],
+  ["app/api/futprep/registrations/lookup/route.ts", "the families' lookup by reference and date of birth (rate-limited)"],
+  ["app/api/futprep/registrations/[code]/complete/route.ts", "a family's own completion link"],
 ]);
+
+// A guard named only in a comment doesn't count.
+function code(file: string): string {
+  return readFileSync(join(process.cwd(), file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+}
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -23,7 +33,7 @@ function walk(dir: string): string[] {
   });
 }
 
-const files = [...walk(join(process.cwd(), "app/futprep/staff")), ...walk(join(process.cwd(), "app/api/futprep/staff")), ...walk(join(process.cwd(), "app/api/futprep/private-sessions")).filter((f) => /\[id\]/.test(f))]
+const files = [...walk(join(process.cwd(), "app/futprep/staff")), ...walk(join(process.cwd(), "app/api/futprep"))]
   .filter((f) => /(^|[\\/])(page\.tsx|route\.ts)$/.test(f))
   .map((f) => relative(process.cwd(), f).replace(/\\/g, "/"));
 
@@ -33,7 +43,7 @@ describe("Futprep staff pages and routes check the login (brief 31)", () => {
   });
 
   it("every one calls a staff check, unless it is one of the open doors", () => {
-    const missing = files.filter((file) => !OPEN.has(file) && !GUARD.test(readFileSync(join(process.cwd(), file), "utf8")));
+    const missing = files.filter((file) => !OPEN.has(file) && !GUARD.test(code(file)));
     expect(missing).toEqual([]);
   });
 

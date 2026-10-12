@@ -40,6 +40,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (message === "NOT_YET") return NextResponse.json({ error: "Mark a session completed on or after its day." }, { status: 409 });
     if (message === "COMPLETED") return NextResponse.json({ error: "This session is completed; it can't change now." }, { status: 409 });
     if (message === "COACH_NOT_AVAILABLE") return NextResponse.json({ error: "Choose one of Futprep's coaches." }, { status: 400 });
+    if (message === "COACH_AWAY") return NextResponse.json({ error: "That coach is away that day. Refer it to another coach." }, { status: 409 });
     return NextResponse.json({ error: "Could not update the session request." }, { status: 500 });
   }
 }

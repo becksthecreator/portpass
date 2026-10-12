@@ -14,8 +14,8 @@ const requests = [
 describe("who sees which private-session request (brief 31, C1)", () => {
   it("the CEO and admin logins see every request, notes included", () => {
     for (const role of ["ceo", "admin"] as const) {
-      expect(inboxFor({ role, coachId: null }, requests).map((r) => r.id)).toEqual([1, 2, 3, 4]);
-      expect(inboxFor({ role, coachId: null }, requests)[0].notes).toBe("TEST note one");
+      expect(inboxFor({ role, coachId: null, canViewNotes: true }, requests).map((r) => r.id)).toEqual([1, 2, 3, 4]);
+      expect(inboxFor({ role, coachId: null, canViewNotes: true }, requests)[0].notes).toBe("TEST note one");
     }
   });
 
@@ -54,6 +54,8 @@ describe("who sees which private-session request (brief 31, C1)", () => {
   it("the parent's notes reach only a login with the medical view", () => {
     expect(inboxFor({ role: "admin", coachId: null, canViewNotes: false }, requests).every((r) => r.notes === "")).toBe(true);
     expect(inboxFor({ role: "admin", coachId: null, canViewNotes: true }, requests)[0].notes).toBe("TEST note one");
+    // Left out, it fails closed.
+    expect(inboxFor({ role: "ceo", coachId: null }, requests).every((r) => r.notes === "")).toBe(true);
   });
 
   it("a coach accepts as themselves, whatever coach the request names; the desk chooses", () => {

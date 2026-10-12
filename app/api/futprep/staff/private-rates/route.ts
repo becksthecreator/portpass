@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { currentFutprepStaffName, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
-import { setPrivatePayRates } from "@/db/coachPay";
+import { currentFutprepStaffId, currentFutprepStaffName, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
+import { coachForStaffMember, setPrivatePayRates } from "@/db/coachPay";
 import { bodyOf, readJson } from "@/lib/api/body";
 import { roleCan } from "@/lib/futprepRoles";
 import { dollarsToCents } from "@/lib/registrations/programInput";
 
 // What Futprep pays a coach for a 30- and a 60-minute private session
 // (brief 31, C5): the CEO or an admin, on the operating map. Futprep types
-// the amounts; nothing in code sets a rate. Audit-logged.
+// the amounts; nothing in code sets a rate. Audit-logged. An admin who
+// also coaches doesn't set their own: the CEO does (security review).
 const Body = bodyOf(["coachId", "private30", "private60"]);
 
 function amount(value: unknown): number | null | "bad" {
@@ -26,6 +27,11 @@ export async function POST(request: Request) {
   const private30 = amount(read.value.private30);
   const private60 = amount(read.value.private60);
   if (!Number.isInteger(coachId) || coachId < 1 || private30 === "bad" || private60 === "bad") return NextResponse.json({ error: "Enter each amount in dollars, or leave it blank." }, { status: 400 });
+  if (role !== "ceo") {
+    const staffId = await currentFutprepStaffId();
+    const own = staffId ? await coachForStaffMember(staffId).catch(() => null) : null;
+    if (own && own.id === coachId) return NextResponse.json({ error: "Your own private session pay is set by the CEO." }, { status: 403 });
+  }
   try {
     const coach = await setPrivatePayRates({ coachId, private30Cents: private30, private60Cents: private60, actor: (await currentFutprepStaffName()) ?? role });
     return NextResponse.json({ ok: true, coach: { id: coach.id, private30PayCents: coach.private30PayCents, private60PayCents: coach.private60PayCents } });

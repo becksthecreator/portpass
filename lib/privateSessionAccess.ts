@@ -16,8 +16,8 @@
 
 import type { FutprepRole } from "./futprepRoles";
 
-// canViewNotes: the login's medical view (staff-auth); left out, the CEO
-// and admins read notes.
+// canViewNotes: the login's medical view (staff-auth). Left out, nobody
+// reads the parent's notes: it fails closed.
 export type InboxViewer = { role: FutprepRole | null; coachId: number | null; canViewNotes?: boolean };
 
 export type RequestOwners = { preferred_coach_id: number | null; assigned_coach_id: number | null };
@@ -42,7 +42,7 @@ export function canActOnRequest(viewer: InboxViewer, request: RequestOwners): bo
 
 export function inboxFor<T extends RequestOwners & { notes?: string }>(viewer: InboxViewer, requests: T[]): T[] {
   const mine = requests.filter((request) => canSeeRequest(viewer, request));
-  const readsNotes = seesEveryRequest(viewer.role) && viewer.canViewNotes !== false;
+  const readsNotes = seesEveryRequest(viewer.role) && viewer.canViewNotes === true;
   return readsNotes ? mine : mine.map((request) => ({ ...request, notes: "" }));
 }
 

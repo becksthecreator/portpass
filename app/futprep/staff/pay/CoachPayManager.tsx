@@ -53,7 +53,7 @@ export function CoachPayManager({
     if (!response || !response.ok) return setNotice("Couldn't mark it paid. Try again.");
     setSummaries((current) => current.map((s) => (s.coachId === summary.coachId && s.month === summary.month ? { ...s, paidCents: s.paidCents + s.owedCents, owedCents: 0 } : s)));
     const now = new Date().toISOString();
-    setPrivateLines((current) => current.map((l) => (l.coachId === summary.coachId && monthOf(l.sessionDate) === summary.month && !l.paidAt ? { ...l, paidAt: now } : l)));
+    setPrivateLines((current) => current.map((l) => (l.coachId === summary.coachId && monthOf(l.sessionDate) === summary.month && !l.paidAt && l.basis !== "not_set" ? { ...l, paidAt: now } : l)));
     setNotice(`${summary.coachName}: ${monthLabel(summary.month)} marked paid.`);
   }
 

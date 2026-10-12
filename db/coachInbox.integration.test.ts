@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { nassauToday } from "@/lib/futprepTerms";
+import { assertLocalSupabase } from "@/lib/localStackOnly.mjs";
 import { isoWeekday } from "@/lib/workingDays";
 import { listPayLedger, listPrivatePayLines, markCoachMonthPaid, setPrivatePayRates } from "./coachPay";
 import { actOnPrivateSessionRequest, createPrivateSessionRequest, getCoachDays, listPrivateSessionRequests, listPublicCoachProfiles, privateSessionOwners, setCoachDayAway } from "./coaches";
@@ -53,8 +54,7 @@ async function ask(input: { coachId: number | null; date?: string; minutes?: num
 }
 
 beforeAll(async () => {
-  const url = process.env.SUPABASE_URL ?? "";
-  if (!url.includes("127.0.0.1") && !url.includes("localhost")) throw new Error("Refusing to run against anything but a local Supabase stack.");
+  assertLocalSupabase();
   const { data: org } = await db().from("organizations").select("id").eq("slug", "futprep").single();
   orgId = Number(org!.id);
   const { data: coaches, error } = await db()
@@ -154,6 +154,12 @@ describe("days away and coaches who confirm a time (brief 31, C2 and C3)", () =>
     await expect(setCoachDayAway({ coachId: coachA, date: third, away: true, actor: MARK })).rejects.toThrow("BOOKED_THAT_DAY");
   });
 
+  it("the desk accepts only for an active Futprep coach, and not on their day away", async () => {
+    const id = await ask({ coachId: null, date: away });
+    await expect(actOnPrivateSessionRequest({ id, action: "accept", coachId: 999999999, actor: MARK })).rejects.toThrow("COACH_NOT_AVAILABLE");
+    await expect(actOnPrivateSessionRequest({ id, action: "accept", coachId: coachA, actor: MARK })).rejects.toThrow("COACH_AWAY");
+  });
+
   it("a day can be opened again, with the open times it closed", async () => {
     await setCoachDayAway({ coachId: coachA, date: away, away: false, actor: MARK });
     expect((await getCoachDays(coachA))?.daysAway).not.toContain(away);
@@ -224,6 +230,12 @@ describe("a completed private session is a pay line (brief 31, C5 and C6)", () =
     const result = await markCoachMonthPaid({ coachId: coachA, month: line.sessionDate.slice(0, 7), actor: MARK });
     expect(result.totalCents).toBeGreaterThanOrEqual(3500);
     expect((await listPrivatePayLines({ coachId: coachA }))[0].paidAt).not.toBeNull();
+    // A second press marks and counts nothing.
+    expect(await markCoachMonthPaid({ coachId: coachA, month: line.sessionDate.slice(0, 7), actor: MARK })).toEqual({ sessions: 0, totalCents: 0 });
+    // B's $0 line, still waiting for a rate, is left unpaid.
+    const [waiting] = await listPrivatePayLines({ coachId: coachB });
+    expect(await markCoachMonthPaid({ coachId: coachB, month: waiting.sessionDate.slice(0, 7), actor: MARK })).toEqual({ sessions: 0, totalCents: 0 });
+    expect((await listPrivatePayLines({ coachId: coachB }))[0].paidAt).toBeNull();
   });
 
   it("the desk or the CEO sets private rates, audit-logged, and a bad amount is refused", async () => {
