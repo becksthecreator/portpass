@@ -27,6 +27,9 @@ const OWNER_ONLY = [
   "wedding_unavailable_dates",
   // PortPass Market (brief 25): a Market order's lines, and the views over orders.
   "order_items", "orders", "market_products", "market_things_to_do",
+  // PortPass Points (brief 25, D): a signed-in account reads only its own
+  // (db/points.integration.test.ts); a browser key without a session, nothing.
+  "points_accounts", "points_events",
 ];
 const PLATFORM_ONLY = [
   "admin_links", "applications", "billing_accounts", "billing_events", "billing_reminders", "commission_plans", "interest_submissions", "job_runs", "leads",

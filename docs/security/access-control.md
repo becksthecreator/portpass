@@ -23,6 +23,8 @@ PortPass Market sellers (brief 25): a business's licence number and contact pers
 
 PortPass Market orders (brief 25, part C): a buyer orders without an account (`POST /api/market/orders`, rate-limited) and follows the order at `/order/<code>` (rate-limited; the code is the only key; never the buyer's phone or email). The seller's `org_staff` move an order along (Confirm, Ready, Collected); marking it paid, cancelling it and releasing unpaid orders past the hold are for whoever handles the business's payments (owners and admins, and staff with the payments permission), since each touches the order's payment request. Market fees (the Seller plan price, the commission rate, switching fees on) and putting a seller on the Seller plan are `platform_owner` only, after the second step; the commission CSV is for `platform_owner` and `platform_admin`.
 
+PortPass Points (brief 25, part D): a ledger only, nothing to spend. Points belong to an adult account holder: a child has no PortPass account, so a child's attendance earns to the guardian's account through the registration, and an event records only the reason, the business and a reference (`registration` or `reservation` and its id), never anything about the child. A signed-in account reads its own points and history (RLS, `points_accounts_own` and `points_events_own`); no browser role writes. Points are written only by the database: triggers on attendance and on a Market order becoming paid or refunded, and the daily expiry.
+
 ## Accounts outside the app
 
 | Account | Who holds it | Guards |
