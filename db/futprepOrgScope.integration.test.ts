@@ -219,13 +219,13 @@ beforeAll(async () => {
   const { data: staff, error: staffMemberError } = await db().from("staff_members").insert({ organization_id: otherOrgId, name: `${MARK} Other Login`, role: "coach", responsibilities: "", active: true }).select("id").single();
   if (staffMemberError || !staff) throw new Error(`Could not seed a TEST staff login: ${staffMemberError?.message}`);
   otherStaffId = Number(staff.id);
-  const { data: mine, error: mineError } = await db()
+  const { data: futprepCoach, error: futprepCoachError } = await db()
     .from("coach_profiles")
     .insert({ organization_id: Number(futprep!.id), slug: `test-delete-futprep-coach-${TAG}`, display_name: `${MARK} Futprep Coach`, active: false, bookable: false, public_visible: false })
     .select("id")
     .single();
-  if (mineError || !mine) throw new Error(`Could not seed a TEST Futprep coach: ${mineError?.message}`);
-  futprepCoachId = Number(mine.id);
+  if (futprepCoachError || !futprepCoach) throw new Error(`Could not seed a TEST Futprep coach: ${futprepCoachError?.message}`);
+  futprepCoachId = Number(futprepCoach.id);
 });
 
 afterAll(async () => {
