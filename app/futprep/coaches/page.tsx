@@ -5,7 +5,8 @@ import { currentFutprepStaffId, currentFutprepStaffRole } from "@/app/futprep/st
 import { coachSlotPrompt, listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
 import { isUploadedCoachPhoto } from "@/lib/imageUpload";
 import { money, sessionButtonLabel } from "@/lib/privateSessions";
-import { workingDaysLabel } from "@/lib/workingDays";
+import { cleanBlockedDates, workingDaysLabel } from "@/lib/workingDays";
+import { listPrivateSessionPlaces } from "@/db/futprepLocations";
 import "./booking-days.css";
 import "../tap-steps.css";
 import { initialsOf } from "@/lib/team";
@@ -29,7 +30,7 @@ function dayLabel(value:string){
 }
 
 export default async function FutprepCoachesPage(){
-  const [{schemaReady,coaches},services,staffId]=await Promise.all([
+  const [{schemaReady,coaches},services,staffId,places]=await Promise.all([
     listPublicCoachProfiles(),
     // Only confirmed (published) prices are offered to parents.
     listFutprepPrivateServices({publishedOnly:true}).catch(()=>[]),
@@ -38,10 +39,12 @@ export default async function FutprepCoachesPage(){
     // prompt needs the staff cookie and a login linked to this coach. A
     // helper can't open the slot editor, so a helper never sees it either.
     Promise.all([currentFutprepStaffId(),currentFutprepStaffRole()]).then(([id,role])=>role&&role!=="helper"?id:null).catch(()=>null),
+    // Brief 31 (C4): the places that take private sessions, name only.
+    listPrivateSessionPlaces().then((rows)=>rows.map((p)=>({id:p.id,name:p.name}))).catch(()=>[]),
   ]);
   const own=staffId?await coachSlotPrompt(staffId).catch(()=>null):null;
   const bookable=coaches.filter((coach)=>coach.bookable && coach.member_type==="coach");
-  const bookingCoaches=bookable.map((c)=>({id:c.id,displayName:c.display_name,workingDays:c.working_days??[],slots:c.availability.filter((s)=>s.status==="available").map((s)=>({id:s.id,date:s.availability_date,startTime:s.start_time,endTime:s.end_time,location:s.location}))}));
+  const bookingCoaches=bookable.map((c)=>({id:c.id,displayName:c.display_name,workingDays:c.working_days??[],blockedDates:cleanBlockedDates(c.availability.filter((s)=>s.status==="blocked").map((s)=>s.availability_date)),slots:c.availability.filter((s)=>s.status==="available").map((s)=>({id:s.id,date:s.availability_date,startTime:s.start_time,endTime:s.end_time,location:s.location}))}));
   const bookingServices=services.map((s)=>({slug:s.slug,name:s.name,priceCents:s.priceCents,priceUnit:s.priceUnit,kind:s.kind,durationMinutes:s.durationMinutes,minChildren:s.minChildren,maxChildren:s.maxChildren,perChildCents:s.perChildCents}));
   // Brief 29, part B: the button reads the published sessions ("30 min $35 ·
   // 60 min $70"), and the party button is there only while a party service
@@ -61,7 +64,7 @@ export default async function FutprepCoachesPage(){
         <span>Futprep Athletics · Team</span>
         <h1>The people behind<br/>the <em>progress.</em></h1>
         <p>Meet the coaches and team members shaping the Futprep experience on the field and in the community.</p>
-        <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} triggerLabel="Book a private session →" />
+        <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} places={places} schemaReady={schemaReady} triggerLabel="Book a private session →" />
       </section>
 
       <section className="futprep-team-grid">
@@ -97,8 +100,8 @@ export default async function FutprepCoachesPage(){
                     <span className={`availability-${slot.status}`} key={slot.id}>{dayLabel(slot.availability_date)} · {slot.start_time}–{slot.end_time}</span>
                   )) : (coach.working_days??[]).length===0 && <span className="availability-unset">Schedule not posted yet — you can still request a time.</span>;})()}
                   <div className="coach-book-actions">
-                    <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} defaultKind="session" triggerLabel={sessionLabel} />
-                    {partyLabel && <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} defaultKind="party" triggerLabel={partyLabel} />}
+                    <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} places={places} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} defaultKind="session" triggerLabel={sessionLabel} />
+                    {partyLabel && <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} places={places} schemaReady={schemaReady} preferredCoachId={coach.id>0?coach.id:undefined} defaultKind="party" triggerLabel={partyLabel} />}
                   </div>
                 </div>
               )}
@@ -112,7 +115,7 @@ export default async function FutprepCoachesPage(){
       <section className="futprep-team-note">
         <div><span>Private lessons + birthdays</span><h2>Request it here. Keep the conversation simple.</h2></div>
         <p>A request is not confirmed until a coach accepts it. If a coach needs to refer the session, Futprep tracks the handoff and the parent must be informed.</p>
-        <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} triggerLabel="Start a request →" />
+        <PrivateSessionBooking coaches={bookingCoaches} services={bookingServices} places={places} schemaReady={schemaReady} triggerLabel="Start a request →" />
       </section>
 
       <footer className="futprep-team-footer">

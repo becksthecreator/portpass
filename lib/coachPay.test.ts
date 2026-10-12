@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clockMinutes, contractInvoiceCents, contractsCsv, estimateFieldCostCents, fieldCostFor, leftForFutprep, monthLabel, payCsv, payForRole, portpassFeeCents, sessionMinutes, shareFee, summarizePay, type LedgerRow } from "./coachPay";
+import { clockMinutes, privateLineName, privatePayFor, contractInvoiceCents, contractsCsv, estimateFieldCostCents, fieldCostFor, leftForFutprep, monthLabel, payCsv, payForRole, portpassFeeCents, sessionMinutes, shareFee, summarizePay, type LedgerRow } from "./coachPay";
 
 const BEX = { defaultLeadPayCents: 5000, defaultAssistantPayCents: null };
 
@@ -101,5 +101,37 @@ describe("field cost from the location (brief 31, B3)", () => {
     expect(fieldCostFor(0, 36000)).toEqual({ cents: 0, source: "stored" });
     expect(fieldCostFor(null, 36000)).toEqual({ cents: 36000, source: "estimated" });
     expect(fieldCostFor(null, null)).toEqual({ cents: 0, source: "none" });
+  });
+});
+
+describe("private session pay (brief 31, C5 and C6)", () => {
+  const rates = { private30PayCents: 2000, private60PayCents: 3500 };
+
+  it("takes the coach's own rate for 30 and 60 minutes", () => {
+    expect(privatePayFor(rates, 30)).toEqual({ cents: 2000, basis: "rate_30" });
+    expect(privatePayFor(rates, 60)).toEqual({ cents: 3500, basis: "rate_60" });
+  });
+
+  it("works out other lengths pro rata from the 60-minute rate, else the 30-minute one", () => {
+    expect(privatePayFor(rates, 45)).toEqual({ cents: 2625, basis: "pro_rata_60" });
+    expect(privatePayFor(rates, 90)).toEqual({ cents: 5250, basis: "pro_rata_60" });
+    expect(privatePayFor({ private30PayCents: 2000, private60PayCents: null }, 60)).toEqual({ cents: 4000, basis: "pro_rata_30" });
+    expect(privatePayFor({ private30PayCents: null, private60PayCents: 3500 }, 30)).toEqual({ cents: 1750, basis: "pro_rata_60" });
+  });
+
+  it("is $0, marked, until Futprep sets a rate", () => {
+    expect(privatePayFor({ private30PayCents: null, private60PayCents: null }, 30)).toEqual({ cents: 0, basis: "not_set" });
+  });
+
+  it("adds private lines to the month's totals, and the CSV names the reference, never the child", () => {
+    const rows: LedgerRow[] = [
+      { coachId: 1, coachName: "TEST Coach", sessionDate: "2026-10-03", programName: "TEST Kickers", role: "lead", payCents: 5000, paidAt: null },
+      { coachId: 1, coachName: "TEST Coach", sessionDate: "2026-10-07", programName: privateLineName("FP-S-0007"), role: "lead", payCents: 2000, paidAt: null, kind: "private" },
+      { coachId: 1, coachName: "TEST Coach", sessionDate: "2026-10-09", programName: privateLineName("FP-S-0008"), role: "lead", payCents: 3500, paidAt: "2026-10-10T12:00:00Z", kind: "private" },
+    ];
+    expect(summarizePay(rows)).toEqual([{ coachId: 1, coachName: "TEST Coach", month: "2026-10", sessions: 3, owedCents: 7000, paidCents: 3500 }]);
+    const csv = payCsv(rows);
+    expect(csv).toContain("Private session · FP-S-0007");
+    expect(csv).toContain(",private,20.00,");
   });
 });

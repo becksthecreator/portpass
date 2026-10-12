@@ -6,8 +6,10 @@ import { logMessage } from "./growth";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // Who hears about a Futprep private-session request, and when (Brief 29,
-// part A). On a new request: the preferred coach (or every bookable coach
-// when none was chosen), Futprep's owner or admins, and the parent. On a
+// part A). On a new request: the preferred coach, Futprep's owner or
+// admins, and the parent. A request for "any coach" goes to the desk only
+// (brief 31, C1): a coach sees only their own requests, so a coach is never
+// sent a link to one they can't open. On a
 // decline or a referral: the parent. (On an accept: the parent, from
 // db/coaches.ts, with how to pay.)
 //
@@ -128,7 +130,7 @@ export async function notifyNewPrivateSessionRequest(requestId: number): Promise
     await send(row.parent_email, TEMPLATE.parentReceived, requestReceivedEmail(facts));
 
     const staffEmail = newRequestStaffEmail(facts, PORTAL_URL);
-    const coachIds = row.preferred_coach_id ? [Number(row.preferred_coach_id)] : await bookableCoachIds(orgId);
+    const coachIds = row.preferred_coach_id ? [Number(row.preferred_coach_id)] : [];
     const contacts = await coachContacts(coachIds);
     const told = new Set<string>();
     for (const contact of contacts) {
@@ -140,7 +142,7 @@ export async function notifyNewPrivateSessionRequest(requestId: number): Promise
       told.add(contact.email);
       await send(contact.email, TEMPLATE.staffNew, staffEmail);
     }
-    if (contacts.length === 0) await log(orgId, TEMPLATE.staffNew, "(no bookable coach)", "No bookable coach to tell.");
+    if (row.preferred_coach_id && contacts.length === 0) await log(orgId, TEMPLATE.staffNew, "(no coach found)", "The chosen coach could not be found.");
 
     const owners = (await ownerAndAdminEmails(orgId)).filter((email) => !told.has(email));
     if (owners.length === 0) await log(orgId, TEMPLATE.staffNew, "(no owner on file)", "No owner with a PortPass account, and no admin or CEO login with an email address.");

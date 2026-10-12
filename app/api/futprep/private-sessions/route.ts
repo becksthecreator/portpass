@@ -15,7 +15,7 @@ const limited = createRateLimiter(8, 10 * 60_000);
 const perEmail = createRateLimiter(3, 60 * 60_000);
 
 // The fields this route reads, and no others (lib/api/body.ts).
-const Body = bodyOf(["requestType", "serviceSlug", "childrenCount", "preferredCoachId", "availabilityId", "parentName", "parentEmail", "parentPhone", "childName", "childAge", "requestedDate", "requestedStartTime", "durationMinutes", "locationPreference", "sessionGoal", "notes", "utmSource", "utmMedium", "utmCampaign", "referrerHost", "viaPortpass"]);
+const Body = bodyOf(["requestType", "serviceSlug", "childrenCount", "preferredCoachId", "availabilityId", "parentName", "parentEmail", "parentPhone", "childName", "childAge", "requestedDate", "requestedStartTime", "durationMinutes", "locationId", "locationPreference", "sessionGoal", "notes", "utmSource", "utmMedium", "utmCampaign", "referrerHost", "viaPortpass"]);
 const utm=(value:unknown)=>tag(typeof value==="string"?value:null);
 
 export async function POST(request:Request){
@@ -56,6 +56,8 @@ export async function POST(request:Request){
       durationMinutes,
       // Brief 13: a group session is priced per child (4 to 8).
       childrenCount:Number.isInteger(Number(body.childrenCount))&&Number(body.childrenCount)>0?Number(body.childrenCount):null,
+      // Brief 31 (C4): one of Futprep's places, or the parent's own idea.
+      locationId:Number.isInteger(Number(body.locationId))&&Number(body.locationId)>0?Number(body.locationId):null,
       locationPreference:String(body.locationPreference??"").slice(0,200),
       sessionGoal:String(body.sessionGoal??"").slice(0,1000),
       notes:String(body.notes??"").slice(0,1000),
@@ -72,6 +74,8 @@ export async function POST(request:Request){
     if(message==="PRIVATE_SESSIONS_MIGRATION_REQUIRED") return NextResponse.json({error:"Private-session booking is being connected. Please try again shortly."},{status:503});
     if(message==="COACH_NOT_AVAILABLE") return NextResponse.json({error:"That coach is not currently bookable. Choose another coach or Any available coach."},{status:409});
     if(message.startsWith("COACH_DAY_OFF|")) return NextResponse.json({error:message.slice("COACH_DAY_OFF|".length)},{status:400});
+    if(message.startsWith("COACH_AWAY|")) return NextResponse.json({error:message.slice("COACH_AWAY|".length)},{status:400});
+    if(message==="LOCATION_NOT_AVAILABLE") return NextResponse.json({error:"That place isn't taking private sessions. Choose another, or suggest a place."},{status:409});
     if(message==="SERVICE_NOT_AVAILABLE") return NextResponse.json({error:"That service is not bookable online yet. Message Futprep on WhatsApp and we'll help."},{status:409});
     if(message==="SLOT_NOT_AVAILABLE") return NextResponse.json({error:"That time has just been taken. Choose another time or suggest one."},{status:409});
     if(message.startsWith("CHILDREN_OUT_OF_RANGE")){

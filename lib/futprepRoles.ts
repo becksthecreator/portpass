@@ -10,6 +10,10 @@ export const FUTPREP_ROLES: FutprepRole[] = ["ceo", "admin", "coach", "helper"];
 export type FutprepCapability =
   | "prices"
   | "pay_rates"
+  // Brief 31 (C5): what a coach is paid for a private session, 30 and 60
+  // minutes. The brief gives these to the CEO and admins; class pay rates
+  // stay the CEO's.
+  | "private_pay_rates"
   | "locations"
   | "team"
   | "accounts"
@@ -26,8 +30,8 @@ export type FutprepCapability =
   | "roster";
 
 const CAN: Record<FutprepRole, FutprepCapability[]> = {
-  ceo: ["prices", "pay_rates", "locations", "team", "accounts", "registrations", "payments", "schedules", "own_sessions", "own_inbox", "all_inboxes", "own_days", "own_pay", "all_pay", "own_passports", "roster"],
-  admin: ["locations", "team", "accounts", "registrations", "payments", "schedules", "own_inbox", "all_inboxes", "own_days", "own_pay"],
+  ceo: ["prices", "pay_rates", "private_pay_rates", "locations", "team", "accounts", "registrations", "payments", "schedules", "own_sessions", "own_inbox", "all_inboxes", "own_days", "own_pay", "all_pay", "own_passports", "roster"],
+  admin: ["private_pay_rates", "locations", "team", "accounts", "registrations", "payments", "schedules", "own_inbox", "all_inboxes", "own_days", "own_pay"],
   coach: ["own_sessions", "own_inbox", "own_days", "own_pay", "own_passports", "roster"],
   helper: ["roster"],
 };

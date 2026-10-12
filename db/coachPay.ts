@@ -10,6 +10,8 @@ import {
   monthOf,
   payForRole,
   portpassFeeCents,
+  privateLineName,
+  privatePayFor,
   sessionMinutes,
   shareFee,
   type ContractBilling,
@@ -18,6 +20,7 @@ import {
   type LocationCost,
   type LocationCostModel,
   type PnlLine,
+  type PrivatePayBasis,
   type StaffRole,
 } from "@/lib/coachPay";
 import { nassauToday } from "@/lib/futprepTerms";
@@ -32,6 +35,9 @@ export type PayCoach = {
   defaultLeadPayCents: number | null;
   defaultAssistantPayCents: number | null;
   staffMemberId: number | null;
+  // Brief 31 (C5): what Futprep pays this coach for a private session.
+  private30PayCents: number | null;
+  private60PayCents: number | null;
 };
 
 function toPayCoach(row: Record<string, unknown>): PayCoach {
@@ -43,10 +49,12 @@ function toPayCoach(row: Record<string, unknown>): PayCoach {
     defaultLeadPayCents: cents(row.default_lead_pay_cents),
     defaultAssistantPayCents: cents(row.default_assistant_pay_cents),
     staffMemberId: cents(row.staff_member_id),
+    private30PayCents: cents(row.private_30_pay_cents),
+    private60PayCents: cents(row.private_60_pay_cents),
   };
 }
 
-const COACH_COLUMNS = "id,display_name,active,member_type,sort_order,default_lead_pay_cents,default_assistant_pay_cents,staff_member_id";
+const COACH_COLUMNS = "id,display_name,active,member_type,sort_order,default_lead_pay_cents,default_assistant_pay_cents,staff_member_id,private_30_pay_cents,private_60_pay_cents";
 
 // Coaches who can be put on a session: every active coach, plus a class's
 // default lead even when their public profile is switched off (Coach Bex).
@@ -191,11 +199,17 @@ export async function ensureDefaultLead(sessionId: number, actor: string): Promi
 
 // ---- The pay ledger ---------------------------------------------------------
 
-type LedgerRecord = LedgerRow & { id: number };
+type LedgerRecord = LedgerRow & { id: number; source: "session_staff" | "private_session_pay" };
 
 // Sessions that have happened (today and earlier, not cancelled), with who
-// coached them and the pay. `coachId` limits it to one coach.
+// coached them and the pay, and (brief 31, C6) every completed private
+// session's pay line. `coachId` limits it to one coach.
 async function loadLedger(filter: { coachId?: number } = {}): Promise<LedgerRecord[]> {
+  const [classes, privates] = await Promise.all([loadClassLedger(filter), loadPrivateLedger(filter)]);
+  return [...classes, ...privates];
+}
+
+async function loadClassLedger(filter: { coachId?: number }): Promise<LedgerRecord[]> {
   const db = getSupabaseAdmin();
   const organizationId = await futprepOrganizationId();
   let query = db
@@ -218,12 +232,142 @@ async function loadLedger(filter: { coachId?: number } = {}): Promise<LedgerReco
       role: row.role as StaffRole,
       payCents: Number(row.pay_cents),
       paidAt: (row.paid_at as string | null) ?? null,
+      source: "session_staff" as const,
     };
   });
 }
 
+export type PrivatePayLine = {
+  id: number;
+  coachId: number;
+  coachName: string;
+  sessionDate: string;
+  referenceCode: string;
+  durationMinutes: number;
+  payCents: number;
+  basis: PrivatePayBasis;
+  paidAt: string | null;
+};
+
+// Brief 31 (C6): pay lines for completed private sessions, Futprep's own.
+// Never the child, the parent or the notes: the reference, the date, the
+// length and the pay.
+export async function listPrivatePayLines(filter: { coachId?: number } = {}): Promise<PrivatePayLine[]> {
+  const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
+  let query = db
+    .from("private_session_pay")
+    .select("id,coach_id,duration_minutes,pay_cents,rate_basis,paid_at,private_session_requests(reference_code,requested_date),coach_profiles(display_name)")
+    .eq("organization_id", organizationId)
+    .order("id", { ascending: true });
+  if (filter.coachId) query = query.eq("coach_id", filter.coachId);
+  const { data, error } = await query;
+  throwIfSupabaseError(error, "Could not load private session pay");
+  return (data ?? []).map((row) => {
+    const request = row.private_session_requests as unknown as { reference_code: string; requested_date: string } | null;
+    return {
+      id: Number(row.id),
+      coachId: Number(row.coach_id),
+      coachName: String((row.coach_profiles as unknown as { display_name: string } | null)?.display_name ?? "Coach"),
+      sessionDate: String(request?.requested_date ?? ""),
+      referenceCode: String(request?.reference_code ?? ""),
+      durationMinutes: Number(row.duration_minutes),
+      payCents: Number(row.pay_cents),
+      basis: row.rate_basis as PrivatePayBasis,
+      paidAt: (row.paid_at as string | null) ?? null,
+    };
+  });
+}
+
+async function loadPrivateLedger(filter: { coachId?: number }): Promise<LedgerRecord[]> {
+  return (await listPrivatePayLines(filter)).map((line) => ({
+    id: line.id,
+    source: "private_session_pay" as const,
+    kind: "private" as const,
+    coachId: line.coachId,
+    coachName: line.coachName,
+    sessionDate: line.sessionDate,
+    programName: privateLineName(line.referenceCode),
+    role: "lead" as const,
+    payCents: line.payCents,
+    paidAt: line.paidAt,
+  }));
+}
+
 export async function listPayLedger(filter: { coachId?: number } = {}): Promise<LedgerRow[]> {
-  return (await loadLedger(filter)).map(({ id: _id, ...row }) => row);
+  return (await loadLedger(filter)).map(({ id: _id, source: _source, ...row }) => row);
+}
+
+// Brief 31 (C6): a completed private session becomes one pay line for the
+// coach who took it (the assigned coach, else the preferred one), at their
+// rate for its length. Once per request: completing it again adds nothing.
+// A record of what Futprep owes; PortPass never pays anyone.
+export async function recordPrivatePayLine(input: { requestId: number; actor: string }): Promise<{ created: boolean; payCents: number; basis: PrivatePayBasis } | null> {
+  const db = getSupabaseAdmin();
+  const { data: request, error } = await db
+    .from("private_session_requests")
+    .select("id,organization_id,status,duration_minutes,assigned_coach_id,preferred_coach_id")
+    .eq("id", input.requestId)
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load the private session");
+  if (!request || request.status !== "completed") return null;
+  const coachId = Number(request.assigned_coach_id ?? request.preferred_coach_id ?? 0);
+  if (!coachId) return null;
+  const { data: coach, error: coachError } = await db.from("coach_profiles").select(COACH_COLUMNS).eq("id", coachId).maybeSingle();
+  throwIfSupabaseError(coachError, "Could not load the coach's rates");
+  if (!coach) return null;
+  const rates = toPayCoach(coach);
+  const pay = privatePayFor(rates, Number(request.duration_minutes));
+  const { data: inserted, error: insertError } = await db
+    .from("private_session_pay")
+    .upsert(
+      { organization_id: Number(request.organization_id), request_id: Number(request.id), coach_id: coachId, duration_minutes: Number(request.duration_minutes), pay_cents: pay.cents, rate_basis: pay.basis, created_by: input.actor },
+      { onConflict: "request_id", ignoreDuplicates: true },
+    )
+    .select("id");
+  throwIfSupabaseError(insertError, "Could not record the private session pay");
+  const created = (inserted ?? []).length > 0;
+  if (created) {
+    await logAudit({ organizationId: Number(request.organization_id), action: "futprep.private_session_pay", targetTable: "private_session_pay", targetId: Number(inserted![0].id), after: { requestId: Number(request.id), coachId, payCents: pay.cents, basis: pay.basis, by: input.actor } });
+  }
+  return { created, payCents: pay.cents, basis: pay.basis };
+}
+
+// Brief 31 (C5): the coaches whose private-session pay the CEO or an admin
+// sets on the operating map: names and those two rates only, never the
+// class rates (the CEO's) or the staff login.
+export type PrivateRateCoach = { id: number; name: string; active: boolean; private30PayCents: number | null; private60PayCents: number | null };
+export async function listPrivateRateCoaches(): Promise<PrivateRateCoach[]> {
+  return (await listPayCoaches()).map((coach) => ({ id: coach.id, name: coach.name, active: coach.active, private30PayCents: coach.private30PayCents, private60PayCents: coach.private60PayCents }));
+}
+
+// Brief 31 (C5): what a coach is paid for a 30- and a 60-minute private
+// session, as Futprep sets it (the CEO or an admin). Audit-logged.
+export async function setPrivatePayRates(input: { coachId: number; private30Cents: number | null; private60Cents: number | null; actor: string }): Promise<PayCoach> {
+  for (const cents of [input.private30Cents, input.private60Cents]) {
+    if (cents !== null && (!Number.isInteger(cents) || cents < 0 || cents > 10_000_000)) throw new Error("INVALID_RATE");
+  }
+  const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
+  const { data: before } = await db.from("coach_profiles").select(COACH_COLUMNS).eq("id", input.coachId).eq("organization_id", organizationId).maybeSingle();
+  if (!before) throw new Error("COACH_NOT_FOUND");
+  const { data, error } = await db
+    .from("coach_profiles")
+    .update({ private_30_pay_cents: input.private30Cents, private_60_pay_cents: input.private60Cents })
+    .eq("id", input.coachId)
+    .eq("organization_id", organizationId)
+    .select(COACH_COLUMNS)
+    .single();
+  throwIfSupabaseError(error, "Could not save the private session rates");
+  await logAudit({
+    organizationId,
+    action: "futprep.private_pay_rates",
+    targetTable: "coach_profiles",
+    targetId: input.coachId,
+    before: { private30: before.private_30_pay_cents, private60: before.private_60_pay_cents },
+    after: { private30: input.private30Cents, private60: input.private60Cents, by: input.actor },
+  });
+  return toPayCoach(data!);
 }
 
 // "Mark paid": every unpaid session a coach coached in a month.
@@ -233,8 +377,16 @@ export async function markCoachMonthPaid(input: { coachId: number; month: string
   if (rows.length === 0) return { sessions: 0, totalCents: 0 };
   const db = getSupabaseAdmin();
   const now = new Date().toISOString();
-  const { error } = await db.from("session_staff").update({ paid_at: now }).in("id", rows.map((row) => row.id)).is("paid_at", null);
-  throwIfSupabaseError(error, "Could not mark the pay as paid");
+  const classIds = rows.filter((row) => row.source === "session_staff").map((row) => row.id);
+  const privateIds = rows.filter((row) => row.source === "private_session_pay").map((row) => row.id);
+  if (classIds.length) {
+    const { error } = await db.from("session_staff").update({ paid_at: now }).in("id", classIds).is("paid_at", null);
+    throwIfSupabaseError(error, "Could not mark the pay as paid");
+  }
+  if (privateIds.length) {
+    const { error } = await db.from("private_session_pay").update({ paid_at: now, paid_by: input.actor }).in("id", privateIds).is("paid_at", null);
+    throwIfSupabaseError(error, "Could not mark the private session pay as paid");
+  }
   const totalCents = rows.reduce((sum, row) => sum + row.payCents, 0);
   await logAudit({
     organizationId: await futprepOrganizationId(),

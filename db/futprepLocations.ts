@@ -106,3 +106,16 @@ export async function setFutprepLocationActive(id: number, active: boolean, acto
   if (!data) return;
   await logAudit({ organizationId: orgId, action: active ? "location.switched_on" : "location.switched_off", targetTable: "locations", targetId: id, before: { active: !active }, after: { active, by: actorName } });
 }
+
+export type PrivateSessionPlace = { id: number; name: string; area: string | null };
+
+// Brief 31 (C4): the places a parent can pick for a private session:
+// Futprep's own, switched on, marked private_sessions_ok. Name and area
+// only: never what the place costs.
+export async function listPrivateSessionPlaces(): Promise<PrivateSessionPlace[]> {
+  const db = getSupabaseAdmin();
+  const orgId = await futprepOrganizationId();
+  const { data, error } = await db.from("locations").select("id,name,map_label").eq("organization_id", orgId).eq("active", true).eq("private_sessions_ok", true).order("name");
+  throwIfSupabaseError(error, "Could not load the places for private sessions");
+  return (data ?? []).map((row) => ({ id: Number(row.id), name: String(row.name), area: (row.map_label as string | null) ?? null }));
+}

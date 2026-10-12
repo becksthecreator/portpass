@@ -3,9 +3,10 @@ import { sendPrivateSessionAcceptedEmail } from "@/lib/email";
 import { afterResponse } from "@/lib/afterResponse";
 import { defaultPrefix } from "@/lib/paymentRequests/rules";
 import { childrenAllowed, privatePaymentStatus, privateSessionCode, serviceFromRow, sessionTotalCents, weeklySlotDates, type PrivateService } from "@/lib/privateSessions";
-import { cleanWorkingDays, dayOffMessage, isWorkingDay } from "@/lib/workingDays";
+import { awayMessage, cleanWorkingDays, dayOffMessage, isWorkingDay } from "@/lib/workingDays";
 import type { Attribution } from "@/lib/attribution";
 import { channelFromAttribution } from "@/lib/growth";
+import { recordPrivatePayLine } from "./coachPay";
 import { getPaymentSettings } from "./paymentRequests";
 import { notifyParentOfDecision } from "./privateSessionNotices";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
@@ -88,6 +89,12 @@ export type PrivateSessionRequest = {
   paid_cents: number;
   preferred_coach_name: string | null;
   assigned_coach_name: string | null;
+  // Brief 31 (C3, C4): one of Futprep's places, or the parent's own
+  // suggestion in location_preference; and whether the coach (who had no
+  // working days) will confirm a time.
+  location_id?: number | null;
+  location_name?: string | null;
+  time_to_confirm?: boolean;
 };
 
 // No hardcoded placeholder coaches. If the coach_profiles migration hasn't
@@ -266,16 +273,18 @@ export async function listPublicCoachProfiles() {
   const ids = profiles.map((profile)=>profile.id);
   let slots: CoachAvailability[] = [];
   if (ids.length) {
+    // Brief 31 (C2): the columns a parent's page needs and no others. A
+    // blocked day carries only its date: never the note or who blocked it.
     const { data: availability, error: availabilityError } = await db
       .from("coach_availability")
-      .select("*")
+      .select("id,coach_id,availability_date,start_time,end_time,status,location")
       .in("coach_id",ids)
       .gte("availability_date",today)
       .lte("availability_date",horizon)
       .order("availability_date",{ascending:true})
       .order("start_time",{ascending:true});
     throwIfSupabaseError(availabilityError,"Could not load coach availability");
-    slots=(availability ?? []) as CoachAvailability[];
+    slots=((availability ?? []) as Omit<CoachAvailability,"note">[]).map((slot)=>({...slot,note:"",location:slot.status==="blocked"?"":slot.location}));
   }
   return {
     schemaReady:true,
@@ -407,6 +416,9 @@ export async function createPrivateSessionRequest(input:{
   childrenCount?:number|null;
   // Brief 29, part D: where the request came from, as a registration records it.
   attribution?:Attribution|null;
+  // Brief 31 (C4): one of Futprep's places that takes private sessions;
+  // else locationPreference is the parent's own suggestion.
+  locationId?:number|null;
 }) {
   const ready=await seedProfiles();
   if(!ready) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
@@ -441,6 +453,7 @@ export async function createPrivateSessionRequest(input:{
     availabilityId = Number(slot.id);
   }
 
+  let timeToConfirm=false;
   if(preferredCoachId){
     // Only a coach the site shows: a hidden profile's name must not come
     // back through a guessed id.
@@ -450,7 +463,23 @@ export async function createPrivateSessionRequest(input:{
     // A suggested time must fall on one of the coach's working days (Brief
     // 29, part C). A posted open time is the coach's own, so it is not checked.
     const days=cleanWorkingDays(data.working_days);
-    if(!availabilityId && !isWorkingDay(days,requestedDate)) throw new Error(`COACH_DAY_OFF|${dayOffMessage(String(data.display_name),days)}`);
+    if(!availabilityId){
+      // Brief 31 (C2): a day the coach blocked out is refused first.
+      const {data:away,error:awayError}=await db.from("coach_availability").select("id").eq("coach_id",preferredCoachId).eq("availability_date",requestedDate).eq("status","blocked").limit(1);
+      throwIfSupabaseError(awayError,"Could not check the coach's days away");
+      if((away??[]).length>0) throw new Error(`COACH_AWAY|${awayMessage(String(data.display_name))}`);
+      if(!isWorkingDay(days,requestedDate)) throw new Error(`COACH_DAY_OFF|${dayOffMessage(String(data.display_name),days)}`);
+    }
+    // Brief 31 (C3): a coach with no working days confirms a time; the
+    // request is flagged so the desk sees it too.
+    timeToConfirm=days.length===0;
+  }
+  let locationId:number|null=null;
+  if(input.locationId){
+    const {data:place,error:placeError}=await db.from("locations").select("id").eq("id",input.locationId).eq("organization_id",organizationId).eq("active",true).eq("private_sessions_ok",true).maybeSingle();
+    throwIfSupabaseError(placeError,"Could not check the place");
+    if(!place) throw new Error("LOCATION_NOT_AVAILABLE");
+    locationId=Number(place.id);
   }
   const referenceCode=await nextSessionReference(organizationId);
   const {data:created,error}=await db.from("private_session_requests").insert({
@@ -466,7 +495,9 @@ export async function createPrivateSessionRequest(input:{
     requested_date:requestedDate,
     requested_start_time:requestedStartTime,
     duration_minutes:service?.durationMinutes ?? input.durationMinutes,
-    location_preference:input.locationPreference.trim(),
+    location_preference:locationId?"":input.locationPreference.trim(),
+    location_id:locationId,
+    time_to_confirm:timeToConfirm,
     session_goal:input.sessionGoal.trim(),
     notes:input.notes.trim(),
     service_slug:service?.slug ?? null,
@@ -491,12 +522,19 @@ export async function createPrivateSessionRequest(input:{
   return {referenceCode,id};
 }
 
-export async function listPrivateSessionRequests():Promise<{schemaReady:boolean;requests:PrivateSessionRequest[]}>{
+// Brief 31 (C1): `coachId` limits the list to one coach's requests (where
+// they are the preferred or the assigned coach); the inbox page and its
+// routes decide who may ask for what (lib/privateSessionAccess.ts).
+export async function listPrivateSessionRequests(filter:{coachId?:number}={}):Promise<{schemaReady:boolean;requests:PrivateSessionRequest[]}>{
   const ready=await seedProfiles().catch((error)=>isMissingTable(error)?false:Promise.reject(error));
   if(!ready) return {schemaReady:false,requests:[]};
   const db=getSupabaseAdmin();
+  const organizationId=await futprepOrganizationId();
+  let requestQuery=db.from("private_session_requests").select("*,locations(name)").order("requested_date",{ascending:true}).order("requested_start_time",{ascending:true});
+  if(organizationId) requestQuery=requestQuery.eq("organization_id",organizationId);
+  if(filter.coachId) requestQuery=requestQuery.or(`preferred_coach_id.eq.${Number(filter.coachId)},assigned_coach_id.eq.${Number(filter.coachId)}`);
   const [{data:requests,error},{data:profiles,error:profileError},{data:payments,error:paymentsError}]=await Promise.all([
-    db.from("private_session_requests").select("*").order("requested_date",{ascending:true}).order("requested_start_time",{ascending:true}),
+    requestQuery,
     db.from("coach_profiles").select("id,display_name").eq("active",true),
     db.from("payments").select("private_session_request_id,amount_cents").not("private_session_request_id","is",null).eq("status","received"),
   ]);
@@ -507,7 +545,18 @@ export async function listPrivateSessionRequests():Promise<{schemaReady:boolean;
   const names=new Map((profiles??[]).map((row:{id:number;display_name:string})=>[Number(row.id),row.display_name]));
   const paid=new Map<number,number>();
   for(const p of (payments??[]) as Array<{private_session_request_id:number;amount_cents:number}>) paid.set(Number(p.private_session_request_id),(paid.get(Number(p.private_session_request_id))??0)+Number(p.amount_cents));
-  return {schemaReady:true,requests:(requests??[]).map((row:any)=>({...row,paid_cents:paid.get(Number(row.id))??0,preferred_coach_name:row.preferred_coach_id?names.get(Number(row.preferred_coach_id))??null:null,assigned_coach_name:row.assigned_coach_id?names.get(Number(row.assigned_coach_id))??null:null})) as PrivateSessionRequest[]};
+  return {schemaReady:true,requests:(requests??[]).map(({locations,...row}:any)=>({...row,location_name:(locations as {name?:string}|null)?.name??null,paid_cents:paid.get(Number(row.id))??0,preferred_coach_name:row.preferred_coach_id?names.get(Number(row.preferred_coach_id))??null:null,assigned_coach_name:row.assigned_coach_id?names.get(Number(row.assigned_coach_id))??null:null})) as PrivateSessionRequest[]};
+}
+
+// Who a request belongs to, for the routes' check (brief 31, C1). null when
+// it isn't Futprep's.
+export async function privateSessionOwners(id:number):Promise<{preferred_coach_id:number|null;assigned_coach_id:number|null}|null>{
+  const db=getSupabaseAdmin();
+  const organizationId=await futprepOrganizationId();
+  const {data,error}=await db.from("private_session_requests").select("preferred_coach_id,assigned_coach_id,organization_id").eq("id",id).maybeSingle();
+  throwIfSupabaseError(error,"Could not load the request");
+  if(!data || (organizationId && Number(data.organization_id)!==organizationId)) return null;
+  return {preferred_coach_id:data.preferred_coach_id===null?null:Number(data.preferred_coach_id),assigned_coach_id:data.assigned_coach_id===null?null:Number(data.assigned_coach_id)};
 }
 
 // Coach side (brief 06 v2, Part B): "every Wednesday, 4-4:45 pm, for 6
@@ -559,6 +608,9 @@ export async function recordPrivateSessionPayment(input:{
 export async function privateSessionStats(sinceIso?:string):Promise<{requested:number;accepted:number;paid:number;revenueCents:number}>{
   const db=getSupabaseAdmin();
   let requestsQuery=db.from("private_session_requests").select("id,status,accepted_at,payment_status,created_at");
+  // Futprep's own requests only (brief 31).
+  const organizationId=await futprepOrganizationId();
+  if(organizationId) requestsQuery=requestsQuery.eq("organization_id",organizationId);
   if(sinceIso) requestsQuery=requestsQuery.gte("created_at",sinceIso);
   const {data:requests,error}=await requestsQuery;
   if(isMissingTable(error)) return {requested:0,accepted:0,paid:0,revenueCents:0};
@@ -615,6 +667,8 @@ export async function actOnPrivateSessionRequest(input:{
     patch={...patch,parent_notified_at:now};
     note="Parent informed of the change.";
   }else{
+    // Brief 31 (C6): only a session that was accepted can be completed.
+    if(existing.status!=="accepted" && existing.status!=="completed") throw new Error("NOT_ACCEPTED");
     patch={...patch,status:"completed"};
     note="Session marked completed.";
   }
@@ -623,6 +677,9 @@ export async function actOnPrivateSessionRequest(input:{
   throwIfSupabaseError(error,"Could not update private session request");
   const {error:eventError}=await db.from("private_session_events").insert({request_id:input.id,actor_account:input.actor,action:input.action,note});
   throwIfSupabaseError(eventError,"Could not record private session action");
+
+  // Brief 31 (C6): a completed session is a pay line for its coach, once.
+  if(input.action==="complete") await recordPrivatePayLine({requestId:input.id,actor:input.actor});
 
   // The parent hears about a decline or a referral (Brief 29, part A), once:
   // a second press of the same button, or a referral to the coach already
@@ -723,6 +780,36 @@ export async function saveCoachProfile(input:{
 
 // Brief 29, part C: the days a coach takes private sessions on, from the
 // Team page. An empty list clears the rule.
+// Brief 31 (C2): a coach's days away, as whole days, from today on.
+export async function listCoachDaysAway(coachId:number):Promise<string[]>{
+  const db=getSupabaseAdmin();
+  const {data,error}=await db.from("coach_availability").select("availability_date").eq("coach_id",coachId).eq("status","blocked").gte("availability_date",new Date().toISOString().slice(0,10)).order("availability_date",{ascending:true});
+  if(isMissingTable(error)) return [];
+  throwIfSupabaseError(error,"Could not load the days away");
+  return [...new Set((data??[]).map((row)=>String(row.availability_date)))];
+}
+
+// A whole day away: one blocked row for the day. Any open time that day
+// is blocked too, so a parent can't pick it.
+export async function setCoachDayAway(input:{coachId:number;date:string;away:boolean;actor:string}):Promise<void>{
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) throw new Error("INVALID_DATE");
+  const db=getSupabaseAdmin();
+  const organizationId=await futprepOrganizationId();
+  const {data:coach,error:coachError}=await db.from("coach_profiles").select("id").eq("id",input.coachId).eq("organization_id",organizationId).maybeSingle();
+  throwIfSupabaseError(coachError,"Could not load the coach");
+  if(!coach) throw new Error("COACH_NOT_FOUND");
+  const now=new Date().toISOString();
+  if(input.away){
+    const {error}=await db.from("coach_availability").upsert({coach_id:input.coachId,availability_date:input.date,start_time:"00:00",end_time:"23:59",status:"blocked",location:"",note:"",created_by:input.actor,updated_at:now},{onConflict:"coach_id,availability_date,start_time,end_time"});
+    throwIfSupabaseError(error,"Could not save the day away");
+    const {error:slotError}=await db.from("coach_availability").update({status:"blocked",updated_at:now}).eq("coach_id",input.coachId).eq("availability_date",input.date).eq("status","available");
+    throwIfSupabaseError(slotError,"Could not close that day's open times");
+  }else{
+    const {error}=await db.from("coach_availability").delete().eq("coach_id",input.coachId).eq("availability_date",input.date).eq("status","blocked").eq("start_time","00:00").eq("end_time","23:59");
+    throwIfSupabaseError(error,"Could not clear the day away");
+  }
+}
+
 export async function setCoachWorkingDays(id:number,days:number[]):Promise<void>{
   const db=getSupabaseAdmin();
   const organizationId=await futprepOrganizationId();
@@ -798,4 +885,16 @@ export async function setCoachPhoto(coachId:number,photoUrl:string|null):Promise
   const {error:updateError}=await db.from("coach_profiles").update({photo_url:photoUrl,updated_at:new Date().toISOString()}).eq("id",coachId);
   throwIfSupabaseError(updateError,"Could not save the coach photo");
   return {previousUrl:(coach.photo_url as string|null)??null};
+}
+
+// Brief 31 (C2): one coach's own days, for My days: their name, working
+// days and days away from today on.
+export async function getCoachDays(coachId:number):Promise<{coachId:number;name:string;workingDays:number[];daysAway:string[]}|null>{
+  const db=getSupabaseAdmin();
+  const organizationId=await futprepOrganizationId();
+  const {data,error}=await db.from("coach_profiles").select("id,display_name,working_days").eq("id",coachId).eq("organization_id",organizationId).maybeSingle();
+  if(isMissingTable(error)) return null;
+  throwIfSupabaseError(error,"Could not load the coach");
+  if(!data) return null;
+  return {coachId:Number(data.id),name:String(data.display_name),workingDays:cleanWorkingDays(data.working_days),daysAway:await listCoachDaysAway(coachId)};
 }
