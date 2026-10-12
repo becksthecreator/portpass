@@ -262,6 +262,7 @@ export async function listPublicCoachProfiles() {
   const { data, error } = await db
     .from("coach_profiles")
     .select(COACH_PROFILE_COLUMNS)
+    .eq("organization_id", await requiredFutprepOrganizationId())
     .eq("active", true)
     .eq("public_visible", true)
     .order("sort_order", { ascending:true })
@@ -313,7 +314,7 @@ export async function listAllCoachProfiles(options: { withLogin?: boolean } = {}
   // active:false) so admins can see what they removed and restore it.
   // listPublicCoachProfiles() is the one that filters to active-only.
   const db=getSupabaseAdmin();
-  const {data,error}=await db.from("coach_profiles").select(COACH_PROFILE_COLUMNS).order("active",{ascending:false}).order("sort_order",{ascending:true});
+  const {data,error}=await db.from("coach_profiles").select(COACH_PROFILE_COLUMNS).eq("organization_id",await requiredFutprepOrganizationId()).order("active",{ascending:false}).order("sort_order",{ascending:true});
   throwIfSupabaseError(error,"Could not load coach profiles");
   const profiles=(data ?? []) as Omit<CoachProfile,"availability">[];
   const ids=profiles.map((profile)=>profile.id);
@@ -551,14 +552,17 @@ export async function listPrivateSessionRequests(filter:{coachId?:number}={}):Pr
   const organizationId=await requiredFutprepOrganizationId();
   let requestQuery=db.from("private_session_requests").select("*,locations(name)").eq("organization_id",organizationId).order("requested_date",{ascending:true}).order("requested_start_time",{ascending:true});
   if(filter.coachId) requestQuery=requestQuery.or(`preferred_coach_id.eq.${Number(filter.coachId)},assigned_coach_id.eq.${Number(filter.coachId)}`);
-  const [{data:requests,error},{data:profiles,error:profileError},{data:payments,error:paymentsError}]=await Promise.all([
+  const [{data:requests,error},{data:profiles,error:profileError}]=await Promise.all([
     requestQuery,
     db.from("coach_profiles").select("id,display_name").eq("organization_id",organizationId).eq("active",true),
-    db.from("payments").select("private_session_request_id,amount_cents").not("private_session_request_id","is",null).eq("status","received"),
   ]);
   if(isMissingTable(error)) return {schemaReady:false,requests:[]};
   throwIfSupabaseError(error,"Could not load private session requests");
   throwIfSupabaseError(profileError,"Could not load coach names");
+  const requestIds=(requests??[]).map((row:{id:number})=>Number(row.id));
+  const {data:payments,error:paymentsError}=requestIds.length
+    ? await db.from("payments").select("private_session_request_id,amount_cents").in("private_session_request_id",requestIds).eq("status","received")
+    : {data:[],error:null};
   throwIfSupabaseError(paymentsError,"Could not load private session payments");
   const names=new Map((profiles??[]).map((row:{id:number;display_name:string})=>[Number(row.id),row.display_name]));
   const paid=new Map<number,number>();
@@ -662,6 +666,7 @@ export async function actOnPrivateSessionRequest(input:{
   // The coach it goes to must be one of Futprep's own.
   if(input.action==="accept" && input.coachId && !(await isFutprepCoach(input.coachId))) throw new Error("COACH_REQUIRED");
   if(input.action==="refer" && input.targetCoachId && !(await isFutprepCoach(input.targetCoachId))) throw new Error("COACH_REQUIRED");
+  if(input.action==="refer" && input.coachId && !(await isFutprepCoach(input.coachId))) throw new Error("COACH_REQUIRED");
 
   let patch:Record<string,unknown>={updated_at:now};
   let note="";

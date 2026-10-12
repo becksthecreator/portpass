@@ -1,10 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ensureDefaultLead, getSessionStaff, setSessionStaff } from "./coachPay";
+import { ensureDefaultLead, getSessionStaff, setCoachPayDefaults, setSessionStaff } from "./coachPay";
 import {
   actOnPrivateSessionRequest,
   addWeeklyCoachSlots,
+  listAllCoachProfiles,
   listPrivateSessionRequests,
+  listPublicCoachProfiles,
   privateSessionStats,
   recordPrivateSessionPayment,
   restoreCoach,
@@ -14,6 +16,8 @@ import {
   setCoachWorkingDays,
   softDeleteCoach,
 } from "./coaches";
+import { FUTPREP_ORG_ID } from "./futprepOwner";
+import { setFutprepProgramActive } from "./programs";
 import { ensureFutprepPilotData } from "./registrations";
 import { setSessionCoaches } from "./staff";
 
@@ -40,6 +44,8 @@ let otherCoachId = 0;
 let futprepCoachId = 0;
 let otherRequestId = 0;
 let futprepRequestId = 0;
+let otherStaffId = 0;
+let futprepStaffId = 0;
 
 async function seedClass(organizationId: number, label: string, defaultLeadCoachId: number | null): Promise<number[]> {
   const { data: program, error } = await db()
@@ -62,7 +68,7 @@ async function seedClass(organizationId: number, label: string, defaultLeadCoach
 async function seedCoach(organizationId: number, label: string): Promise<number> {
   const { data, error } = await db()
     .from("coach_profiles")
-    .insert({ organization_id: organizationId, slug: `test-delete-${label}-${TAG}`, display_name: `${MARK} ${label}`, member_type: "coach", public_visible: false, bookable: true, active: true, photo_url: `https://example.com/${label}.jpg` })
+    .insert({ organization_id: organizationId, slug: `test-delete-${label}-${TAG}`, display_name: `${MARK} ${label}`, member_type: "coach", public_visible: true, bookable: true, active: true, photo_url: `https://example.com/${label}.jpg` })
     .select("id")
     .single();
   if (error || !data) throw new Error(`Could not seed a TEST coach: ${error?.message}`);
@@ -116,9 +122,24 @@ beforeAll(async () => {
     .single();
   if (ownError || !own) throw new Error(`Could not seed a TEST Futprep request: ${ownError?.message}`);
   futprepRequestId = Number(own.id);
+
+  // A staff row (no login) of the other business, and one under the
+  // organisation Futprep's staff logins use.
+  const { data: staff, error: staffRowError } = await db()
+    .from("staff_members")
+    .insert([
+      { organization_id: otherOrgId, name: `${MARK} other staff`, role: "coach", responsibilities: "", active: false },
+      { organization_id: FUTPREP_ORG_ID, name: `${MARK} futprep staff`, role: "coach", responsibilities: "", active: false },
+    ])
+    .select("id,organization_id");
+  if (staffRowError || !staff) throw new Error(`Could not seed TEST staff rows: ${staffRowError?.message}`);
+  otherStaffId = Number(staff.find((r) => Number(r.organization_id) === otherOrgId)!.id);
+  futprepStaffId = Number(staff.find((r) => Number(r.organization_id) === FUTPREP_ORG_ID)!.id);
 });
 
 afterAll(async () => {
+  if (futprepCoachId) await db().from("coach_profiles").update({ staff_member_id: null }).eq("id", futprepCoachId);
+  for (const id of [otherStaffId, futprepStaffId].filter(Boolean)) await db().from("staff_members").delete().eq("id", id);
   for (const id of [otherRequestId, futprepRequestId].filter(Boolean)) await db().from("private_session_requests").delete().eq("id", id);
   for (const programId of programIds) {
     await db().from("sessions").delete().eq("program_id", programId);
@@ -160,6 +181,17 @@ describe("Futprep's staff screens never change another business's session", () =
     expect(JSON.stringify(await getSessionStaff(otherEmptySessionId))).not.toContain(MARK);
   });
 
+  it("switching a programme off or on: refused like a missing one, the class left as it was", async () => {
+    const [otherProgramId, futprepProgramId] = programIds;
+    expect(await outcome(setFutprepProgramActive(otherProgramId, false))).toBe(await outcome(setFutprepProgramActive(MISSING, false)));
+    expect(await outcome(setFutprepProgramActive(otherProgramId, false))).toBe("refused PROGRAM_NOT_FOUND");
+    expect((await db().from("programs").select("active").eq("id", otherProgramId).single()).data?.active).toBe(true);
+    // Futprep's own still switches.
+    await setFutprepProgramActive(futprepProgramId, false);
+    expect((await db().from("programs").select("active").eq("id", futprepProgramId).single()).data?.active).toBe(false);
+    await setFutprepProgramActive(futprepProgramId, true);
+  });
+
   it("the default lead: never recorded on another business's session", async () => {
     await ensureDefaultLead(otherEmptySessionId, MARK);
     const { data: staff } = await db().from("session_staff").select("id").eq("session_id", otherEmptySessionId);
@@ -168,6 +200,25 @@ describe("Futprep's staff screens never change another business's session", () =
 });
 
 describe("Futprep's staff screens never change another business's coach", () => {
+  it("the team list and the public coach list are Futprep's coaches only", async () => {
+    const all = (await listAllCoachProfiles({ withLogin: true })).coaches;
+    const shown = (await listPublicCoachProfiles()).coaches;
+    expect(all.some((c) => c.id === futprepCoachId)).toBe(true);
+    expect(shown.some((c) => c.id === futprepCoachId)).toBe(true);
+    expect(all.some((c) => c.id === otherCoachId)).toBe(false);
+    expect(shown.some((c) => c.id === otherCoachId)).toBe(false);
+  });
+
+  it("a coach is tied only to one of Futprep's staff logins", async () => {
+    const rates = { coachId: futprepCoachId, leadCents: 5000, assistantCents: 2500, actor: MARK };
+    expect(await outcome(setCoachPayDefaults({ ...rates, staffMemberId: otherStaffId }))).toBe("refused STAFF_NOT_FOUND");
+    expect(await outcome(setCoachPayDefaults({ ...rates, staffMemberId: MISSING }))).toBe("refused STAFF_NOT_FOUND");
+    expect((await db().from("coach_profiles").select("staff_member_id").eq("id", futprepCoachId).single()).data?.staff_member_id).toBeNull();
+    expect((await setCoachPayDefaults({ ...rates, staffMemberId: futprepStaffId })).staffMemberId).toBe(futprepStaffId);
+    // Another business's coach: not found, as before.
+    expect(await outcome(setCoachPayDefaults({ ...rates, coachId: otherCoachId, staffMemberId: null }))).toBe("refused COACH_NOT_FOUND");
+  });
+
   it("open times: refused like a missing coach, none added", async () => {
     const slots = { dayOfWeek: "Wednesday", startTime: "4:00 PM", endTime: "4:45 PM", weeks: 2, location: "TEST field", actor: MARK };
     expect(await outcome(addWeeklyCoachSlots({ coachId: otherCoachId, ...slots }))).toBe(await outcome(addWeeklyCoachSlots({ coachId: MISSING, ...slots })));
@@ -236,6 +287,8 @@ describe("Futprep's staff screens never reach another business's private-session
   it("Futprep's own request goes only to one of Futprep's coaches", async () => {
     expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "accept", coachId: otherCoachId, actor: MARK }))).toBe("refused COACH_REQUIRED");
     expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "refer", targetCoachId: otherCoachId, actor: MARK }))).toBe("refused COACH_REQUIRED");
+    // Nor is another business's coach recorded as the one it came from.
+    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "refer", coachId: otherCoachId, targetCoachId: futprepCoachId, actor: MARK }))).toBe("refused COACH_REQUIRED");
     const { data: request } = await db().from("private_session_requests").select("status,assigned_coach_id").eq("id", futprepRequestId).single();
     expect(request).toEqual({ status: "pending", assigned_coach_id: null });
     // It is on Futprep's list, and a Futprep coach can still be given it.

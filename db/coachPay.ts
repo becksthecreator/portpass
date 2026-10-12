@@ -25,6 +25,7 @@ import {
 } from "@/lib/coachPay";
 import { nassauToday } from "@/lib/futprepTerms";
 import { logAudit } from "./audit";
+import { FUTPREP_ORG_ID } from "./futprepOwner";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -436,6 +437,13 @@ export async function setCoachPayDefaults(input: { coachId: number; leadCents: n
   const organizationId = await futprepOrganizationId();
   const { data: before } = await db.from("coach_profiles").select(COACH_COLUMNS).eq("id", input.coachId).eq("organization_id", organizationId).maybeSingle();
   if (!before) throw new Error("COACH_NOT_FOUND");
+  // Only one of Futprep's own staff logins (the ones listStaffLogins offers):
+  // a coach's login gets Futprep's private-session request emails.
+  if (input.staffMemberId !== null) {
+    const { data: staff, error: staffError } = await db.from("staff_members").select("id").eq("id", input.staffMemberId).eq("organization_id", FUTPREP_ORG_ID).maybeSingle();
+    throwIfSupabaseError(staffError, "Could not load the staff login");
+    if (!staff) throw new Error("STAFF_NOT_FOUND");
+  }
   const { data, error } = await db
     .from("coach_profiles")
     .update({ default_lead_pay_cents: input.leadCents, default_assistant_pay_cents: input.assistantCents, staff_member_id: input.staffMemberId })

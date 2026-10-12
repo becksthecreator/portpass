@@ -27,6 +27,7 @@ export async function PATCH(request: Request) {
     const message = error instanceof Error ? error.message : "";
     if (message === "STAFF_ALREADY_LINKED") return NextResponse.json({ error: "That staff login already belongs to another coach." }, { status: 409 });
     if (message === "COACH_NOT_FOUND") return NextResponse.json({ error: "Coach not found." }, { status: 404 });
+    if (message === "STAFF_NOT_FOUND") return NextResponse.json({ error: "Choose one of Futprep's staff logins." }, { status: 404 });
     console.error("coach pay rates error", error);
     return NextResponse.json({ error: "Could not save the pay rates." }, { status: 500 });
   }

@@ -143,6 +143,7 @@ export async function PATCH(request: Request) {
     await setFutprepProgramActive(id, body.active);
     return NextResponse.json({ ok: true, programs: await listFutprepPrograms() });
   } catch (error) {
+    if (error instanceof Error && error.message === "PROGRAM_NOT_FOUND") return NextResponse.json({ error: "Program not found." }, { status: 404 });
     console.error("Futprep program active toggle error", error);
     return NextResponse.json({ error: "Could not update the program." }, { status: 500 });
   }
