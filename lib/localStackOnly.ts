@@ -2,10 +2,11 @@
 // with the secret key to wherever SUPABASE_URL points, and some switch live
 // Futprep rows off and on. They use the same env var names as production,
 // so one terminal with the wrong environment would change live data. They
-// refuse to start unless the address is a local Supabase stack, as the
-// end-to-end and screenshot scripts do (audit finding 7, PR #198). The
-// host is checked, not the text, so "localhost" in a path or a subdomain
-// does not pass; and the address is never repeated in the error.
+// refuse to start unless the address is a local Supabase stack (audit
+// finding 7, PR #198). The host is checked, not the text, so "localhost"
+// in a path or a subdomain does not pass (the end-to-end and screenshot
+// scripts still check only the text); and the address is never repeated in
+// the error.
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost"]);
 
 export function assertLocalSupabase(url: string | undefined = process.env.SUPABASE_URL): void {

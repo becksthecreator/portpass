@@ -4,9 +4,9 @@ import { assertLocalSupabase } from "./localStackOnly";
 
 // Audit finding 7 (PR #198): the integration tests and the TEST seed write
 // with the secret key to wherever SUPABASE_URL points, so they refuse
-// anything but a local Supabase stack, as the end-to-end scripts do. The
-// check is on the address's host, not a substring, so a real project
-// cannot pass by having "localhost" somewhere in its address.
+// anything but a local Supabase stack. The check is on the address's host,
+// not a substring, so a real project cannot pass by having "localhost"
+// somewhere in its address.
 describe("the local-stack guard", () => {
   it("lets a local Supabase stack through", () => {
     expect(() => assertLocalSupabase("http://127.0.0.1:54321")).not.toThrow();
