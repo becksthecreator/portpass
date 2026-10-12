@@ -108,20 +108,19 @@ describe("Futprep roles (brief 31, Part A)", () => {
 describe("who sees a child's emergency contact and pickup (brief 34)", () => {
   const day = { sessionDate: "2026-11-21", today: "2026-11-21" };
   it("the medical view always; a helper never", () => {
-    expect(rosterSafetyShown({ role: "ceo", canViewMedical: false, ...day, today: "2026-11-01", onDuty: false })).toBe(true);
-    expect(rosterSafetyShown({ role: "coach", canViewMedical: true, ...day, today: "2026-11-01", onDuty: false })).toBe(true);
-    expect(rosterSafetyShown({ role: "helper", canViewMedical: true, ...day, onDuty: true })).toBe(false);
+    expect(rosterSafetyShown({ role: "ceo", canViewMedical: false, ...day, today: "2026-11-01" })).toBe(true);
+    expect(rosterSafetyShown({ role: "coach", canViewMedical: true, ...day, today: "2026-11-01" })).toBe(true);
+    expect(rosterSafetyShown({ role: "helper", canViewMedical: true, ...day })).toBe(false);
   });
 
-  it("a coach without the medical view: only on that session's day, and only while on duty for it", () => {
-    expect(rosterSafetyShown({ role: "coach", canViewMedical: false, ...day, onDuty: true })).toBe(true);
-    expect(rosterSafetyShown({ role: "coach", canViewMedical: false, ...day, onDuty: false })).toBe(false);
-    expect(rosterSafetyShown({ role: "coach", canViewMedical: false, sessionDate: "2026-11-21", today: "2026-11-20", onDuty: true })).toBe(false);
-    expect(rosterSafetyShown({ role: "coach", canViewMedical: false, sessionDate: "2026-11-21", today: "2026-11-22", onDuty: true })).toBe(false);
+  it("a coach without the medical view: only on that session's own day", () => {
+    expect(rosterSafetyShown({ role: "coach", canViewMedical: false, ...day })).toBe(true);
+    expect(rosterSafetyShown({ role: "coach", canViewMedical: false, sessionDate: "2026-11-21", today: "2026-11-20" })).toBe(false);
+    expect(rosterSafetyShown({ role: "coach", canViewMedical: false, sessionDate: "2026-11-21", today: "2026-11-22" })).toBe(false);
   });
 
   it("an admin without the medical view: never on the roster", () => {
-    expect(rosterSafetyShown({ role: "admin", canViewMedical: false, ...day, onDuty: true })).toBe(false);
+    expect(rosterSafetyShown({ role: "admin", canViewMedical: false, ...day })).toBe(false);
   });
 
   it("the desk record without the medical view: emergency contact and pickup blanked, and never saved", () => {

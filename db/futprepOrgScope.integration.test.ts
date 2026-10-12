@@ -191,7 +191,8 @@ beforeAll(async () => {
     .single();
   if (coachError || !coach) throw new Error(`Could not seed a TEST coach: ${coachError?.message}`);
   otherCoachId = Number(coach.id);
-  await db().from("programs").update({ default_lead_coach_id: otherCoachId }).eq("id", other.programId);
+  const { error: leadError } = await db().from("programs").update({ default_lead_coach_id: otherCoachId }).eq("id", other.programId);
+  if (leadError) throw new Error(`Could not set the TEST default lead: ${leadError.message}`);
   const { error: staffError } = await db().from("session_staff").insert({ session_id: otherSessionId, coach_id: otherCoachId, role: "lead", pay_cents: 0, created_by: MARK });
   if (staffError) throw new Error(`Could not seed TEST session staff: ${staffError.message}`);
 
@@ -382,7 +383,7 @@ describe("Futprep's session and coach screens never reach another business's (ru
     await ensureDefaultLead(otherSessionId, MARK);
     const { data: rows } = await db().from("session_staff").select("id").eq("session_id", otherSessionId);
     expect(rows).toEqual([]);
-    await db().from("session_staff").insert({ session_id: otherSessionId, coach_id: otherCoachId, role: "lead", pay_cents: 0, created_by: MARK });
+    expect((await db().from("session_staff").insert({ session_id: otherSessionId, coach_id: otherCoachId, role: "lead", pay_cents: 0, created_by: MARK })).error).toBeNull();
   });
 
   it("open times: never added to another business's coach", async () => {
@@ -446,8 +447,8 @@ describe("Futprep's private sessions, team and classes never reach another busin
     expect(requests.map((r) => Number(r.id))).not.toContain(otherRequestId);
     // The other business's request, dated after anything another test
     // makes, paid in full: counted nowhere.
-    await db().from("private_session_requests").update({ created_at: "2099-01-02T00:00:00Z", status: "accepted", accepted_at: "2099-01-02T00:00:00Z", payment_status: "paid" }).eq("id", otherRequestId);
-    await db().from("payments").insert({ private_session_request_id: otherRequestId, amount_cents: 7777, method: "cash", status: "received", recorded_by: MARK, received_at: new Date().toISOString() });
+    expect((await db().from("private_session_requests").update({ created_at: "2099-01-02T00:00:00Z", status: "accepted", accepted_at: "2099-01-02T00:00:00Z", payment_status: "paid" }).eq("id", otherRequestId)).error).toBeNull();
+    expect((await db().from("payments").insert({ private_session_request_id: otherRequestId, amount_cents: 7777, method: "cash", status: "received", recorded_by: MARK, received_at: new Date().toISOString() })).error).toBeNull();
     expect(await privateSessionStats("2099-01-01T00:00:00Z")).toEqual({ requested: 0, accepted: 0, paid: 0, revenueCents: 0 });
   });
 

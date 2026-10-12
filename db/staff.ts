@@ -514,8 +514,8 @@ type RosterRegistrationRow = {
 };
 
 // `includeSafety: false` is for the read-only helper login, and for a coach
-// login without the medical view that isn't on duty for the session that
-// day (brief 34, lib/futprepRoles.ts rosterSafetyShown): the emergency
+// login without the medical view on any day but the session's own (brief
+// 34, lib/futprepRoles.ts rosterSafetyShown): the emergency
 // contact, pickup and health columns are then never selected, so they
 // cannot reach that person's browser (privacy policy v2, brief 16 D).
 // `includeHealth` (brief 31, A1) adds the allergy, medical, medication and

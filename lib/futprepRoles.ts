@@ -85,9 +85,9 @@ export function withoutHealthInput<T extends Record<string, unknown>>(body: T): 
 // A child's emergency contact and authorised pickup (brief 34, audit
 // finding 4). Never in a list or an export (lib/rosterCsv.ts). On screen:
 //   the registration record: the medical view only (canSeeMedical);
-//   the coach roster: the medical view, and a coach login on duty for that
-//   session on its day. "On duty" is worked out by the coach page: it is
-//   one of the coaches recorded for the session, or nobody is recorded yet.
+//   the coach roster: the medical view, and any coach login on the
+//   session's own day (Nassau time): the coaches on the field need them
+//   at handover. Each such day-of view is audit-logged by the coach page.
 // An admin without the medical view never sees them on the roster, and a
 // helper never sees them anywhere.
 export function rosterSafetyShown(input: {
@@ -95,10 +95,9 @@ export function rosterSafetyShown(input: {
   canViewMedical: boolean;
   sessionDate: string;
   today: string;
-  onDuty: boolean;
 }): boolean {
   if (canSeeMedical(input.role, input.canViewMedical)) return true;
-  return input.role === "coach" && input.onDuty && input.sessionDate === input.today;
+  return input.role === "coach" && input.sessionDate === input.today;
 }
 
 // The registration record without the emergency contact and pickup, for a

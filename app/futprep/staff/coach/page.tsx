@@ -11,7 +11,9 @@ import {
   listFutprepStaffSessions,
   rosterForSession,
 } from "@/db/staff";
-import { getSessionStaff, listPayCoaches, type PayCoach } from "@/db/coachPay";
+import { getSessionStaff, listPayCoaches } from "@/db/coachPay";
+import { logAudit } from "@/db/audit";
+import { futprepOrganizationId } from "@/db/programs";
 import { CoachRoster } from "./CoachRoster";
 import { CoachSessionTools } from "./CoachSessionTools";
 import { StaffLogoutButton } from "../StaffLogoutButton";
@@ -51,23 +53,19 @@ export default async function FutprepCoachPage({
   const programTabs = sessions.filter((item, index, all)=>all.findIndex((other)=>other.program_id===item.program_id)===index);
   const pickerSessions = selected ? inProgram(selected.program_id) : [];
 
-  // Brief 13: who coached (names and roles only; never pay).
-  const noStaff: Awaited<ReturnType<typeof getSessionStaff>> = { entries: [], suggestedLead: null };
-  const [sessionStaff, payCoaches] = selected
-    ? await Promise.all([
-        getSessionStaff(selected.id).catch(() => noStaff),
-        listPayCoaches().catch((): PayCoach[] => []),
-      ])
-    : [noStaff, [] as PayCoach[]];
   // Brief 34: the emergency contact and pickup reach this roster only for
-  // the medical view, or for a coach on duty for this session on its day:
-  // one of the coaches recorded for it, or any coach while nobody is
-  // recorded yet (lib/futprepRoles.ts rosterSafetyShown). A helper never.
-  const myCoachIds = new Set(payCoaches.filter((coach) => staffId !== null && coach.staffMemberId === staffId).map((coach) => coach.id));
-  const onDuty = sessionStaff.entries.length === 0 || sessionStaff.entries.some((entry) => myCoachIds.has(entry.coachId));
-  const safetyShown = !readOnly && !!selected && rosterSafetyShown({ role, canViewMedical, sessionDate: selected.session_date, today: nassauToday(), onDuty });
+  // the medical view, or for a coach login on the session's own day in
+  // Nassau (lib/futprepRoles.ts rosterSafetyShown). A helper never.
+  const safetyShown = !readOnly && !!selected && rosterSafetyShown({ role, canViewMedical, sessionDate: selected.session_date, today: nassauToday() });
+  // A coach seeing them on the day (not through the medical view) leaves
+  // an audit line: which session and which login, never a child's
+  // details. A failed write doesn't stop the roster opening.
+  if (safetyShown && selected && !canSeeMedical(role, canViewMedical)) {
+    await logAudit({ organizationId: await futprepOrganizationId(), action: "futprep.roster_contacts_day_of", targetTable: "sessions", targetId: selected.id, after: { staffId, by: staffName ?? role } })
+      .catch((error) => console.error("roster contacts audit failed", error instanceof Error ? error.message : "unknown error"));
+  }
 
-  const [roster, registrations, sessionPlan, workLog] = selected
+  const [roster, registrations, sessionPlan, workLog, sessionStaff, payCoaches] = selected
     ? await Promise.all([
         // Without safetyShown the roster is fetched without the emergency,
         // pickup and health columns, so they never reach that browser.
@@ -77,8 +75,11 @@ export default async function FutprepCoachPage({
         listFutprepStaffRegistrations(),
         getFutprepSessionPlan(selected.id),
         getFutprepWorkLog(selected.id, staffName ?? role),
+        // Brief 13: who coached (names and roles only; never pay).
+        getSessionStaff(selected.id).catch(() => ({ entries: [], suggestedLead: null })),
+        listPayCoaches().catch(() => []),
       ])
-    : [[], [], null, null];
+    : [[], [], null, null, { entries: [], suggestedLead: null }, []];
 
   // Only the payment fields: these rows become page data in the browser.
   const paymentRows = selected
