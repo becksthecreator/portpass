@@ -164,9 +164,13 @@ describe("the staff desk gives out a place under the class's lock", () => {
   });
 
   it("a promotion and a parent's registration racing for the last place: one place is used", async () => {
+    // Full, with one child waiting; then a place frees up.
     const target = await newClass(futprepId, 2);
     await register(target);
+    const leaving = await register(target);
     const waiting = await register(target, { mode: "waitlist" });
+    await updateFutprepRegistration({ registrationId: leaving.id, registrationStatus: "cancelled" });
+    expect(await placesTaken(target)).toBe(1);
 
     const { ok, refused } = await allAtOnce<unknown>([
       () => updateFutprepRegistration({ registrationId: waiting.id, registrationStatus: "pending" }),
@@ -191,8 +195,12 @@ describe("a business's 'Confirm the place' respects the cap", () => {
   });
 
   it("four waitlisted children confirmed at once for one free place: one gets it", async () => {
+    // Full, with four waiting; then the one place frees up.
     const target = await newClass(otherOrgId, 1);
+    const leaving = await register(target);
     const waiting = await Promise.all(Array.from({ length: 4 }, () => register(target, { mode: "waitlist" })));
+    expect((await setBusinessRegistrationStatus(otherOrgId, leaving.id, "cancelled", null)).status).toBe("cancelled");
+    expect(await placesTaken(target)).toBe(0);
 
     const { ok, refused } = await allAtOnce(waiting.map((w) => () => setBusinessRegistrationStatus(otherOrgId, w.id, "confirmed", null)));
 
