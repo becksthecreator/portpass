@@ -33,6 +33,11 @@ create table if not exists public.market_settings (
 );
 insert into public.market_settings (id) values (true) on conflict (id) do nothing;
 
+-- The Seller plan's start: a month's plan fee is billed only to a seller who
+-- was on the plan before that month began, so putting a seller on the plan
+-- never bills a month already gone.
+alter table public.shops add column if not exists seller_plan_since timestamptz;
+
 -- ------------------------------------------------------- reservations: orders
 alter table public.reservations alter column drop_id drop not null;
 alter table public.reservations
@@ -44,7 +49,11 @@ alter table public.reservations
   add column if not exists payment_request_id bigint references public.payment_requests(id) on delete set null,
   add column if not exists confirmed_at       timestamptz,
   add column if not exists ready_at           timestamptz,
-  add column if not exists delivered_at       timestamptz;
+  add column if not exists delivered_at       timestamptz,
+  -- The Market invoice that charged commission on this order, once one has:
+  -- an order is never charged twice (paid again in a later month after a
+  -- refund), and a refund after invoicing shows on Admin -> Market -> Income.
+  add column if not exists market_invoice_id  bigint references public.portpass_invoices(id) on delete set null;
 
 alter table public.reservations drop constraint if exists reservations_kind_check;
 alter table public.reservations add constraint reservations_kind_check check (kind in ('drop', 'order'));
@@ -58,6 +67,7 @@ alter table public.reservations add constraint reservations_order_amounts check 
 );
 create index if not exists reservations_orders_idx on public.reservations (organization_id, created_at desc) where kind = 'order';
 create index if not exists reservations_payment_request_idx on public.reservations (payment_request_id) where payment_request_id is not null;
+create index if not exists reservations_market_invoice_idx on public.reservations (market_invoice_id) where market_invoice_id is not null;
 
 -- One row per line of an order: which size, how many, at what price (the
 -- snapshot in reservations.items stays the receipt).

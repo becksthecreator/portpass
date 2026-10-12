@@ -85,6 +85,30 @@ export default async function AdminMarketIncomePage() {
         )}
       </section>
 
+      <p className="admin-prices-note">
+        A Market invoice is sent from Admin → Billing, by email or WhatsApp to the seller&rsquo;s billing contact: a seller who only sells on the Market needs a billing account there (Admin → Billing → Accounts) before their first invoice can go. The month fees are switched on is the first month billed, orders paid earlier that month included. Each order&rsquo;s commission is rounded to the cent in the CSV; the invoice rounds the month&rsquo;s total once, so the two can differ by a few cents.
+      </p>
+
+      {income.refundedAfterInvoicing.length > 0 && (
+        <section aria-labelledby="mkt-refunded">
+          <h2 id="mkt-refunded">Refunded after invoicing</h2>
+          <p className="admin-prices-note">These orders were charged commission on a Market invoice and are not paid any more. Credit them on the seller&rsquo;s next invoice.</p>
+          <table className="admin-table mkt-admin-table">
+            <thead><tr><th>Seller</th><th>Order</th><th>Goods</th><th>Invoice</th></tr></thead>
+            <tbody>
+              {income.refundedAfterInvoicing.map((row) => (
+                <tr key={row.referenceCode}>
+                  <td data-label="Seller">{row.sellerName}</td>
+                  <td data-label="Order">{row.referenceCode}</td>
+                  <td data-label="Goods">{money(row.subtotalCents)}</td>
+                  <td data-label="Invoice"><Link href={`/admin/billing/invoices/${row.invoiceId}`}>Open</Link></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
       <section aria-labelledby="mkt-invoices">
         <h2 id="mkt-invoices">This month&rsquo;s Market invoices</h2>
         {income.invoices.length === 0 ? (

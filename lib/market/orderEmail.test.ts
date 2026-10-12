@@ -51,7 +51,7 @@ describe("the buyer's order email", () => {
 
 describe("the seller's new-order email", () => {
   it("names the buyer, never their phone or email, and links to the orders page", () => {
-    const { subject, html } = sellerOrderEmail({ sellerName: "TEST Kit Shop", buyerName: "Tessa Buyer", referenceCode: "TK-ABC234", items: input.items, deliveryFeeCents: 0, totalCents: 7000, zone: null, fulfilment: "pickup", paymentMethod: "bank_transfer", broughtByPortpass: true, ordersUrl: "https://portpassbahamas.com/business/test-kit/shop/orders" });
+    const { subject, html } = sellerOrderEmail({ sellerName: "TEST Kit Shop", buyerName: "Tessa Buyer", referenceCode: "TK-ABC234", items: input.items, deliveryFeeCents: 0, totalCents: 7000, zone: null, fulfilment: "pickup", paymentMethod: "bank_transfer", broughtByPortpass: true, buyerEmailed: true, ordersUrl: "https://portpassbahamas.com/business/test-kit/shop/orders" });
     expect(subject).toBe("New order TK-ABC234: $70.00");
     expect(html).toContain("Tessa Buyer");
     expect(html).not.toContain("555");

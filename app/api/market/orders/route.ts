@@ -7,7 +7,7 @@ import { bodyOf, readJson } from "@/lib/api/body";
 import { parseAttributionCookie, shopAttributionCookie } from "@/lib/attribution";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { parseOrderInput } from "@/lib/market/orders";
-import { dropPhase, soldOutMessage, type CatalogueVariant } from "@/lib/shop/rules";
+import { soldOutMessage, type CatalogueVariant } from "@/lib/shop/rules";
 
 // A buyer orders on PortPass Market without an account (brief 25, C2).
 // Rate-limited per address. Everything that matters is
@@ -32,6 +32,7 @@ const Body = bodyOf(["org", "product", "items", "buyerName", "buyerPhone", "buye
 
 const ERRORS: Record<string, { status: number; error: string }> = {
   NOT_ORDERABLE: { status: 409, error: "This seller isn't taking orders here yet. Message them to order." },
+  IN_DROP: { status: 409, error: "This is part of a drop: reserve it in the drop when it opens." },
   BAD_FULFILMENT: { status: 400, error: "Choose pickup or delivery." },
   BAD_ZONE: { status: 400, error: "Choose one of the seller's delivery areas." },
   BAD_METHOD: { status: 400, error: "Choose one of the ways this seller takes payment." },
@@ -54,11 +55,6 @@ export async function POST(request: NextRequest) {
   });
   if (!page) return NextResponse.json({ error: "This product isn't available." }, { status: 404 });
 
-  // While the product is in an open drop it is reserved there, as its page says.
-  if (page.drops.some((d) => dropPhase(d) === "open" && d.productIds.includes(page.product.id))) {
-    return NextResponse.json({ error: "This is in an open drop right now: reserve it there." }, { status: 409 });
-  }
-
   const parsed = parseOrderInput(body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
   if (perEmail(parsed.value.buyerEmail) || perSeller(`${clientIp(request)}|${orgSlug}`)) {
@@ -68,8 +64,8 @@ export async function POST(request: NextRequest) {
   const attribution = parseAttributionCookie(request.cookies.get(shopAttributionCookie(orgSlug))?.value);
   const origin = new URL(request.url).origin;
   try {
-    const placed = await placeMarketOrder({ org: page.org, shop: page.shop, product: page.product, input: parsed.value, attribution, origin });
-    afterResponse(() => tellSellerAboutOrder(page.org.id, placed.id, origin).catch((error) => console.error("market order: seller email", error instanceof Error ? error.message : "")));
+    const placed = await placeMarketOrder({ org: page.org, shop: page.shop, product: page.product, drops: page.drops, input: parsed.value, attribution, origin });
+    afterResponse(() => tellSellerAboutOrder(page.org.id, placed.id, origin, placed.emailed).catch((error) => console.error("market order: seller email", error instanceof Error ? error.message : "")));
     return NextResponse.json({ referenceCode: placed.referenceCode, orderUrl: `/order/${placed.referenceCode}`, holdUntil: placed.holdUntil, emailed: placed.emailed }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";

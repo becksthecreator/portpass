@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { nassauToday } from "@/lib/futprepTerms";
-import { DEFAULT_MARKET_SETTINGS, monthOf, type OrderInput } from "@/lib/market/orders";
+import { DEFAULT_MARKET_SETTINGS, monthOf, nextMonth, type OrderInput } from "@/lib/market/orders";
 import { draftMarketInvoice } from "./billing";
 import { getMarketProduct } from "./market";
+import { updateReservation } from "./shop";
 import { cancelOrder, getOrderOptions, getPublicOrder, getSellerOrder, listSellerOrders, markOrderPaid, marketFeesForMonth, moveOrder, placeMarketOrder, releaseExpiredOrders, runMarketFees } from "./marketOrders";
 
 // PortPass Market orders (brief 25, part C) against the local Supabase
@@ -46,7 +47,7 @@ async function stockOf(variantId: number): Promise<number | null> {
 
 async function place(over: Partial<OrderInput> = {}, extra: { now?: Date; viaPortpass?: boolean } = {}) {
   const p = await page();
-  return placeMarketOrder({ org: p.org, shop: p.shop, product: p.product, input: buyer(over), attribution: extra.viaPortpass === false ? null : { utmSource: null, utmMedium: null, utmCampaign: null, referrerHost: null, viaPortpass: true }, origin: "http://localhost:3000", now: extra.now });
+  return placeMarketOrder({ org: p.org, shop: p.shop, product: p.product, drops: p.drops, input: buyer(over), attribution: extra.viaPortpass === false ? null : { utmSource: null, utmMedium: null, utmCampaign: null, referrerHost: null, viaPortpass: true }, origin: "http://localhost:3000", now: extra.now });
 }
 
 beforeAll(async () => {
@@ -70,6 +71,7 @@ beforeAll(async () => {
     seller_status: "verified",
     seller_verified_at: new Date(Date.now() - 40 * 86_400_000).toISOString(),
     seller_plan: "seller",
+    seller_plan_since: new Date(Date.now() - 40 * 86_400_000).toISOString(),
     seller_pickup_note: "TEST studio, Saturdays",
     seller_delivery_zones: [{ zone: "Cable Beach", fee_cents: 1500, lead_days: 2 }],
     accepts_cash_on_pickup: true,
@@ -136,6 +138,20 @@ describe("placing an order", () => {
     await expect(place({ items: [{ variantId: large, qty: 1 }], fulfilment: "seller_delivery", zone: "Exuma" })).rejects.toThrow("BAD_ZONE");
   });
 
+  it("never sells around a drop: a product in a drop that is coming up is reserved there", async () => {
+    const opens = new Date(Date.now() + 2 * 86_400_000).toISOString();
+    const { data: drop, error } = await admin.from("drops").insert({ organization_id: orgId, slug: `test-drop-${tag}`, title: "TEST — delete drop", opens_at: opens, status: "published", allow_pickup: true }).select("id").single();
+    if (error || !drop) throw new Error(`could not seed a drop: ${error?.message}`);
+    const { data: product } = await admin.from("products").select("id").eq("organization_id", orgId).eq("slug", "kit").single();
+    await admin.from("drop_items").insert({ drop_id: drop.id, product_id: product!.id, sort_order: 0 });
+    try {
+      await expect(place({ items: [{ variantId: large, qty: 1 }] })).rejects.toThrow("IN_DROP");
+    } finally {
+      await admin.from("drop_items").delete().eq("drop_id", drop.id);
+      await admin.from("drops").delete().eq("id", drop.id);
+    }
+  });
+
   it("refuses a size that has run short, and takes nothing", async () => {
     await expect(place({ items: [{ variantId: small, qty: 2 }] })).rejects.toThrow(/SOLD_OUT/);
     expect(await stockOf(small)).toBe(1);
@@ -195,6 +211,14 @@ describe("the seller's steps", () => {
     expect((await getSellerOrder(orgId, fresh.id))?.status).toBe("new");
   });
 
+  it("is out of reach of Drops' reservation buttons, so Paid and Cancel always go through the payment request", async () => {
+    const [order] = (await listSellerOrders(orgId)).filter((o) => o.status === "new" && !o.paid);
+    for (const action of ["paid", "cancel", "collected"] as const) {
+      await expect(updateReservation(orgId, order.id, action, staffId)).rejects.toThrow("CONFLICT");
+    }
+    expect((await getSellerOrder(orgId, order.id))).toMatchObject({ status: "new", paid: false });
+  });
+
   it("keeps another business's orders out of reach", async () => {
     const [order] = await listSellerOrders(orgId);
     expect(await getSellerOrder(orgId + 1_000_000, order.id)).toBeNull();
@@ -234,5 +258,24 @@ describe("PortPass's Market fees", () => {
     expect(second).toBeNull();
     const { data: invoice } = await admin.from("portpass_invoices").select("kind,status,total_cents").eq("id", first!).single();
     expect(invoice).toEqual({ kind: "market", status: "draft", total_cents: 2900 });
+  });
+
+  it("once fees are on, charges each order once: the next run never bills it again", async () => {
+    const month = monthOf(nassauToday());
+    const live = { ...DEFAULT_MARKET_SETTINGS, feesLive: true, feesLiveSince: `${month}-01` };
+    // The run on the 1st of next month drafts this month's fees.
+    const run = await runMarketFees(`${nextMonth(month)}-01`, { settings: live });
+    expect(run.dryRun).toBe(false);
+    const { data: invoices } = await admin.from("portpass_invoices").select("id,total_cents,period_start").eq("organization_id", orgId).eq("kind", "market").eq("period_start", `${month}-01`);
+    expect(invoices).toHaveLength(1);
+    expect(invoices![0].total_cents).toBe(3460);
+    const { data: charged } = await admin.from("reservations").select("reference_code").eq("organization_id", orgId).eq("market_invoice_id", invoices![0].id);
+    expect(charged).toHaveLength(1);
+    // Asked again (the next day), the commission is not counted twice.
+    const again = (await marketFeesForMonth(month, live)).find((r) => r.organizationId === orgId);
+    expect(again?.fees.commissionCents).toBe(0);
+    await runMarketFees(`${nextMonth(month)}-02`, { settings: live });
+    const { count } = await admin.from("portpass_invoices").select("id", { count: "exact", head: true }).eq("organization_id", orgId).eq("kind", "market").eq("period_start", `${month}-01`);
+    expect(count).toBe(1);
   });
 });

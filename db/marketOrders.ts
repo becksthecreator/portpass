@@ -32,14 +32,14 @@ import {
 } from "@/lib/market/orders";
 import { viaPortpassFrom } from "@/lib/paymentRequests/email";
 import { balanceCents, defaultPrefix, methodsSetUp, payPath } from "@/lib/paymentRequests/rules";
-import { holdUntil, REFERENCE_ALPHABET, resolveShopSource, whatsappHref, type CatalogueVariant, type Fulfilment, type ReservationItem, type ShopPaymentMethod, type ShopSource } from "@/lib/shop/rules";
+import { dropPhase, holdUntil, REFERENCE_ALPHABET, resolveShopSource, whatsappHref, type CatalogueVariant, type Fulfilment, type ReservationItem, type ShopPaymentMethod, type ShopSource } from "@/lib/shop/rules";
 import { sendEmail } from "@/lib/email";
 import { logAudit } from "./audit";
 import { draftMarketInvoice, listInvoices, type StoredInvoice } from "./billing";
 import { getBusiness, listOwnerEmails, type Business } from "./business";
 import { demoOrganizationIdOrNull } from "./demo";
 import { createPaymentRequest, getPaymentRequest, getPaymentSettings, markPaymentRequestSent, recordRequestPayment, voidPaymentRequest, type Actor } from "./paymentRequests";
-import { getShop, type Product, type Shop } from "./shop";
+import { getShop, type Drop, type Product, type Shop } from "./shop";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // PortPass Market orders (brief 25, part C). An order is a reservation of
@@ -134,6 +134,9 @@ export type PlaceOrder = {
   org: Business;
   shop: Shop;
   product: Product;
+  // The seller's drops (not drafts): a product in one that is coming up or
+  // open is reserved in the drop, never ordered around it.
+  drops: Drop[];
   input: OrderInput;
   attribution: Attribution | null;
   // https://portpassbahamas.com (or the preview's own address), for the links in the emails.
@@ -143,7 +146,7 @@ export type PlaceOrder = {
 
 export type PlacedOrder = { id: number; referenceCode: string; holdUntil: string; totalCents: number; emailed: boolean };
 
-// Errors the route turns into words: NOT_ORDERABLE, BAD_FULFILMENT,
+// Errors the route turns into words: NOT_ORDERABLE, IN_DROP, BAD_FULFILMENT,
 // BAD_ZONE, BAD_METHOD, PRICE:<message>, SOLD_OUT:<variant ids>,
 // UNKNOWN_VARIANT. The caller has already loaded the product through the
 // market_products view, so the seller is verified, its shop open and the
@@ -151,6 +154,7 @@ export type PlacedOrder = { id: number; referenceCode: string; holdUntil: string
 export async function placeMarketOrder(p: PlaceOrder): Promise<PlacedOrder> {
   const { org, shop, product, input } = p;
   const now = p.now ?? new Date();
+  if (p.drops.some((drop) => dropPhase(drop, now) !== "closed" && drop.productIds.includes(product.id))) throw new Error("IN_DROP");
   const options = await getOrderOptions(org.id, shop);
   if (!options.canOrder) throw new Error("NOT_ORDERABLE");
   if ((input.fulfilment === "pickup" && !options.pickup) || (input.fulfilment === "seller_delivery" && !options.delivery)) throw new Error("BAD_FULFILMENT");
@@ -243,11 +247,16 @@ export async function placeMarketOrder(p: PlaceOrder): Promise<PlacedOrder> {
     const { error } = await db().from("reservations").update({ payment_request_id: request.id }).eq("id", created.id).eq("organization_id", org.id);
     throwIfSupabaseError(error, "Could not link the payment request");
   } catch (error) {
+    // Undone: the stock goes back, and a request made before the failure is
+    // voided so nobody is asked to pay for an order that doesn't stand.
     await db().rpc("shop_release_reservation", { p_id: created.id, p_status: "cancelled", p_only_expired: false });
+    await db().from("payment_requests").update({ status: "void", voided_reason: "The order could not be completed." }).eq("organization_id", org.id).eq("reservation_id", created.id).eq("paid_cents", 0);
     throw error;
   }
 
-  await logAudit({ actorUserId: null, organizationId: org.id, action: "market.order.placed", targetTable: "reservations", targetId: created.id, after: { reference: created.referenceCode, total_cents: priced.totalCents, source: source.source, payment_request: request.referenceCode } });
+  // From here the order stands: nothing after this may tell the buyer to
+  // try again (that would place a second order).
+  await logAudit({ actorUserId: null, organizationId: org.id, action: "market.order.placed", targetTable: "reservations", targetId: created.id, after: { reference: created.referenceCode, total_cents: priced.totalCents, source: source.source, payment_request: request.referenceCode } }).catch((error) => console.error("market order: audit", error instanceof Error ? error.message : ""));
 
   // The buyer's email: their code, how to pay, where to follow it. The
   // request counts as sent only if it went.
@@ -287,7 +296,7 @@ async function openOrdersFor(orgId: number, email: string, phone: string): Promi
 // The seller's owners hear about a new order (after the buyer has their
 // answer). The buyer's name only; their contact details are on the orders
 // page behind the seller's sign-in.
-export async function tellSellerAboutOrder(orgId: number, orderId: number, origin: string): Promise<void> {
+export async function tellSellerAboutOrder(orgId: number, orderId: number, origin: string, buyerEmailed: boolean): Promise<void> {
   const [org, order] = await Promise.all([getBusiness(orgId), getSellerOrder(orgId, orderId)]);
   if (!org || !order || !org.slug) return;
   const email = sellerOrderEmail({
@@ -301,6 +310,7 @@ export async function tellSellerAboutOrder(orgId: number, orderId: number, origi
     fulfilment: order.fulfilment,
     paymentMethod: order.paymentMethod,
     broughtByPortpass: order.broughtByPortpass,
+    buyerEmailed,
     ordersUrl: `${origin}/business/${org.slug}/shop/orders`,
   });
   for (const to of await listOwnerEmails(orgId)) {
@@ -427,7 +437,15 @@ export async function markOrderPaid(orgId: number, orderId: number, actor: Actor
   if (found && found.request.status !== "void") {
     const balance = balanceCents(found.request);
     if (balance > 0) {
-      await recordRequestPayment(orgId, found.request.id, { amountCents: balance, method: order.paymentMethod, receivedAt: new Date().toISOString(), reference: order.referenceCode, note: "Marked paid from the Market orders list." }, actor);
+      try {
+        await recordRequestPayment(orgId, found.request.id, { amountCents: balance, method: order.paymentMethod, receivedAt: new Date().toISOString(), reference: order.referenceCode, note: "Marked paid from the Market orders list." }, actor);
+      } catch (error) {
+        // Cancelled (its request voided) or paid on another phone a moment ago.
+        const message = error instanceof Error ? error.message : "";
+        if (message === "VOID") throw new Error("CANCELLED");
+        if (message === "ALREADY_PAID") throw new Error("ALREADY_PAID");
+        throw error;
+      }
     }
   }
   // An order without a live request (none could be made, or it was voided
@@ -436,6 +454,7 @@ export async function markOrderPaid(orgId: number, orderId: number, actor: Actor
   const { error } = await db().from("reservations").update({ payment_status: "paid", paid_at: now, updated_at: now }).eq("id", orderId).eq("organization_id", orgId).eq("status", "active").eq("payment_status", "pending");
   throwIfSupabaseError(error, "Could not mark the order paid");
   const updated = (await getSellerOrder(orgId, orderId))!;
+  if (!updated.paid) throw new Error(updated.status === "cancelled" ? "CANCELLED" : "CONFLICT");
   await logAudit({ actorUserId: actor.userId, organizationId: orgId, action: "market.order.paid", targetTable: "reservations", targetId: orderId, after: { reference: order.referenceCode, total_cents: order.totalCents, paid: updated.paid } });
   return updated;
 }
@@ -526,32 +545,37 @@ export async function saveMarketSettings(input: MarketSettingsInput, actorUserId
   return after;
 }
 
-export type SellerFees = { organizationId: number; name: string; slug: string | null; onSellerPlan: boolean; fees: SellerMonthFees; orders: CommissionableOrder[] };
+export type SellerFees = { organizationId: number; name: string; slug: string | null; onSellerPlan: boolean; fees: SellerMonthFees; orders: CommissionableOrder[]; orderIds: number[] };
 
 // Nassau midnight at the start of a day, as an instant.
 function dayStartIso(day: string): string {
   return nassauLocalToIso(`${day}T00:00`) ?? `${day}T05:00:00.000Z`;
 }
 
-// What each seller owes PortPass for a month: the Seller plan (on the plan,
-// verified, and verified before the month was out) and the commission on
-// orders PortPass brought that were paid during the month (Nassau time).
+// What each seller owes PortPass for a month: the Seller plan (on the plan
+// since before the month began, and verified before it was out) and the
+// commission on orders PortPass brought that were paid during the month
+// (Nassau time) and not already charged on a Market invoice that stands.
 // Never the demo.
 export async function marketFeesForMonth(month: string, settings: MarketSettings): Promise<SellerFees[]> {
   const demoId = await demoOrganizationIdOrNull();
   const from = dayStartIso(monthBounds(month).start);
   const until = dayStartIso(monthBounds(nextMonth(month)).start);
   const [plans, paid] = await Promise.all([
-    allPages((lo, hi) => db().from("shops").select("organization_id").eq("seller_plan", "seller").eq("seller_status", "verified").lt("seller_verified_at", until).order("organization_id", { ascending: true }).range(lo, hi), "Could not load the Seller plans"),
-    allPages((lo, hi) => db().from("reservations").select("id,organization_id,reference_code,paid_at,subtotal_cents,total_cents,commission_reason").eq("kind", "order").eq("commission_eligible", true).eq("payment_status", "paid").gte("paid_at", from).lt("paid_at", until).order("paid_at", { ascending: true }).order("id", { ascending: true }).range(lo, hi), "Could not load the paid orders"),
+    allPages((lo, hi) => db().from("shops").select("organization_id").eq("seller_plan", "seller").eq("seller_status", "verified").lt("seller_verified_at", until).lt("seller_plan_since", from).order("organization_id", { ascending: true }).range(lo, hi), "Could not load the Seller plans"),
+    allPages((lo, hi) => db().from("reservations").select("id,organization_id,reference_code,paid_at,subtotal_cents,total_cents,commission_reason,market_invoice_id").eq("kind", "order").eq("commission_eligible", true).eq("payment_status", "paid").gte("paid_at", from).lt("paid_at", until).order("paid_at", { ascending: true }).order("id", { ascending: true }).range(lo, hi), "Could not load the paid orders"),
   ]);
+  const invoiced = await standingInvoices(paid.map((row) => row.market_invoice_id));
   const onPlan = new Set(plans.map((row) => Number(row.organization_id)));
   const ordersBy = new Map<number, CommissionableOrder[]>();
+  const idsBy = new Map<number, number[]>();
   for (const row of paid) {
+    if (row.market_invoice_id !== null && invoiced.has(Number(row.market_invoice_id))) continue;
     const orgId = Number(row.organization_id);
     const list = ordersBy.get(orgId) ?? [];
     list.push({ referenceCode: row.reference_code as string, paidAt: row.paid_at as string, subtotalCents: Number(row.subtotal_cents ?? 0), totalCents: Number(row.total_cents), reason: (row.commission_reason as string | null) ?? null });
     ordersBy.set(orgId, list);
+    idsBy.set(orgId, [...(idsBy.get(orgId) ?? []), Number(row.id)]);
   }
   const ids = Array.from(new Set([...onPlan, ...ordersBy.keys()])).filter((id) => id !== demoId);
   if (!ids.length) return [];
@@ -562,9 +586,22 @@ export async function marketFeesForMonth(month: string, settings: MarketSettings
     .map((org) => {
       const orgId = Number(org.id);
       const orders = ordersBy.get(orgId) ?? [];
-      return { organizationId: orgId, name: org.name as string, slug: (org.slug as string | null) ?? null, onSellerPlan: onPlan.has(orgId), orders, fees: monthFees({ onSellerPlan: onPlan.has(orgId), settings, orders }) };
+      return { organizationId: orgId, name: org.name as string, slug: (org.slug as string | null) ?? null, onSellerPlan: onPlan.has(orgId), orders, orderIds: idsBy.get(orgId) ?? [], fees: monthFees({ onSellerPlan: onPlan.has(orgId), settings, orders }) };
     })
     .sort((a, b) => b.fees.totalCents - a.fees.totalCents || a.name.localeCompare(b.name));
+}
+
+// Of these Market invoice ids, the ones that still stand (not void): an
+// order charged on a voided invoice is charged again by the next draft.
+async function standingInvoices(ids: unknown[]): Promise<Set<number>> {
+  const wanted = Array.from(new Set(ids.filter((id) => id !== null && id !== undefined).map(Number)));
+  const standing = new Set<number>();
+  for (let i = 0; i < wanted.length; i += 200) {
+    const { data, error } = await db().from("portpass_invoices").select("id").in("id", wanted.slice(i, i + 200)).neq("status", "void");
+    throwIfSupabaseError(error, "Could not check the Market invoices");
+    for (const row of data ?? []) standing.add(Number(row.id));
+  }
+  return standing;
 }
 
 // Every row, a page at a time: PostgREST answers 1,000 rows a request.
@@ -587,9 +624,9 @@ export type MarketFeesRun = { month: string; dryRun: boolean; sellers: number; t
 // amounts to the log. Once on, it drafts one PortPass invoice per seller
 // for the month, never twice (the database refuses a second); a founder
 // sends it. It never sends anything itself.
-export async function runMarketFees(today: string = nassauToday()): Promise<MarketFeesRun> {
+export async function runMarketFees(today: string = nassauToday(), options: { settings?: MarketSettings } = {}): Promise<MarketFeesRun> {
   const month = previousMonth(monthOf(today));
-  const settings = await getMarketSettings();
+  const settings = options.settings ?? (await getMarketSettings());
   const rows = (await marketFeesForMonth(month, settings)).filter((row) => row.fees.totalCents > 0);
   const totalCents = rows.reduce((sum, row) => sum + row.fees.totalCents, 0);
   if (!invoicesMonth(settings, month)) {
@@ -600,14 +637,27 @@ export async function runMarketFees(today: string = nassauToday()): Promise<Mark
   const { start, end } = monthBounds(month);
   let drafted = 0;
   for (const row of rows) {
-    if (await draftMarketInvoice({ organizationId: row.organizationId, periodStart: start, periodEnd: end, issuedOn: today, lines: feeLines(month, row.fees, settings.commissionBps) })) drafted += 1;
+    const invoiceId = await draftMarketInvoice({ organizationId: row.organizationId, periodStart: start, periodEnd: end, issuedOn: today, lines: feeLines(month, row.fees, settings.commissionBps) });
+    if (!invoiceId) continue;
+    drafted += 1;
+    // These orders are charged now: never again, whatever happens later.
+    for (let i = 0; i < row.orderIds.length; i += 200) {
+      const { error } = await db().from("reservations").update({ market_invoice_id: invoiceId }).in("id", row.orderIds.slice(i, i + 200)).eq("organization_id", row.organizationId);
+      throwIfSupabaseError(error, "Could not mark the invoiced orders");
+    }
   }
   console.info(`[market fees] ${month}: drafted ${drafted} invoice(s) for ${rows.length} seller(s), ${totalCents} cents in all.`);
   return { month, dryRun: false, sellers: rows.length, totalCents, drafted };
 }
 
+// An order charged commission on a standing Market invoice and not paid
+// any more (refunded since): a founder credits it on the seller's next
+// invoice by hand.
+export type RefundedAfterInvoicing = { organizationId: number; sellerName: string; referenceCode: string; subtotalCents: number; invoiceId: number };
+
 export type MarketIncome = {
   settings: MarketSettings;
+  refundedAfterInvoicing: RefundedAfterInvoicing[];
   month: string;
   lastMonth: string;
   invoices: StoredInvoice[];
@@ -623,7 +673,17 @@ export async function getMarketIncome(today: string = nassauToday()): Promise<Ma
   const month = monthOf(today);
   const lastMonth = previousMonth(month);
   const settings = await getMarketSettings();
-  const [all, lastMonthFees, monthToDate] = await Promise.all([listInvoices({ kind: "market" }), marketFeesForMonth(lastMonth, settings), marketFeesForMonth(month, settings)]);
+  const [all, lastMonthFees, monthToDate, refunded] = await Promise.all([
+    listInvoices({ kind: "market" }),
+    marketFeesForMonth(lastMonth, settings),
+    marketFeesForMonth(month, settings),
+    allPages((lo, hi) => db().from("reservations").select("organization_id,reference_code,subtotal_cents,market_invoice_id").eq("kind", "order").not("market_invoice_id", "is", null).neq("payment_status", "paid").order("id", { ascending: true }).range(lo, hi), "Could not load refunded orders"),
+  ]);
+  const standing = new Set(all.filter((invoice) => invoice.status !== "void").map((invoice) => invoice.id));
+  const sellerName = new Map(all.map((invoice) => [invoice.organizationId, invoice.organizationName]));
+  const refundedAfterInvoicing = refunded
+    .filter((row) => standing.has(Number(row.market_invoice_id)))
+    .map((row) => ({ organizationId: Number(row.organization_id), sellerName: sellerName.get(Number(row.organization_id)) ?? "", referenceCode: row.reference_code as string, subtotalCents: Number(row.subtotal_cents ?? 0), invoiceId: Number(row.market_invoice_id) }));
   const invoices = all.filter((invoice) => monthOf(invoice.issuedOn) === month && invoice.status !== "void");
   const totals = invoices.reduce(
     (sum, invoice) => ({
@@ -634,7 +694,7 @@ export async function getMarketIncome(today: string = nassauToday()): Promise<Ma
     }),
     { count: 0, totalCents: 0, paidCents: 0, outstandingCents: 0 },
   );
-  return { settings, month, lastMonth, invoices, totals, lastMonthFees: lastMonthFees.filter((row) => row.fees.totalCents > 0 || row.onSellerPlan), monthToDate: monthToDate.filter((row) => row.fees.totalCents > 0 || row.onSellerPlan) };
+  return { settings, refundedAfterInvoicing, month, lastMonth, invoices, totals, lastMonthFees: lastMonthFees.filter((row) => row.fees.totalCents > 0 || row.onSellerPlan), monthToDate: monthToDate.filter((row) => row.fees.totalCents > 0 || row.onSellerPlan) };
 }
 
 // One seller's month, for the commission CSV.
@@ -646,7 +706,12 @@ export async function sellerMonthFees(orgId: number, month: string): Promise<Sel
 // The Seller plan is PortPass's to switch on or off per seller (Admin ->
 // Market -> Sellers).
 export async function setSellerPlan(orgId: number, on: boolean, actorUserId: string): Promise<void> {
-  const { data, error } = await db().from("shops").update({ seller_plan: on ? "seller" : "none" }).eq("organization_id", orgId).select("organization_id").maybeSingle();
+  const { data: current, error: readError } = await db().from("shops").select("seller_plan,seller_plan_since").eq("organization_id", orgId).maybeSingle();
+  throwIfSupabaseError(readError, "Could not load the Seller plan");
+  if (!current) throw new Error("NOT_FOUND");
+  // The start is kept while the plan stays on, and cleared when it goes off.
+  const since = on ? (current.seller_plan === "seller" && current.seller_plan_since ? current.seller_plan_since : new Date().toISOString()) : null;
+  const { data, error } = await db().from("shops").update({ seller_plan: on ? "seller" : "none", seller_plan_since: since }).eq("organization_id", orgId).select("organization_id").maybeSingle();
   throwIfSupabaseError(error, "Could not change the Seller plan");
   if (!data) throw new Error("NOT_FOUND");
   await logAudit({ actorUserId, organizationId: orgId, action: on ? "market.seller.plan_on" : "market.seller.plan_off", targetTable: "shops", targetId: orgId, after: { seller_plan: on ? "seller" : "none" } });

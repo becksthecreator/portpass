@@ -60,6 +60,9 @@ async function main() {
   if (kitError || !kit) throw new Error(`Could not find the TEST Kit Shop: ${kitError?.message}`);
   const { error: payError } = await db.from("organization_payment_settings").upsert({ organization_id: kit.id, reference_prefix: "TKP", accepted_methods: ["bank_transfer", "cash"], bank_name: "TEST Bank", account_name: "TEST Kit Shop", account_number_last4: "0000", transfer_instructions: "TEST — not a real account", cash_note: "TEST — at the studio" });
   if (payError) throw new Error(`Could not seed the TEST payment settings: ${payError.message}`);
+  // On the Seller plan since well before this month, so Income shows its fee.
+  const { error: planError } = await db.from("shops").update({ seller_plan: "seller", seller_plan_since: new Date(Date.now() - 40 * 86400_000).toISOString() }).eq("organization_id", kit.id);
+  if (planError) throw new Error(`Could not put the TEST shop on the Seller plan: ${planError.message}`);
 
   const { data: tee, error: teeError } = await db.from("products").insert({ organization_id: kit.id, slug: "training-tee", title: "TEST Training tee", description: "TEST — delete. Light cotton, made in Nassau.", price_cents: 3000, photos: [], market_category: "kits-apparel", sort_order: 9, is_published: false }).select("id").single();
   if (teeError || !tee) throw new Error(`Could not seed the TEST tee: ${teeError?.message}`);

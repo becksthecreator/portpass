@@ -146,7 +146,7 @@ export default async function ShopPage({ params }: { params: Params }) {
               const open = openDropFor(product.id);
               const next = open ? null : nextDropFor(product.id);
               const edition = product.usesMarks ? licenceLabel(product.licenceKind) : null;
-              const order = !open && inStock(product.id) ? orderHref(product.slug) : null;
+              const order = !open && !next && inStock(product.id) ? orderHref(product.slug) : null;
               const ask = !open && !order && inStock(product.id) ? askHref(product.title) : null;
               return (
                 <article key={product.id} className="shop-card">

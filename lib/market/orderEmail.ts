@@ -93,6 +93,8 @@ export type SellerOrderEmailInput = {
   fulfilment: Fulfilment;
   paymentMethod: ShopPaymentMethod;
   broughtByPortpass: boolean;
+  // Whether the buyer's own email went: if not, the seller sends the code.
+  buyerEmailed: boolean;
   ordersUrl: string;
 };
 
@@ -105,7 +107,7 @@ export function sellerOrderEmail(input: SellerOrderEmailInput): { subject: strin
   const body = `<p>${escapeHtml(input.buyerName)} ordered from your shop on PortPass Market.</p>
     ${itemsTable(input)}
     <p><strong>${escapeHtml(how)}</strong>, paying you by ${pay}.${input.broughtByPortpass ? " PortPass brought this order." : ""}</p>
-    <p>The buyer has been sent the order code and how to pay you. Mark it paid when the money reaches you.</p>
+    <p>${input.buyerEmailed ? "The buyer has been sent the order code and how to pay you." : "We couldn't email the buyer, so send them the order code on WhatsApp from your orders list."} Mark it paid when the money reaches you.</p>
     ${button(input.ordersUrl, "Open your orders")}`;
   return { subject, html: shell(input.sellerName, `New order ${input.referenceCode}`, body) };
 }

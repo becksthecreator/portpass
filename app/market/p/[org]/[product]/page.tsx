@@ -75,7 +75,9 @@ export default async function MarketProductPage({ params }: { params: Params }) 
   const options = await getOrderOptions(org.id, shop).catch(() => null);
   const methods = Array.from(new Set([...(options?.pickup ? options.methods.pickup : []), ...(options?.delivery ? options.methods.seller_delivery : [])]));
   const payLine = methods.map((m) => paymentMethodLabel(m).toLowerCase()).join(" or ");
-  const orderable = Boolean(options?.canOrder) && inStock && !openDrop;
+  // A product in a drop that is coming up is reserved in that drop.
+  const upcomingDrop = openDrop ? null : (drops.find((d) => dropPhase(d, now) !== "closed" && d.productIds.includes(product.id)) ?? null);
+  const orderable = Boolean(options?.canOrder) && inStock && !openDrop && !upcomingDrop;
   const ask = inStock && org.whatsappE164 ? whatsappHref(org.whatsappE164, `Hi ${org.name}, I'd like to order ${product.title} from your PortPass shop.`) : null;
   const category = marketCategoryName(product.marketCategory);
   const path = `/market/p/${orgSlug}/${productSlug}`;
@@ -120,6 +122,8 @@ export default async function MarketProductPage({ params }: { params: Params }) 
           <div className="mkt-product-action">
             {openDrop ? (
               <Link className="primary-button" data-still href={`/shop/${orgSlug}/drop/${openDrop.slug}#product-${product.id}`}>Reserve in {openDrop.title}</Link>
+            ) : upcomingDrop ? (
+              <Link className="secondary-button" data-still href={`/shop/${orgSlug}/drop/${upcomingDrop.slug}`}>Coming in {upcomingDrop.title}</Link>
             ) : orderable ? (
               <a className="primary-button" data-still href="#order">Order</a>
             ) : ask ? (
