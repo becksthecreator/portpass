@@ -13,9 +13,10 @@ export const dynamic = "force-dynamic";
 
 export default async function FutprepStaffAdminPage() {
   const role = await requireFutprepStaff(["admin","ceo"], "/futprep/staff/admin");
-  const [registrations, moneySummary, offers] = await Promise.all([
-    listFutprepStaffRegistrations(),
-    getFutprepMoneySummary(),
+  // The desk list is read once and the money strip is summed from it.
+  const registrations = await listFutprepStaffRegistrations();
+  const [moneySummary, offers] = await Promise.all([
+    getFutprepMoneySummary(registrations),
     // Every active term that has not finished, open to parents or not
     // (brief 27, A): staff add late joiners and next-term families by hand.
     listFutprepOffers({ staffDesk: true }).catch(() => []),
