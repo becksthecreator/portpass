@@ -138,10 +138,12 @@ export const DATABASE_CHECK_LABEL: Record<string, string> = {
   tables_browser_roles_can_write: "Tables a browser could write to",
   functions_without_search_path: "Functions without a fixed search path",
   definer_functions_open_to_browser_roles: "Privileged functions a browser could call",
+  definer_views_open_to_browser_roles: "Views a browser could read past row level security",
 };
 
 // What Supabase's security advisor warns about, checked against the live
-// database (supabase/migrations/202610080001, extended by 202610180001).
+// database (supabase/migrations/202610080001, extended by 202610180001
+// and 202610230001).
 export async function databaseChecks(): Promise<DatabaseCheck[]> {
   const { data, error } = await getSupabaseAdmin().rpc("admin_database_checks");
   throwIfSupabaseError(error, "Could not run the database checks");
