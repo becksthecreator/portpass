@@ -41,8 +41,8 @@ beforeAll(async () => {
 afterAll(async () => {
   if (programIds.length) {
     // Payments go with their registrations (on delete cascade).
-    await db().from("registrations").delete().in("program_id", programIds);
-    await db().from("programs").delete().in("id", programIds);
+    expect((await db().from("registrations").delete().in("program_id", programIds)).error).toBeNull();
+    expect((await db().from("programs").delete().in("id", programIds)).error).toBeNull();
   }
 });
 
@@ -102,7 +102,14 @@ describe("desk balances read every payment (audit finding 5)", () => {
     const { error } = await db().from("registrations").insert(rows);
     expect(error).toBeNull();
 
+    // The last child in name order sits past the first 1,000 rows and the
+    // first blocks of 200 ids: its payment is still counted.
+    const { data: last } = await db().from("registrations").select("id").eq("program_id", target.programId).eq("child_name", `${MARK} child 1000`).single();
+    const { error: payError } = await db().from("payments").insert({ registration_id: last!.id, amount_cents: 1700, method: "cash", status: "received", note: MARK, received_at: now });
+    expect(payError).toBeNull();
+
     const desk = await listFutprepStaffRegistrations();
     expect(desk.filter((r) => r.program_slug === target.slug)).toHaveLength(1001);
+    expect(desk.find((r) => r.id === Number(last!.id))?.paid_cents).toBe(1700);
   });
 });
