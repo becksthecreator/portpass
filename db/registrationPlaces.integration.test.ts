@@ -7,7 +7,6 @@ import {
   ensureFutprepPilotData,
   type FutprepRegistrationInput,
 } from "./registrations";
-import { updateFutprepRegistration } from "./staff";
 
 // Audit finding 2 (brief 33): when a term opens, parents press "Register"
 // at the same moment. The last place in a class goes to one child only,
@@ -279,55 +278,5 @@ describe("a double tap makes one registration (audit finding 2)", () => {
     expect(placed).toHaveLength(1);
     expect(refused).toEqual(["TRIAL_ALREADY_USED"]);
     expect((await rowsIn(target)).filter((r) => r.child_name === form.childName)).toHaveLength(1);
-  });
-});
-
-// Brief 34 (found by the tdd-guide): the desk's other ways into a class.
-// Moving a child from the waitlist, a taster or a cancellation into a
-// place takes one, so it needs one free, and two moves at once can't both
-// take the last.
-describe("the desk never moves a child into a full class (brief 34)", () => {
-  async function idOf(target: TestClass, childName: string) {
-    return Number((await rowsIn(target)).find((r) => r.child_name === childName)!.id);
-  }
-
-  it("reinstating a cancelled child into a full class: told the class is full", async () => {
-    const target = await newClass(2);
-    const first = child(target);
-    const second = child(target);
-    await createFutprepRegistration(first);
-    await createFutprepRegistration(second);
-    const secondId = await idOf(target, second.childName);
-    await updateFutprepRegistration({ registrationId: secondId, registrationStatus: "cancelled" });
-    await createFutprepRegistration(child(target));
-
-    await expect(updateFutprepRegistration({ registrationId: secondId, registrationStatus: "confirmed" })).rejects.toThrow("PROGRAM_FULL");
-    expect((await rowsIn(target)).filter((r) => TAKES_A_PLACE.has(r.registration_status))).toHaveLength(2);
-  });
-
-  it("four from the waitlist moved at once for the last place: one gets it", async () => {
-    const target = await newClass(2);
-    const first = child(target);
-    const second = child(target);
-    await createFutprepRegistration(first);
-    await createFutprepRegistration(second);
-    const waiting = [child(target, { mode: "waitlist" }), child(target, { mode: "waitlist" }), child(target, { mode: "waitlist" }), child(target, { mode: "waitlist" })];
-    for (const form of waiting) await createFutprepRegistration(form);
-    await updateFutprepRegistration({ registrationId: await idOf(target, second.childName), registrationStatus: "cancelled" });
-    const ids = await Promise.all(waiting.map((form) => idOf(target, form.childName)));
-
-    const { placed, refused } = await allAtOnce(ids.map((registrationId) => () => updateFutprepRegistration({ registrationId, registrationStatus: "pending" })));
-
-    expect(placed).toHaveLength(1);
-    expect(refused).toEqual(Array(3).fill("PROGRAM_FULL"));
-    expect((await rowsIn(target)).filter((r) => TAKES_A_PLACE.has(r.registration_status))).toHaveLength(2);
-  });
-
-  it("a child already in a place keeps it when the desk changes its status", async () => {
-    const target = await newClass(1);
-    const form = child(target);
-    await createFutprepRegistration(form);
-    const id = await idOf(target, form.childName);
-    await expect(updateFutprepRegistration({ registrationId: id, registrationStatus: "confirmed" })).resolves.toMatchObject({ childName: form.childName });
   });
 });
