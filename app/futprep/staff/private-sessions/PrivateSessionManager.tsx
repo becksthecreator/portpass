@@ -99,14 +99,15 @@ export function PrivateSessionManager({ initialRequests, coaches, services, sche
       {request.status === "referred" && !request.parent_notified_at && <p className="request-alert">Parent notification required before the handoff is considered complete.</p>}
       {request.parent_notified_at && <p className="request-ok">Parent informed ✓</p>}
       {!seesAll && (request.assigned_coach_id ?? request.preferred_coach_id) !== myCoachId ? <p className="request-ok">With {request.assigned_coach_name ?? "another coach"} now.</p> : <>
-      <div className="private-request-actions">
+      {/* Completed is final (brief 31 C, QA): no Accept, Decline or Refer. */}
+      {request.status !== "completed" && <div className="private-request-actions">
         <select id={`coach-${request.id}`} defaultValue={request.assigned_coach_id ?? request.preferred_coach_id ?? ""}><option value="">Choose coach</option>{bookable.map((coach) => <option value={coach.id} key={coach.id}>{coach.display_name}</option>)}</select>
         <button disabled={!schemaReady} onClick={() => { const el = document.getElementById(`coach-${request.id}`) as HTMLSelectElement | null; void act(request.id, "accept", seesAll ? Number(el?.value) || undefined : myCoachId ?? undefined); }}>Accept</button>
         <button disabled={!schemaReady} onClick={() => { const reason = prompt("Why are you declining this request?"); if (reason) void act(request.id, "decline", undefined, undefined, reason); }}>Decline</button>
         <button disabled={!schemaReady} onClick={() => { const el = document.getElementById(`coach-${request.id}`) as HTMLSelectElement | null; const target = Number(el?.value); if (!target) return alert("Choose the coach receiving the referral first."); const note = prompt("Referral note (optional):") ?? ""; void act(request.id, "refer", request.assigned_coach_id ?? undefined, target, note); }}>Refer</button>
         {request.status === "referred" && !request.parent_notified_at && <button disabled={!schemaReady} onClick={() => void act(request.id, "parent_notified")}>Parent informed</button>}
         {request.status === "accepted" && <button disabled={!schemaReady} onClick={() => void act(request.id, "complete")}>Complete</button>}
-      </div>
+      </div>}
       {(request.status === "accepted" || request.status === "completed") && request.payment_status !== "paid" && (
         <form className="private-request-payment" onSubmit={(e) => void recordPayment(e, request.id)}>
           <label><span>Received ($)</span><input name="amount" type="number" min="0.01" step="0.01" defaultValue={request.price_cents ? ((request.price_cents - request.paid_cents) / 100).toFixed(2) : ""} required /></label>
