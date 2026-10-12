@@ -568,7 +568,9 @@ export async function addWeeklyCoachSlots(input:{
   const dates=weeklySlotDates({fromDate:input.fromDate ?? new Date().toISOString().slice(0,10),dayOfWeek:input.dayOfWeek,weeks:input.weeks});
   if(!dates.length) throw new Error("INVALID_DAY");
   const db=getSupabaseAdmin();
-  const {data:coach,error:coachError}=await db.from("coach_profiles").select("id").eq("id",input.coachId).eq("active",true).maybeSingle();
+  // Rule 3 (brief 34): Futprep's coaches only; another business's coach is
+  // refused like a missing one.
+  const {data:coach,error:coachError}=await db.from("coach_profiles").select("id").eq("id",input.coachId).eq("organization_id",await futprepOrganizationId()).eq("active",true).maybeSingle();
   throwIfSupabaseError(coachError,"Could not load coach");
   if(!coach) throw new Error("COACH_NOT_FOUND");
   const now=new Date().toISOString();

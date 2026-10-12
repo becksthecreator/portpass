@@ -87,9 +87,25 @@ export async function coachForStaffMember(staffMemberId: number): Promise<PayCoa
 // paid is pay data, for the CEO login and platform owners only.
 export type SessionStaffEntry = { coachId: number; coachName: string; role: StaffRole; locked: boolean };
 
+// The session's class, when the session is Futprep's (rule 3, brief 34):
+// another business's session is answered exactly like a missing one.
+async function futprepSessionProgramId(sessionId: number): Promise<number | null> {
+  const db = getSupabaseAdmin();
+  const { data: session, error } = await db
+    .from("sessions")
+    .select("program_id,programs!inner(organization_id)")
+    .eq("id", sessionId)
+    .eq("programs.organization_id", await futprepOrganizationId())
+    .maybeSingle();
+  throwIfSupabaseError(error, "Could not load the session");
+  return session ? Number(session.program_id) : null;
+}
+
 // Names and roles only: the roster never shows pay.
 export async function getSessionStaff(sessionId: number): Promise<{ entries: SessionStaffEntry[]; suggestedLead: { coachId: number; coachName: string } | null }> {
   const db = getSupabaseAdmin();
+  const programId = await futprepSessionProgramId(sessionId);
+  if (programId === null) return { entries: [], suggestedLead: null };
   const { data: rows, error } = await db
     .from("session_staff")
     .select("coach_id,role,paid_at,coach_profiles(display_name)")
@@ -106,11 +122,9 @@ export async function getSessionStaff(sessionId: number): Promise<{ entries: Ses
 
   // Nobody recorded yet: suggest the class's default lead (Coach Bex for
   // Lil Kickers and Kickers).
-  const { data: session } = await db.from("sessions").select("program_id").eq("id", sessionId).maybeSingle();
-  if (!session) return { entries, suggestedLead: null };
-  const { data: program } = await db.from("programs").select("default_lead_coach_id").eq("id", session.program_id).maybeSingle();
+  const { data: program } = await db.from("programs").select("default_lead_coach_id,organization_id").eq("id", programId).maybeSingle();
   if (!program?.default_lead_coach_id) return { entries, suggestedLead: null };
-  const { data: lead } = await db.from("coach_profiles").select("id,display_name").eq("id", program.default_lead_coach_id).maybeSingle();
+  const { data: lead } = await db.from("coach_profiles").select("id,display_name").eq("id", program.default_lead_coach_id).eq("organization_id", program.organization_id).maybeSingle();
   return { entries, suggestedLead: lead ? { coachId: Number(lead.id), coachName: String(lead.display_name) } : null };
 }
 
@@ -128,13 +142,11 @@ export async function setSessionStaff(sessionId: number, requested: Array<{ coac
   }
   if (wanted.size > 20) throw new Error("INVALID_STAFF");
 
-  const [{ data: session, error: sessionError }, { data: existing, error: existingError }] = await Promise.all([
-    db.from("sessions").select("id").eq("id", sessionId).maybeSingle(),
-    db.from("session_staff").select("id,coach_id,role,paid_at").eq("session_id", sessionId),
-  ]);
-  throwIfSupabaseError(sessionError, "Could not load the session");
+  // Rule 3 (brief 34): Futprep's sessions only, checked before anything
+  // about the session is read or written.
+  if ((await futprepSessionProgramId(sessionId)) === null) throw new Error("SESSION_NOT_FOUND");
+  const { data: existing, error: existingError } = await db.from("session_staff").select("id,coach_id,role,paid_at").eq("session_id", sessionId);
   throwIfSupabaseError(existingError, "Could not load the coaches for this session");
-  if (!session) throw new Error("SESSION_NOT_FOUND");
 
   const coachIds = Array.from(wanted.keys());
   const { data: coaches, error: coachError } = coachIds.length
@@ -182,14 +194,15 @@ export async function setSessionStaff(sessionId: number, requested: Array<{ coac
 // class's default lead coached it: record them so their pay isn't missed.
 export async function ensureDefaultLead(sessionId: number, actor: string): Promise<void> {
   const db = getSupabaseAdmin();
+  // Rule 3 (brief 34): never on another business's session.
+  const programId = await futprepSessionProgramId(sessionId);
+  if (programId === null) return;
   const { count, error } = await db.from("session_staff").select("id", { count: "exact", head: true }).eq("session_id", sessionId);
   throwIfSupabaseError(error, "Could not check the coaches for this session");
   if (Number(count ?? 0) > 0) return;
-  const { data: session } = await db.from("sessions").select("program_id").eq("id", sessionId).maybeSingle();
-  if (!session) return;
-  const { data: program } = await db.from("programs").select("default_lead_coach_id").eq("id", session.program_id).maybeSingle();
+  const { data: program } = await db.from("programs").select("default_lead_coach_id,organization_id").eq("id", programId).maybeSingle();
   if (!program?.default_lead_coach_id) return;
-  const { data: coach } = await db.from("coach_profiles").select(COACH_COLUMNS).eq("id", program.default_lead_coach_id).maybeSingle();
+  const { data: coach } = await db.from("coach_profiles").select(COACH_COLUMNS).eq("id", program.default_lead_coach_id).eq("organization_id", program.organization_id).maybeSingle();
   if (!coach) return;
   const { error: insertError } = await db
     .from("session_staff")
