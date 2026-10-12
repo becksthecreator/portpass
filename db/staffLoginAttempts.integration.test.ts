@@ -4,13 +4,16 @@ import { clearStaffLoginFailures, recordStaffLoginFailure, staffLoginLocked } fr
 
 // The wrong-PIN counter against CI's local Supabase stack: five misses in
 // 15 minutes lock one account name in one staff area; older misses don't
-// count; a clear unlocks it; nothing but well-formed account names is stored.
+// count; a clear unlocks it; nothing but well-formed account names is stored;
+// and each miss reads back a count with itself in it, so misses recorded at
+// the same moment cannot all see fewer than five (audit finding 6).
 const db = () => createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!);
 const KEY = `test-delete-${crypto.randomUUID().slice(0, 8)}`;
 const OTHER = `test-delete-${crypto.randomUUID().slice(0, 8)}`;
+const BURST = `test-delete-${crypto.randomUUID().slice(0, 8)}`;
 
 afterAll(async () => {
-  await db().from("staff_login_attempts").delete().in("account_key", [KEY, OTHER]);
+  await db().from("staff_login_attempts").delete().in("account_key", [KEY, OTHER, BURST]);
 });
 
 describe("staff PIN lockout", () => {
@@ -43,6 +46,14 @@ describe("staff PIN lockout", () => {
     const { count } = await db().from("staff_login_attempts").select("id", { count: "exact", head: true }).in("account_key", [junk, "Robert'); drop table registrations;--"]);
     expect(count).toBe(0);
     expect(await staffLoginLocked("futprep", junk)).toBe(false);
+  });
+
+  it("reads back the count with each miss included, so a burst cannot all see fewer than five", async () => {
+    const counts = await Promise.all(Array.from({ length: 10 }, () => recordStaffLoginFailure("weddings", BURST)));
+    expect(counts.every((n) => Number.isInteger(n) && n >= 1 && n <= 10)).toBe(true);
+    expect(counts.filter((n) => n <= 5).length).toBeLessThanOrEqual(5);
+    expect(Math.max(...counts)).toBe(10);
+    expect(await recordStaffLoginFailure("weddings", "Not A Key")).toBe(0);
   });
 
   it("cannot be read or written by the browser roles", async () => {

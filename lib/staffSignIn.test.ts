@@ -2,21 +2,47 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The staff PIN sign-in limits (lib/staffSignIn.ts) with the attempt store
 // faked: a locked account is refused before the PIN is even checked, a
-// wrong PIN is counted, a right one clears the count, and one address gets
-// a bounded number of tries.
-const store = vi.hoisted(() => ({ failures: new Map<string, number>() }));
+// wrong PIN is counted, a right one clears the count, one address gets a
+// bounded number of tries, and a burst of guesses sent at once gets no
+// more than five to the PIN check. Each store call takes a round trip, as
+// the database does, so requests sent together interleave as they would.
+const store = vi.hoisted(() => ({
+  failures: new Map<string, number>(),
+  roundTrip: () => new Promise<void>((resolve) => setTimeout(resolve, 1)),
+  afterResponse: [] as Promise<unknown>[],
+}));
 
 vi.mock("@/db/staffLoginAttempts", () => ({
+  STAFF_LOGIN_MAX_FAILURES: 5,
   STAFF_LOGIN_WINDOW_MINUTES: 15,
-  staffLoginLocked: vi.fn(async (area: string, key: string) => (store.failures.get(`${area}:${key}`) ?? 0) >= 5),
+  staffLoginLocked: vi.fn(async (area: string, key: string) => {
+    await store.roundTrip();
+    return (store.failures.get(`${area}:${key}`) ?? 0) >= 5;
+  }),
   recordStaffLoginFailure: vi.fn(async (area: string, key: string) => {
+    await store.roundTrip();
     store.failures.set(`${area}:${key}`, (store.failures.get(`${area}:${key}`) ?? 0) + 1);
+    await store.roundTrip();
+    return store.failures.get(`${area}:${key}`) ?? 0;
   }),
   clearStaffLoginFailures: vi.fn(async (area: string, key: string) => {
+    await store.roundTrip();
     store.failures.delete(`${area}:${key}`);
   }),
 }));
 
+vi.mock("@/db/alerts", () => ({ recordFailedSignIn: vi.fn(async () => {}) }));
+
+// Work handed to run after the answer has gone, kept so a test can wait
+// for it and see that it was handed over rather than left running loose.
+vi.mock("@/lib/afterResponse", () => ({
+  afterResponse: vi.fn((work: () => Promise<unknown>) => {
+    store.afterResponse.push(work());
+  }),
+}));
+
+import { recordFailedSignIn } from "@/db/alerts";
+import { afterResponse } from "@/lib/afterResponse";
 import { staffSignIn } from "./staffSignIn";
 
 let address = 0;
@@ -34,7 +60,10 @@ const makeToken = vi.fn(async (accountKey: string, pin: string) => (pin === RIGH
 
 beforeEach(() => {
   store.failures.clear();
+  store.afterResponse.length = 0;
   makeToken.mockClear();
+  vi.mocked(afterResponse).mockClear();
+  vi.mocked(recordFailedSignIn).mockClear();
 });
 
 describe("staff PIN sign-in limits", () => {
@@ -58,6 +87,33 @@ describe("staff PIN sign-in limits", () => {
       expect((await locked.response.json()).error).toMatch(/Too many wrong attempts/);
     }
     expect(makeToken).not.toHaveBeenCalled();
+  });
+
+  it("lets at most five of a burst of wrong PINs sent at once reach the PIN check", async () => {
+    const burst = await Promise.all(Array.from({ length: 20 }, () => staffSignIn(attempt("bex", "000000"), "futprep", makeToken)));
+    expect(makeToken.mock.calls.length).toBeLessThanOrEqual(5);
+    const statuses = burst.map((result) => (result.ok ? 200 : result.response.status));
+    expect(statuses.filter((status) => status === 401).length).toBeLessThanOrEqual(5);
+    expect(statuses.every((status) => status === 401 || status === 429)).toBe(true);
+
+    makeToken.mockClear();
+    const after = await staffSignIn(attempt("bex", RIGHT_PIN), "futprep", makeToken);
+    expect(after.ok).toBe(false);
+    if (!after.ok) expect(after.response.status).toBe(429);
+    expect(makeToken).not.toHaveBeenCalled();
+  });
+
+  it("counts a wrong PIN for the failed sign-ins alert once the answer has gone, and a right one not at all", async () => {
+    await staffSignIn(attempt("bex", "000000", "203.0.113.20"), "futprep", makeToken);
+    expect(afterResponse).toHaveBeenCalledTimes(1);
+    await Promise.all(store.afterResponse);
+    expect(recordFailedSignIn).toHaveBeenCalledWith("pin_failed", "203.0.113.20");
+
+    vi.mocked(afterResponse).mockClear();
+    vi.mocked(recordFailedSignIn).mockClear();
+    expect((await staffSignIn(attempt("bex", RIGHT_PIN), "futprep", makeToken)).ok).toBe(true);
+    expect(afterResponse).not.toHaveBeenCalled();
+    expect(recordFailedSignIn).not.toHaveBeenCalled();
   });
 
   it("counts per account and per staff area", async () => {
