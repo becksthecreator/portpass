@@ -6,6 +6,7 @@ import { bookingLink } from "@/lib/bookingLink";
 import { CopyLinkButton } from "@/app/_components/CopyLinkButton";
 import { squareCropBox } from "@/lib/imageUpload";
 import { initialsOf } from "@/lib/team";
+import { missingForLogin } from "@/lib/futprepRoles";
 
 // Brief 16, C2: a coach photo is cropped to a centred square in the
 // browser and resampled to at most 1000px before upload, so nothing near
@@ -118,7 +119,9 @@ export function CoachTeamManager({initialCoaches,schemaReady}:{initialCoaches:Co
           {coach.active
             ? <><span className={coach.public_visible?"flag-on":"flag-off"}>{coach.public_visible?"Visible":"Hidden"}</span><span className={coach.bookable?"flag-on":"flag-off"}>{coach.bookable?"Bookable":"Not bookable"}</span></>
             : <span className="flag-off">Deleted</span>}
+          {coach.active&&coach.login&&missingForLogin(coach.login).map((missing)=><span key={missing} className="flag-missing">{missing}</span>)}
         </div>
+        {coach.active&&coach.login?.linked&&<p className="team-login-status">Staff login: {coach.login.staffName}{coach.login.role?` (${coach.login.role})`:""}. Set the email and PIN in <a href="/futprep/staff/accounts">Staff accounts</a>.</p>}
         <div className="team-manager-actions">
           {coach.active ? <>
             <button disabled={!schemaReady||uploadingId!==null} onClick={()=>action({action:"save",id:coach.id,displayName:coach.display_name,slug:coach.slug,positionTitle:coach.position_title,memberType:coach.member_type,bio:coach.bio,licenses:coach.licenses.join(", "),playedAt:coach.played_at.join(", "),favoritePlayer:coach.favorite_player??"",favoriteTeam:coach.favorite_team??"",introVideoUrl:coach.intro_video_url??"",testimonialQuote:coach.testimonial_quote??"",testimonialName:coach.testimonial_name??"",publicVisible:!coach.public_visible,bookable:coach.bookable,sortOrder:coach.sort_order})}>{coach.public_visible?"Hide":"Unhide"}</button>

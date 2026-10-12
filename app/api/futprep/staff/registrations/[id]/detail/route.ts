@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { currentFutprepStaffRole, currentFutprepStaffName } from "@/app/futprep/staff-auth";
+import { currentFutprepStaffCanViewMedical, currentFutprepStaffRole, currentFutprepStaffName } from "@/app/futprep/staff-auth";
+import { withoutHealthInput } from "@/lib/futprepRoles";
 import { updateFutprepRegistrationDetail, type FutprepRegistrationDetailInput } from "@/db/staff";
 
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -12,7 +13,10 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   const registrationId = Number(id);
   if (!Number.isInteger(registrationId)) return NextResponse.json({ error: "Invalid registration." }, { status: 400 });
 
-  const body = await request.json().catch(() => ({})) as FutprepRegistrationDetailInput;
+  const sent = await request.json().catch(() => ({})) as FutprepRegistrationDetailInput;
+  // Brief 31 (A1): a login that may not see the health fields never
+  // changes them, whatever the request carries.
+  const body = (await currentFutprepStaffCanViewMedical()) ? sent : withoutHealthInput(sent);
   const staffName = (await currentFutprepStaffName()) ?? role;
 
   try {

@@ -26,7 +26,7 @@ The live site publishes `/.well-known/security.txt` (RFC 9116: a contact for any
 | Customer (a parent, a buyer) | Email code or Google (Supabase Auth) | 30 days since the last visit, renewed on each visit; absolute limit set in Supabase (below) | None | `/account`, their own bookings and the Member Pass |
 | Business owner or staff with a PortPass account | The same | The same | None for their own business. Entering another business through the platform role needs the admin second step | `/business/<slug>/…`, their business only |
 | Platform owner or admin (the founders) | The same, plus an authenticator app (TOTP) | The sign-in as above; the admin window is 12 hours after the last code | Always. There is no grace period: `/admin` and the platform door to any business open only to a session at AAL2 with a code entered in the last 12 hours (`lib/auth/admin.ts`). A platform account with no authenticator yet is sent to set one up before anything opens | `/admin`, every business |
-| Futprep and Wedding Desk staff | Account name and PIN (6 digits or more) | 8 hours, signed server-side; a changed PIN ends every session on the account | None | Their staff screens only |
+| Futprep and Wedding Desk staff | Account name and PIN (6 digits or more) | 8 hours, signed server-side; a changed PIN ends every session on the account | None | Their staff screens only. A Futprep staff login can be *marked* as the owner, but that only asks: the owner membership on PortPass is given by a founder in Admin → People, past the admin second step, and taken back when the mark moves, the login is switched off or its email changes (`db/futprepOwner.ts`, brief 31) |
 
 ### The sign-in rules the code enforces
 

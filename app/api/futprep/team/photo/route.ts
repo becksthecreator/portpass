@@ -31,7 +31,7 @@ function coachIdFrom(value: unknown): number | null {
 // The refreshed team list for the page; a failed re-read must not turn a
 // photo change that already saved into an error.
 async function teamList() {
-  return listAllCoachProfiles().then((result) => result.coaches).catch(() => undefined);
+  return listAllCoachProfiles({ withLogin: true }).then((result) => result.coaches).catch(() => undefined);
 }
 
 // Deletes the file a photo URL points at only when this route put it there:

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { logAudit } from "@/db/audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "@/db/supabase";
+import { canSeeMedical } from "@/lib/futprepRoles";
 import { burnPinCheck, hashPin, verifyPin } from "@/lib/pinHash";
 import { issueStaffToken, readStaffToken, staffTokenValid } from "@/lib/staffSession";
 
@@ -25,7 +26,16 @@ export type FutprepStaffAccountRecord = {
   // Where the Saturday "mark attendance" reminder and the monthly growth
   // report are sent (brief 05). Optional.
   email: string | null;
+  // Brief 31 (A): an admin login sees a child's medical details only with
+  // this on (the CEO login always does); and the one login marked owner.
+  canViewMedical: boolean;
+  isOwner: boolean;
 };
+
+// A staff row with no login yet (brief 31, A3): a coach or teammate an
+// admin can give an account name and a starting PIN to, so the person keeps
+// one row instead of a second one being created for them.
+export type FutprepStaffWithoutLogin = { id: number; name: string; role: string; email: string | null };
 
 // New and changed PINs are six digits or more (round 4, item 10). Existing
 // shorter PINs keep working until their owner changes them.
@@ -40,7 +50,7 @@ function isFutprepStaffRole(value: string): value is FutprepStaffRole {
   return (FUTPREP_STAFF_ROLES as string[]).includes(value);
 }
 
-type CachedAccount = { id: number; name: string; role: FutprepStaffRole; pinHash: string; active: boolean };
+type CachedAccount = { id: number; name: string; role: FutprepStaffRole; pinHash: string; active: boolean; canViewMedical: boolean };
 
 // Account + role + PIN hash live in Supabase (staff_members) rather than
 // Vercel env vars or hardcoded literals, so staff can be added/removed
@@ -54,7 +64,7 @@ async function loadAccounts(): Promise<Map<string, CachedAccount>> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("staff_members")
-    .select("id, name, role, account_key, pin_hash, active")
+    .select("id, name, role, account_key, pin_hash, active, can_view_medical")
     .eq("organization_id", FUTPREP_ORG_ID)
     .not("account_key", "is", null)
     .not("pin_hash", "is", null);
@@ -67,7 +77,7 @@ async function loadAccounts(): Promise<Map<string, CachedAccount>> {
     const role = row.role as string | null;
     const hash = row.pin_hash as string | null;
     if (key && hash && role && isFutprepStaffRole(role)) {
-      map.set(key, { id: Number(row.id), name: row.name as string, role, pinHash: hash, active: Boolean(row.active) });
+      map.set(key, { id: Number(row.id), name: row.name as string, role, pinHash: hash, active: Boolean(row.active), canViewMedical: Boolean(row.can_view_medical) });
     }
   }
 
@@ -171,6 +181,26 @@ export async function currentFutprepStaffName(): Promise<string | null> {
   if (!accountKey) return null;
   const account = await accountByKey(accountKey);
   return account?.name ?? null;
+}
+
+// Brief 31 (A): whether the signed-in login may see a child's medical
+// details (lib/futprepRoles.ts canSeeMedical). The switch is read from the
+// database every time, not from the 30-second account cache, so turning it
+// off takes effect at once on every server.
+export async function currentFutprepStaffCanViewMedical(): Promise<boolean> {
+  const accountKey = await currentFutprepStaffAccount();
+  if (!accountKey) return false;
+  const account = await accountByKey(accountKey);
+  if (!account) return false;
+  if (account.role === "ceo") return true;
+  const { data, error } = await getSupabaseAdmin()
+    .from("staff_members")
+    .select("can_view_medical,active")
+    .eq("organization_id", FUTPREP_ORG_ID)
+    .eq("account_key", accountKey)
+    .maybeSingle();
+  if (error || !data?.active) return false;
+  return canSeeMedical(account.role, Boolean(data.can_view_medical));
 }
 
 export function canManageFutprepTeam(role: FutprepStaffRole) {
@@ -280,40 +310,102 @@ export async function createStaffAccount(input: {
       active: true,
       created_at: now,
     })
-    .select("id,name,role,account_key,active,pin_changed_at,email")
+    .select("id,name,role,account_key,active,pin_changed_at,email,can_view_medical,is_owner")
     .single();
   throwIfSupabaseError(error, "Could not create staff account");
   if (!data) throw new Error("Could not create staff account");
 
   invalidateAccountCache();
-  return { id: Number(data.id), name: data.name, accountKey: data.account_key, role: data.role as FutprepStaffRole, active: Boolean(data.active), pinChangedAt: (data.pin_changed_at as string | null) ?? null, email: (data.email as string | null) ?? null };
+  return toAccountRecord(data);
+}
+
+function toAccountRecord(row: Record<string, unknown>): FutprepStaffAccountRecord {
+  return {
+    id: Number(row.id),
+    name: row.name as string,
+    accountKey: row.account_key as string,
+    role: row.role as FutprepStaffRole,
+    active: Boolean(row.active),
+    pinChangedAt: (row.pin_changed_at as string | null) ?? null,
+    email: (row.email as string | null) ?? null,
+    canViewMedical: Boolean(row.can_view_medical),
+    isOwner: Boolean(row.is_owner),
+  };
 }
 
 export async function listStaffAccounts(): Promise<FutprepStaffAccountRecord[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("staff_members")
-    .select("id,name,role,account_key,active,pin_changed_at,email")
+    .select("id,name,role,account_key,active,pin_changed_at,email,can_view_medical,is_owner")
     .eq("organization_id", FUTPREP_ORG_ID)
     .not("account_key", "is", null)
     .order("active", { ascending: false })
     .order("name", { ascending: true });
   throwIfSupabaseError(error, "Could not load staff accounts");
-  return (data ?? [])
-    .filter((row) => row.role && isFutprepStaffRole(row.role))
-    .map((row) => ({ id: Number(row.id), name: row.name, accountKey: row.account_key as string, role: row.role as FutprepStaffRole, active: Boolean(row.active), pinChangedAt: (row.pin_changed_at as string | null) ?? null, email: (row.email as string | null) ?? null }));
+  return (data ?? []).filter((row) => row.role && isFutprepStaffRole(row.role)).map(toAccountRecord);
 }
 
-// The email address reminders go to. null clears it.
-export async function setStaffAccountEmail(id: number, email: string | null) {
-  const supabase = getSupabaseAdmin();
-  const { error } = await supabase
+// Active staff rows with no login yet (brief 31, A3), oldest first.
+export async function listStaffWithoutLogin(): Promise<FutprepStaffWithoutLogin[]> {
+  const { data, error } = await getSupabaseAdmin()
     .from("staff_members")
-    .update({ email })
+    .select("id,name,role,email")
+    .eq("organization_id", FUTPREP_ORG_ID)
+    .eq("active", true)
+    .is("account_key", null)
+    .order("id", { ascending: true });
+  throwIfSupabaseError(error, "Could not load staff without a login");
+  return (data ?? []).map((row) => ({ id: Number(row.id), name: row.name as string, role: row.role as string, email: (row.email as string | null) ?? null }));
+}
+
+// Gives an existing staff row (one with no login) an account name, a role
+// and a starting PIN, which they change after first sign-in (the same
+// flow as a new account). Never touches a row that already has a login.
+export async function assignStaffLogin(input: { id: number; accountKey: string; role: FutprepStaffRole; pin: string; actorName: string }): Promise<FutprepStaffAccountRecord> {
+  const accountKey = input.accountKey.trim().toLowerCase();
+  if (!ACCOUNT_KEY_PATTERN.test(accountKey)) throw new Error("INVALID_ACCOUNT_KEY");
+  if (!isFutprepStaffRole(input.role)) throw new Error("INVALID_ROLE");
+  if (!PIN_PATTERN.test(input.pin)) throw new Error("INVALID_PIN");
+  const supabase = getSupabaseAdmin();
+  const { data: taken, error: takenError } = await supabase.from("staff_members").select("id").eq("account_key", accountKey).maybeSingle();
+  throwIfSupabaseError(takenError, "Could not check account name");
+  if (taken) throw new Error("ACCOUNT_KEY_TAKEN");
+  const { data, error } = await supabase
+    .from("staff_members")
+    // A new login starts without the medical view, whatever the row had.
+    .update({ account_key: accountKey, role: input.role, pin_hash: await hashPin(input.pin), pin_changed_at: null, can_view_medical: false })
+    .eq("id", input.id)
+    .eq("organization_id", FUTPREP_ORG_ID)
+    .eq("active", true)
+    .is("account_key", null)
+    .select("id,name,role,account_key,active,pin_changed_at,email,can_view_medical,is_owner")
+    .maybeSingle();
+  if (error?.code === "23505") throw new Error("ACCOUNT_KEY_TAKEN");
+  throwIfSupabaseError(error, "Could not give the login");
+  if (!data) throw new Error("ROW_NOT_FOUND");
+  invalidateAccountCache();
+  await logAudit({ organizationId: FUTPREP_ORG_ID, action: "staff.login_given", targetTable: "staff_members", targetId: input.id, after: { account_key: accountKey, role: input.role, by: input.actorName } });
+  return toAccountRecord(data);
+}
+
+// Brief 31 (A): an admin login's medical view, switched by the owner.
+// Who may see children's medical details must not change without a
+// record, so a failed audit write fails the switch.
+export async function setStaffCanViewMedical(id: number, canViewMedical: boolean, actorName: string) {
+  const { error } = await getSupabaseAdmin()
+    .from("staff_members")
+    .update({ can_view_medical: canViewMedical })
     .eq("id", id)
     .eq("organization_id", FUTPREP_ORG_ID);
   throwIfSupabaseError(error, "Could not update staff account");
+  invalidateAccountCache();
+  await logAudit({ organizationId: FUTPREP_ORG_ID, action: "staff.medical_view_changed", targetTable: "staff_members", targetId: id, after: { can_view_medical: canViewMedical, by: actorName } });
 }
+
+// The email address reminders go to is set through
+// db/futprepOwner.ts setFutprepStaffEmail (brief 31), which takes back any
+// owner access given from the login in the same transaction.
 
 export async function setStaffAccountActive(id: number, active: boolean) {
   const supabase = getSupabaseAdmin();

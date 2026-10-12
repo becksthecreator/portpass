@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { setSellerPlan } from "@/db/marketOrders";
 import { suspendSeller, unsuspendSeller, verifySeller } from "@/db/marketSellers";
 import { bodyOf, readJson } from "@/lib/api/body";
 import { requireAdminApi } from "@/lib/auth/admin";
@@ -25,7 +26,9 @@ const ERRORS: Record<string, [number, string]> = {
 
 // Admin -> Market -> Sellers (brief 25, A5): verify ("Made in The
 // Bahamas"), suspend with a reason, or lift a suspension (back to the
-// queue). Platform owners only, after the admin second step.
+// queue); and (part C) put a seller on the Seller plan or take them off
+// it, which decides whether the monthly plan fee is billed. Platform
+// owners only, after the admin second step.
 export async function PATCH(request: Request, ctx: Ctx) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
@@ -47,6 +50,10 @@ export async function PATCH(request: Request, ctx: Ctx) {
     }
     if (action === "unsuspend") {
       await unsuspendSeller(orgId, auth.session.userId);
+      return NextResponse.json({ ok: true });
+    }
+    if (action === "plan_on" || action === "plan_off") {
+      await setSellerPlan(orgId, action === "plan_on", auth.session.userId);
       return NextResponse.json({ ok: true });
     }
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });

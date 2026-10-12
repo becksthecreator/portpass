@@ -5,12 +5,13 @@ import { listAllCoachProfiles } from "@/db/coaches";
 import { CoachTeamManager } from "./CoachTeamManager";
 import { StaffLogoutButton } from "../StaffLogoutButton";
 import "../../coaches/booking-days.css";
+import "../coaches.css";
 
 export const dynamic="force-dynamic";
 
 export default async function FutprepTeamPage(){
   const role=await requireFutprepStaff(["admin","ceo"],"/futprep/staff/team");
-  const {schemaReady,coaches}=await listAllCoachProfiles();
+  const {schemaReady,coaches}=await listAllCoachProfiles({withLogin:true});
   return <main className="staff-workspace theme-night">
     <header className="staff-workspace-header">
       <div><Link className="brand" href="/"><BrandLogo /></Link><span className="staff-workspace-label">Futprep · Team management</span></div>

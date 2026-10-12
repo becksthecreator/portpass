@@ -1,6 +1,6 @@
 import { logAudit } from "./audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
-import { canViewMedical, ORG_ROLES, upsertMembership, type OrgRole, type PlatformRole } from "./accounts";
+import { canViewMedical, forgetFutprepOwnerGrant, ORG_ROLES, upsertMembership, type OrgRole, type PlatformRole } from "./accounts";
 
 // Every account as the Control Center lists it (28 Sept brief, 1.5): who
 // they are, when they were last seen, and what they belong to. Emails
@@ -88,6 +88,7 @@ export async function setMemberRole(organizationId: number, userId: string, role
     await getSupabaseAdmin().from("organization_members").update({ role: "org_owner", can_view_medical: current.canViewMedical }).eq("organization_id", organizationId).eq("user_id", userId);
     throw new Error("LAST_OWNER");
   }
+  await forgetFutprepOwnerGrant(organizationId, userId);
   await logAudit({ actorUserId, organizationId, action: "member.role_changed", targetTable: "organization_members", targetId: userId, before: { role: current.role, can_view_medical: canViewMedical(current) }, after: { role, can_view_medical: canViewMedical({ role, canViewMedical: flag }) } });
 }
 

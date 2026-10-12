@@ -25,11 +25,15 @@ const OWNER_ONLY = [
   "registrations", "reservations", "session_plans", "session_staff", "sessions", "shops", "staff_members", "staff_work_logs",
   "wedding_lead_notes", "wedding_leads", "wedding_site_settings",
   "wedding_unavailable_dates",
+  // PortPass Market (brief 25): a Market order's lines, and the views over orders.
+  "order_items", "orders", "market_products", "market_things_to_do",
 ];
 const PLATFORM_ONLY = [
   "admin_links", "applications", "billing_accounts", "billing_events", "billing_reminders", "commission_plans", "interest_submissions", "job_runs", "leads",
   "organization_claim_links", "portpass_invoice_counters", "portpass_invoice_lines", "portpass_invoices", "portpass_receipts", "scout_lookups", "site_content",
   "site_errors", "sponsors", "staff_login_attempts",
+  // PortPass Market (brief 25): the seller plan price, the commission rate.
+  "market_settings",
 ];
 // Each with the columns a browser may read, and a row test the migration states.
 const PUBLIC_READ = [

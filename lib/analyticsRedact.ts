@@ -24,6 +24,9 @@ export function redactAnalyticsUrl(url: string): string | null {
     if (/^\/weddings\/(admin|staff)(\/|$)/.test(path)) return null;
     path = path.replace(/^\/futprep\/my\/[^/]+/, "/futprep/my/[code]");
     path = path.replace(/^\/futprep\/register\/return\/[^/]+/, "/futprep/register/return/[token]");
+    // A Market order's code and a payment request's token are keys.
+    path = path.replace(/^\/order\/[^/]+/, "/order/[code]");
+    path = path.replace(/^\/pay\/[^/]+/, "/pay/[token]");
     const kept: string[] = [];
     const allowed = ["utm_source", "utm_medium", "utm_campaign", "source"];
     for (let i = 0; i < allowed.length; i += 1) {
