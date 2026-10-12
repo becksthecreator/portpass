@@ -1,12 +1,17 @@
 import { createClient } from "@supabase/supabase-js";
 import { randomInt } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { hasAnyWeddingStaffAccount } from "@/app/weddings/staff-auth";
 import { hashPin } from "@/lib/pinHash";
 import { POST } from "./route";
 
+// The founder check (part D, route.test.ts) is passed here: this file is
+// about the rule that once a login has been made, the door stays shut even
+// for a founder.
+vi.mock("@/lib/auth/admin", () => ({ requireAdminApi: async () => ({ ok: true, session: { userId: "test-founder" } }) }));
+
 // Audit finding 9 (PR #198), the Wedding Desk's copy: its "create the first
-// account" door needs no sign-in, so it must stay shut once any Wedding
+// account" door comes before any staff login, so it must stay shut once any Wedding
 // Desk login has ever been made, even with every login switched off. Every
 // login switched on in the wedding organisation is switched off for this
 // file and those exact rows switched back on after; the TEST rows are

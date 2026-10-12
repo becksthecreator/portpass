@@ -1,5 +1,6 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
+import { requireAdmin } from "@/lib/auth/admin";
 import { hasAnyWeddingStaffAccount } from "../../staff-auth";
 import { StaffLoginForm } from "./StaffLoginForm";
 import { BootstrapAdminForm } from "./BootstrapAdminForm";
@@ -16,6 +17,9 @@ export default async function WeddingStaffLoginPage({
       : "/weddings/admin";
 
   const hasAccount = await hasAnyWeddingStaffAccount();
+  // No login yet: the setup form is for a signed-in PortPass founder only;
+  // anyone else is sent to sign in, never shown it (audit finding 9).
+  if (!hasAccount) await requireAdmin("/weddings/staff/login");
 
   return (
     <main className="theme-night staff-login-page">
