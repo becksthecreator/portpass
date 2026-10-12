@@ -142,16 +142,24 @@ function str(body: Record<string, unknown>, key: string, max: number): string {
 // An email address with nothing that could reach a database filter.
 const EMAIL = /^[A-Za-z0-9._%+'-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 // A name as the seller's email and list show it: letters, spaces,
-// apostrophes and hyphens only, so nobody can put a web address or a
-// message into someone else's inbox through the order form.
-const NAME = /^[\p{L}\p{M}' -]+$/u;
+// apostrophes (a phone's curly ones too), hyphens and a full stop that ends
+// a word ("St. Clair", "Jr."), so nobody can put a web address or a message
+// into someone else's inbox through the order form: a dot followed by a
+// letter ("evil.example") is refused.
+const NAME = /^[\p{L}\p{M}'‘’. -]+$/u;
+const DOT_INSIDE_A_WORD = /\.[\p{L}\p{M}]/u;
+
+// The name as it is kept: one kind of apostrophe, single spaces.
+function cleanName(raw: string): string {
+  return raw.replace(/[‘’]/g, "'").replace(/\s+/g, " ").trim();
+}
 
 // One Market order holds this many items at most, and one buyer may have
 // this many unpaid orders waiting with one seller: enough for a family's
 // kit, too few for anyone to empty a seller's stock with orders they never
 // mean to pay.
 export const MAX_ORDER_UNITS = 10;
-export const MAX_OPEN_ORDERS_PER_BUYER = 3;
+export const MAX_OPEN_ORDERS_PER_BUYER = 5;
 
 export function parseOrderInput(body: Record<string, unknown>): Parsed<OrderInput> {
   const items = Array.isArray(body.items)
@@ -163,9 +171,10 @@ export function parseOrderInput(body: Record<string, unknown>): Parsed<OrderInpu
   if (!items.length) return { ok: false, error: "Pick at least one size." };
   const units = items.reduce((sum, line) => sum + (Number.isFinite(line.qty) ? line.qty : 0), 0);
   if (units > MAX_ORDER_UNITS) return { ok: false, error: `One order can hold up to ${MAX_ORDER_UNITS} items. Message the seller for more.` };
-  const buyerName = str(body, "buyerName", 60).replace(/\s+/g, " ");
-  if (!buyerName) return { ok: false, error: "Enter your name." };
-  if (!NAME.test(buyerName)) return { ok: false, error: "Enter your name in letters only." };
+  const rawName = str(body, "buyerName", 60);
+  if (!rawName) return { ok: false, error: "Enter your name." };
+  if (!NAME.test(rawName) || DOT_INSIDE_A_WORD.test(rawName)) return { ok: false, error: "Enter your name in letters only." };
+  const buyerName = cleanName(rawName);
   const buyerPhone = normalizePhoneE164(str(body, "buyerPhone", 40));
   if (!buyerPhone) return { ok: false, error: "Enter a phone or WhatsApp number the seller can reach you on." };
   const buyerEmail = str(body, "buyerEmail", 180);
@@ -396,6 +405,9 @@ export type ListedOrder = {
   collectedAt: string | null;
   deliveredAt: string | null;
   cancelledAt: string | null;
+  // The open payment request's page token (the seller's list only; never on
+  // the buyer's /order page or in a spreadsheet).
+  payToken: string | null;
 };
 
 function csv(lines: (string | number | null)[][]): string {
@@ -464,7 +476,9 @@ export function buildCommissionCsv(month: string, sellerName: string, orders: Co
 }
 
 // The seller taps this to message the buyer; nothing is sent for them.
-export function buyerWhatsappText(order: { referenceCode: string; buyerName: string }, sellerName: string): string {
+// With the payment page while the order is unpaid, for a buyer whose email
+// didn't arrive.
+export function buyerWhatsappText(order: { referenceCode: string; buyerName: string }, sellerName: string, payUrl: string | null = null): string {
   const first = order.buyerName.trim().split(/\s+/)[0] ?? "";
-  return `Hi ${first}, about your PortPass order ${order.referenceCode} from ${sellerName}: `;
+  return `Hi ${first}, about your PortPass order ${order.referenceCode} from ${sellerName}: ${payUrl ? `how to pay is here: ${payUrl} ` : ""}`;
 }

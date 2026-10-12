@@ -181,7 +181,7 @@ export function OrdersBoard(props: { orgId: number; orgName: string; holdHours: 
                         {ORDER_ACTION_LABEL[action]}
                       </button>
                     ))}
-                    <a className="seller-wa" href={whatsappHref(o.buyerPhone, buyerWhatsappText(o, props.orgName))} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                    <a className="seller-wa" href={whatsappHref(o.buyerPhone, buyerWhatsappText(o, props.orgName, o.payToken && !o.paid && typeof window !== "undefined" ? `${window.location.origin}/pay/${o.payToken}` : null))} target="_blank" rel="noopener noreferrer">WhatsApp</a>
                     {actions.includes("cancel") && (
                       <details className="seller-more">
                         <summary>More</summary>

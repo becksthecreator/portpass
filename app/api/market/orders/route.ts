@@ -5,7 +5,7 @@ import { placeMarketOrder, tellSellerAboutOrder } from "@/db/marketOrders";
 import { afterResponse } from "@/lib/afterResponse";
 import { bodyOf, readJson } from "@/lib/api/body";
 import { parseAttributionCookie, shopAttributionCookie } from "@/lib/attribution";
-import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
+import { clientIp, createRateLimiter, createSuccessLimiter } from "@/lib/auth/rateLimit";
 import { parseOrderInput } from "@/lib/market/orders";
 import { soldOutMessage, type CatalogueVariant } from "@/lib/shop/rules";
 
@@ -19,10 +19,12 @@ import { soldOutMessage, type CatalogueVariant } from "@/lib/shop/rules";
 // to pay the seller directly, and the seller's owners are told.
 
 // Each order holds stock and sends two emails, so it is limited per
-// address, per buyer email and per address for each seller.
+// address (every try), and per buyer email and per address for each seller
+// (orders placed: a sold-out or refused try doesn't use up the allowance,
+// and an order is one product, so a family's kit is several orders).
 const limited = createRateLimiter(6, 60_000);
-const perEmail = createRateLimiter(3, 60 * 60_000);
-const perSeller = createRateLimiter(3, 10 * 60_000);
+const perEmail = createSuccessLimiter(6, 60 * 60_000);
+const perSeller = createSuccessLimiter(6, 10 * 60_000);
 
 // As loose as the slugs lib/slug.ts makes; the lookup is parameterised.
 const SLUG = /^[a-z0-9-]{1,80}$/;
@@ -57,7 +59,9 @@ export async function POST(request: NextRequest) {
 
   const parsed = parseOrderInput(body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
-  if (perEmail(parsed.value.buyerEmail) || perSeller(`${clientIp(request)}|${orgSlug}`)) {
+  const emailKey = parsed.value.buyerEmail;
+  const sellerKey = `${clientIp(request)}|${orgSlug}`;
+  if (perEmail.blocked(emailKey) || perSeller.blocked(sellerKey)) {
     return NextResponse.json({ error: "You've placed a few orders already. Give it a little while, or message the seller." }, { status: 429 });
   }
 
@@ -65,6 +69,8 @@ export async function POST(request: NextRequest) {
   const origin = new URL(request.url).origin;
   try {
     const placed = await placeMarketOrder({ org: page.org, shop: page.shop, product: page.product, drops: page.drops, input: parsed.value, attribution, origin });
+    perEmail.record(emailKey);
+    perSeller.record(sellerKey);
     afterResponse(() => tellSellerAboutOrder(page.org.id, placed.id, origin, placed.emailed).catch((error) => console.error("market order: seller email", error instanceof Error ? error.message : "")));
     return NextResponse.json({ referenceCode: placed.referenceCode, orderUrl: `/order/${placed.referenceCode}`, holdUntil: placed.holdUntil, emailed: placed.emailed }, { status: 201 });
   } catch (error) {

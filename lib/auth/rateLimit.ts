@@ -42,3 +42,20 @@ export function createRateLimiterWithRetry(max: number, windowMs: number) {
 export function clientIp(request: Request): string {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 }
+
+// Counts only what went through: `blocked` looks without counting, and
+// `record` counts once the thing has happened. For a form where a refused
+// try (sold out, a wrong choice) must not use up the person's allowance.
+export function createSuccessLimiter(max: number, windowMs: number) {
+  const hits = new Map<string, number[]>();
+  const recent = (key: string, now: number) => (hits.get(key) ?? []).filter((at) => at > now - windowMs);
+  return {
+    blocked(key: string): boolean {
+      return recent(key, Date.now()).length >= max;
+    },
+    record(key: string): void {
+      const now = Date.now();
+      hits.set(key, [...recent(key, now), now]);
+    },
+  };
+}

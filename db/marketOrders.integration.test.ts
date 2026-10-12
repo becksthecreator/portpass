@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { nassauToday } from "@/lib/futprepTerms";
-import { DEFAULT_MARKET_SETTINGS, monthOf, nextMonth, type OrderInput } from "@/lib/market/orders";
+import { DEFAULT_MARKET_SETTINGS, MAX_OPEN_ORDERS_PER_BUYER, monthOf, nextMonth, type OrderInput } from "@/lib/market/orders";
 import { draftMarketInvoice } from "./billing";
 import { getMarketProduct } from "./market";
 import { updateReservation } from "./shop";
@@ -140,7 +140,7 @@ describe("placing an order", () => {
 
   it("never sells around a drop: a product in a drop that is coming up is reserved there", async () => {
     const opens = new Date(Date.now() + 2 * 86_400_000).toISOString();
-    const { data: drop, error } = await admin.from("drops").insert({ organization_id: orgId, slug: `test-drop-${tag}`, title: "TEST — delete drop", opens_at: opens, status: "published", allow_pickup: true }).select("id").single();
+    const { data: drop, error } = await admin.from("drops").insert({ organization_id: orgId, slug: `test-drop-${tag}`, title: "TEST — delete drop", opens_at: opens, ready_on: opens.slice(0, 10), status: "published", allow_pickup: true }).select("id").single();
     if (error || !drop) throw new Error(`could not seed a drop: ${error?.message}`);
     const { data: product } = await admin.from("products").select("id").eq("organization_id", orgId).eq("slug", "kit").single();
     await admin.from("drop_items").insert({ drop_id: drop.id, product_id: product!.id, sort_order: 0 });
@@ -227,9 +227,9 @@ describe("the seller's steps", () => {
 });
 
 describe("one buyer's open orders", () => {
-  it("lets a buyer hold at most three unpaid orders with one seller", async () => {
+  it("lets a buyer hold only so many unpaid orders with one seller", async () => {
     const open = (await listSellerOrders(orgId)).filter((o) => o.status !== "cancelled" && !o.paid).length;
-    for (let i = open; i < 3; i += 1) await place({ items: [{ variantId: large, qty: 1 }] });
+    for (let i = open; i < MAX_OPEN_ORDERS_PER_BUYER; i += 1) await place({ items: [{ variantId: large, qty: 1 }] });
     await expect(place({ items: [{ variantId: large, qty: 1 }] })).rejects.toThrow("TOO_MANY_OPEN");
     // Another buyer is not held back.
     await expect(place({ items: [{ variantId: large, qty: 1 }], buyerEmail: `test-other-buyer-${tag}@example.com`, buyerPhone: "+12425550164" })).resolves.toMatchObject({ totalCents: 3500 });
@@ -269,13 +269,18 @@ describe("PortPass's Market fees", () => {
     const { data: invoices } = await admin.from("portpass_invoices").select("id,total_cents,period_start").eq("organization_id", orgId).eq("kind", "market").eq("period_start", `${month}-01`);
     expect(invoices).toHaveLength(1);
     expect(invoices![0].total_cents).toBe(3460);
-    const { data: charged } = await admin.from("reservations").select("reference_code").eq("organization_id", orgId).eq("market_invoice_id", invoices![0].id);
+    const { data: charged } = await admin.from("reservations").select("id,reference_code").eq("organization_id", orgId).eq("market_invoice_id", invoices![0].id);
     expect(charged).toHaveLength(1);
-    // Asked again (the next day), the commission is not counted twice.
+    // The month keeps its own numbers after invoicing.
     const again = (await marketFeesForMonth(month, live)).find((r) => r.organizationId === orgId);
-    expect(again?.fees.commissionCents).toBe(0);
+    expect(again?.fees.commissionCents).toBe(560);
+    // Run again the next day: still one invoice.
     await runMarketFees(`${nextMonth(month)}-02`, { settings: live });
     const { count } = await admin.from("portpass_invoices").select("id", { count: "exact", head: true }).eq("organization_id", orgId).eq("kind", "market").eq("period_start", `${month}-01`);
     expect(count).toBe(1);
+    // Paid again next month (after a refund, say): never charged a second time.
+    await admin.from("reservations").update({ paid_at: `${nextMonth(month)}-15T16:00:00.000Z` }).eq("id", charged![0].id);
+    const later = (await marketFeesForMonth(nextMonth(month), live)).find((r) => r.organizationId === orgId);
+    expect(later?.fees.commissionCents ?? 0).toBe(0);
   });
 });

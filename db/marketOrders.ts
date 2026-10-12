@@ -109,6 +109,7 @@ function toOrder(row: Record<string, unknown>): ListedOrder {
     collectedAt: stamp("collected_at"),
     deliveredAt: stamp("delivered_at"),
     cancelledAt: stamp("cancelled_at"),
+    payToken: null,
   };
 }
 
@@ -379,6 +380,8 @@ export async function getPublicOrder(code: string): Promise<PublicOrder | null> 
 // ---- the seller's orders ---------------------------------------------------------------
 
 // Newest first; the 2,000 most recent (PostgREST answers 1,000 a page).
+// Each carries its payment request's page token while the request is open,
+// so the seller's WhatsApp to the buyer can include how to pay.
 export async function listSellerOrders(orgId: number): Promise<ListedOrder[]> {
   const out: ListedOrder[] = [];
   for (let from = 0; from < 2000; from += 1000) {
@@ -387,7 +390,14 @@ export async function listSellerOrders(orgId: number): Promise<ListedOrder[]> {
     out.push(...(data ?? []).map(toOrder));
     if ((data ?? []).length < 1000) break;
   }
-  return out;
+  const requestIds = out.filter((o) => o.paymentRequestId !== null && !o.paid && o.status !== "cancelled").map((o) => o.paymentRequestId!);
+  const tokens = new Map<number, string>();
+  for (let i = 0; i < requestIds.length; i += 200) {
+    const { data, error } = await db().from("payment_requests").select("id,public_token").eq("organization_id", orgId).in("id", requestIds.slice(i, i + 200)).in("status", ["draft", "sent", "part_paid"]);
+    throwIfSupabaseError(error, "Could not load the payment requests");
+    for (const row of data ?? []) tokens.set(Number(row.id), row.public_token as string);
+  }
+  return out.map((o) => ({ ...o, payToken: o.paymentRequestId === null ? null : (tokens.get(o.paymentRequestId) ?? null) }));
 }
 
 export async function getSellerOrder(orgId: number, orderId: number): Promise<ListedOrder | null> {
@@ -566,11 +576,16 @@ export async function marketFeesForMonth(month: string, settings: MarketSettings
     allPages((lo, hi) => db().from("reservations").select("id,organization_id,reference_code,paid_at,subtotal_cents,total_cents,commission_reason,market_invoice_id").eq("kind", "order").eq("commission_eligible", true).eq("payment_status", "paid").gte("paid_at", from).lt("paid_at", until).order("paid_at", { ascending: true }).order("id", { ascending: true }).range(lo, hi), "Could not load the paid orders"),
   ]);
   const invoiced = await standingInvoices(paid.map((row) => row.market_invoice_id));
+  const monthStart = monthBounds(month).start;
   const onPlan = new Set(plans.map((row) => Number(row.organization_id)));
   const ordersBy = new Map<number, CommissionableOrder[]>();
   const idsBy = new Map<number, number[]>();
   for (const row of paid) {
-    if (row.market_invoice_id !== null && invoiced.has(Number(row.market_invoice_id))) continue;
+    // Charged already on another month's standing invoice (paid again after
+    // a refund): never twice. This month's own invoice keeps its orders, so
+    // its numbers and its CSV still show them.
+    const chargedFor = row.market_invoice_id === null ? undefined : invoiced.get(Number(row.market_invoice_id));
+    if (chargedFor !== undefined && chargedFor !== monthStart) continue;
     const orgId = Number(row.organization_id);
     const list = ordersBy.get(orgId) ?? [];
     list.push({ referenceCode: row.reference_code as string, paidAt: row.paid_at as string, subtotalCents: Number(row.subtotal_cents ?? 0), totalCents: Number(row.total_cents), reason: (row.commission_reason as string | null) ?? null });
@@ -591,15 +606,16 @@ export async function marketFeesForMonth(month: string, settings: MarketSettings
     .sort((a, b) => b.fees.totalCents - a.fees.totalCents || a.name.localeCompare(b.name));
 }
 
-// Of these Market invoice ids, the ones that still stand (not void): an
-// order charged on a voided invoice is charged again by the next draft.
-async function standingInvoices(ids: unknown[]): Promise<Set<number>> {
+// Of these Market invoice ids, the ones that still stand (not void), with
+// the month each is for: an order charged on a voided invoice is charged
+// again by the next draft.
+async function standingInvoices(ids: unknown[]): Promise<Map<number, string>> {
   const wanted = Array.from(new Set(ids.filter((id) => id !== null && id !== undefined).map(Number)));
-  const standing = new Set<number>();
+  const standing = new Map<number, string>();
   for (let i = 0; i < wanted.length; i += 200) {
-    const { data, error } = await db().from("portpass_invoices").select("id").in("id", wanted.slice(i, i + 200)).neq("status", "void");
+    const { data, error } = await db().from("portpass_invoices").select("id,period_start").in("id", wanted.slice(i, i + 200)).neq("status", "void");
     throwIfSupabaseError(error, "Could not check the Market invoices");
-    for (const row of data ?? []) standing.add(Number(row.id));
+    for (const row of data ?? []) standing.set(Number(row.id), String(row.period_start).slice(0, 10));
   }
   return standing;
 }

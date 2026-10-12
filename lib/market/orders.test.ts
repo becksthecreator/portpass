@@ -121,6 +121,9 @@ describe("the order form", () => {
 
   it("takes a name in letters only, so nobody can put a link or a message in someone's inbox", () => {
     expect(parseOrderInput({ ...body, buyerName: "Ana-María O'Neil" })).toMatchObject({ ok: true });
+    // A phone's curly apostrophe is kept as a plain one; a full stop that ends a word is fine.
+    expect(parseOrderInput({ ...body, buyerName: "Tess O’Neil" })).toMatchObject({ ok: true, value: { buyerName: "Tess O'Neil" } });
+    expect(parseOrderInput({ ...body, buyerName: "Marcus St. Clair Jr." })).toMatchObject({ ok: true });
     expect(parseOrderInput({ ...body, buyerName: "verify at evil.example" })).toMatchObject({ ok: false });
     expect(parseOrderInput({ ...body, buyerName: "https://x" })).toMatchObject({ ok: false });
     expect(parseOrderInput({ ...body, buyerName: "<b>Hi</b>" })).toMatchObject({ ok: false });
