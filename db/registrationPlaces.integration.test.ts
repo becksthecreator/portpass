@@ -102,8 +102,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (programIds.length) {
-    await db().from("registrations").delete().in("program_id", programIds);
-    await db().from("programs").delete().in("id", programIds);
+    expect((await db().from("registrations").delete().in("program_id", programIds)).error).toBeNull();
+    expect((await db().from("programs").delete().in("id", programIds)).error).toBeNull();
   }
 });
 
@@ -169,6 +169,25 @@ describe("the last place in a class goes to one child (audit finding 2)", () => 
     expect(placed[0].registrationStatus).toBe("trial");
     expect(refused).toEqual(Array(4).fill("TRIAL_FULL"));
     expect((await rowsIn(target)).filter((r) => r.registration_status === "trial")).toHaveLength(2);
+  });
+});
+
+describe("only the server takes a place", () => {
+  it("a browser can't call the database function", async () => {
+    const target = await newClass(10);
+    const browser = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? "", { auth: { persistSession: false, autoRefreshToken: false } });
+    const name = `${MARK} from a browser`;
+    const { data, error } = await browser.rpc("create_registration_within_cap", {
+      p_row: { reference_code: `FP-2098-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, organization_id: organizationId, program_id: target.programId, term_id: target.termId, child_name: name, payment_frequency: "weekly", amount_due_cents: 0, registration_status: "pending_details", payment_status: "pending", consent_version: "TEST", consent_accepted: false, submitted_at: new Date().toISOString() },
+      p_mode: "standard",
+      p_cap: 10,
+      p_trial_spots: null,
+      p_active_statuses: ["pending_details", "pending", "confirmed"],
+      p_family_duplicate: false,
+    });
+    expect(data).toBeNull();
+    expect(error?.code).toBe("42501");
+    expect((await rowsIn(target)).filter((r) => r.child_name === name)).toHaveLength(0);
   });
 });
 

@@ -647,12 +647,12 @@ async function insertWithinCap(db: ReturnType<typeof getSupabaseAdmin>, row: Rec
     p_active_statuses: ACTIVE_REGISTRATION_STATUSES,
     p_family_duplicate: rules.familyDuplicate,
   });
-  // The database refuses in the app's own words.
-  const refused = /^(PROGRAM_FULL|SPOT_OPEN|TRIAL_FULL|TRIAL_ALREADY_USED|DUPLICATE:[A-Z0-9-]+)$/.exec(error?.message ?? "");
-  if (refused) throw new Error(refused[1]);
   throwIfSupabaseError(error, "Could not create Futprep registration");
-  const placed = data as { id: number; registration_status: RegistrationStatus };
-  return { id: Number(placed.id), registrationStatus: placed.registration_status };
+  // A refusal comes back as an answer, in the app's own words.
+  const result = data as { id?: number; registration_status?: RegistrationStatus; refused?: string; reference_code?: string };
+  if (result.refused === "DUPLICATE") throw new Error(`DUPLICATE:${result.reference_code}`);
+  if (result.refused) throw new Error(result.refused);
+  return { id: Number(result.id), registrationStatus: result.registration_status as RegistrationStatus };
 }
 
 export async function createFutprepRegistration(
