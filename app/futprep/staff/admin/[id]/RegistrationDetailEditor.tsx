@@ -325,12 +325,12 @@ export function RegistrationDetailEditor({ detail, programs, healthHidden = fals
             <tbody>
               {detail.payments.map((payment) => (
                 <tr key={payment.id}>
-                  <td>{payment.received_at ? payment.received_at.slice(0, 10) : ""}</td>
-                  <td>{money(payment.amount_cents)}</td>
-                  <td>{payment.method}</td>
-                  <td>{payment.reference ?? ""}</td>
-                  <td>{payment.recorded_by ?? ""}</td>
-                  <td>{payment.note}</td>
+                  <td data-label="Date">{payment.received_at ? payment.received_at.slice(0, 10) : ""}</td>
+                  <td data-label="Amount">{money(payment.amount_cents)}</td>
+                  <td data-label="Method">{payment.method}</td>
+                  <td data-label="Reference">{payment.reference ?? ""}</td>
+                  <td data-label="Recorded by">{payment.recorded_by ?? ""}</td>
+                  <td data-label="Note">{payment.note}</td>
                   <td><button type="button" className="detail-void-button" onClick={() => voidPayment(payment.id)}>Void</button></td>
                 </tr>
               ))}
