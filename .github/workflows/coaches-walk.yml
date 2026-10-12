@@ -1,0 +1,148 @@
+name: Coaches walk (TEST data)
+
+# Brief 31, Part E: the proof run for the Futprep coaches back end. On a
+# throwaway local Supabase stack (never the real database), it:
+#   1. runs brief 29's and brief 27's suites (private sessions; the Term 2
+#      reset, dashboard, 3-tap booking and camps) with brief 31's own, which
+#      must all still pass;
+#   2. seeds a TEST world (scripts/e2e/seed-coaches-fixture.ts): a TEST
+#      coach, admin and owner with a PIN made for this run only (masked,
+#      never printed), a TEST field with a cost, a TEST Saturday class and
+#      child, and TEST private sessions with @example.com parents;
+#   3. walks it at 375px through the real screens (scripts/e2e/
+#      coaches-walk.mjs): the coach signs in, sets their days and blocks a
+#      date, sees only their own request and accepts it, completes it, sees
+#      the pay line, scores a Progress Passport and shares it; the parent
+#      opens it; the owner sees it all on the operating map.
+# Screenshots are saved as an artifact. Nothing is sent to anyone, and it
+# isn't a required check.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/futprep/staff/coach/**"
+      - "app/futprep/staff/my-days/**"
+      - "app/futprep/staff/ops/**"
+      - "app/futprep/staff/pay/**"
+      - "app/futprep/staff/private-sessions/**"
+      - "app/futprep/staff/passports/**"
+      - "app/futprep/my/**"
+      - "app/staff.css"
+      - "app/futprep/staff/StaffLogoutButton.tsx"
+      - "app/api/futprep/private-sessions/**"
+      - "app/api/futprep/staff/my-days/**"
+      - "app/api/futprep/staff/passports/**"
+      - "app/api/futprep/registrations/lookup/**"
+      - "db/coaches.ts"
+      - "db/coachPay.ts"
+      - "db/passports.ts"
+      - "db/opsMap.ts"
+      - "lib/passports/**"
+      - "lib/privateSessionAccess.ts"
+      - "scripts/e2e/seed-coaches-fixture.ts"
+      - "scripts/e2e/coaches-walk.mjs"
+      - ".github/workflows/coaches-walk.yml"
+
+concurrency:
+  group: coaches-walk-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  walk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm ci
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v1
+        with:
+          version: latest
+      - name: Start local Supabase
+        run: |
+          supabase start || {
+            echo "The default image registry refused the pull; trying ghcr.io."
+            supabase stop --no-backup || true
+            SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io supabase start
+          }
+      - name: Export local Supabase credentials
+        run: |
+          supabase status -o env > supabase-status.env
+          API_URL=$(grep -E '^(API_URL|SUPABASE_URL)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          SERVICE_ROLE_KEY=$(grep -E '^(SERVICE_ROLE_KEY|SUPABASE_SERVICE_ROLE_KEY|SECRET_KEY|SUPABASE_SECRET_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          ANON_KEY=$(grep -E '^(ANON_KEY|SUPABASE_ANON_KEY|PUBLISHABLE_KEY|SUPABASE_PUBLISHABLE_KEY)=' supabase-status.env | head -1 | cut -d'=' -f2- | tr -d '"')
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          PIN=$(shuf -i 10000000-99999999 -n 1)
+          echo "::add-mask::$PIN"
+          echo "SCREENSHOT_PIN=$PIN" >> "$GITHUB_ENV"
+          echo "SCREENSHOT_FIXTURE=$RUNNER_TEMP/coaches-fixture.json" >> "$GITHUB_ENV"
+      - name: Seed test data
+        run: npx tsx scripts/seed-test-data.ts
+      - name: Brief 29's, brief 27's and brief 31's suites (unit)
+        run: >-
+          npx vitest run
+          lib/privateSessions.test.ts lib/privateSessionEmails.test.ts lib/workingDays.test.ts lib/bookingLink.test.ts
+          lib/futprepEmail.test.ts lib/futprepTheme.test.ts lib/ownerDashboard.test.ts lib/quickRegistration.test.ts
+          lib/privateSessionAccess.test.ts lib/passports lib/futprepRoles.test.ts lib/futprepGuards.static.test.ts
+          lib/coachPay.test.ts lib/futprepLocations.test.ts lib/opsMissing.test.ts db/opsMap.test.ts
+          app/api/futprep/private-sessions app/api/futprep/staff/accounts app/api/futprep/staff/coach-slots
+          app/api/futprep/staff/locations app/api/futprep/staff/my-days app/api/futprep/staff/passports
+          app/api/futprep/staff/private-rates app/api/admin/futprep-owner
+      - name: Brief 29's, brief 27's and brief 31's suites (integration)
+        # Before the walk's TEST world is seeded: these tests make and
+        # delete their own TEST rows.
+        run: >-
+          npx vitest run --config vitest.integration.config.ts
+          db/privateSessions.integration.test.ts
+          app/api/futprep/registrations/route.integration.test.ts db/camps.integration.test.ts db/ownerDashboard.integration.test.ts
+          db/coachInbox.integration.test.ts db/passports.integration.test.ts db/coachPay.integration.test.ts
+          db/futprepStaffRoles.integration.test.ts db/coachPrompt.integration.test.ts tests/rls.integration.test.ts
+          app/api/futprep/registrations/lookup/route.integration.test.ts
+      - name: Seed the TEST world for the walk
+        run: npx tsx scripts/e2e/seed-coaches-fixture.ts
+      - name: Build
+        # One retry: next/font's Google Fonts fetch occasionally fails in CI
+        # (a known upstream flake, see ci.yml).
+        run: npx next build --webpack || npx next build --webpack
+      - name: Start the app on localhost
+        run: |
+          npx next start -p 3000 > next.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/futprep/staff/login > /dev/null && break; sleep 2; done
+          curl -sf http://localhost:3000/futprep/staff/login > /dev/null
+      - name: Install Playwright (Chromium)
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Walk it at 375px
+        # bash with pipefail, so a failed step fails the job through tee.
+        shell: bash
+        run: node scripts/e2e/coaches-walk.mjs | tee walk-result.txt
+      - name: Result
+        if: always()
+        run: |
+          if [ -f walk-result.txt ]; then sed -n '/^| Step/,$p' walk-result.txt >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Server log on failure
+        if: failure()
+        run: tail -n 120 next.log || true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: coaches-walk
+          path: |
+            screenshots/
+            walk-result.txt
+          if-no-files-found: warn
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop
