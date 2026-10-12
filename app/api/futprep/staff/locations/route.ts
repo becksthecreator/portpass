@@ -12,16 +12,16 @@ const FIELDS = ["name", "area", "address", "costModel", "cost", "costNote", "sur
 const PostBody = bodyOf(FIELDS);
 const PatchBody = bodyOf(["id", "active", ...FIELDS]);
 
-async function manager() {
+async function manager(): Promise<{ ok: false; response: NextResponse } | { ok: true; actor: string }> {
   const role = await currentFutprepStaffRole();
-  if (!role) return { error: NextResponse.json({ error: "Sign in again." }, { status: 401 }) };
-  if (!roleCan(role, "locations")) return { error: NextResponse.json({ error: "Only an admin or the CEO can change locations." }, { status: 403 }) };
-  return { actor: (await currentFutprepStaffName()) ?? role };
+  if (!role) return { ok: false, response: NextResponse.json({ error: "Sign in again." }, { status: 401 }) };
+  if (!roleCan(role, "locations")) return { ok: false, response: NextResponse.json({ error: "Only an admin or the CEO can change locations." }, { status: 403 }) };
+  return { ok: true, actor: (await currentFutprepStaffName()) ?? role };
 }
 
 export async function POST(request: Request) {
   const who = await manager();
-  if ("error" in who) return who.error;
+  if (!who.ok) return who.response;
   const read = await readJson(request, PostBody);
   if (!read.ok) return read.response;
   const parsed = parseLocationInput(read.value);
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 // to save it.
 export async function PATCH(request: Request) {
   const who = await manager();
-  if ("error" in who) return who.error;
+  if (!who.ok) return who.response;
   const read = await readJson(request, PatchBody);
   if (!read.ok) return read.response;
   const { id: rawId, active, ...fields } = read.value;
