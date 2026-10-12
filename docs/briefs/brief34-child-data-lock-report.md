@@ -22,7 +22,7 @@ The Ponytail audit's top five (11 Oct), fixed before Term 2 opens on 19 Nov. Mos
 
 - **The session's own day** is its date in Nassau. On any other day, a coach without the medical view sees: "Emergency contact and pickup: shown to coaches on the day of the session, and to the logins Alex has allowed."
 - **An audit trail.** Each day-of view by a coach without the medical view writes an audit line: `futprep.roster_contacts_day_of`, with the session and the staff login, never a child's details.
-- **Never:** a helper login; an admin login without the medical view.
+- **Never on the roster:** a helper login, or an admin login, even with the medical view. Since #213 (brief 31 D) admins can open the coaching workspace for passports, and their roster points to the child's registration at the desk instead.
 - **Saving.** A login without the medical view never changes these fields. The editor hides them and doesn't send them, and the save route drops them whatever the request carries, so a hidden field is never saved blank.
 - **Outside Futprep's staff screens, nothing changed.** A business's own registration view shows these fields only to roles allowed to see health (`getBusinessRegistration`). PortPass's Admin Control Center keeps them hidden until a platform owner gives a reason to reveal them. The 90-day purge after a programme ends is unchanged; it needs `CRON_SECRET` set to run (see STATE.md). The privacy page now says the same.
 

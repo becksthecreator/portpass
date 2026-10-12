@@ -1,7 +1,7 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { requireFutprepStaff, currentFutprepStaffCanViewMedical, currentFutprepStaffId, currentFutprepStaffName } from "../../staff-auth";
-import { canSeeMedical, rosterSafetyShown } from "@/lib/futprepRoles";
+import { canSeeMedical, COACH_WORKSPACE_ROLES, rosterSafetyShown } from "@/lib/futprepRoles";
 import { nassauToday } from "@/lib/futprepTerms";
 import { coachSlotPrompt } from "@/db/coaches";
 import {
@@ -17,6 +17,7 @@ import { futprepOrganizationId } from "@/db/programs";
 import { CoachRoster } from "./CoachRoster";
 import { CoachSessionTools } from "./CoachSessionTools";
 import { StaffLogoutButton } from "../StaffLogoutButton";
+import "../coaches.css";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +29,15 @@ export default async function FutprepCoachPage({
   // The Saturday nudge email links to one session's roster. A coach is
   // usually signed out by then, so the session is kept through the sign-in.
   const { session, program } = await searchParams;
-  const role = await requireFutprepStaff(["coach","ceo","helper"], session && /^[0-9]+$/.test(session) ? `/futprep/staff/coach?session=${session}` : "/futprep/staff/coach");
+  // Brief 31 (D): admins too, for passports (Antonio coaches as Coach Bex on an admin login).
+  const role = await requireFutprepStaff([...COACH_WORKSPACE_ROLES], session && /^[0-9]+$/.test(session) ? `/futprep/staff/coach?session=${session}` : "/futprep/staff/coach");
   const readOnly = role === "helper";
+  // An admin here gets the roster for passports and attendance, without the
+  // emergency, pickup and health columns: the desk's own views carry those
+  // (rule 3; brief 31 D review). Switch back: drop the `admin` checks.
+  const admin = role === "admin";
   const canViewMedical = await currentFutprepStaffCanViewMedical();
-  const healthShown = !readOnly && canSeeMedical(role, canViewMedical);
+  const healthShown = !readOnly && !admin && canSeeMedical(role, canViewMedical);
   const [staffName, sessions, staffId] = await Promise.all([
     currentFutprepStaffName(),
     listFutprepStaffSessions(),
@@ -56,7 +62,7 @@ export default async function FutprepCoachPage({
   // Brief 34: the emergency contact and pickup reach this roster only for
   // the medical view, or for a coach login on the session's own day in
   // Nassau (lib/futprepRoles.ts rosterSafetyShown). A helper never.
-  const safetyShown = !readOnly && !!selected && rosterSafetyShown({ role, canViewMedical, sessionDate: selected.session_date, today: nassauToday() });
+  const safetyShown = !readOnly && !admin && !!selected && rosterSafetyShown({ role, canViewMedical, sessionDate: selected.session_date, today: nassauToday() });
   // A coach seeing them on the day (not through the medical view) leaves
   // an audit line: which session and which login, never a child's
   // details. A failed write doesn't stop the roster opening.
@@ -108,7 +114,9 @@ export default async function FutprepCoachPage({
           <div><span className="section-kicker">{staffName ?? "Coach"} · {readOnly ? "session helper" : "coaching operations"}</span><h1>{selected?.program_type === "camp" ? "Camp days." : selected?.program_type === "contract" ? "School sessions." : "Sessions."}</h1></div>
           <p>{readOnly
             ? "See which session is up, who's on the roster, and the coach's plan for it."
-            : "Plan sessions, tell parents what to expect for the future parent area, track your hours, view payment readiness, see safety information, and mark attendance."}</p>
+            : admin
+              ? "Plan sessions, track your hours, view payment readiness, score Progress Passports, and mark attendance. Safety and health details are on each registration at the desk."
+              : "Plan sessions, tell parents what to expect for the future parent area, track your hours, view payment readiness, see safety information, and mark attendance."}</p>
         </div>
 
         {slotPrompt?.needsSlots && (
@@ -153,7 +161,7 @@ export default async function FutprepCoachPage({
         {selected ? (
           <>
             <CoachSessionTools session={selected} initialPlan={sessionPlan} initialWorkLog={workLog} readOnly={readOnly} />
-            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} healthHidden={!readOnly && !healthShown} safetyHidden={!readOnly && !safetyShown} coachOptions={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={readOnly ? sessionStaff.entries.map((entry) => ({ ...entry, locked: false })) : sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
+            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} healthHidden={!readOnly && !healthShown} safetyHidden={!readOnly && !safetyShown} safetyAtDesk={admin} coachOptions={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={readOnly ? sessionStaff.entries.map((entry) => ({ ...entry, locked: false })) : sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
           </>
         ) : <div className="dashboard-empty"><h3>No sessions scheduled.</h3></div>}
       </section>

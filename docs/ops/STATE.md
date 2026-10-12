@@ -8,6 +8,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 | Brief 34, children's data locked: every Futprep staff action (sessions, coaches, private sessions, Team, classes, login links) reads and writes Futprep's rows only; emergency contact and pickup only for the medical view, and for coaches on the session's own day (logged); one child's balance reads every payment | #217 | 12 Oct |
 | PortPass Market (brief 25 B–D): the public Market, orders through payment requests, PortPass Points (a ledger only) | #196, #199, #207 | 11–12 Oct |
 | Term 2 ready: the last place in a class goes to one child (one locked database call, `create_registration_within_cap`), desk balances read every payment, Futprep's doors open Futprep's classes only | #200, #203, #216 | 12 Oct |
+| Rule 3 (review of #216): Futprep's lookups by reference code (parent lookup, finish registration, join after a taster) find Futprep's registrations only; `futprepOrganizationId()` by slug alone, no name-match fallback | #222 | 12 Oct |
 | Rule 3 (audit 1, 3, 4): Futprep's desk reads Futprep's registrations only, notes behind the medical permission, pickup and emergency details out of lists and the CSV | #205 | 12 Oct |
 | One Mind: `docs/ops/STATE.md`, `/handoff`, Ponytail and shipping skills, the 19 Nov launch checklist | #198 | 12 Oct |
 | PortPass Market sellers: verification ("Made in The Bahamas"), always-on storefronts, Admin → Market | #184 | 11 Oct |
@@ -64,14 +65,12 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 ## Known issues
 Ponytail audit, 11 Oct (15 findings, in the brief 33 PR). The top five are fixed: 1, 3 and 4 by #205; 2 by #200 (migration `202610220001`, applied live 12 Oct); 5 by #203; brief 34 (#217) closed what they left of 1, 4 and 5 (who sees what: `docs/briefs/brief34-child-data-lock-report.md`). Findings 6, 7 and 9 (sign-in) have their own PRs; 8 and 10–15 are not fixed.
 
-Left open by the reviews of #200, #203 and #216 (not fixed):
+Left open by the reviews of #200, #203, #216, #217 and #222 (not fixed):
 - Promoting a child from the waitlist (`db/staff.ts` `updateFutprepRegistration`) and the business "Confirm the place" button (audit 10) count and then write without the class lock; moving a cancelled row back to pending has no cap check. Being fixed in #220.
 - Moving a child to another class from the desk record (`updateFutprepRegistrationDetail`) doesn't check that class's cap.
 - A child can get free tasters in two classes at the same moment (`TRIAL_ALREADY_USED` covers the business, the lock one class).
-- `getFutprepRegistrationStatus`, `getFutprepPendingRegistration` and `completeFutprepRegistration` match a reference code with no organisation filter, so `/api/futprep/registrations/lookup` (code + date of birth) could return another business's parent details (rule 3).
-- `futprepOrganizationId()` falls back to a name match (`%futprep%`) when the slug is missing; it now gates children's writes, so the fallback should go.
+- `db/coaches.ts` keeps `if (!organizationId)` guards that are dead now `futprepOrganizationId()` throws instead (#222). Its rows by id alone are Futprep-only since #217.
 - Still unpaged in `db/staff.ts`: session counts (~252), session plans (~798), work logs (~819), the roster export's payments and attendance (~1420; a long camp passes 1,000 attendance rows); `listProgramPnl`'s payments (`db/coachPay.ts`); the private sessions inbox's payments (`listPrivateSessionRequests`, every business's); the admin page builds the desk list twice.
-- gitleaks fails on every open PR while #224's branch carries a test value it flags (`app/api/futprep/private-sessions/[id]/payments/route.test.ts:25`, commit f2689c4); noted on #224.
 
 Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
 - #185's migration `202610190002_weddingwire_widgets_structured.sql` clashes with `202610190002_private_sessions_from_the_database.sql` on `main`.
@@ -82,4 +81,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
 
 ## Last updated
-12 Oct 2026, `main` at `ab65e65`, by Claude Code (PR #217, brief 34).
+12 Oct 2026, `main` at `ae4810a`, by Claude Code (PR #217, brief 34).
