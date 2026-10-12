@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { assertLocalSupabase } from "@/lib/localStackOnly.mjs";
 import { assignStaffLogin, listStaffAccounts, listStaffWithoutLogin, setStaffCanViewMedical } from "@/app/futprep/staff-auth";
 import { listAllCoachProfiles } from "./coaches";
 import { futprepOwnerRequest, futprepOwnerStaffState, grantFutprepOwner, markFutprepOwner, revokeFutprepOwnerGrant, setFutprepStaffEmail } from "./futprepOwner";
@@ -34,8 +35,7 @@ async function staffRow(name: string, role: string, extra: Record<string, unknow
 }
 
 beforeAll(async () => {
-  const url = process.env.SUPABASE_URL ?? "";
-  if (!url.includes("127.0.0.1") && !url.includes("localhost")) throw new Error("Refusing to run against anything but a local Supabase stack.");
+  assertLocalSupabase();
   const { data: org } = await db().from("organizations").select("id").eq("id", 1).single();
   expect(org).not.toBeNull();
 });
