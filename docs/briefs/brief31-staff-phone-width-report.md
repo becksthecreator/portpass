@@ -13,10 +13,10 @@ Brief 31's `staff-screenshots` run showed three full-page shots wider than 750px
 
 ## How it was checked
 - Both pages were rebuilt as static copies with the real CSS and the fixture's TEST data, and measured in Chromium at 375px. They came out 397px and 496px wide, matching CI exactly. After the fix both are 375px, and no element sticks out. At 1440px the header and the table look as before.
-- The PR's `staff-screenshots` run is the proof: every shot of these pages should be 750px wide.
+- The PR's `staff-screenshots` run is the proof: every shot of these pages should be 750px wide. `scripts/screenshots/capture.mjs` now logs each shot's PNG width (`captured <name>, 750px wide`), so the job log shows it without downloading the artifact.
 
 ## Report
-- Changed files: `app/staff.css`, `app/futprep/staff/admin/[id]/RegistrationDetailEditor.tsx`, `docs/ops/STATE.md`, this report.
+- Changed files: `app/staff.css`, `app/futprep/staff/admin/[id]/RegistrationDetailEditor.tsx`, `scripts/screenshots/capture.mjs` (logs each shot's width), `docs/ops/STATE.md`, this report.
 - Migrations: none. Env var names: none.
 - Futprep (rule 9): CSS and `data-label` attributes only. PIN sign-in, `/futprep/register` and the desk's saving and payments code are untouched. CI runs Futprep's tests.
 
