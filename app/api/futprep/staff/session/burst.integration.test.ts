@@ -53,5 +53,13 @@ describe("a burst of wrong staff PINs sent at once", () => {
     const right = await signIn(pin);
     expect(right.status).toBe(429);
     expect(right.headers.get("set-cookie") ?? "").not.toContain("portpass_futprep_staff=");
+
+    // Each wrong PIN that reached the check counts for the alert after its
+    // answer has gone; wait for those writes so the cleanup finds them all.
+    const reached = statuses.filter((status) => status === 401).length;
+    await vi.waitFor(async () => {
+      const { count } = await db().from("security_events").select("id", { count: "exact", head: true }).eq("kind", "pin_failed").gte("created_at", startedAt);
+      expect(count ?? 0).toBeGreaterThanOrEqual(reached);
+    }, { timeout: 5000, interval: 100 });
   });
 });
