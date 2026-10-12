@@ -370,7 +370,10 @@ try {
         await element.scrollIntoViewIfNeeded();
         await page.screenshot({ path: `screenshots/${name}-viewport.png` });
       }
-      console.log(`captured ${name} (loaded in ${loaded - started} ms, shot in ${Date.now() - loaded} ms)`);
+      // The PNG's own width (bytes 16-19 of its header): 750 is a 375px
+      // page at 2x, anything wider means the page scrolls sideways.
+      const shotWidth = readFileSync(`screenshots/${name}.png`).readUInt32BE(16);
+      console.log(`captured ${name}, ${shotWidth}px wide (loaded in ${loaded - started} ms, shot in ${Date.now() - loaded} ms)`);
       const report = reports.get(account)?.() ?? [];
       if (loaded - started > 10_000) for (const line of report) console.log(`  ${line}`);
     } catch (error) {
