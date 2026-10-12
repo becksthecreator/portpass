@@ -425,8 +425,8 @@ describe("Futprep's private sessions, team and classes never reach another busin
   });
 
   it("a Futprep request is never given to another business's coach", async () => {
-    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "accept", coachId: otherCoachId, actor: MARK }))).toBe("refused COACH_NOT_FOUND");
-    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "refer", targetCoachId: otherCoachId, actor: MARK }))).toBe("refused COACH_NOT_FOUND");
+    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "accept", coachId: otherCoachId, actor: MARK }))).toBe("refused COACH_NOT_AVAILABLE");
+    expect(await outcome(actOnPrivateSessionRequest({ id: futprepRequestId, action: "refer", targetCoachId: otherCoachId, actor: MARK }))).toBe("refused COACH_NOT_AVAILABLE");
     const { data } = await db().from("private_session_requests").select("status,assigned_coach_id").eq("id", futprepRequestId).single();
     expect(data).toEqual({ status: "pending", assigned_coach_id: null });
   });

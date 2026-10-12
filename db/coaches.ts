@@ -262,6 +262,7 @@ export async function listPublicCoachProfiles() {
   const { data, error } = await db
     .from("coach_profiles")
     .select(COACH_PROFILE_COLUMNS)
+    .eq("organization_id", await futprepOrganizationId())
     .eq("active", true)
     .eq("public_visible", true)
     .order("sort_order", { ascending:true })
@@ -313,7 +314,8 @@ export async function listAllCoachProfiles(options: { withLogin?: boolean } = {}
   // active:false) so admins can see what they removed and restore it.
   // listPublicCoachProfiles() is the one that filters to active-only.
   const db=getSupabaseAdmin();
-  const {data,error}=await db.from("coach_profiles").select(COACH_PROFILE_COLUMNS).order("active",{ascending:false}).order("sort_order",{ascending:true});
+  // Futprep's own team only (rule 3, brief 34).
+  const {data,error}=await db.from("coach_profiles").select(COACH_PROFILE_COLUMNS).eq("organization_id",await futprepOrganizationId()).order("active",{ascending:false}).order("sort_order",{ascending:true});
   throwIfSupabaseError(error,"Could not load coach profiles");
   const profiles=(data ?? []) as Omit<CoachProfile,"availability">[];
   const ids=profiles.map((profile)=>profile.id);
@@ -590,7 +592,9 @@ export async function recordPrivateSessionPayment(input:{
 }):Promise<{paymentStatus:"unpaid"|"partial"|"paid";paidCents:number}>{
   if(!Number.isInteger(input.amountCents)||input.amountCents<=0) throw new Error("INVALID_AMOUNT");
   const db=getSupabaseAdmin();
-  const {data:request,error:loadError}=await db.from("private_session_requests").select("id,price_cents,status").eq("id",input.requestId).maybeSingle();
+  // Futprep's own requests only (rule 3, brief 34): another business's is
+  // answered like a missing one, and no money is recorded against it.
+  const {data:request,error:loadError}=await db.from("private_session_requests").select("id,price_cents,status").eq("id",input.requestId).eq("organization_id",await futprepOrganizationId()).maybeSingle();
   throwIfSupabaseError(loadError,"Could not load private session");
   if(!request) throw new Error("REQUEST_NOT_FOUND");
   const now=new Date().toISOString();
@@ -640,7 +644,11 @@ export async function actOnPrivateSessionRequest(input:{
 }){
   const db=getSupabaseAdmin();
   const now=new Date().toISOString();
-  const {data:existing,error:loadError}=await db.from("private_session_requests").select("*").eq("id",input.id).maybeSingle();
+  // Rule 3 (brief 34): Futprep's own requests only, whoever calls. Another
+  // business's request is answered like a missing one: nothing is booked,
+  // recorded or sent. (The coach checks below then keep it to Futprep's
+  // own coaches.)
+  const {data:existing,error:loadError}=await db.from("private_session_requests").select("*").eq("id",input.id).eq("organization_id",await futprepOrganizationId()).maybeSingle();
   if(isMissingTable(loadError)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
   throwIfSupabaseError(loadError,"Could not load private session request");
   if(!existing) throw new Error("REQUEST_NOT_FOUND");
@@ -794,10 +802,15 @@ export async function saveCoachProfile(input:{
   if(input.photoUrl!==undefined) payload.photo_url=input.photoUrl.trim()||null;
   else if(!input.id) payload.photo_url=null;
   const db=getSupabaseAdmin();
-  const query=input.id
-    ? db.from("coach_profiles").update(payload).eq("id",input.id)
-    : db.from("coach_profiles").insert(payload);
-  const {error}=await query;
+  if(input.id){
+    // Futprep's own coaches only (rule 3, brief 34): another business's
+    // coach is neither changed nor moved into Futprep.
+    const {data,error}=await db.from("coach_profiles").update(payload).eq("id",input.id).eq("organization_id",organizationId).select("id");
+    throwIfSupabaseError(error,"Could not save coach profile");
+    if(!data?.length) throw new Error("COACH_NOT_FOUND");
+    return;
+  }
+  const {error}=await db.from("coach_profiles").insert(payload);
   throwIfSupabaseError(error,"Could not save coach profile");
 }
 
@@ -866,9 +879,10 @@ export async function setCoachWorkingDays(id:number,days:number[]):Promise<void>
 
 export async function softDeleteCoach(id:number){
   const db=getSupabaseAdmin();
-  const {error}=await db.from("coach_profiles").update({active:false,public_visible:false,bookable:false,updated_at:new Date().toISOString()}).eq("id",id);
+  const {data,error}=await db.from("coach_profiles").update({active:false,public_visible:false,bookable:false,updated_at:new Date().toISOString()}).eq("id",id).eq("organization_id",await futprepOrganizationId()).select("id");
   if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
   throwIfSupabaseError(error,"Could not delete coach");
+  if(!data?.length) throw new Error("COACH_NOT_FOUND");
 }
 
 // Restores a soft-deleted profile without also making it public again -
@@ -876,15 +890,21 @@ export async function softDeleteCoach(id:number){
 // deliberately instead of a restored coach silently reappearing on the site.
 export async function restoreCoach(id:number){
   const db=getSupabaseAdmin();
-  const {error}=await db.from("coach_profiles").update({active:true,updated_at:new Date().toISOString()}).eq("id",id);
+  const {data,error}=await db.from("coach_profiles").update({active:true,updated_at:new Date().toISOString()}).eq("id",id).eq("organization_id",await futprepOrganizationId()).select("id");
   if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
   throwIfSupabaseError(error,"Could not restore coach");
+  if(!data?.length) throw new Error("COACH_NOT_FOUND");
 }
 
 export async function saveCoachAvailability(input:{
   coachId:number; date:string; startTime:string; endTime:string; status:"available"|"blocked"|"booked"; location:string; note:string; actor:string;
 }){
   const db=getSupabaseAdmin();
+  // Futprep's own coaches only (rule 3, brief 34).
+  const {data:coach,error:coachError}=await db.from("coach_profiles").select("id").eq("id",input.coachId).eq("organization_id",await futprepOrganizationId()).maybeSingle();
+  if(isMissingTable(coachError)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
+  throwIfSupabaseError(coachError,"Could not load coach");
+  if(!coach) throw new Error("COACH_NOT_FOUND");
   const {error}=await db.from("coach_availability").upsert({
     coach_id:input.coachId,
     availability_date:input.date,
@@ -922,11 +942,13 @@ export async function coachSlotPrompt(staffMemberId:number):Promise<{coachId:num
 // file from storage when that file was ours.
 export async function setCoachPhoto(coachId:number,photoUrl:string|null):Promise<{previousUrl:string|null}>{
   const db=getSupabaseAdmin();
-  const {data:coach,error}=await db.from("coach_profiles").select("id,photo_url").eq("id",coachId).maybeSingle();
+  // Futprep's own coaches only (rule 3, brief 34).
+  const organizationId=await futprepOrganizationId();
+  const {data:coach,error}=await db.from("coach_profiles").select("id,photo_url").eq("id",coachId).eq("organization_id",organizationId).maybeSingle();
   if(isMissingTable(error)) throw new Error("PRIVATE_SESSIONS_MIGRATION_REQUIRED");
   throwIfSupabaseError(error,"Could not load the coach");
   if(!coach) throw new Error("COACH_NOT_FOUND");
-  const {error:updateError}=await db.from("coach_profiles").update({photo_url:photoUrl,updated_at:new Date().toISOString()}).eq("id",coachId);
+  const {error:updateError}=await db.from("coach_profiles").update({photo_url:photoUrl,updated_at:new Date().toISOString()}).eq("id",coachId).eq("organization_id",organizationId);
   throwIfSupabaseError(updateError,"Could not save the coach photo");
   return {previousUrl:(coach.photo_url as string|null)??null};
 }

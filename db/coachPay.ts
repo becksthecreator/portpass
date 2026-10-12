@@ -439,10 +439,17 @@ export async function setCoachPayDefaults(input: { coachId: number; leadCents: n
   const organizationId = await futprepOrganizationId();
   const { data: before } = await db.from("coach_profiles").select(COACH_COLUMNS).eq("id", input.coachId).eq("organization_id", organizationId).maybeSingle();
   if (!before) throw new Error("COACH_NOT_FOUND");
+  // Rule 3 (brief 34): a coach is linked only to one of Futprep's own logins.
+  if (input.staffMemberId !== null) {
+    const { data: login, error: loginError } = await db.from("staff_members").select("id").eq("id", input.staffMemberId).eq("organization_id", organizationId).maybeSingle();
+    throwIfSupabaseError(loginError, "Could not load the staff login");
+    if (!login) throw new Error("STAFF_NOT_FOUND");
+  }
   const { data, error } = await db
     .from("coach_profiles")
     .update({ default_lead_pay_cents: input.leadCents, default_assistant_pay_cents: input.assistantCents, staff_member_id: input.staffMemberId })
     .eq("id", input.coachId)
+    .eq("organization_id", organizationId)
     .select(COACH_COLUMNS)
     .single();
   if (error?.code === "23505") throw new Error("STAFF_ALREADY_LINKED");
