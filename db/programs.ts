@@ -228,10 +228,13 @@ export async function listFutprepPrograms(forOrganizationId?: number): Promise<F
   return output;
 }
 
+// Futprep's own programmes only: another business's id is PROGRAM_NOT_FOUND,
+// as a missing one is (rule 3, the same check as the registration desk).
 export async function setFutprepProgramActive(id: number, active: boolean) {
   const db = getSupabaseAdmin();
-  const { error } = await db.from("programs").update({ active }).eq("id", id);
+  const { data, error } = await db.from("programs").update({ active }).eq("id", id).eq("organization_id", await futprepOrganizationId()).select("id");
   throwIfSupabaseError(error, "Could not update the program.");
+  if (!data?.length) throw new Error("PROGRAM_NOT_FOUND");
 }
 
 // `scope` (brief 18, D4): the business the programme is for and who it is

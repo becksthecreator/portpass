@@ -617,6 +617,8 @@ export async function rosterForSession(
 // program's default. Returns the session's cap with that many coaches.
 export async function setSessionCoaches(sessionId: number, coaches: number | null): Promise<{ coaches: number; effectiveCap: number }> {
   if (coaches !== null && (!Number.isInteger(coaches) || coaches < 0 || coaches > 20)) throw new Error("INVALID_COACHES");
+  // Futprep's own sessions only: another business's is SESSION_NOT_FOUND.
+  await assertFutprepSession(sessionId);
   const db = getSupabaseAdmin();
   const { data: session, error } = await db.from("sessions").update({ coaches_on_duty: coaches }).eq("id", sessionId).select("program_id").maybeSingle();
   throwIfSupabaseError(error, "Could not save the coaches on duty");

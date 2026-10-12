@@ -224,7 +224,11 @@ describe("the owner bridge", () => {
 describe("the Team page's chips", () => {
   it("says what a coach's login still needs, and carries no PIN hash", async () => {
     const id = await staffRow("Chip coach", "coach", { account_key: `test-chip-${tag}`, pin_hash: "test-not-a-real-hash" });
-    const { data: coach, error } = await db().from("coach_profiles").insert({ organization_id: 1, slug: `test-delete-chip-${tag}`, display_name: `${MARK} Chip coach`, member_type: "coach", active: true, public_visible: false, bookable: false, staff_member_id: id }).select("id").single();
+    // The coach is Futprep's (the business with slug futprep): the Team list
+    // shows Futprep's own coaches only. Its login stays on organisation 1,
+    // where staff-auth reads Futprep's staff; in production both are 1.
+    const { data: futprep } = await db().from("organizations").select("id").eq("slug", "futprep").single();
+    const { data: coach, error } = await db().from("coach_profiles").insert({ organization_id: Number(futprep!.id), slug: `test-delete-chip-${tag}`, display_name: `${MARK} Chip coach`, member_type: "coach", active: true, public_visible: false, bookable: false, staff_member_id: id }).select("id").single();
     expect(error).toBeNull();
     coachId = Number(coach!.id);
     const { coaches } = await listAllCoachProfiles({ withLogin: true });
