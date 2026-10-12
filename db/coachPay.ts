@@ -399,6 +399,16 @@ export async function listProgramPnl(): Promise<PnlLine[]> {
   throwIfSupabaseError(locationError, "Could not load location costs");
   const locationCost = new Map((locationRows ?? []).map((row): [number, LocationCost] => [Number(row.id), { costModel: (row.cost_model as LocationCostModel | null) ?? null, costCents: row.cost_cents === null ? null : Number(row.cost_cents) }]));
   const { scheduled } = await sessionCounts(db, termIds);
+  // A place paid by the term is shared by the programs using it in the same
+  // term (same name and start), so it is counted once.
+  const placeTermKey = (locationId: number | null, term: TermRow) => `${locationId}|${term.name}|${term.start_date}`;
+  const sharing = new Map<string, number>();
+  for (const term of terms) {
+    const locationId = programs.find((p) => p.id === Number(term.program_id))?.location_id ?? null;
+    if (locationId === null) continue;
+    const key = placeTermKey(Number(locationId), term);
+    sharing.set(key, (sharing.get(key) ?? 0) + 1);
+  }
 
   // The PortPass fee is capped per term across the classes that share it.
   const programById = new Map(programs.map((p) => [p.id, p]));
@@ -435,7 +445,7 @@ export async function listProgramPnl(): Promise<PnlLine[]> {
       feesCollectedCents,
       coachPayCents,
       ...(() => {
-        const estimate = estimateFieldCostCents(program.location_id === null ? null : locationCost.get(Number(program.location_id)) ?? null, scheduled.get(termId) ?? 0, sessionMinutes(program.start_time, program.end_time));
+        const estimate = estimateFieldCostCents(program.location_id === null ? null : locationCost.get(Number(program.location_id)) ?? null, scheduled.get(termId) ?? 0, sessionMinutes(program.start_time, program.end_time), program.location_id === null ? 1 : sharing.get(placeTermKey(Number(program.location_id), term)) ?? 1);
         const field = fieldCostFor(program.field_cost_cents_per_term === null ? null : Number(program.field_cost_cents_per_term), estimate);
         return { fieldCostCents: field.cents, fieldCostSource: field.source, fieldCostEstimateCents: estimate };
       })(),

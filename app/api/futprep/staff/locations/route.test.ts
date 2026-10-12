@@ -12,7 +12,8 @@ vi.mock("@/app/futprep/staff-auth", () => ({
 }));
 vi.mock("@/db/futprepLocations", () => ({
   listFutprepLocations: vi.fn(async () => []),
-  createFutprepLocation: vi.fn(async (input: unknown, actor: string) => {
+  createFutprepLocation: vi.fn(async (input: { name?: string }, actor: string) => {
+    if (input.name === "TEST Taken") throw new Error("NAME_TAKEN");
     calls.created.push({ input, actor });
     return 99;
   }),
@@ -74,5 +75,6 @@ describe("Futprep locations (brief 31, B1)", () => {
     expect((await send("PATCH", { id: "x", active: false })).status).toBe(400);
     expect((await send("PATCH", { id: 68, active: "no" })).status).toBe(400);
     expect((await send("PATCH", { id: 404, name: "TEST Field" })).status).toBe(404);
+    expect((await send("POST", { name: "TEST Taken" })).status).toBe(409);
   });
 });

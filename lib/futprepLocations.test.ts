@@ -35,13 +35,13 @@ describe("a place as staff type it (brief 31, B1)", () => {
   });
 
   it("says what a place costs in plain words", () => {
-    expect(costLabel({ costModel: "per_hour", costCents: 4000 })).toBe("$40 an hour");
-    expect(costLabel({ costModel: "per_session", costCents: 2550 })).toBe("$25.50 a session");
-    expect(costLabel({ costModel: "per_term", costCents: 80000 })).toBe("$800 a term");
+    expect(costLabel({ costModel: "per_hour", costCents: 4000 })).toBe("$40 per hour");
+    expect(costLabel({ costModel: "per_session", costCents: 2550 })).toBe("$25.50 per session");
+    expect(costLabel({ costModel: "per_term", costCents: 80000 })).toBe("$800 per term");
     expect(costLabel({ costModel: "free", costCents: null })).toBe("Free");
     expect(costLabel({ costModel: "school_pays", costCents: null })).toBe("The school pays");
     expect(costLabel({ costModel: null, costCents: null })).toBe("Not set");
-    expect(costLabel({ costModel: "per_hour", costCents: null })).toBe("Amount not set (an hour)");
+    expect(costLabel({ costModel: "per_hour", costCents: null })).toBe("Amount not set (per hour)");
   });
 
   it("a place is costed once the model and, where needed, the amount are in", () => {

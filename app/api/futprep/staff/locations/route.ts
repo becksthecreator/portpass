@@ -30,6 +30,7 @@ export async function POST(request: Request) {
     await createFutprepLocation(parsed.value, who.actor);
     return NextResponse.json({ ok: true, locations: await listFutprepLocations() });
   } catch (error) {
+    if (error instanceof Error && error.message === "NAME_TAKEN") return NextResponse.json({ error: "There's already a place with that name." }, { status: 409 });
     console.error("Futprep location add error", error);
     return NextResponse.json({ error: "Could not add the location." }, { status: 500 });
   }
@@ -57,6 +58,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true, locations: await listFutprepLocations() });
   } catch (error) {
     if (error instanceof Error && error.message === "LOCATION_NOT_FOUND") return NextResponse.json({ error: "Location not found." }, { status: 404 });
+    if (error instanceof Error && error.message === "NAME_TAKEN") return NextResponse.json({ error: "There's already a place with that name." }, { status: 409 });
     console.error("Futprep location save error", error);
     return NextResponse.json({ error: "Could not save the location." }, { status: 500 });
   }

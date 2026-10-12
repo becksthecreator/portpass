@@ -72,6 +72,7 @@ export async function createFutprepLocation(input: LocationInput, actorName: str
   // Futprep found by its slug, as its programs are (db/programs.ts).
   const orgId = await futprepOrganizationId();
   const { data, error } = await db.from("locations").insert({ organization_id: orgId, active: true, ...toRow(input) }).select("id").single();
+  if (error?.code === "23505") throw new Error("NAME_TAKEN");
   throwIfSupabaseError(error, "Could not add the location");
   const id = Number(data!.id);
   await logAudit({ organizationId: orgId, action: "location.added", targetTable: "locations", targetId: id, after: { ...toRow(input), by: actorName } });
@@ -87,6 +88,7 @@ export async function updateFutprepLocation(id: number, input: LocationInput, ac
   if (!before) throw new Error("LOCATION_NOT_FOUND");
   const after = toRow(input);
   const { error } = await db.from("locations").update(after).eq("id", id).eq("organization_id", orgId);
+  if (error?.code === "23505") throw new Error("NAME_TAKEN");
   throwIfSupabaseError(error, "Could not save the location");
   await logAudit({ organizationId: orgId, action: "location.updated", targetTable: "locations", targetId: id, before, after: { ...after, by: actorName } });
 }

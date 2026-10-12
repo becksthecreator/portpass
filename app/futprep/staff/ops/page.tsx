@@ -81,7 +81,7 @@ export default async function FutprepOpsPage() {
                 <dl>
                   <div><dt>Ages</dt><dd>{program.ageLabel}</dd></div>
                   <div><dt>Place</dt><dd>{program.siteName ?? program.location}</dd></div>
-                  <div><dt>Price</dt><dd>{program.programType === "contract" ? (program.contractFeeCents === null ? "Not set" : `${formatPriceCents(program.contractFeeCents)} ${program.contractBilling === "per_term" ? "per term" : "per session"} (school)`) : program.term ? `${formatPriceCents(program.term.weeklyFeeCents)} a week · ${formatPriceCents(program.term.termFeeCents)} a term` : "No term on"}</dd></div>
+                  <div><dt>Price</dt><dd>{program.programType === "contract" ? (program.contractFeeCents === null ? "Not set" : `${formatPriceCents(program.contractFeeCents)} ${program.contractBilling === "per_term" ? "per term" : "per session"}, paid by the school`) : program.term ? `${formatPriceCents(program.term.weeklyFeeCents)} per week · ${formatPriceCents(program.term.termFeeCents)} per term` : "No term on"}</dd></div>
                   <div><dt>Coaches on duty</dt><dd>{program.coachesOnDuty}</dd></div>
                   <div><dt>Children per coach</dt><dd>{program.childrenPerCoach ?? "Not set"}</dd></div>
                   <div><dt>Registered</dt><dd>{program.registered} of {program.capacity}</dd></div>

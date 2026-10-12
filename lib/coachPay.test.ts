@@ -82,6 +82,9 @@ describe("field cost from the location (brief 31, B3)", () => {
     expect(estimateFieldCostCents({ costModel: "per_hour", costCents: 4000 }, 12, 45)).toBe(36000);
     expect(estimateFieldCostCents({ costModel: "per_session", costCents: 2500 }, 10, null)).toBe(25000);
     expect(estimateFieldCostCents({ costModel: "per_term", costCents: 80000 }, 10, 60)).toBe(80000);
+    // Four programs at one place paid by the term share it: counted once.
+    expect(estimateFieldCostCents({ costModel: "per_term", costCents: 80000 }, 10, 60, 4)).toBe(20000);
+    expect(estimateFieldCostCents({ costModel: "per_term", costCents: 10000 }, 10, 60, 3)).toBe(3333);
     expect(estimateFieldCostCents({ costModel: "free", costCents: null }, 10, 60)).toBe(0);
     expect(estimateFieldCostCents({ costModel: "school_pays", costCents: 5000 }, 10, 60)).toBe(0);
   });

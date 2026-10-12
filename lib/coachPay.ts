@@ -164,12 +164,14 @@ export function sessionMinutes(start: string | null | undefined, end: string | n
 
 // What one term at a place costs, from the place's own cost and the term's
 // sessions. null when the place has no cost yet, or is paid by the hour and
-// the session length can't be read. Free and school-paid places cost 0.
-export function estimateFieldCostCents(cost: LocationCost | null, sessions: number, minutesPerSession: number | null): number | null {
+// the session length can't be read. Free and school-paid places cost 0. A
+// place paid by the term is shared evenly by the programs that use it that
+// term (`sharedBy`), so the field is counted once, not once per program.
+export function estimateFieldCostCents(cost: LocationCost | null, sessions: number, minutesPerSession: number | null, sharedBy = 1): number | null {
   if (!cost?.costModel) return null;
   if (cost.costModel === "free" || cost.costModel === "school_pays") return 0;
   if (cost.costCents === null) return null;
-  if (cost.costModel === "per_term") return cost.costCents;
+  if (cost.costModel === "per_term") return Math.round(cost.costCents / Math.max(1, sharedBy));
   if (cost.costModel === "per_session") return cost.costCents * sessions;
   if (minutesPerSession === null || minutesPerSession <= 0) return null;
   return Math.round((cost.costCents * sessions * minutesPerSession) / 60);
@@ -182,6 +184,6 @@ export function fieldCostFor(stored: number | null, estimate: number | null): { 
   return { cents: 0, source: "none" };
 }
 
-export function leftForFutprep(line: Omit<PnlLine, "leftCents">): number {
+export function leftForFutprep(line: Pick<PnlLine, "feesCollectedCents" | "coachPayCents" | "fieldCostCents" | "portpassFeeCents">): number {
   return line.feesCollectedCents - line.coachPayCents - line.fieldCostCents - line.portpassFeeCents;
 }

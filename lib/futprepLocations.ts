@@ -1,6 +1,6 @@
 // Where Futprep trains and what each place costs (brief 31, B1). What a
 // staff member types on Staff -> Locations, checked and turned into what
-// the database keeps (supabase/migrations/202610210002). Pure: shared by
+// the database keeps (supabase/migrations/202610210003). Pure: shared by
 // the API, the screens and the tests. Futprep enters every amount itself;
 // nothing here sets a price.
 
@@ -115,14 +115,14 @@ function dollars(cents: number): string {
   return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: cents % 100 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
 }
 
-// "$40 an hour", "$25 a session", "$800 a term", "Free", "The school pays",
-// or "Not set" / "$? an hour (not set)" while the amount is missing.
+// "$40 per hour", "$25 per session", "$800 per term", "Free", "The school pays",
+// or "Not set" / "Amount not set (per hour)" while the amount is missing.
 export function costLabel(location: Pick<FutprepLocation, "costModel" | "costCents">): string {
   const { costModel, costCents } = location;
   if (!costModel) return "Not set";
   if (costModel === "free") return "Free";
   if (costModel === "school_pays") return "The school pays";
-  const per = costModel === "per_hour" ? "an hour" : costModel === "per_session" ? "a session" : "a term";
+  const per = costModel === "per_hour" ? "per hour" : costModel === "per_session" ? "per session" : "per term";
   return costCents === null ? `Amount not set (${per})` : `${dollars(costCents)} ${per}`;
 }
 
