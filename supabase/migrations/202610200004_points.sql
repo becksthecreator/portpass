@@ -65,16 +65,21 @@ create table if not exists public.points_events (
 -- An earning expires once.
 create unique index if not exists points_events_expires_once on public.points_events (account_id, ref_id) where ref_type = 'points_event';
 create index if not exists points_events_account_idx on public.points_events (account_id, created_at desc);
-create index if not exists points_events_ref_idx on public.points_events (account_id, ref_type, ref_id) where expired_at is null;
+create index if not exists points_events_ref_idx on public.points_events (ref_type, ref_id) where ref_id is not null;
 create index if not exists points_events_expiring_idx on public.points_events (expires_at) where expires_at is not null and expired_at is null;
 
 -- -------------------------------------------------------------- settling
 -- Brings one thing's points (an order, a registration) to what it should
--- be. Earned and nothing standing: it earns p_amount, lapsing in 12 months.
--- Not earned and something standing: that comes back off, and both the
--- earning and the reversal are settled. The account row is locked first,
--- so two changes at once can never both earn, and expiry (which takes the
--- same lock first) can never take an earning off a second time.
+-- be, across every account (the earner can change: staff fix a parent's
+-- email).
+--   Earned: it earns p_amount for the earner, lapsing in 12 months, unless
+--   its points already stand on any account, or an earning for it already
+--   ran its 12 months (it never starts again).
+--   Not earned: whatever stands for it comes back off, from whichever
+--   account holds it, and both the earning and the reversal are settled.
+-- The earner's account row is locked first (the triggers lock it before
+-- deciding), so two changes at once can never both earn, and expiry (which
+-- takes the account lock first too) never takes an earning off twice.
 create or replace function public.points_settle(p_user_id uuid, p_ref_type text, p_ref_id bigint, p_earned boolean, p_amount integer, p_reason text, p_organization_id bigint)
 returns void
 language plpgsql
@@ -82,26 +87,44 @@ set search_path = public, pg_temp
 as $$
 declare
   v_account bigint;
-  v_standing integer;
+  v_holder record;
 begin
   if p_user_id is null or p_ref_id is null then
     return;
   end if;
   insert into public.points_accounts (user_id) values (p_user_id) on conflict (user_id) do nothing;
   select id into v_account from public.points_accounts where user_id = p_user_id for update;
-  select coalesce(sum(delta), 0) into v_standing
-    from public.points_events
-   where account_id = v_account and ref_type = p_ref_type and ref_id = p_ref_id and expired_at is null;
-  if p_earned and v_standing = 0 and coalesce(p_amount, 0) > 0 then
+  if p_earned then
+    if coalesce(p_amount, 0) <= 0
+       or exists (select 1 from public.points_events where ref_type = p_ref_type and ref_id = p_ref_id and expired_at is null)
+       or exists (
+         select 1 from public.points_events e
+           join public.points_events x on x.ref_type = 'points_event' and x.ref_id = e.id and x.reason = 'expiry'
+          where e.ref_type = p_ref_type and e.ref_id = p_ref_id and e.delta > 0
+       ) then
+      return;
+    end if;
     insert into public.points_events (account_id, delta, reason, ref_type, ref_id, organization_id, expires_at)
     values (v_account, p_amount, p_reason, p_ref_type, p_ref_id, p_organization_id, now() + interval '12 months');
     update public.points_accounts set balance = balance + p_amount, updated_at = now() where id = v_account;
-  elsif not p_earned and v_standing > 0 then
-    update public.points_events set expired_at = now()
-     where account_id = v_account and ref_type = p_ref_type and ref_id = p_ref_id and expired_at is null;
-    insert into public.points_events (account_id, delta, reason, ref_type, ref_id, organization_id, expired_at)
-    values (v_account, -v_standing, 'manual_adjust', p_ref_type, p_ref_id, p_organization_id, now());
-    update public.points_accounts set balance = balance - v_standing, updated_at = now() where id = v_account;
+  else
+    for v_holder in
+      select account_id, sum(delta)::integer as standing
+        from public.points_events
+       where ref_type = p_ref_type and ref_id = p_ref_id and expired_at is null
+       group by account_id
+      having sum(delta) > 0
+       order by account_id
+    loop
+      if v_holder.account_id <> v_account then
+        perform 1 from public.points_accounts where id = v_holder.account_id for update;
+      end if;
+      update public.points_events set expired_at = now()
+       where account_id = v_holder.account_id and ref_type = p_ref_type and ref_id = p_ref_id and expired_at is null;
+      insert into public.points_events (account_id, delta, reason, ref_type, ref_id, organization_id, expired_at)
+      values (v_holder.account_id, -v_holder.standing, 'manual_adjust', p_ref_type, p_ref_id, p_organization_id, now());
+      update public.points_accounts set balance = balance - v_holder.standing, updated_at = now() where id = v_holder.account_id;
+    end loop;
   end if;
 end;
 $$;
@@ -132,6 +155,11 @@ begin
     if v_user is null or exists (select 1 from public.organization_members m where m.organization_id = v_org and m.user_id = v_user) then
       return null;
     end if;
+    -- The account is locked before deciding whether the registration still
+    -- counts as attended, so an undo and a new mark at the same moment are
+    -- settled one after the other, each seeing the other.
+    insert into public.points_accounts (user_id) values (v_user) on conflict (user_id) do nothing;
+    perform 1 from public.points_accounts where user_id = v_user for update;
     select points_per_attendance into v_points from public.market_settings where id;
     perform public.points_settle(
       v_user, 'registration', v_registration,

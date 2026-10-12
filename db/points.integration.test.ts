@@ -194,6 +194,9 @@ describe("expiry", () => {
     // Expired earnings don't come back off again if the order is no longer paid.
     await admin.from("reservations").update({ payment_status: "pending", paid_at: null }).eq("id", orderId);
     expect((await account(guardian))?.balance).toBe(0);
+    // And an earning that ran its 12 months never starts again on a later mark.
+    await admin.from("attendance").update({ status: "late" }).eq("registration_id", registrationId).eq("session_id", sessionIds[1]);
+    expect((await account(guardian))?.balance).toBe(0);
   });
 });
 
