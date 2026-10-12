@@ -344,6 +344,26 @@ async function isFutprepRegistration(registrationId: number, organizationId: num
   return Boolean(data);
 }
 
+// Everything received for one registration (audit finding 5, brief 34):
+// read in pages, past the API's 1,000 rows a call, so a child's own record
+// and the total after a payment, a void or a change of fee agree with the
+// desk list.
+async function receivedCentsFor(registrationId: number): Promise<number> {
+  const db = getSupabaseAdmin();
+  const payments = await pageAll<{ amount_cents: number }>(
+    (from, to) =>
+      db
+        .from("payments")
+        .select("amount_cents")
+        .eq("registration_id", registrationId)
+        .eq("status", "received")
+        .order("id", { ascending: true })
+        .range(from, to),
+    "Could not total payments",
+  );
+  return payments.reduce((sum, payment) => sum + Number(payment.amount_cents), 0);
+}
+
 export async function recordFutprepPayment(input: {
   registrationId: number;
   amountCents: number;
@@ -392,18 +412,7 @@ export async function recordFutprepPayment(input: {
   });
   throwIfSupabaseError(insertError, "Could not record payment");
 
-  const { data: payments, error: paymentError } = await db
-    .from("payments")
-    .select("amount_cents")
-    .eq("registration_id", input.registrationId)
-    .eq("status", "received");
-  throwIfSupabaseError(paymentError, "Could not total payments");
-
-  const paid = (payments ?? []).reduce(
-    (sum: number, payment: { amount_cents: number }) =>
-      sum + Number(payment.amount_cents),
-    0,
-  );
+  const paid = await receivedCentsFor(input.registrationId);
 
   const nextStatus = derivePaymentStatus({
     paymentFrequency: registration.payment_frequency,
@@ -990,15 +999,23 @@ export async function getFutprepRegistrationDetail(
 
   const [
     { data: program, error: programError },
-    { data: payments, error: paymentError },
+    payments,
     { data: edits, error: editError },
   ] = await Promise.all([
     db.from("programs").select("name,slug").eq("id", registration.program_id).maybeSingle(),
-    db
-      .from("payments")
-      .select("id,amount_cents,method,status,recorded_by,note,reference,received_at,created_at")
-      .eq("registration_id", registrationId)
-      .order("received_at", { ascending: false }),
+    // Audit finding 5 (brief 34): every payment, read in pages past the
+    // API's 1,000 rows a call, so the record's total matches the desk's.
+    pageAll<Record<string, unknown>>(
+      (from, to) =>
+        db
+          .from("payments")
+          .select("id,amount_cents,method,status,recorded_by,note,reference,received_at,created_at")
+          .eq("registration_id", registrationId)
+          .order("received_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to),
+      "Could not load registration payments",
+    ),
     db
       .from("registration_edits")
       .select("id,changed_by,changes,created_at")
@@ -1006,10 +1023,9 @@ export async function getFutprepRegistrationDetail(
       .order("created_at", { ascending: false }),
   ]);
   throwIfSupabaseError(programError, "Could not load registration program");
-  throwIfSupabaseError(paymentError, "Could not load registration payments");
   throwIfSupabaseError(editError, "Could not load registration edit history");
 
-  const paymentRows = (payments ?? []) as Array<Record<string, unknown>>;
+  const paymentRows = payments;
   const paidCents = paymentRows
     .filter((row) => row.status === "received")
     .reduce((sum, row) => sum + Number(row.amount_cents), 0);
@@ -1274,13 +1290,7 @@ export async function updateFutprepRegistrationDetail(
   // to "term" now needs their $210 re-evaluated against the real term fee,
   // not silently left "paid".
   if (updates.amount_due_cents !== undefined || updates.payment_frequency !== undefined) {
-    const { data: payments, error: paymentError } = await db
-      .from("payments")
-      .select("amount_cents")
-      .eq("registration_id", registrationId)
-      .eq("status", "received");
-    throwIfSupabaseError(paymentError, "Could not total payments");
-    const paid = (payments ?? []).reduce((sum: number, row: { amount_cents: number }) => sum + Number(row.amount_cents), 0);
+    const paid = await receivedCentsFor(registrationId);
     const nextStatus = derivePaymentStatus({
       paymentFrequency: (updates.payment_frequency as PaymentFrequency | undefined) ?? (current.payment_frequency as PaymentFrequency),
       paidCents: paid,
@@ -1338,13 +1348,7 @@ export async function voidFutprepPayment(input: {
     .maybeSingle();
   throwIfSupabaseError(registrationError, "Could not load registration for payment void");
 
-  const { data: remaining, error: remainingError } = await db
-    .from("payments")
-    .select("amount_cents")
-    .eq("registration_id", payment.registration_id)
-    .eq("status", "received");
-  throwIfSupabaseError(remainingError, "Could not total remaining payments");
-  const paidCents = (remaining ?? []).reduce((sum: number, row: { amount_cents: number }) => sum + Number(row.amount_cents), 0);
+  const paidCents = await receivedCentsFor(Number(payment.registration_id));
 
   const paymentStatus = registration
     ? derivePaymentStatus({
