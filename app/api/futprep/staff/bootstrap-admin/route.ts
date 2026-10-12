@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/auth/admin";
 import { STAFF_SESSION_MAX_AGE_SECONDS } from "@/lib/staffSession";
 import {
   FUTPREP_STAFF_COOKIE,
@@ -7,6 +8,11 @@ import {
 } from "@/app/futprep/staff-auth";
 
 export async function POST(request: Request) {
+  // The first login is set up by a PortPass founder, signed in with the
+  // admin second step, never by whoever finds the page (audit finding 9).
+  const founder = await requireAdminApi();
+  if (!founder.ok) return founder.response;
+
   const body = (await request.json().catch(() => ({}))) as { name?: string; accountKey?: string; pin?: string };
   const name = String(body.name ?? "").trim();
   const accountKey = String(body.accountKey ?? "").trim().toLowerCase();
