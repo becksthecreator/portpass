@@ -33,6 +33,12 @@ export function formatPrice(cents: number, unit: string | null): string {
   return suffix ? `${amount}${suffix}` : amount;
 }
 
+// A business card's cheapest price: "From $35 per session". A "from"
+// price already says it ("From $550"), never "From From $550".
+export function fromPriceLabel(cents: number, unit: string | null): string {
+  return unit === "from" ? formatPrice(cents, unit) : `From ${formatPrice(cents, unit)}`;
+}
+
 // label (offerings.age_label, brief 12) wins: whole-year columns can't
 // say "1½–3".
 export function formatAgeRange(min: number | null, max: number | null, label?: string | null): string | null {
