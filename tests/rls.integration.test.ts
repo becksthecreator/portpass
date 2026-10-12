@@ -155,7 +155,7 @@ describe.skipIf(!anonKey)("row level security, seen through a browser key", () =
   });
 
   it("a location's name is public, what the business pays for it is not (brief 31, B)", async () => {
-    const { error: seedError } = await admin.from("locations").insert({ organization_id: ids.published, name: `TEST — delete ${TAG} field`, active: true, cost_model: "per_hour", cost_cents: 4000, cost_note: "TEST" });
+    const { error: seedError } = await admin.from("locations").insert({ organization_id: ids.published, name: `TEST — delete ${TAG} field`, address: "TEST address", active: true, cost_model: "per_hour", cost_cents: 4000, cost_note: "TEST" });
     expect(seedError).toBeNull();
     const named = await anon.from("locations").select("name").eq("organization_id", ids.published);
     expect(named.error).toBeNull();
@@ -164,6 +164,11 @@ describe.skipIf(!anonKey)("row level security, seen through a browser key", () =
       const hidden = await anon.from("locations").select(column).eq("organization_id", ids.published).limit(1);
       expect(hidden.error, `anon must not be able to select locations.${column}`).not.toBeNull();
     }
+    // Nor "everything", which would include them: this is what a later
+    // blanket grant would break.
+    const star = await anon.from("locations").select("*").eq("organization_id", ids.published).limit(1);
+    expect(star.error).not.toBeNull();
+    await admin.from("locations").delete().eq("organization_id", ids.published);
   });
 
   it("people and registrations: no name, contact, child or health field ever reaches a browser key", async () => {

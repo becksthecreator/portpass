@@ -27,6 +27,8 @@ describe("a place as staff type it (brief 31, B1)", () => {
     expect(parseLocationInput({ name: "Field", costModel: "per_week" })).toMatchObject({ ok: false });
     expect(parseLocationInput({ name: "Field", costModel: "per_hour", cost: "forty" })).toMatchObject({ ok: false });
     expect(parseLocationInput({ name: "Field", costModel: "per_hour", cost: "-5" })).toMatchObject({ ok: false });
+    expect(parseLocationInput({ name: "Field", costModel: "per_term", cost: "100001" })).toMatchObject({ ok: false });
+    expect(parseLocationInput({ name: "Field", costModel: "per_term", cost: "100000" })).toMatchObject({ ok: true });
     expect(parseLocationInput({ name: "Field", surface: "sand" })).toMatchObject({ ok: false });
     expect(parseLocationInput({ name: "Field", daysAvailable: [0, 8] })).toMatchObject({ ok: false });
     expect(parseLocationInput({ name: "Field", daysAvailable: "Mon" })).toMatchObject({ ok: false });

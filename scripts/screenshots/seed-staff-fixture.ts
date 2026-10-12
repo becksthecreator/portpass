@@ -158,8 +158,8 @@ async function main() {
   const { data: places, error: placeError } = await db
     .from("locations")
     .insert([
-      { organization_id: org.id, name: `${MARK} field`, map_label: "TEST area", active: true, cost_model: "per_hour", cost_cents: 4000, surface: "grass", private_sessions_ok: true, days_available: [6], hours_note: "TEST Saturday mornings" },
-      { organization_id: org.id, name: `${MARK} gym`, map_label: "TEST area", active: true },
+      { organization_id: org.id, name: `${MARK} field`, map_label: "TEST area", address: "TEST address", active: true, cost_model: "per_hour", cost_cents: 4000, surface: "grass", private_sessions_ok: true, days_available: [6], hours_note: "TEST Saturday mornings" },
+      { organization_id: org.id, name: `${MARK} gym`, map_label: "TEST area", address: "TEST address", active: true },
     ])
     .select("id,name");
   if (placeError || !places?.length) throw new Error(`Could not seed the TEST places: ${placeError?.message}`);

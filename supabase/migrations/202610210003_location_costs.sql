@@ -16,9 +16,11 @@
 --    1 is moved to 68 (on 11 Oct nothing was: all four programs already
 --    use 68), then 1 is switched off, never deleted, with an audit line.
 --    Switch back: update public.locations set active = true where id = 1;
---    Switch back step 3 (the column grants, below): grant select on
---    public.locations to anon, authenticated;
--- The new columns can stay: nothing reads them unless a screen asks.
+--    Switch back step 3 (the column grants, below) only after dropping the
+--    new columns. While they exist, a table-wide grant would hand every
+--    cost to any browser key; browsers had, and keep, only these seven:
+--    grant select (id, organization_id, name, address, map_label, active,
+--    created_at) on public.locations to anon, authenticated;
 
 alter table public.locations add column if not exists cost_model text;
 alter table public.locations add column if not exists cost_cents integer;

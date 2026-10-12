@@ -39,7 +39,8 @@ function toRow(input: LocationInput) {
   return {
     name: input.name,
     map_label: input.area,
-    address: input.address,
+    // locations.address is NOT NULL: a blank one is kept as "".
+    address: input.address ?? "",
     cost_model: input.costModel,
     cost_cents: input.costCents,
     cost_note: input.costNote,
@@ -94,8 +95,12 @@ export async function setFutprepLocationActive(id: number, active: boolean, acto
   const db = getSupabaseAdmin();
   // Futprep found by its slug, as its programs are (db/programs.ts).
   const orgId = await futprepOrganizationId();
-  const { data, error } = await db.from("locations").update({ active }).eq("id", id).eq("organization_id", orgId).select("id").maybeSingle();
+  const { data: place, error: loadError } = await db.from("locations").select("id,active").eq("id", id).eq("organization_id", orgId).maybeSingle();
+  throwIfSupabaseError(loadError, "Could not load the location");
+  if (!place) throw new Error("LOCATION_NOT_FOUND");
+  if (Boolean(place.active) === active) return;
+  const { data, error } = await db.from("locations").update({ active }).eq("id", id).eq("organization_id", orgId).eq("active", !active).select("id").maybeSingle();
   throwIfSupabaseError(error, "Could not switch the location");
-  if (!data) throw new Error("LOCATION_NOT_FOUND");
+  if (!data) return;
   await logAudit({ organizationId: orgId, action: active ? "location.switched_on" : "location.switched_off", targetTable: "locations", targetId: id, before: { active: !active }, after: { active, by: actorName } });
 }

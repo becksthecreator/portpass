@@ -22,8 +22,8 @@ const rate = (cents: number | null) => (cents === null ? "Not set" : formatPrice
 // sessions and who takes them; pay rates; and what's still missing.
 export default async function FutprepOpsPage() {
   const role = await requireFutprepStaff(["admin", "ceo"], "/futprep/staff/ops");
-  const map = await loadOpsMap();
-  const payByCoach = new Map(map.pay.map((coach) => [coach.id, coach]));
+  const map = await loadOpsMap(role);
+  const payByCoach = new Map((map.pay ?? []).map((coach) => [coach.id, coach]));
   const missing = missingLines({
     locations: map.locations,
     coaches: map.coaches.map((coach) => ({
@@ -33,7 +33,8 @@ export default async function FutprepOpsPage() {
       photoUrl: coach.photo_url,
       workingDays: coach.working_days,
       login: coach.login ?? null,
-      leadPayCents: payByCoach.get(coach.id)?.defaultLeadPayCents ?? null,
+      // Pay gaps are listed for the CEO only, who sees the rates.
+      leadPayCents: map.pay ? payByCoach.get(coach.id)?.defaultLeadPayCents ?? null : 0,
     })),
   });
   const privateCoaches = map.coaches.filter((coach) => coach.active && coach.member_type === "coach" && coach.bookable);
@@ -126,11 +127,11 @@ export default async function FutprepOpsPage() {
           )}
         </section>
 
-        <section className="pay-section" aria-labelledby="ops-pay">
+        {map.pay && <section className="pay-section" aria-labelledby="ops-pay">
           <div className="pay-section-head"><h2 id="ops-pay">Coach pay rates</h2>{role === "ceo" && <Link className="secondary-button" href="/futprep/staff/pay">Set on Coach pay</Link>}</div>
           <p className="pay-note">Per class, as Alex has set them. A record of what Futprep owes; PortPass never pays coaches.</p>
           <div className="pay-cards">
-            {map.pay.map((coach) => (
+            {map.pay!.map((coach) => (
               <article className="pay-card" key={coach.id}>
                 <div className="pay-card-head"><strong>{coach.name}</strong>{!coach.active && <span>profile hidden</span>}</div>
                 <dl>
@@ -140,7 +141,7 @@ export default async function FutprepOpsPage() {
               </article>
             ))}
           </div>
-        </section>
+        </section>}
       </section>
     </main>
   );

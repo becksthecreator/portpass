@@ -5,11 +5,14 @@ import { futprepOrganizationId, listFutprepPrograms, type FutprepProgramSummary 
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 import type { FutprepLocation } from "@/lib/futprepLocations";
 import type { PrivateService } from "@/lib/privateSessions";
+import { roleCan, type FutprepRole } from "@/lib/futprepRoles";
 
 // Futprep's operating map (brief 31, B2): programs, places and their
 // costs, private sessions and who takes them, pay rates, and what's still
 // missing, on one screen for the CEO and admin logins. Futprep's own rows
-// only (found by its slug, never the demo business). Reads only.
+// only (found by its slug, never the demo business). Reads only. Everyone's
+// class pay rates are the CEO's to see (lib/futprepRoles.ts "all_pay"), so
+// `pay` is null for an admin.
 
 export type OpsProgram = FutprepProgramSummary & { coachesOnDuty: number; childrenPerCoach: number | null };
 
@@ -18,10 +21,10 @@ export type OpsMap = {
   locations: FutprepLocation[];
   services: PrivateService[];
   coaches: CoachProfile[];
-  pay: PayCoach[];
+  pay: PayCoach[] | null;
 };
 
-export async function loadOpsMap(): Promise<OpsMap> {
+export async function loadOpsMap(role: FutprepRole): Promise<OpsMap> {
   const db = getSupabaseAdmin();
   const organizationId = await futprepOrganizationId();
   const [programs, locations, services, profiles, pay, { data: rules, error }] = await Promise.all([
@@ -29,7 +32,7 @@ export async function loadOpsMap(): Promise<OpsMap> {
     listFutprepLocations(),
     listFutprepPrivateServices(),
     listAllCoachProfiles({ withLogin: true }),
-    listPayCoaches(),
+    roleCan(role, "all_pay") ? listPayCoaches() : Promise.resolve(null),
     db.from("programs").select("id,default_coaches,children_per_coach").eq("organization_id", organizationId),
   ]);
   throwIfSupabaseError(error, "Could not load class sizes");

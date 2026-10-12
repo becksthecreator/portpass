@@ -79,6 +79,8 @@ export function parseLocationInput(body: Record<string, unknown>): Parsed {
   if (needsAmount(costModel) && rawCost !== null) {
     costCents = dollarsToCents(rawCost);
     if (costCents === null) return fail("Enter what it costs in dollars, like 40 or 40.50.");
+    // The database keeps up to $100,000 (locations_cost_cents_check).
+    if (costCents > 10_000_000) return fail("That amount is too large. Enter what it costs in dollars, like 40 or 40.50.");
   }
 
   const rawSurface = body.surface === "" || body.surface === null || body.surface === undefined ? null : body.surface;

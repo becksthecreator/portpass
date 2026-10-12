@@ -394,7 +394,7 @@ export async function listProgramPnl(): Promise<PnlLine[]> {
   // its location and the term's scheduled sessions, and says so.
   const locationIds = [...new Set(programs.map((p) => p.location_id).filter((id): id is number => id !== null))];
   const { data: locationRows, error: locationError } = locationIds.length
-    ? await db.from("locations").select("id,cost_model,cost_cents").in("id", locationIds)
+    ? await db.from("locations").select("id,cost_model,cost_cents").eq("organization_id", await futprepOrganizationId()).in("id", locationIds)
     : { data: [], error: null };
   throwIfSupabaseError(locationError, "Could not load location costs");
   const locationCost = new Map((locationRows ?? []).map((row): [number, LocationCost] => [Number(row.id), { costModel: (row.cost_model as LocationCostModel | null) ?? null, costCents: row.cost_cents === null ? null : Number(row.cost_cents) }]));
