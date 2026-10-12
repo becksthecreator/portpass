@@ -473,7 +473,7 @@ export async function createPrivateSessionRequest(input:{
     }
     // Brief 31 (C3): a coach with no working days confirms a time; the
     // request is flagged so the desk sees it too.
-    timeToConfirm=days.length===0;
+    timeToConfirm=days.length===0&&!availabilityId;
   }
   let locationId:number|null=null;
   if(input.locationId){
@@ -710,9 +710,11 @@ export async function actOnPrivateSessionRequest(input:{
   // the accept (no email configured, a bad address).
   if(input.action==="accept" && existing.status!=="accepted"){
     try{
-      const [{data:coach},{data:slot},settings]=await Promise.all([
+      const [{data:coach},{data:slot},{data:place},settings]=await Promise.all([
         db.from("coach_profiles").select("display_name").eq("id",input.coachId!).maybeSingle(),
         existing.availability_id ? db.from("coach_availability").select("location").eq("id",existing.availability_id).maybeSingle() : Promise.resolve({data:null}),
+        // Brief 31 (C4): the place the parent picked.
+        existing.location_id ? db.from("locations").select("name").eq("id",existing.location_id).eq("organization_id",existing.organization_id).maybeSingle() : Promise.resolve({data:null}),
         getPaymentSettings(Number(existing.organization_id)).catch(()=>null),
       ]);
       const services=existing.service_slug ? await listFutprepPrivateServices() : [];
@@ -733,7 +735,7 @@ export async function actOnPrivateSessionRequest(input:{
         date:existing.requested_date,
         startTime:existing.requested_start_time,
         durationMinutes:Number(existing.duration_minutes),
-        location:(slot as {location?:string}|null)?.location || existing.location_preference || "",
+        location:(slot as {location?:string}|null)?.location || (place as {name?:string}|null)?.name || existing.location_preference || "",
         priceCents:existing.price_cents===null||existing.price_cents===undefined ? null : Number(existing.price_cents),
         referenceCode:existing.reference_code,
         bank,
@@ -801,7 +803,7 @@ export function isDayAway(slot:{status:string;start_time:string;end_time:string}
 
 export async function listCoachDaysAway(coachId:number):Promise<string[]>{
   const db=getSupabaseAdmin();
-  const {data,error}=await db.from("coach_availability").select("availability_date").eq("coach_id",coachId).eq("status","blocked").eq("start_time",DAY_AWAY.start).eq("end_time",DAY_AWAY.end).gte("availability_date",new Date().toISOString().slice(0,10)).order("availability_date",{ascending:true});
+  const {data,error}=await db.from("coach_availability").select("availability_date").eq("coach_id",coachId).eq("status","blocked").eq("start_time",DAY_AWAY.start).eq("end_time",DAY_AWAY.end).gte("availability_date",nassauToday()).order("availability_date",{ascending:true});
   if(isMissingTable(error)) return [];
   throwIfSupabaseError(error,"Could not load the days away");
   return [...new Set((data??[]).map((row)=>String(row.availability_date)))];
@@ -818,6 +820,15 @@ export async function setCoachDayAway(input:{coachId:number;date:string;away:boo
   if(!coach) throw new Error("COACH_NOT_FOUND");
   const now=new Date().toISOString();
   if(input.away){
+    // A session already booked or accepted that day stays the desk's to
+    // move: the day away is refused until it is.
+    const [{data:booked,error:bookedError},{data:accepted,error:acceptedError}]=await Promise.all([
+      db.from("coach_availability").select("id").eq("coach_id",input.coachId).eq("availability_date",input.date).eq("status","booked").limit(1),
+      db.from("private_session_requests").select("id").eq("requested_date",input.date).eq("status","accepted").or(`assigned_coach_id.eq.${Number(input.coachId)},and(assigned_coach_id.is.null,preferred_coach_id.eq.${Number(input.coachId)})`).limit(1),
+    ]);
+    throwIfSupabaseError(bookedError,"Could not check the booked times");
+    throwIfSupabaseError(acceptedError,"Could not check the accepted sessions");
+    if((booked??[]).length>0||(accepted??[]).length>0) throw new Error("BOOKED_THAT_DAY");
     const {error}=await db.from("coach_availability").upsert({coach_id:input.coachId,availability_date:input.date,start_time:DAY_AWAY.start,end_time:DAY_AWAY.end,status:"blocked",location:"",note:"",created_by:input.actor,updated_at:now},{onConflict:"coach_id,availability_date,start_time,end_time"});
     throwIfSupabaseError(error,"Could not save the day away");
     const {error:slotError}=await db.from("coach_availability").update({status:"blocked",note:DAY_AWAY.note,updated_at:now}).eq("coach_id",input.coachId).eq("availability_date",input.date).eq("status","available");

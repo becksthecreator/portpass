@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { nassauToday } from "@/lib/futprepTerms";
 import { WEEKDAY_NAMES, workingDaysLabel } from "@/lib/workingDays";
 
 type Days = { coachId: number; name: string; workingDays: number[]; daysAway: string[] };
@@ -15,7 +16,7 @@ export function MyDaysManager({ initial }: { initial: Days }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = nassauToday();
 
   async function send(payload: Record<string, unknown>, done: string) {
     setError("");

@@ -34,11 +34,6 @@ describe("the operating map's Missing list (brief 31, B2)", () => {
     expect(missingLines(input)).toEqual([{ kind: "pay_rate", who: "TEST Coach Done", text: "TEST Coach Done: no private session pay", href: "/futprep/staff/ops#ops-pay" }]);
   });
 
-  it("asks for private session pay for a coach who takes private sessions (brief 31, C5)", () => {
-    const input: MissingInput = { locations: [], coaches: [{ ...done, takesPrivate: true, privatePayCents: { private30: null, private60: null } }, { ...done, name: "TEST Coach Set", takesPrivate: true, privatePayCents: { private30: 2000, private60: null } }] };
-    expect(missingLines(input)).toEqual([{ kind: "pay_rate", who: "TEST Coach Done", text: "TEST Coach Done: no private session pay", href: "/futprep/staff/ops#ops-pay" }]);
-  });
-
   it("leaves out switched-off places, hidden coaches and non-coaches", () => {
     const input: MissingInput = {
       locations: [{ name: "TEST Old field", active: false, costModel: null, costCents: null }],

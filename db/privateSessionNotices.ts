@@ -86,13 +86,15 @@ export async function ownerAndAdminEmails(organizationId: number): Promise<strin
 
 async function loadFacts(requestId: number): Promise<{ row: RequestRow; facts: RequestFacts } | null> {
   const db = getSupabaseAdmin();
-  const { data, error } = await db.from("private_session_requests").select("id,organization_id,reference_code,preferred_coach_id,assigned_coach_id,parent_name,parent_email,parent_phone,child_name,child_age,requested_date,requested_start_time,duration_minutes,price_cents,service_slug,request_type,location_preference").eq("id", requestId).maybeSingle();
+  const { data, error } = await db.from("private_session_requests").select("id,organization_id,reference_code,preferred_coach_id,assigned_coach_id,parent_name,parent_email,parent_phone,child_name,child_age,requested_date,requested_start_time,duration_minutes,price_cents,service_slug,request_type,location_preference,location_id").eq("id", requestId).maybeSingle();
   throwIfSupabaseError(error, "Could not load the request");
   if (!data) return null;
   const row = data as RequestRow;
-  const [coach, service] = await Promise.all([
+  const placeId = (data as { location_id?: number | null }).location_id ?? null;
+  const [coach, service, place] = await Promise.all([
     row.preferred_coach_id ? db.from("coach_profiles").select("display_name").eq("id", row.preferred_coach_id).maybeSingle() : Promise.resolve({ data: null }),
     row.service_slug ? db.from("offerings").select("name").eq("organization_id", row.organization_id).eq("slug", row.service_slug).maybeSingle() : Promise.resolve({ data: null }),
+    placeId ? db.from("locations").select("name").eq("id", placeId).eq("organization_id", row.organization_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const facts: RequestFacts = {
     referenceCode: row.reference_code,
@@ -107,6 +109,7 @@ async function loadFacts(requestId: number): Promise<{ row: RequestRow; facts: R
     childFirstName: firstName(row.child_name),
     childAge: Number(row.child_age),
     locationPreference: row.location_preference ?? "",
+    placeName: (place.data as { name?: string } | null)?.name ?? null,
   };
   return { row, facts };
 }

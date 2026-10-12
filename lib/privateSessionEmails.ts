@@ -19,6 +19,8 @@ export type RequestFacts = {
   childFirstName: string;
   childAge: number;
   locationPreference: string;
+  // Brief 31 (C4): one of Futprep's places, when the parent chose one.
+  placeName?: string | null;
   // The parent's free-text goal and notes are NOT here on purpose: parents
   // write health facts in them, and those stay in the staff portal (rule 3).
 };
@@ -70,10 +72,10 @@ export function newRequestStaffEmail(f: RequestFacts, portalUrl: string): { subj
         ${row("Child", `${escapeHtml(f.childFirstName)}, age ${f.childAge}`)}
         ${row("Parent", `${escapeHtml(f.parentName)} · ${escapeHtml(f.parentPhone)}`)}
         ${row("Price", escapeHtml(money(f.priceCents)))}
-        ${f.locationPreference ? row("Where they suggested", escapeHtml(f.locationPreference)) : ""}
+        ${f.placeName ? row("Where", escapeHtml(f.placeName)) : f.locationPreference ? row("Where they suggested", escapeHtml(f.locationPreference)) : ""}
       </table>
       ${futprepEmailButton(portalUrl, "Accept, refer or decline in the staff portal →")}
-      <p style="color:#647069;font-size:13px">What the parent wrote about the session is in the portal, not in this email.</p>
+      <p style="color:#647069;font-size:13px">The parent's goal for the session is in the portal, not in this email.</p>
       <p style="color:#647069;font-size:13px">The parent has been told it is not confirmed until a coach accepts. Accepting emails them the time, place, price and how to pay.</p>
     `);
   return { subject, html };

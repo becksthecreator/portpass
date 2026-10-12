@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { nassauToday } from "@/lib/futprepTerms";
 import { isoWeekday } from "@/lib/workingDays";
 import { listPayLedger, listPrivatePayLines, markCoachMonthPaid, setPrivatePayRates } from "./coachPay";
 import { actOnPrivateSessionRequest, createPrivateSessionRequest, getCoachDays, listPrivateSessionRequests, listPublicCoachProfiles, privateSessionOwners, setCoachDayAway } from "./coaches";
@@ -90,7 +91,7 @@ afterAll(async () => {
     await db().from("audit_log").delete().eq("target_table", "coach_profiles").in("target_id", coaches.map(String));
     await db().from("coach_profiles").delete().in("id", coaches);
   }
-  await db().from("audit_log").delete().in("action", ["futprep.private_session_pay", "futprep.coach_pay_marked_paid"]).like("after->>by", "TEST — delete%");
+  await db().from("audit_log").delete().in("action", ["futprep.private_session_pay", "futprep.private_session_pay_repriced", "futprep.coach_pay_marked_paid"]).like("after->>by", "TEST — delete%");
   await db().from("locations").delete().in("id", [placeOk, placeOff].filter(Boolean));
 });
 
@@ -146,6 +147,13 @@ describe("days away and coaches who confirm a time (brief 31, C2 and C3)", () =>
     for (const slot of blocked) expect(slot.location).toBe("");
   });
 
+  it("refuses a day away over a session already accepted that day", async () => {
+    const third = monday(3);
+    const id = await ask({ coachId: coachA, date: third });
+    await actOnPrivateSessionRequest({ id, action: "accept", coachId: coachA, actor: MARK });
+    await expect(setCoachDayAway({ coachId: coachA, date: third, away: true, actor: MARK })).rejects.toThrow("BOOKED_THAT_DAY");
+  });
+
   it("a day can be opened again, with the open times it closed", async () => {
     await setCoachDayAway({ coachId: coachA, date: away, away: false, actor: MARK });
     expect((await getCoachDays(coachA))?.daysAway).not.toContain(away);
@@ -189,7 +197,7 @@ describe("a completed private session is a pay line (brief 31, C5 and C6)", () =
     await actOnPrivateSessionRequest({ id, action: "accept", coachId: coachA, actor: MARK });
     // Never before the session's day.
     await expect(actOnPrivateSessionRequest({ id, action: "complete", actor: MARK })).rejects.toThrow("NOT_YET");
-    await db().from("private_session_requests").update({ requested_date: new Date().toISOString().slice(0, 10) }).eq("id", id);
+    await db().from("private_session_requests").update({ requested_date: nassauToday() }).eq("id", id);
     await actOnPrivateSessionRequest({ id, action: "complete", actor: MARK });
     await actOnPrivateSessionRequest({ id, action: "complete", actor: MARK });
     // Completed is final.
@@ -203,7 +211,7 @@ describe("a completed private session is a pay line (brief 31, C5 and C6)", () =
   it("a coach with no rate gets a $0 line marked rate not set, and never another coach's lines", async () => {
     const id = await ask({ coachId: coachB, minutes: 30 });
     await actOnPrivateSessionRequest({ id, action: "accept", coachId: coachB, actor: MARK });
-    await db().from("private_session_requests").update({ requested_date: new Date().toISOString().slice(0, 10) }).eq("id", id);
+    await db().from("private_session_requests").update({ requested_date: nassauToday() }).eq("id", id);
     await actOnPrivateSessionRequest({ id, action: "complete", actor: MARK });
     const mine = await listPrivatePayLines({ coachId: coachB });
     expect(mine).toEqual([expect.objectContaining({ payCents: 0, basis: "not_set" })]);
@@ -221,6 +229,8 @@ describe("a completed private session is a pay line (brief 31, C5 and C6)", () =
   it("the desk or the CEO sets private rates, audit-logged, and a bad amount is refused", async () => {
     const coach = await setPrivatePayRates({ coachId: coachB, private30Cents: 1500, private60Cents: null, actor: MARK });
     expect(coach).toMatchObject({ private30PayCents: 1500, private60PayCents: null });
+    // B's line recorded before there was a rate is worked out again, unpaid.
+    expect(await listPrivatePayLines({ coachId: coachB })).toEqual([expect.objectContaining({ payCents: 1500, basis: "rate_30", paidAt: null })]);
     const { count } = await db().from("audit_log").select("id", { count: "exact", head: true }).eq("action", "futprep.private_pay_rates").eq("target_id", String(coachB));
     expect(Number(count)).toBe(1);
     await expect(setPrivatePayRates({ coachId: coachB, private30Cents: -1, private60Cents: null, actor: MARK })).rejects.toThrow("INVALID_RATE");

@@ -199,7 +199,7 @@ export async function ensureDefaultLead(sessionId: number, actor: string): Promi
 
 // ---- The pay ledger ---------------------------------------------------------
 
-type LedgerRecord = LedgerRow & { id: number; source: "session_staff" | "private_session_pay" };
+type LedgerRecord = LedgerRow & { id: number; source: "session_staff" | "private_session_pay"; rateNotSet?: boolean };
 
 // Sessions that have happened (today and earlier, not cancelled), with who
 // coached them and the pay, and (brief 31, C6) every completed private
@@ -290,11 +290,12 @@ async function loadPrivateLedger(filter: { coachId?: number }): Promise<LedgerRe
     role: "lead" as const,
     payCents: line.payCents,
     paidAt: line.paidAt,
+    rateNotSet: line.basis === "not_set",
   }));
 }
 
 export async function listPayLedger(filter: { coachId?: number } = {}): Promise<LedgerRow[]> {
-  return (await loadLedger(filter)).map(({ id: _id, source: _source, ...row }) => row);
+  return (await loadLedger(filter)).map(({ id: _id, source: _source, rateNotSet: _rateNotSet, ...row }) => row);
 }
 
 // Brief 31 (C6): a completed private session becomes one pay line for the
@@ -358,6 +359,17 @@ export async function setPrivatePayRates(input: { coachId: number; private30Cent
     .select(COACH_COLUMNS)
     .single();
   throwIfSupabaseError(error, "Could not save the private session rates");
+  // Lines recorded before there was a rate are worked out again now.
+  const { data: waiting, error: waitingError } = await db.from("private_session_pay").select("id,duration_minutes").eq("coach_id", input.coachId).eq("rate_basis", "not_set").is("paid_at", null);
+  throwIfSupabaseError(waitingError, "Could not load the lines waiting for a rate");
+  const rates = { private30PayCents: input.private30Cents, private60PayCents: input.private60Cents };
+  for (const line of waiting ?? []) {
+    const pay = privatePayFor(rates, Number(line.duration_minutes));
+    if (pay.basis === "not_set") continue;
+    const { error: lineError } = await db.from("private_session_pay").update({ pay_cents: pay.cents, rate_basis: pay.basis }).eq("id", line.id).is("paid_at", null).eq("rate_basis", "not_set");
+    throwIfSupabaseError(lineError, "Could not update a line waiting for a rate");
+    await logAudit({ organizationId, action: "futprep.private_session_pay_repriced", targetTable: "private_session_pay", targetId: Number(line.id), after: { payCents: pay.cents, basis: pay.basis, by: input.actor } });
+  }
   await logAudit({
     organizationId,
     action: "futprep.private_pay_rates",
@@ -372,7 +384,8 @@ export async function setPrivatePayRates(input: { coachId: number; private30Cent
 // "Mark paid": every unpaid session a coach coached in a month.
 export async function markCoachMonthPaid(input: { coachId: number; month: string; actor: string }): Promise<{ sessions: number; totalCents: number }> {
   if (!/^\d{4}-\d{2}$/.test(input.month)) throw new Error("INVALID_MONTH");
-  const rows = (await loadLedger({ coachId: input.coachId })).filter((row) => !row.paidAt && monthOf(row.sessionDate) === input.month);
+  // A private line still waiting for its rate isn't paid at $0: it waits.
+  const rows = (await loadLedger({ coachId: input.coachId })).filter((row) => !row.paidAt && !row.rateNotSet && monthOf(row.sessionDate) === input.month);
   if (rows.length === 0) return { sessions: 0, totalCents: 0 };
   const db = getSupabaseAdmin();
   const now = new Date().toISOString();
