@@ -132,6 +132,7 @@ describe("private session pay (brief 31, C5 and C6)", () => {
     expect(summarizePay(rows)).toEqual([{ coachId: 1, coachName: "TEST Coach", month: "2026-10", sessions: 3, owedCents: 7000, paidCents: 3500 }]);
     const csv = payCsv(rows);
     expect(csv).toContain("Private session · FP-S-0007");
-    expect(csv).toContain(",private,20.00,");
+    // Every cell is quoted (lib/rosterCsv.ts csvCell).
+    expect(csv).toContain('"private","20.00"');
   });
 });

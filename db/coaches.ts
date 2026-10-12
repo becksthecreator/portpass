@@ -465,7 +465,7 @@ export async function createPrivateSessionRequest(input:{
     const days=cleanWorkingDays(data.working_days);
     if(!availabilityId){
       // Brief 31 (C2): a day the coach blocked out is refused first.
-      const {data:away,error:awayError}=await db.from("coach_availability").select("id").eq("coach_id",preferredCoachId).eq("availability_date",requestedDate).eq("status","blocked").limit(1);
+      const {data:away,error:awayError}=await db.from("coach_availability").select("id").eq("coach_id",preferredCoachId).eq("availability_date",requestedDate).eq("status","blocked").eq("start_time",DAY_AWAY.start).eq("end_time",DAY_AWAY.end).limit(1);
       throwIfSupabaseError(awayError,"Could not check the coach's days away");
       if((away??[]).length>0) throw new Error(`COACH_AWAY|${awayMessage(String(data.display_name))}`);
       if(!isWorkingDay(days,requestedDate)) throw new Error(`COACH_DAY_OFF|${dayOffMessage(String(data.display_name),days)}`);
@@ -781,9 +781,18 @@ export async function saveCoachProfile(input:{
 // Brief 29, part C: the days a coach takes private sessions on, from the
 // Team page. An empty list clears the rule.
 // Brief 31 (C2): a coach's days away, as whole days, from today on.
+// A day away is one whole-day blocked row; a single time blocked by hand
+// is not. Open times a day away closes carry DAY_AWAY.note, so they open
+// again with the day.
+export const DAY_AWAY={start:"00:00",end:"23:59",note:"Closed for a day away"} as const;
+
+export function isDayAway(slot:{status:string;start_time:string;end_time:string}):boolean{
+  return slot.status==="blocked"&&slot.start_time===DAY_AWAY.start&&slot.end_time===DAY_AWAY.end;
+}
+
 export async function listCoachDaysAway(coachId:number):Promise<string[]>{
   const db=getSupabaseAdmin();
-  const {data,error}=await db.from("coach_availability").select("availability_date").eq("coach_id",coachId).eq("status","blocked").gte("availability_date",new Date().toISOString().slice(0,10)).order("availability_date",{ascending:true});
+  const {data,error}=await db.from("coach_availability").select("availability_date").eq("coach_id",coachId).eq("status","blocked").eq("start_time",DAY_AWAY.start).eq("end_time",DAY_AWAY.end).gte("availability_date",new Date().toISOString().slice(0,10)).order("availability_date",{ascending:true});
   if(isMissingTable(error)) return [];
   throwIfSupabaseError(error,"Could not load the days away");
   return [...new Set((data??[]).map((row)=>String(row.availability_date)))];
@@ -800,13 +809,16 @@ export async function setCoachDayAway(input:{coachId:number;date:string;away:boo
   if(!coach) throw new Error("COACH_NOT_FOUND");
   const now=new Date().toISOString();
   if(input.away){
-    const {error}=await db.from("coach_availability").upsert({coach_id:input.coachId,availability_date:input.date,start_time:"00:00",end_time:"23:59",status:"blocked",location:"",note:"",created_by:input.actor,updated_at:now},{onConflict:"coach_id,availability_date,start_time,end_time"});
+    const {error}=await db.from("coach_availability").upsert({coach_id:input.coachId,availability_date:input.date,start_time:DAY_AWAY.start,end_time:DAY_AWAY.end,status:"blocked",location:"",note:"",created_by:input.actor,updated_at:now},{onConflict:"coach_id,availability_date,start_time,end_time"});
     throwIfSupabaseError(error,"Could not save the day away");
-    const {error:slotError}=await db.from("coach_availability").update({status:"blocked",updated_at:now}).eq("coach_id",input.coachId).eq("availability_date",input.date).eq("status","available");
+    const {error:slotError}=await db.from("coach_availability").update({status:"blocked",note:DAY_AWAY.note,updated_at:now}).eq("coach_id",input.coachId).eq("availability_date",input.date).eq("status","available");
     throwIfSupabaseError(slotError,"Could not close that day's open times");
   }else{
-    const {error}=await db.from("coach_availability").delete().eq("coach_id",input.coachId).eq("availability_date",input.date).eq("status","blocked").eq("start_time","00:00").eq("end_time","23:59");
+    const {error}=await db.from("coach_availability").delete().eq("coach_id",input.coachId).eq("availability_date",input.date).eq("status","blocked").eq("start_time",DAY_AWAY.start).eq("end_time",DAY_AWAY.end);
     throwIfSupabaseError(error,"Could not clear the day away");
+    // The open times the day away closed open again.
+    const {error:slotError}=await db.from("coach_availability").update({status:"available",note:"",updated_at:now}).eq("coach_id",input.coachId).eq("availability_date",input.date).eq("status","blocked").eq("note",DAY_AWAY.note);
+    throwIfSupabaseError(slotError,"Could not open that day's times again");
   }
 }
 

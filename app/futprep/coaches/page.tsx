@@ -44,7 +44,7 @@ export default async function FutprepCoachesPage(){
   ]);
   const own=staffId?await coachSlotPrompt(staffId).catch(()=>null):null;
   const bookable=coaches.filter((coach)=>coach.bookable && coach.member_type==="coach");
-  const bookingCoaches=bookable.map((c)=>({id:c.id,displayName:c.display_name,workingDays:c.working_days??[],blockedDates:cleanBlockedDates(c.availability.filter((s)=>s.status==="blocked").map((s)=>s.availability_date)),slots:c.availability.filter((s)=>s.status==="available").map((s)=>({id:s.id,date:s.availability_date,startTime:s.start_time,endTime:s.end_time,location:s.location}))}));
+  const bookingCoaches=bookable.map((c)=>({id:c.id,displayName:c.display_name,workingDays:c.working_days??[],blockedDates:cleanBlockedDates(c.availability.filter((s)=>s.status==="blocked"&&s.start_time==="00:00"&&s.end_time==="23:59").map((s)=>s.availability_date)),slots:c.availability.filter((s)=>s.status==="available").map((s)=>({id:s.id,date:s.availability_date,startTime:s.start_time,endTime:s.end_time,location:s.location}))}));
   const bookingServices=services.map((s)=>({slug:s.slug,name:s.name,priceCents:s.priceCents,priceUnit:s.priceUnit,kind:s.kind,durationMinutes:s.durationMinutes,minChildren:s.minChildren,maxChildren:s.maxChildren,perChildCents:s.perChildCents}));
   // Brief 29, part B: the button reads the published sessions ("30 min $35 ·
   // 60 min $70"), and the party button is there only while a party service

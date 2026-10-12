@@ -130,7 +130,7 @@ describe("days away and coaches who confirm a time (brief 31, C2 and C3)", () =>
   });
 
   it("the parents' page gets a day away as a date only: no note, no place", async () => {
-    await db().from("coach_availability").update({ note: "TEST private reason" }).eq("coach_id", coachA).eq("availability_date", away).eq("status", "blocked");
+    await db().from("coach_availability").update({ note: "TEST private reason" }).eq("coach_id", coachA).eq("availability_date", away).eq("status", "blocked").eq("start_time", "00:00");
     const { coaches } = await listPublicCoachProfiles();
     const a = coaches.find((c) => c.id === coachA)!;
     const blocked = a.availability.filter((s) => s.status === "blocked");
@@ -139,9 +139,11 @@ describe("days away and coaches who confirm a time (brief 31, C2 and C3)", () =>
     for (const slot of blocked) expect(slot.location).toBe("");
   });
 
-  it("a day can be opened again", async () => {
+  it("a day can be opened again, with the open times it closed", async () => {
     await setCoachDayAway({ coachId: coachA, date: away, away: false, actor: MARK });
     expect((await getCoachDays(coachA))?.daysAway).not.toContain(away);
+    const { data: slots } = await db().from("coach_availability").select("status,start_time").eq("coach_id", coachA).eq("availability_date", away);
+    expect(slots).toEqual([{ status: "available", start_time: "4:00 PM" }]);
   });
 
   it("a request to a coach with no working days is marked: the coach confirms a time and the desk sees it", async () => {
