@@ -11,7 +11,7 @@ import { computeBrandTokens, DEFAULT_BRAND } from "./blocks/brand";
 import { ComingSoonCard } from "./blocks/ComingSoonCard";
 import { directoryHref } from "./blocks/directoryHref";
 import { FeatureCard } from "./blocks/FeatureCard";
-import { formatPrice, formatPriceCents } from "./blocks/format";
+import { formatPriceCents, fromPriceLabel } from "./blocks/format";
 import { InterestForm } from "./InterestForm";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
@@ -180,7 +180,7 @@ async function SectionCards({ published, comingSoon }: { published: SectionBusin
         // Both prices, both real: the business's own price and what a
         // member pays with its perk.
         const memberCents = cheapest && perk && (perk.offeringId === null || perk.offeringId === cheapest.id) ? memberPriceCents(cheapest.priceCents as number, perk, cheapest.priceUnit) : null;
-        const fromLabel = cheapest ? `From ${formatPrice(cheapest.priceCents as number, cheapest.priceUnit)}` : null;
+        const fromLabel = cheapest ? fromPriceLabel(cheapest.priceCents as number, cheapest.priceUnit) : null;
         return (
           <FeatureCard
             key={org.slug}
