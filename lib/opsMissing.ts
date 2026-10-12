@@ -20,6 +20,9 @@ export type MissingInput = {
     workingDays: number[];
     login: LoginState | null;
     leadPayCents: number | null;
+    // Brief 31 (C5): a coach who takes private sessions needs a private rate.
+    takesPrivate?: boolean;
+    privatePayCents?: { private30: number | null; private60: number | null };
   }>;
 };
 
@@ -54,6 +57,7 @@ export function missingLines(input: MissingInput): MissingLine[] {
     if (!coach.photoUrl) add("photo", coach.name, "no photo");
     if (coach.workingDays.length === 0) add("days", coach.name, "no working days");
     if (coach.leadPayCents === null) add("pay_rate", coach.name, "no pay rate");
+    if (coach.takesPrivate && coach.privatePayCents && coach.privatePayCents.private30 === null && coach.privatePayCents.private60 === null) lines.push({ kind: "pay_rate", who: coach.name, text: `${coach.name}: no private session pay`, href: "/futprep/staff/ops#ops-pay" });
   }
   return lines;
 }

@@ -6,6 +6,7 @@ import { costLabel, daysLabel, SURFACE_LABELS } from "@/lib/futprepLocations";
 import { missingLines } from "@/lib/opsMissing";
 import { requireFutprepStaff } from "../../staff-auth";
 import { StaffLogoutButton } from "../StaffLogoutButton";
+import { PrivateRatesEditor } from "./PrivateRatesEditor";
 import "../coaches.css";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ export default async function FutprepOpsPage() {
   const role = await requireFutprepStaff(["admin", "ceo"], "/futprep/staff/ops");
   const map = await loadOpsMap(role);
   const payByCoach = new Map((map.pay ?? []).map((coach) => [coach.id, coach]));
+  const privateByCoach = new Map((map.privateRates ?? []).map((coach) => [coach.id, coach]));
   const missing = missingLines({
     locations: map.locations,
     coaches: map.coaches.map((coach) => ({
@@ -34,8 +36,11 @@ export default async function FutprepOpsPage() {
       photoUrl: coach.photo_url,
       workingDays: coach.working_days,
       login: coach.login ?? null,
-      // Pay gaps are listed for the CEO only, who sees the rates.
+      // Class pay gaps are listed for the CEO only, who sees those rates;
+      // private-session pay gaps for whoever sets them (brief 31, C5).
       leadPayCents: map.pay ? payByCoach.get(coach.id)?.defaultLeadPayCents ?? null : 0,
+      takesPrivate: coach.bookable,
+      privatePayCents: map.privateRates ? { private30: privateByCoach.get(coach.id)?.private30PayCents ?? null, private60: privateByCoach.get(coach.id)?.private60PayCents ?? null } : undefined,
     })),
   });
   const privateCoaches = map.coaches.filter((coach) => coach.active && coach.member_type === "coach" && coach.bookable);
@@ -128,20 +133,10 @@ export default async function FutprepOpsPage() {
           )}
         </section>
 
-        {map.pay && <section className="pay-section" aria-labelledby="ops-pay">
+        {map.privateRates && <section className="pay-section" aria-labelledby="ops-pay">
           <div className="pay-section-head"><h2 id="ops-pay">Coach pay rates</h2>{role === "ceo" && <Link className="secondary-button" href="/futprep/staff/pay">Set on Coach pay</Link>}</div>
-          <p className="pay-note">Per class, as Alex has set them. A record of what Futprep owes; PortPass never pays coaches.</p>
-          <div className="pay-cards">
-            {map.pay!.map((coach) => (
-              <article className="pay-card" key={coach.id}>
-                <div className="pay-card-head"><strong>{coach.name}</strong>{!coach.active && <span>profile hidden</span>}</div>
-                <dl>
-                  <div><dt>Lead</dt><dd>{rate(coach.defaultLeadPayCents)}</dd></div>
-                  <div><dt>Assistant</dt><dd>{rate(coach.defaultAssistantPayCents)}</dd></div>
-                </dl>
-              </article>
-            ))}
-          </div>
+          <p className="pay-note">{map.pay ? "Class rates as Alex set them on Coach pay. " : ""}What a coach is paid for a private session is set here, for 30 and 60 minutes; another length is worked out pro rata. A completed private session becomes a pay line on Coach pay. A record of what Futprep owes; PortPass never pays coaches.</p>
+          <PrivateRatesEditor coaches={map.privateRates!.map((coach) => ({ id: coach.id, name: coach.name, active: coach.active, lead: map.pay ? rate(payByCoach.get(coach.id)?.defaultLeadPayCents ?? null) : null, assistant: map.pay ? rate(payByCoach.get(coach.id)?.defaultAssistantPayCents ?? null) : null, private30PayCents: coach.private30PayCents, private60PayCents: coach.private60PayCents }))} />
         </section>}
       </section>
     </main>

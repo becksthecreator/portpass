@@ -4,6 +4,8 @@ import { cache, type CSSProperties } from "react";
 import { futprepTokenStyle } from "@/db/futprepTheme";
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import { listFutprepPrivateServices, listPublicCoachProfiles } from "@/db/coaches";
+import { listPrivateSessionPlaces } from "@/db/futprepLocations";
+import { cleanBlockedDates } from "@/lib/workingDays";
 import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAttribution, parseAttributionCookie, type Attribution } from "@/lib/attribution";
 import { bookingDescription, bookingTitle, coachShortName, readBookingParams } from "@/lib/bookingLink";
 import { PrivateSessionBooking } from "../coaches/PrivateSessionBooking";
@@ -22,11 +24,17 @@ type Query = Record<string, string | string[] | undefined>;
 
 // Once per request: generateMetadata and the page both ask.
 const load = cache(async function load(searchParams: Promise<Query>) {
-  const [query, { schemaReady, coaches }, services] = await Promise.all([searchParams, listPublicCoachProfiles(), listFutprepPrivateServices({ publishedOnly: true }).catch(() => [])]);
+  const [query, { schemaReady, coaches }, services, places] = await Promise.all([
+    searchParams,
+    listPublicCoachProfiles(),
+    listFutprepPrivateServices({ publishedOnly: true }).catch(() => []),
+    // Brief 31 (C4): the places that take private sessions, name only.
+    listPrivateSessionPlaces().then((rows) => rows.map((p) => ({ id: p.id, name: p.name }))).catch(() => []),
+  ]);
   const bookable = coaches.filter((c) => c.bookable && c.member_type === "coach");
   const params = readBookingParams({ coach: query.coach, service: query.service }, { coaches: bookable.map((c) => c.slug), services: services.map((s) => s.slug) });
   const coach = bookable.find((c) => c.slug === params.coachSlug) ?? null;
-  return { query, schemaReady, bookable, services, params, coach };
+  return { query, schemaReady, bookable, services, params, coach, places };
 });
 
 async function readAttribution(query: Query): Promise<Attribution> {
@@ -53,9 +61,9 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 }
 
 export default async function FutprepBookPage({ searchParams }: { searchParams: Promise<Query> }) {
-  const { query, schemaReady, bookable, services, params, coach } = await load(searchParams);
+  const { query, schemaReady, bookable, services, params, coach, places } = await load(searchParams);
   const attribution = await readAttribution(query);
-  const bookingCoaches = bookable.map((c) => ({ id: c.id, displayName: c.display_name, workingDays: c.working_days ?? [], slots: c.availability.filter((s) => s.status === "available").map((s) => ({ id: s.id, date: s.availability_date, startTime: s.start_time, endTime: s.end_time, location: s.location })) }));
+  const bookingCoaches = bookable.map((c) => ({ id: c.id, displayName: c.display_name, workingDays: c.working_days ?? [], blockedDates: cleanBlockedDates(c.availability.filter((s) => s.status === "blocked" && s.start_time === "00:00" && s.end_time === "23:59").map((s) => s.availability_date)), slots: c.availability.filter((s) => s.status === "available").map((s) => ({ id: s.id, date: s.availability_date, startTime: s.start_time, endTime: s.end_time, location: s.location })) }));
   const bookingServices = services.map((s) => ({ slug: s.slug, name: s.name, priceCents: s.priceCents, priceUnit: s.priceUnit, kind: s.kind, durationMinutes: s.durationMinutes, minChildren: s.minChildren, maxChildren: s.maxChildren, perChildCents: s.perChildCents }));
 
   return (
@@ -69,7 +77,7 @@ export default async function FutprepBookPage({ searchParams }: { searchParams: 
         <h1>{coach ? <>Book a private session with <em>{coachShortName(coach)}</em>.</> : <>Book a private <em>session</em>.</>}</h1>
         {params.unknown.length > 0 && <p className="futprep-book-note" role="status">{params.unknown.length === 2 ? "We couldn't find that coach or that session, so pick below." : params.unknown.includes("coach") ? "We couldn't find that coach, so pick one below." : "That session isn't offered right now, so pick one below."}</p>}
       </section>
-      <PrivateSessionBooking inline coaches={bookingCoaches} services={bookingServices} schemaReady={schemaReady} preferredCoachId={coach?.id} preferredServiceSlug={params.serviceSlug} attribution={attribution} />
+      <PrivateSessionBooking inline coaches={bookingCoaches} services={bookingServices} places={places} schemaReady={schemaReady} preferredCoachId={coach?.id} preferredServiceSlug={params.serviceSlug} attribution={attribution} />
       <footer className="futprep-team-footer">
         <span>Futprep Athletics · Booking and payments powered by PortPass</span>
       </footer>

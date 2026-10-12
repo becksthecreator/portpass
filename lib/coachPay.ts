@@ -31,7 +31,41 @@ export type LedgerRow = {
   role: StaffRole;
   payCents: number;
   paidAt: string | null;
+  // Brief 31 (C6): a completed private session is a line too. Left out, a
+  // line is a class. A private line's programName is "Private session ·
+  // FP-S-…" (its reference); it never carries the child's name.
+  kind?: "class" | "private";
 };
+
+// ---- private sessions (brief 31, C5) --------------------------------------
+
+export type PrivateRates = { private30PayCents: number | null; private60PayCents: number | null };
+export type PrivatePayBasis = "rate_30" | "rate_60" | "pro_rata_60" | "pro_rata_30" | "not_set";
+
+export const PRIVATE_PAY_BASIS_LABEL: Record<PrivatePayBasis, string> = {
+  rate_30: "30-minute rate",
+  rate_60: "60-minute rate",
+  pro_rata_60: "pro rata from the 60-minute rate",
+  pro_rata_30: "pro rata from the 30-minute rate",
+  not_set: "rate not set",
+};
+
+// What Futprep owes a coach for one private session of this length, from
+// the rates Futprep set for that coach (coach_profiles.private_30/60_pay_
+// cents). A 30- or 60-minute session takes that rate; any other length is
+// pro rata from the 60-minute rate (else the 30-minute one); no rate at all
+// is $0, marked "rate not set". Nothing here is a rate of its own.
+export function privatePayFor(rates: PrivateRates, minutes: number): { cents: number; basis: PrivatePayBasis } {
+  if (minutes === 30 && rates.private30PayCents !== null) return { cents: rates.private30PayCents, basis: "rate_30" };
+  if (minutes === 60 && rates.private60PayCents !== null) return { cents: rates.private60PayCents, basis: "rate_60" };
+  if (minutes > 0 && rates.private60PayCents !== null) return { cents: Math.round((rates.private60PayCents * minutes) / 60), basis: "pro_rata_60" };
+  if (minutes > 0 && rates.private30PayCents !== null) return { cents: Math.round((rates.private30PayCents * minutes) / 30), basis: "pro_rata_30" };
+  return { cents: 0, basis: "not_set" };
+}
+
+export function privateLineName(referenceCode: string): string {
+  return `Private session · ${referenceCode}`;
+}
 
 export type PaySummary = {
   coachId: number;
@@ -63,7 +97,7 @@ export function payCsv(rows: LedgerRow[]): string {
   const lines = rows
     .slice()
     .sort((a, b) => a.coachName.localeCompare(b.coachName) || a.sessionDate.localeCompare(b.sessionDate))
-    .map((row) => [row.coachName, monthOf(row.sessionDate), row.sessionDate, row.programName, row.role, (row.payCents / 100).toFixed(2), row.paidAt ? row.paidAt.slice(0, 10) : ""]);
+    .map((row) => [row.coachName, monthOf(row.sessionDate), row.sessionDate, row.programName, row.kind === "private" ? "private" : row.role, (row.payCents / 100).toFixed(2), row.paidAt ? row.paidAt.slice(0, 10) : ""]);
   return [header, ...lines].map((line) => line.map(csvCell).join(",")).join("\r\n") + "\r\n";
 }
 

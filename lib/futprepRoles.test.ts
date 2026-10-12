@@ -18,8 +18,8 @@ describe("Futprep roles (brief 31, Part A)", () => {
     }
   });
 
-  it("gives registrations, payments, team and schedules to admins and the owner", () => {
-    for (const capability of ["registrations", "payments", "team", "schedules"] as const) {
+  it("gives registrations, payments, team, schedules, locations and private-session pay rates to admins and the owner", () => {
+    for (const capability of ["registrations", "payments", "team", "schedules", "locations", "private_pay_rates"] as const) {
       expect(FUTPREP_ROLES.filter((role) => roleCan(role, capability)).sort()).toEqual(["admin", "ceo"]);
     }
   });

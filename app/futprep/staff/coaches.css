@@ -41,3 +41,11 @@
 .ops-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .ops-list li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
 .ops-list li span{color:var(--muted)}
+
+/* My days (brief 31, C2). */
+.my-days-card{display:grid;gap:14px;margin-bottom:16px}
+.my-days-remove{min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--text);font-weight:700;cursor:pointer}
+
+/* 44px tap targets on Coach pay and the operating map (brief 31 review). */
+.pay-rate-fields input,.pay-rate-fields select,.pay-field-edit input{min-height:44px}
+.pay-card button{min-height:44px}

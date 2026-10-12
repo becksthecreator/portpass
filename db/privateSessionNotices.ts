@@ -6,8 +6,10 @@ import { logMessage } from "./growth";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // Who hears about a Futprep private-session request, and when (Brief 29,
-// part A). On a new request: the preferred coach (or every bookable coach
-// when none was chosen), Futprep's owner or admins, and the parent. On a
+// part A). On a new request: the preferred coach, Futprep's owner or
+// admins, and the parent. A request for "any coach" goes to the desk only
+// (brief 31, C1): a coach sees only their own requests, so a coach is never
+// sent a link to one they can't open. On a
 // decline or a referral: the parent. (On an accept: the parent, from
 // db/coaches.ts, with how to pay.)
 //
@@ -84,13 +86,15 @@ export async function ownerAndAdminEmails(organizationId: number): Promise<strin
 
 async function loadFacts(requestId: number): Promise<{ row: RequestRow; facts: RequestFacts } | null> {
   const db = getSupabaseAdmin();
-  const { data, error } = await db.from("private_session_requests").select("id,organization_id,reference_code,preferred_coach_id,assigned_coach_id,parent_name,parent_email,parent_phone,child_name,child_age,requested_date,requested_start_time,duration_minutes,price_cents,service_slug,request_type,location_preference").eq("id", requestId).maybeSingle();
+  const { data, error } = await db.from("private_session_requests").select("id,organization_id,reference_code,preferred_coach_id,assigned_coach_id,parent_name,parent_email,parent_phone,child_name,child_age,requested_date,requested_start_time,duration_minutes,price_cents,service_slug,request_type,location_preference,location_id").eq("id", requestId).maybeSingle();
   throwIfSupabaseError(error, "Could not load the request");
   if (!data) return null;
   const row = data as RequestRow;
-  const [coach, service] = await Promise.all([
+  const placeId = (data as { location_id?: number | null }).location_id ?? null;
+  const [coach, service, place] = await Promise.all([
     row.preferred_coach_id ? db.from("coach_profiles").select("display_name").eq("id", row.preferred_coach_id).maybeSingle() : Promise.resolve({ data: null }),
     row.service_slug ? db.from("offerings").select("name").eq("organization_id", row.organization_id).eq("slug", row.service_slug).maybeSingle() : Promise.resolve({ data: null }),
+    placeId ? db.from("locations").select("name").eq("id", placeId).eq("organization_id", row.organization_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const facts: RequestFacts = {
     referenceCode: row.reference_code,
@@ -105,6 +109,7 @@ async function loadFacts(requestId: number): Promise<{ row: RequestRow; facts: R
     childFirstName: firstName(row.child_name),
     childAge: Number(row.child_age),
     locationPreference: row.location_preference ?? "",
+    placeName: (place.data as { name?: string } | null)?.name ?? null,
   };
   return { row, facts };
 }
@@ -128,7 +133,7 @@ export async function notifyNewPrivateSessionRequest(requestId: number): Promise
     await send(row.parent_email, TEMPLATE.parentReceived, requestReceivedEmail(facts));
 
     const staffEmail = newRequestStaffEmail(facts, PORTAL_URL);
-    const coachIds = row.preferred_coach_id ? [Number(row.preferred_coach_id)] : await bookableCoachIds(orgId);
+    const coachIds = row.preferred_coach_id ? [Number(row.preferred_coach_id)] : [];
     const contacts = await coachContacts(coachIds);
     const told = new Set<string>();
     for (const contact of contacts) {
@@ -140,7 +145,7 @@ export async function notifyNewPrivateSessionRequest(requestId: number): Promise
       told.add(contact.email);
       await send(contact.email, TEMPLATE.staffNew, staffEmail);
     }
-    if (contacts.length === 0) await log(orgId, TEMPLATE.staffNew, "(no bookable coach)", "No bookable coach to tell.");
+    if (row.preferred_coach_id && contacts.length === 0) await log(orgId, TEMPLATE.staffNew, "(no coach found)", "The chosen coach could not be found.");
 
     const owners = (await ownerAndAdminEmails(orgId)).filter((email) => !told.has(email));
     if (owners.length === 0) await log(orgId, TEMPLATE.staffNew, "(no owner on file)", "No owner with a PortPass account, and no admin or CEO login with an email address.");
