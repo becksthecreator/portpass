@@ -194,10 +194,14 @@ describe("Futprep's lookups by reference code find Futprep's registrations only 
 
   it("the join-after-a-taster quote can't price another business's trial row", async () => {
     const theirCode = await theirRegistration();
+    // Registering made the term's Saturdays; the taster is the first one.
     const { data: session, error: sessionError } = await db()
       .from("sessions")
-      .insert({ program_id: otherClass.programId, term_id: otherClass.termId, session_date: "2098-09-06", start_time: "9:00 AM", location: "TEST field" })
       .select("id")
+      .eq("program_id", otherClass.programId)
+      .eq("term_id", otherClass.termId)
+      .order("session_date", { ascending: true })
+      .limit(1)
       .single();
     expect(sessionError).toBeNull();
     const { error } = await db().from("registrations").update({ registration_status: "trial", trial_session_id: Number(session!.id) }).eq("reference_code", theirCode);
