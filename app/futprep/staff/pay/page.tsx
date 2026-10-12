@@ -1,7 +1,7 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { listPayCoaches, listPayLedger, listProgramPnl, listStaffLogins } from "@/db/coachPay";
+import { listPayCoaches, listPayLedger, listPrivatePayLines, listProgramPnl, listStaffLogins } from "@/db/coachPay";
 import { summarizePay } from "@/lib/coachPay";
 import { StaffLogoutButton } from "../StaffLogoutButton";
 import { payNeedsStepUp, resolvePayAccess } from "./access";
@@ -25,8 +25,10 @@ export default async function CoachPayPage() {
   const all = access.kind === "all";
   const ownCoach = access.kind === "own" ? access.coach : null;
 
-  const [ledger, coaches, logins, pnl] = await Promise.all([
+  const [ledger, privateLines, coaches, logins, pnl] = await Promise.all([
     all ? listPayLedger() : ownCoach ? listPayLedger({ coachId: ownCoach.id }) : Promise.resolve([]),
+    // Brief 31 (C6): a coach sees only their own private-session lines.
+    all ? listPrivatePayLines() : ownCoach ? listPrivatePayLines({ coachId: ownCoach.id }) : Promise.resolve([]),
     all ? listPayCoaches() : Promise.resolve([]),
     all ? listStaffLogins() : Promise.resolve([]),
     all ? listProgramPnl() : Promise.resolve([]),
@@ -59,7 +61,7 @@ export default async function CoachPayPage() {
             <p>Ask Alex to link it on the Coach pay page.</p>
           </div>
         ) : (
-          <CoachPayManager canManage={all} summaries={summarizePay(ledger)} coaches={coaches} logins={logins} pnl={pnl} />
+          <CoachPayManager canManage={all} summaries={summarizePay(ledger)} coaches={coaches} logins={logins} pnl={pnl} privateLines={privateLines} />
         )}
       </section>
     </main>

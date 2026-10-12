@@ -110,6 +110,15 @@ const SHOTS = [
   ["brief31-ops-375", "test-ceo", "/futprep/staff/ops", ".ops-missing"],
   ["brief31-ops-1440", "test-desk", "/futprep/staff/ops", ".ops-missing"],
   ["brief31-pay-estimate-375", "test-ceo", "/futprep/staff/pay", "#pay-pnl"],
+  // Brief 31 (C): a coach's own inbox (Bex's request only) and the desk's
+  // (all three), My days, private rates on the operating map, a coach's own
+  // private-session pay line, and the place on the booking form.
+  ["brief31-inbox-coach-375", "test-coach", "/futprep/staff/private-sessions", ".private-request-card"],
+  ["brief31-inbox-desk-375", "test-desk", "/futprep/staff/private-sessions", ".private-request-card"],
+  ["brief31-my-days-375", "test-coach", "/futprep/staff/my-days", ".my-days-card"],
+  ["brief31-ops-private-rates-375", "test-desk", "/futprep/staff/ops", "#ops-pay"],
+  ["brief31-pay-private-375", "test-coach", "/futprep/staff/pay", "#pay-private"],
+  ["brief31-book-place-375", "anon", "/futprep/book?coach=test-delete-coach-bex", ".private-session-two"],
   // Brief 05: the growth report, with the CEO login.
   ["brief05-growth-report-375", "test-ceo", "/futprep/staff/growth", ".growth-panel"],
   // Brief 08: Admin -> Businesses (approve, send back, publish, claim link,

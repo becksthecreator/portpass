@@ -166,6 +166,31 @@ async function main() {
   if (placeError || !places?.length) throw new Error(`Could not seed the TEST places: ${placeError?.message}`);
   const field = places.find((place) => place.name === `${MARK} field`)!;
   await db.from("programs").update({ default_lead_coach_id: bex, field_cost_cents_per_term: null, location_id: field.id }).eq("id", program.id);
+
+  // Brief 31 (C): Bex works Mondays, Wednesdays and Fridays, with private
+  // session rates and a day away; three TEST requests (Bex's, Dre's and one
+  // for any coach) so the coach's inbox shows only Bex's; and Bex's
+  // completed 30-minute session with its pay line.
+  await db.from("coach_profiles").update({ working_days: [1, 3, 5], private_30_pay_cents: 2000, private_60_pay_cents: 3500 }).eq("id", bex);
+  const weekAhead = new Date();
+  weekAhead.setUTCDate(weekAhead.getUTCDate() + 7);
+  while (weekAhead.getUTCDay() !== 1) weekAhead.setUTCDate(weekAhead.getUTCDate() + 1);
+  const awayDay = iso(weekAhead);
+  const { error: awayError } = await db.from("coach_availability").insert({ coach_id: bex, availability_date: awayDay, start_time: "00:00", end_time: "23:59", status: "blocked", location: "", note: "", created_by: MARK });
+  if (awayError) throw new Error(`Could not seed Bex's day away: ${awayError.message}`);
+  const requestDay = new Date(weekAhead);
+  requestDay.setUTCDate(requestDay.getUTCDate() + 2);
+  const request = (n: number, coach: number | null, status: string, minutes: number) => ({
+    reference_code: `FP-S-TEST${n}`, organization_id: org.id, preferred_coach_id: coach, assigned_coach_id: status === "completed" ? coach : null, request_type: "private_lesson",
+    parent_name: `${MARK} Parent ${n}`, parent_email: `test-delete-private-${n}@test.portpass.local`, parent_phone: `242-555-01${10 + n}`,
+    child_name: `${MARK} Child ${n}`, child_age: 8, requested_date: iso(requestDay), requested_start_time: "16:00", duration_minutes: minutes,
+    location_preference: "", location_id: field.id, session_goal: "TEST first touch", notes: "", status, time_to_confirm: false,
+  });
+  const { data: requests, error: requestError } = await db.from("private_session_requests").insert([request(1, bex, "pending", 60), request(2, dre, "pending", 30), request(3, null, "pending", 60), request(4, bex, "completed", 30)]).select("id,reference_code");
+  if (requestError || !requests) throw new Error(`Could not seed the TEST private sessions: ${requestError?.message}`);
+  const done = requests.find((r) => r.reference_code === "FP-S-TEST4")!;
+  const { error: payLineError } = await db.from("private_session_pay").insert({ organization_id: org.id, request_id: done.id, coach_id: bex, duration_minutes: 30, pay_cents: 2000, rate_basis: "rate_30", created_by: MARK });
+  if (payLineError) throw new Error(`Could not seed the TEST pay line: ${payLineError.message}`);
   const { data: played } = await db.from("sessions").select("id,session_date").eq("term_id", term.id).lt("session_date", iso(nextSaturday)).order("session_date");
   const staffing = (played ?? []).flatMap((s, i) => [
     { session_id: s.id, coach_id: bex, role: "lead", pay_cents: 5000, paid_at: i === 0 ? now : null, created_by: MARK },
