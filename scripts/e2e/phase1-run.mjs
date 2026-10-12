@@ -19,13 +19,14 @@
 import { createHmac } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 import { chromium } from "playwright";
 
 const BASE = process.env.SCREENSHOT_BASE_URL ?? "http://localhost:3000";
 const MAIL = process.env.LOCAL_MAIL_URL ?? "http://127.0.0.1:54324";
+assertLocalSupabase();
 const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
 const ADMIN_EMAIL = process.env.PLATFORM_OWNER_EMAILS;
-if (!process.env.SUPABASE_URL?.includes("127.0.0.1") && !process.env.SUPABASE_URL?.includes("localhost")) throw new Error("This run only ever uses a local Supabase stack.");
 mkdirSync("screenshots", { recursive: true });
 
 const TAG = Math.random().toString(36).slice(2, 8);
