@@ -92,7 +92,7 @@ Each PR carries the full findings and what changed, in its body and comments. In
 | B | second pass after the admin pay-rate leak, the NOT NULL address and the per-term share were fixed | second pass: **Safe to merge** |
 | C | second pass: its one blocker (a flagged word in the staff email) was fixed, and the build is green | second pass and a check of the final change: **Safe to merge** |
 | D | second pass: the partial index upsert, the trigger on marks, and the admin's roster saying "no information" were fixed | third pass: **Safe to merge** (its Lows L1 and L3 fixed; L2 a follow-up) |
-| E | runs on D's reviewed code; the walk is its own check | the workflow uses only the local stack's keys and a one-run PIN, masked |
+| E | first pass: the walk now seeds TEST health markers and proves none reaches the family's page or a coach without the medical view; the suite list covers all of brief 31's; the walk re-runs when the staff header changes | **Safe to merge** (three Lows, no change needed) |
 
 `tdd-guide` ran before C and D. The failing-first tests it listed are in each branch (listed in the PR bodies). `qa-runner` ran on C (below).
 
@@ -107,7 +107,7 @@ The staff screenshot job saves every changed screen for A to D (artifact `staff-
 
 ## The proof run (Part E)
 `.github/workflows/coaches-walk.yml` on a throwaway local Supabase stack, never the real database. On D's code, the run before the header fix:
-- **Suites:** brief 29's, 27's and 31's unit tests (18 files) and integration tests (6 files) all passed.
+- **Suites:** brief 29's and 27's, and brief 31's unit, route and integration tests (including the RLS list and the family lookup), run before the walk's TEST world is seeded.
 - **The walk, 9 of 9 steps passed:**
   1. The TEST coach signs in with the PIN form.
   2. Sets Mon, Wed and Fri, and blocks a date.
@@ -115,7 +115,7 @@ The staff screenshot job saves every changed screen for A to D (artifact `staff-
   4. Completes it: one pay line at the TEST 60-minute rate.
   5. Sees it on Coach pay.
   6. Scores all five skills, start and end, writes a note and a clip link, and shares the passport.
-  7. The TEST parent opens it on `/futprep/my/[code]`: the note and clip, no emergency, pickup, health detail or surname.
+  7. The TEST parent opens it on `/futprep/my/[code]`: the note and clip, and only the first name. The TEST child's health fields hold marker strings, and none appears anywhere on the family's page, nor on the roster of the TEST coach (who has no medical view).
   8. The TEST owner sees the coach, the place and the class on `/futprep/staff/ops`.
   9. The TEST admin sees every request.
-- **375px:** the walk found the coach roster (427px) and the operating map (386px) scrolling sideways. The staff header's links pushed Sign out off the screen; they wrap now (D, `app/staff.css`). The run on the fixed head confirms it.
+- **375px:** the walk found the coach roster (427px) and the operating map (386px) scrolling sideways. The staff header's links pushed Sign out off the screen; they wrap now (D, `app/staff.css`). The walk on the merged head is recorded in PR #214.

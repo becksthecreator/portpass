@@ -122,7 +122,9 @@ async function main() {
       parent_name: `${MARK} Walk Parent`, parent_email: "test-delete-walk-parent@example.com", parent_phone: "242-555-0131", relationship: "Parent",
       child_name: `${MARK} Walk Child`, child_dob: childDob, gender: "Prefer not to say",
       emergency_contact_name: `${MARK} Emergency`, emergency_contact_phone: "242-555-0132",
-      allergies: "", medical_conditions: "", medications: "", special_needs: "", authorized_pickup: `${MARK} Walk Parent`, additional_notes: "",
+      // TEST markers, so the walk can prove they never reach the family's
+      // page nor a coach without the medical view.
+      allergies: "TEST-ALLERGY-MARKER", medical_conditions: "TEST-MEDICAL-MARKER", medications: "TEST-MEDICATION-MARKER", special_needs: "TEST-NEEDS-MARKER", authorized_pickup: `${MARK} Walk Parent`, additional_notes: "TEST-NOTES-MARKER",
       photo_consent: "yes", payment_frequency: "term", payment_method: "cash", amount_due_cents: 7000,
       registration_status: "confirmed", payment_status: "paid", consent_version: "test", consent_accepted: true, consent_at: now,
       signature_name: `${MARK} Walk Parent`, submitted_at: now, is_new_family: false, commission_eligible: false, commission_reason: "TEST fixture",

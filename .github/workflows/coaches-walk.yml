@@ -29,6 +29,8 @@ on:
       - "app/futprep/staff/private-sessions/**"
       - "app/futprep/staff/passports/**"
       - "app/futprep/my/**"
+      - "app/staff.css"
+      - "app/futprep/staff/StaffLogoutButton.tsx"
       - "app/api/futprep/private-sessions/**"
       - "app/api/futprep/staff/my-days/**"
       - "app/api/futprep/staff/passports/**"
@@ -94,6 +96,9 @@ jobs:
           lib/futprepEmail.test.ts lib/futprepTheme.test.ts lib/ownerDashboard.test.ts lib/quickRegistration.test.ts
           lib/privateSessionAccess.test.ts lib/passports lib/futprepRoles.test.ts lib/futprepGuards.static.test.ts
           lib/coachPay.test.ts lib/futprepLocations.test.ts lib/opsMissing.test.ts db/opsMap.test.ts
+          app/api/futprep/private-sessions app/api/futprep/staff/accounts app/api/futprep/staff/coach-slots
+          app/api/futprep/staff/locations app/api/futprep/staff/my-days app/api/futprep/staff/passports
+          app/api/futprep/staff/private-rates app/api/admin/futprep-owner
       - name: Brief 29's, brief 27's and brief 31's suites (integration)
         # Before the walk's TEST world is seeded: these tests make and
         # delete their own TEST rows.
@@ -101,7 +106,9 @@ jobs:
           npx vitest run --config vitest.integration.config.ts
           db/privateSessions.integration.test.ts
           app/api/futprep/registrations/route.integration.test.ts db/camps.integration.test.ts db/ownerDashboard.integration.test.ts
-          db/coachInbox.integration.test.ts db/passports.integration.test.ts
+          db/coachInbox.integration.test.ts db/passports.integration.test.ts db/coachPay.integration.test.ts
+          db/futprepStaffRoles.integration.test.ts db/coachPrompt.integration.test.ts tests/rls.integration.test.ts
+          app/api/futprep/registrations/lookup/route.integration.test.ts
       - name: Seed the TEST world for the walk
         run: npx tsx scripts/e2e/seed-coaches-fixture.ts
       - name: Build

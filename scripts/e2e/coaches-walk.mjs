@@ -35,6 +35,8 @@ const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KE
 mkdirSync("screenshots", { recursive: true });
 
 const NOTE = "TEST: a strong first touch this term. Keep practising the weaker foot.";
+// The TEST child's health fields hold these (seed-coaches-fixture.ts).
+const HEALTH_MARKERS = ["TEST-ALLERGY-MARKER", "TEST-MEDICAL-MARKER", "TEST-MEDICATION-MARKER", "TEST-NEEDS-MARKER", "TEST-NOTES-MARKER"];
 const CLIP = "https://youtu.be/test-walk";
 const results = [];
 let failed = false;
@@ -203,15 +205,18 @@ await step("6. Scores the passport, writes a note and shares it", async () => {
   await panel.getByRole("button", { name: "Save note" }).click();
   await coach.getByText("Note saved.").waitFor({ timeout: 30_000 });
   await fits(coach);
+  const roster = await coach.locator("body").innerText();
+  for (const marker of HEALTH_MARKERS) expect(!roster.includes(marker), `A coach without the medical view sees ${marker}.`);
+  // Rule 3: the passport panel only, not the roster's safety notes.
   await panel.scrollIntoViewIfNeeded();
-  await shot(coach, "e07-passport-scored");
+  await panel.screenshot({ path: "screenshots/e07-passport-scored.png" });
   await panel.getByRole("button", { name: "Share with the family" }).click();
   await coach.getByText(/^Shared\./).waitFor({ timeout: 30_000 });
   const { data: passport } = await db.from("passports").select("id,status").eq("registration_id", fixture.registrationId).single();
   expect(passport?.status === "shared", `The passport is ${passport?.status}.`);
   const { count: marks } = await db.from("passport_marks").select("id", { count: "exact", head: true }).eq("passport_id", passport.id).not("start_score", "is", null).not("end_score", "is", null);
   expect(marks === count, `${marks} of ${count} skills have both marks.`);
-  await shot(coach, "e08-passport-shared");
+  await panel.screenshot({ path: "screenshots/e08-passport-shared.png" });
   return `${count} skills, start 2 and end 4 each`;
 });
 
@@ -228,6 +233,9 @@ await step("7. The parent opens it on /futprep/my/[code]", async () => {
   // Rule 3: the passport carries no emergency, pickup or health detail,
   // and only the child's first name.
   for (const hidden of ["Emergency", "242-555-0132", "Walk Parent", "Walk Child"]) expect(!text.includes(hidden), `The passport shows "${hidden}".`);
+  // And nowhere on the family's page: no health detail, no emergency contact.
+  const page = await parent.locator("body").innerText();
+  for (const hidden of [...HEALTH_MARKERS, "242-555-0132"]) expect(!page.includes(hidden), `The family's page shows "${hidden}".`);
   await passport.scrollIntoViewIfNeeded();
   await fits(parent);
   await shot(parent, "e09-family-passport");
