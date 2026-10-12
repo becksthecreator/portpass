@@ -9,6 +9,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 import sharp from "sharp";
 
 const noise = (width: number, height: number, sigma: number) => sharp({ create: { width, height, channels: 3, background: { r: 128, g: 128, b: 128 }, noise: { type: "gaussian", mean: 128, sigma } } });
@@ -19,7 +20,7 @@ async function main() {
   const out = process.env.SCREENSHOT_FIXTURE;
   const dir = process.env.PHOTO_DIR;
   if (!url || !key || !out || !dir) throw new Error("SUPABASE_URL, SUPABASE_SECRET_KEY, SCREENSHOT_FIXTURE and PHOTO_DIR must be set.");
-  if (!url.includes("127.0.0.1") && !url.includes("localhost")) throw new Error("Refusing to seed anything but a local Supabase stack.");
+  assertLocalSupabase();
   const db = createClient(url, key);
 
   // The two buckets, as the migrations make them where storage is on.

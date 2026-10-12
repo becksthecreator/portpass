@@ -5671,6 +5671,8 @@ a.admin-tile:hover{border-color:var(--sky)}
 .admin-row-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;max-width:340px}
 .admin-action{border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);cursor:pointer;display:inline-block;font:inherit;font-size:.78rem;font-weight:700;line-height:1.2;min-height:36px;padding:9px 13px;text-decoration:none}
 .admin-table a.admin-action{color:var(--text);text-decoration:none}
+/* Brief 31: the founder's owner-access button, a 44px tap target. */
+.admin-action-tall{min-height:44px}
 .admin-action.is-primary,.admin-table a.admin-action.is-primary{background:var(--sky);border-color:var(--sky);color:var(--bg)}
 .admin-action.is-danger{border-color:#7a3a33;color:#ffb4a8}
 .admin-action:disabled{cursor:default;opacity:.55}

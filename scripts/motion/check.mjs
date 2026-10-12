@@ -17,9 +17,13 @@
 import { createHmac } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { chromium } from "playwright";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 
 const BASE = process.env.MOTION_BASE_URL ?? "http://localhost:3000";
 if (!["localhost", "127.0.0.1"].includes(new URL(BASE).hostname)) throw new Error("Refusing to run against anything but the app on localhost.");
+// Check 11 uses the secret key, so a Supabase address, if one is set, must
+// be the local stack.
+if (process.env.SUPABASE_URL) assertLocalSupabase();
 
 const OUT = "motion-checks";
 mkdirSync(`${OUT}/frames`, { recursive: true });
@@ -1171,7 +1175,7 @@ try {
   {
     const adminEmail = (process.env.PLATFORM_OWNER_EMAILS ?? "").split(",")[0].trim();
     const supabaseUrl = process.env.SUPABASE_URL ?? "";
-    if (!adminEmail || !process.env.SUPABASE_SECRET_KEY || !/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/.test(supabaseUrl)) {
+    if (!adminEmail || !process.env.SUPABASE_SECRET_KEY || !supabaseUrl) {
       lines.push("- No TEST platform owner on a local stack here, so the switch in Admin was not driven end to end.");
     } else {
       const { createClient } = await import("@supabase/supabase-js");

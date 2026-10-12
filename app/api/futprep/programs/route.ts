@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentFutprepStaffAccount, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
+import { canChangePrograms } from "@/lib/futprepRoles";
 import {
   createFutprepProgram,
   listFutprepPrograms,
@@ -32,6 +33,7 @@ function num(body: Record<string, unknown>, field: string) {
 export async function POST(request: Request) {
   const [account, role] = await Promise.all([currentFutprepStaffAccount(), currentFutprepStaffRole()]);
   if (!account || role === "helper") return NextResponse.json({ error: "Sign in again." }, { status: 401 });
+  if (!canChangePrograms(role)) return NextResponse.json({ error: "Only an admin or the CEO can change programs." }, { status: 403 });
 
   let body: Record<string, unknown>;
   try {
@@ -129,6 +131,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const [account, role] = await Promise.all([currentFutprepStaffAccount(), currentFutprepStaffRole()]);
   if (!account || role === "helper") return NextResponse.json({ error: "Sign in again." }, { status: 401 });
+  if (!canChangePrograms(role)) return NextResponse.json({ error: "Only an admin or the CEO can change programs." }, { status: 403 });
 
   const body = await request.json().catch(() => ({})) as { id?: number; active?: boolean };
   const id = Number(body.id);

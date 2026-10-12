@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attributionFromRequest, EMPTY_ATTRIBUTION, mergeAttribution, parseAttributionCookie, resolveAttribution, serializeAttributionCookie } from "./attribution";
+import { attributionFromRequest, EMPTY_ATTRIBUTION, isShopOwnPath, mergeAttribution, parseAttributionCookie, resolveAttribution, serializeAttributionCookie, shopSlugFromPath } from "./attribution";
 
 const qr = { ...EMPTY_ATTRIBUTION, utmSource: "portpass", utmMedium: "qr", utmCampaign: "term2_field_banner" };
 
@@ -63,5 +63,26 @@ describe("attribution cookie", () => {
     expect(parseAttributionCookie(serializeAttributionCookie(qr))).toEqual(qr);
     expect(parseAttributionCookie("not json")).toBeNull();
     expect(parseAttributionCookie(encodeURIComponent('{"r":"<script>"}'))).toBeNull();
+  });
+});
+
+describe("a shop's attribution, on its storefront and its Market product pages (brief 25)", () => {
+  it("reads the seller from either address", () => {
+    expect(shopSlugFromPath("/shop/kit-labs")).toBe("kit-labs");
+    expect(shopSlugFromPath("/shop/kit-labs/drop/home-kit")).toBe("kit-labs");
+    expect(shopSlugFromPath("/market/p/kit-labs/home-jersey")).toBe("kit-labs");
+    expect(shopSlugFromPath("/market")).toBeNull();
+    expect(shopSlugFromPath("/market/kits-apparel")).toBeNull();
+    expect(shopSlugFromPath("/marketplace/p/kit-labs/x")).toBeNull();
+  });
+
+  it("counts arriving from /market as found on PortPass, and the seller's own pages as not", () => {
+    const own = isShopOwnPath("kit-labs");
+    const visit = (referer: string) => attributionFromRequest({ searchParams: new URLSearchParams(), referer, ownHost: "portpassbahamas.com", isOwnPath: own });
+    expect(visit("https://portpassbahamas.com/market?q=jersey")?.viaPortpass).toBe(true);
+    expect(visit("https://portpassbahamas.com/market/kits-apparel")?.viaPortpass).toBe(true);
+    expect(visit("https://portpassbahamas.com/market/p/other-seller/cap")?.viaPortpass).toBe(true);
+    expect(visit("https://portpassbahamas.com/shop/kit-labs")).toBeNull();
+    expect(visit("https://portpassbahamas.com/market/p/kit-labs/home-jersey")).toBeNull();
   });
 });

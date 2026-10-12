@@ -8,12 +8,13 @@
 import { createHmac } from "node:crypto";
 import { mkdirSync, readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 import { chromium } from "playwright";
 
 const BASE = process.env.SCREENSHOT_BASE_URL ?? "http://localhost:3000";
 // A secret key issues the sign-in codes here, so this only ever runs
 // against a local Supabase stack and the app on localhost.
-if (!process.env.SUPABASE_URL?.includes("127.0.0.1") && !process.env.SUPABASE_URL?.includes("localhost")) throw new Error("Refusing to sign in to anything but a local Supabase stack.");
+assertLocalSupabase();
 if (!["localhost", "127.0.0.1"].includes(new URL(BASE).hostname)) throw new Error("Refusing to run against anything but the app on localhost.");
 const PIN = process.env.SCREENSHOT_PIN;
 const fixture = JSON.parse(readFileSync(process.env.SCREENSHOT_FIXTURE, "utf8"));
@@ -93,6 +94,14 @@ const SHOTS = [
   // "add your weekly slots" prompt; the Team page's photo upload.
   ["brief16-coaches-own-prompt-375", "test-coach", "/futprep/coaches", ".coach-own-prompt"],
   ["brief16-team-photo-upload-375", "test-ceo", "/futprep/staff/team", ".team-photo-actions"],
+  // Brief 31 (A): Team with the red "No email" / "No PIN yet" chips, Staff
+  // accounts (owner button, medical switch, give a login), and the
+  // registration record for an admin login without the medical switch.
+  ["brief31-team-chips-375", "test-ceo", "/futprep/staff/team", ".flag-missing"],
+  ["brief31-accounts-375", "test-ceo", "/futprep/staff/accounts", ".team-without-login"],
+  ["brief31-registration-no-medical-375", "test-desk", `/futprep/staff/admin/${fixture.registrationId}`, ".detail-panel-wide"],
+  ["brief31-roster-no-health-375", "test-coach", `/futprep/staff/coach?session=${fixture.sessionId}`, ".coach-roster details[open]", ".coach-roster details > summary"],
+  ["brief31-admin-futprep-owner-375", "admin", "/admin/people", "#futprep-owner"],
   // Brief 05: the growth report, with the CEO login.
   ["brief05-growth-report-375", "test-ceo", "/futprep/staff/growth", ".growth-panel"],
   // Brief 08: Admin -> Businesses (approve, send back, publish, claim link,

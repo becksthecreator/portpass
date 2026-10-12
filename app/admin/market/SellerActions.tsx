@@ -7,7 +7,8 @@ import type { SellerStatus } from "@/lib/market/sellers";
 // Admin -> Market -> Sellers (brief 25, A5): one seller's decisions.
 // Verify needs a licence number and a contact person on file (the database
 // refuses it otherwise); suspending asks for a reason the seller sees.
-export function SellerActions({ orgId, name, status, licenceNumber, contactPerson }: { orgId: number; name: string; status: SellerStatus; licenceNumber: string | null; contactPerson: string | null }) {
+// The Seller plan (part C) decides whether its monthly fee is billed.
+export function SellerActions({ orgId, name, status, licenceNumber, contactPerson, onSellerPlan }: { orgId: number; name: string; status: SellerStatus; licenceNumber: string | null; contactPerson: string | null; onSellerPlan: boolean }) {
   const canVerify = Boolean(licenceNumber && contactPerson);
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -16,7 +17,7 @@ export function SellerActions({ orgId, name, status, licenceNumber, contactPerso
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
 
-  async function act(action: "verify" | "suspend" | "unsuspend") {
+  async function act(action: "verify" | "suspend" | "unsuspend" | "plan_on" | "plan_off") {
     setBusy(true);
     setError("");
     try {
@@ -45,6 +46,9 @@ export function SellerActions({ orgId, name, status, licenceNumber, contactPerso
       {status === "suspended" && (
         <button type="button" className="admin-mini" disabled={busy} onClick={() => act("unsuspend")}>Lift suspension</button>
       )}
+      <button type="button" className="admin-mini" disabled={busy} aria-pressed={onSellerPlan} onClick={() => act(onSellerPlan ? "plan_off" : "plan_on")}>
+        {onSellerPlan ? "Take off the Seller plan" : "Put on the Seller plan"}
+      </button>
       {suspending && (
         <form className="mkt-admin-suspend" onSubmit={(e) => { e.preventDefault(); void act("suspend"); }}>
           <label><span>Why? {name} sees this.</span><input required maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} /></label>

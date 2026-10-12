@@ -1,0 +1,14 @@
+/* A PortPass Market order's own page (brief 25, C3), on the /pay page's
+   frame (app/pay/pay.css): the order's steps and how it gets to the buyer.
+   Nothing here moves. Its own file, imported by /order pages only. */
+
+.ord-steps{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.ord-steps li{position:relative;display:flex;align-items:center;gap:12px;min-height:40px;color:var(--muted);font-weight:700}
+.ord-steps li+li::before{content:"";position:absolute;left:8px;top:-12px;height:24px;border-left:2px solid var(--line)}
+.ord-steps li.is-done{color:var(--ink)}
+.ord-steps li.is-done+li.is-done::before{border-left-color:var(--harbour)}
+.ord-steps li.is-current{font-weight:800}
+.ord-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);background:var(--paper);flex:none;position:relative;z-index:1}
+.ord-steps li.is-done .ord-dot{background:var(--harbour);border-color:var(--harbour)}
+.ord-steps li.is-current .ord-dot{box-shadow:0 0 0 4px rgba(0,119,139,.18)}
+.ord-getting{margin:0;line-height:1.5;white-space:pre-line}

@@ -207,6 +207,8 @@ export type AdminSeller = {
   acceptsCashOnPickup: boolean;
   productsPublished: number;
   productsTotal: number;
+  // On the Seller plan (part C): its monthly fee is billed once fees are on.
+  onSellerPlan: boolean;
 };
 
 const PAGE = 1000;
@@ -269,6 +271,7 @@ export async function listSellers(): Promise<AdminSeller[]> {
       acceptsCashOnPickup: shop.acceptsCashOnPickup,
       productsPublished: count.published,
       productsTotal: count.total,
+      onSellerPlan: shop.sellerPlan === "seller",
     };
   });
 }

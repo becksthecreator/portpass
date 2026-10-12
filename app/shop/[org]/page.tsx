@@ -8,6 +8,7 @@ import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { ppDisplay, ppSans } from "@/app/fonts";
 import { listSections } from "@/db/categories";
+import { getOrderOptions } from "@/db/marketOrders";
 import { getPublicShop, type Drop, type PublicShop } from "@/db/shop";
 import { dropPhase, formatNassau, licenceLabel, money, paymentMethodLabel, publicOpensAt, SHOP_PAYMENT_METHODS, whatsappHref } from "@/lib/shop/rules";
 import { MadeBadge } from "@/app/_components/market/MadeBadge";
@@ -21,7 +22,8 @@ import "../shop.css";
 // depends on the clock and on drops opening. Since brief 25 the storefront
 // is always on for a verified seller ("Made in The Bahamas"): every
 // product shows, with its badge, and one in stock outside a drop can be
-// asked for on WhatsApp (ordering on PortPass arrives with part C).
+// ordered on its Market page (part C), or asked for on WhatsApp where the
+// seller can't take an order there yet.
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ org: string }>;
@@ -89,6 +91,11 @@ export default async function ShopPage({ params }: { params: Params }) {
   const seller = shop.shop;
   const inStock = (productId: number) => products.find((p) => p.id === productId)?.variants.some((v) => v.stock === null || v.stock > 0) ?? false;
   const askHref = (title: string) => (org.whatsappE164 ? whatsappHref(org.whatsappE164, `Hi ${org.name}, I'd like to order ${title} from your PortPass shop.`) : null);
+  // Ordering (brief 25, part C) happens on the product's Market page, where
+  // the order form is; only once the business is live there, and the seller
+  // can take an order (a way to get it and a way to pay them).
+  const options = org.isPublished ? await getOrderOptions(org.id, seller).catch(() => null) : null;
+  const orderHref = (productSlug: string) => (options?.canOrder ? `/market/p/${slug}/${productSlug}#order` : null);
 
   return (
     <main className={`tpl-page shop-page ${ppDisplay.variable} ${ppSans.variable}`} style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}>
@@ -139,7 +146,8 @@ export default async function ShopPage({ params }: { params: Params }) {
               const open = openDropFor(product.id);
               const next = open ? null : nextDropFor(product.id);
               const edition = product.usesMarks ? licenceLabel(product.licenceKind) : null;
-              const ask = !open && inStock(product.id) ? askHref(product.title) : null;
+              const order = !open && !next && inStock(product.id) ? orderHref(product.slug) : null;
+              const ask = !open && !order && inStock(product.id) ? askHref(product.title) : null;
               return (
                 <article key={product.id} className="shop-card">
                   <div className="shop-card-photo">
@@ -154,6 +162,8 @@ export default async function ShopPage({ params }: { params: Params }) {
                     <p className="shop-sizes">{product.variants.map((v) => v.label).join(" · ")}</p>
                     {open ? (
                       <Link className="primary-button shop-card-action" href={`/shop/${slug}/drop/${open.slug}#product-${product.id}`}>Reserve</Link>
+                    ) : order ? (
+                      <Link className="primary-button shop-card-action" href={order}>Order</Link>
                     ) : ask ? (
                       <a className="primary-button shop-card-action" href={ask} target="_blank" rel="noopener noreferrer">Order on WhatsApp</a>
                     ) : (

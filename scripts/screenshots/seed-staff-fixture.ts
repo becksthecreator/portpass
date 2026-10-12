@@ -13,6 +13,7 @@
 import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 
 const MARK = "TEST — delete";
 
@@ -32,7 +33,7 @@ async function main() {
   const pin = process.env.SCREENSHOT_PIN;
   const out = process.env.SCREENSHOT_FIXTURE;
   if (!url || !key || !pin || !out) throw new Error("SUPABASE_URL, SUPABASE_SECRET_KEY, SCREENSHOT_PIN and SCREENSHOT_FIXTURE must be set.");
-  if (!url.includes("127.0.0.1") && !url.includes("localhost")) throw new Error("Refusing to seed anything but a local Supabase stack.");
+  assertLocalSupabase();
   const db = createClient(url, key);
 
   const { data: org, error: orgError } = await db.from("organizations").select("id").eq("slug", "futprep").single();
@@ -43,6 +44,8 @@ async function main() {
   const accounts = [
     { account_key: "test-ceo", name: `${MARK} Coach Alex`, role: "ceo" },
     { account_key: "test-coach", name: `${MARK} Coach Bex`, role: "coach" },
+    // Brief 31 (A): the registration desk without the medical switch.
+    { account_key: "test-desk", name: `${MARK} Desk`, role: "admin" },
   ];
   for (const account of accounts) {
     // app/futprep/staff-auth.ts still reads staff accounts from organization
@@ -144,6 +147,11 @@ async function main() {
   if (coachError || !coaches) throw new Error(`Could not seed coaches: ${coachError?.message}`);
   const bex = coaches.find((c) => c.slug === "test-delete-coach-bex")!.id;
   const dre = coaches.find((c) => c.slug === "test-delete-coach-dre")!.id;
+  // Brief 31 (A): Dre is on the team with a staff row but no login yet, so
+  // Team shows the red chips and Staff accounts offers "Give a login".
+  const { data: dreRow, error: dreRowError } = await db.from("staff_members").insert({ organization_id: 1, name: `${MARK} Coach Zed`, role: "coach", responsibilities: "", active: true }).select("id").single();
+  if (dreRowError || !dreRow) throw new Error(`Could not seed Dre's staff row: ${dreRowError?.message}`);
+  await db.from("coach_profiles").update({ staff_member_id: dreRow.id }).eq("id", dre);
   await db.from("programs").update({ default_lead_coach_id: bex, field_cost_cents_per_term: 20000 }).eq("id", program.id);
   const { data: played } = await db.from("sessions").select("id,session_date").eq("term_id", term.id).lt("session_date", iso(nextSaturday)).order("session_date");
   const staffing = (played ?? []).flatMap((s, i) => [
@@ -262,6 +270,17 @@ async function main() {
   const adminEmail = "test-delete-admin@test.portpass.local";
   const { error: adminError } = await db.auth.admin.createUser({ email: adminEmail, email_confirm: true });
   if (adminError) throw new Error(`Could not seed the TEST admin: ${adminError.message}`);
+
+  // Brief 31 (A4): the TEST CEO login marked as Futprep's owner, with a
+  // TEST PortPass sign-in on its email, so Admin -> People shows the
+  // founder's "Give owner access" step and Staff accounts what it waits for.
+  const ownerEmail = "test-delete-owner@test.portpass.local";
+  const { data: ownerUser, error: ownerError } = await db.auth.admin.createUser({ email: ownerEmail, email_confirm: true });
+  if (ownerError || !ownerUser.user) throw new Error(`Could not seed the TEST owner sign-in: ${ownerError?.message}`);
+  const { error: ownerPersonError } = await db.from("people").insert({ name: `${MARK} Owner`, email: ownerEmail, auth_user_id: ownerUser.user.id });
+  if (ownerPersonError) throw new Error(`Could not seed the TEST owner: ${ownerPersonError.message}`);
+  const { error: ownerMarkError } = await db.from("staff_members").update({ is_owner: true, email: ownerEmail }).eq("organization_id", 1).eq("account_key", "test-ceo");
+  if (ownerMarkError) throw new Error(`Could not mark the TEST owner: ${ownerMarkError.message}`);
 
   const reason = (key: string, label: string, points: number, why?: string) => ({ key, label, points, ...(why ? { why } : {}) });
   const leads = [

@@ -65,7 +65,6 @@ const STILL_READS_JSON_ITSELF = new Set<string>([
   "app/api/futprep/private-sessions/[id]/payments/route.ts",
   "app/api/futprep/private-sessions/[id]/route.ts",
   "app/api/futprep/programs/route.ts",
-  "app/api/futprep/staff/accounts/route.ts",
   "app/api/futprep/staff/attendance/route.ts",
   "app/api/futprep/staff/bootstrap-admin/route.ts",
   "app/api/futprep/staff/change-pin/route.ts",

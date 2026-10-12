@@ -11,11 +11,12 @@
 // mark to move. It is published the way an owner would be: approved, a
 // priced offering, then live (no price, no publish).
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 
 const url = process.env.SUPABASE_URL ?? "";
 // The host itself, not a substring of the address: this script creates an
 // auth user, so it refuses anything but a local stack.
-if (!/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/.test(url)) throw new Error("Refusing to seed anything but a local Supabase stack.");
+assertLocalSupabase();
 const db = createClient(url, process.env.SUPABASE_SECRET_KEY ?? "", { auth: { persistSession: false, autoRefreshToken: false } });
 
 const SLUG = "test-delete-motion-venue";
