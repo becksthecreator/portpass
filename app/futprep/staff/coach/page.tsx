@@ -1,7 +1,8 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { requireFutprepStaff, currentFutprepStaffCanViewMedical, currentFutprepStaffId, currentFutprepStaffName } from "../../staff-auth";
-import { canSeeMedical } from "@/lib/futprepRoles";
+import { canSeeMedical, rosterSafetyShown } from "@/lib/futprepRoles";
+import { nassauToday } from "@/lib/futprepTerms";
 import { coachSlotPrompt } from "@/db/coaches";
 import {
   getFutprepSessionPlan,
@@ -10,7 +11,7 @@ import {
   listFutprepStaffSessions,
   rosterForSession,
 } from "@/db/staff";
-import { getSessionStaff, listPayCoaches } from "@/db/coachPay";
+import { getSessionStaff, listPayCoaches, type PayCoach } from "@/db/coachPay";
 import { CoachRoster } from "./CoachRoster";
 import { CoachSessionTools } from "./CoachSessionTools";
 import { StaffLogoutButton } from "../StaffLogoutButton";
@@ -27,7 +28,8 @@ export default async function FutprepCoachPage({
   const { session, program } = await searchParams;
   const role = await requireFutprepStaff(["coach","ceo","helper"], session && /^[0-9]+$/.test(session) ? `/futprep/staff/coach?session=${session}` : "/futprep/staff/coach");
   const readOnly = role === "helper";
-  const healthShown = !readOnly && canSeeMedical(role, await currentFutprepStaffCanViewMedical());
+  const canViewMedical = await currentFutprepStaffCanViewMedical();
+  const healthShown = !readOnly && canSeeMedical(role, canViewMedical);
   const [staffName, sessions, staffId] = await Promise.all([
     currentFutprepStaffName(),
     listFutprepStaffSessions(),
@@ -49,21 +51,34 @@ export default async function FutprepCoachPage({
   const programTabs = sessions.filter((item, index, all)=>all.findIndex((other)=>other.program_id===item.program_id)===index);
   const pickerSessions = selected ? inProgram(selected.program_id) : [];
 
-  const [roster, registrations, sessionPlan, workLog, sessionStaff, payCoaches] = selected
+  // Brief 13: who coached (names and roles only; never pay).
+  const noStaff: Awaited<ReturnType<typeof getSessionStaff>> = { entries: [], suggestedLead: null };
+  const [sessionStaff, payCoaches] = selected
     ? await Promise.all([
-        // A helper's roster is fetched without the emergency, pickup and
-        // health columns, so they never reach that browser.
+        getSessionStaff(selected.id).catch(() => noStaff),
+        listPayCoaches().catch((): PayCoach[] => []),
+      ])
+    : [noStaff, [] as PayCoach[]];
+  // Brief 34: the emergency contact and pickup reach this roster only for
+  // the medical view, or for a coach on duty for this session on its day:
+  // one of the coaches recorded for it, or any coach while nobody is
+  // recorded yet (lib/futprepRoles.ts rosterSafetyShown). A helper never.
+  const myCoachIds = new Set(payCoaches.filter((coach) => staffId !== null && coach.staffMemberId === staffId).map((coach) => coach.id));
+  const onDuty = sessionStaff.entries.length === 0 || sessionStaff.entries.some((entry) => myCoachIds.has(entry.coachId));
+  const safetyShown = !readOnly && !!selected && rosterSafetyShown({ role, canViewMedical, sessionDate: selected.session_date, today: nassauToday(), onDuty });
+
+  const [roster, registrations, sessionPlan, workLog] = selected
+    ? await Promise.all([
+        // Without safetyShown the roster is fetched without the emergency,
+        // pickup and health columns, so they never reach that browser.
         // Brief 31 (A1): a coach login gets the health columns only when
         // the CEO has switched its medical view on; the CEO always does.
-        rosterForSession(selected.id, { includeSafety: !readOnly, includeHealth: healthShown }),
+        rosterForSession(selected.id, { includeSafety: safetyShown, includeHealth: healthShown }),
         listFutprepStaffRegistrations(),
         getFutprepSessionPlan(selected.id),
         getFutprepWorkLog(selected.id, staffName ?? role),
-        // Brief 13: who coached (names and roles only; never pay).
-        getSessionStaff(selected.id).catch(() => ({ entries: [], suggestedLead: null })),
-        listPayCoaches().catch(() => []),
       ])
-    : [[], [], null, null, { entries: [], suggestedLead: null }, []];
+    : [[], [], null, null];
 
   // Only the payment fields: these rows become page data in the browser.
   const paymentRows = selected
@@ -137,7 +152,7 @@ export default async function FutprepCoachPage({
         {selected ? (
           <>
             <CoachSessionTools session={selected} initialPlan={sessionPlan} initialWorkLog={workLog} readOnly={readOnly} />
-            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} healthHidden={!readOnly && !healthShown} coachOptions={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={readOnly ? sessionStaff.entries.map((entry) => ({ ...entry, locked: false })) : sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
+            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} healthHidden={!readOnly && !healthShown} safetyHidden={!readOnly && !safetyShown} coachOptions={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={readOnly ? sessionStaff.entries.map((entry) => ({ ...entry, locked: false })) : sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
           </>
         ) : <div className="dashboard-empty"><h3>No sessions scheduled.</h3></div>}
       </section>

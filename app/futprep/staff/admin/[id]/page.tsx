@@ -2,7 +2,7 @@ import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentFutprepStaffCanViewMedical, requireFutprepStaff } from "../../../staff-auth";
-import { withoutHealthDetail } from "@/lib/futprepRoles";
+import { withoutEmergencyDetail, withoutHealthDetail } from "@/lib/futprepRoles";
 import { getFutprepRegistrationDetail } from "@/db/staff";
 import { getFutprepAvailability } from "@/db/registrations";
 import { StaffLogoutButton } from "../../StaffLogoutButton";
@@ -28,7 +28,8 @@ export default async function FutprepRegistrationDetailPage({
   if (!found) notFound();
   // Brief 31 (A1): an admin login without the medical switch never gets
   // the child's health fields in this page at all.
-  const detail = canViewMedical ? found : withoutHealthDetail(found);
+  // Brief 34: the emergency contact and pickup follow the medical view too.
+  const detail = canViewMedical ? found : withoutEmergencyDetail(withoutHealthDetail(found));
 
   // One entry per program (a program with two open terms appears once).
   const programs = availability.filter((program, index, all) => all.findIndex((other) => other.slug === program.slug) === index).map((program) => ({

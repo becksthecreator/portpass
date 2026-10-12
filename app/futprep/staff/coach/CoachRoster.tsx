@@ -72,6 +72,7 @@ export function CoachRoster({
   registrations,
   readOnly = false,
   healthHidden = false,
+  safetyHidden = false,
   coachOptions = [],
   initialStaff = [],
   suggestedLead = null,
@@ -82,6 +83,9 @@ export function CoachRoster({
   readOnly?: boolean;
   // Brief 31 (A1): the health columns were never loaded for this login.
   healthHidden?: boolean;
+  // Brief 34: the emergency and pickup columns were never loaded either
+  // (not the medical view, and not on duty for this session today).
+  safetyHidden?: boolean;
   // Brief 13: who coached this session, for coach pay. Names only.
   coachOptions?: Array<{ id: number; name: string }>;
   initialStaff?: SessionStaffEntry[];
@@ -407,7 +411,7 @@ export function CoachRoster({
               {/* Helpers are read-only and never receive children's health or
                   emergency details: for a helper the page's roster query
                   doesn't select those columns at all (db/staff.ts). */}
-              {!readOnly && !isContract && <details><summary>Safety notes</summary><p><b>Emergency:</b> {row.emergency_contact_name ? `${row.emergency_contact_name} · ${row.emergency_contact_phone ?? ""}` : "No information on file yet"}</p><p><b>Authorized pickup:</b> {row.authorized_pickup ?? "No information on file yet"}</p>{healthHidden ? <p><b>Health notes:</b> shown to the coaches Alex has allowed. Ask the desk before the session.</p> : <><p><b>Allergies:</b> {row.allergies === null ? "No information on file yet" : row.allergies || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Medical:</b> {row.medical_conditions === null ? "No information on file yet" : row.medical_conditions || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Medications:</b> {row.medications === null ? "No information on file yet" : row.medications || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Special needs:</b> {row.special_needs === null ? "No information on file yet" : row.special_needs || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p></>}</details>}
+              {!readOnly && !isContract && <details><summary>Safety notes</summary>{safetyHidden ? <p><b>Emergency contact and pickup:</b> shown to the coaches recorded under Who coached, on the day of the session. Coaching it? Add yourself there, then reload.</p> : <><p><b>Emergency:</b> {row.emergency_contact_name ? `${row.emergency_contact_name} · ${row.emergency_contact_phone ?? ""}` : "No information on file yet"}</p><p><b>Authorized pickup:</b> {row.authorized_pickup ?? "No information on file yet"}</p></>}{healthHidden ? <p><b>Health notes:</b> shown to the coaches Alex has allowed. Ask the desk before the session.</p> : <><p><b>Allergies:</b> {row.allergies === null ? "No information on file yet" : row.allergies || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Medical:</b> {row.medical_conditions === null ? "No information on file yet" : row.medical_conditions || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Medications:</b> {row.medications === null ? "No information on file yet" : row.medications || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Special needs:</b> {row.special_needs === null ? "No information on file yet" : row.special_needs || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p></>}</details>}
               {readOnly ? (
                 <div className="attendance-actions attendance-actions-readonly">
                   <span className={row.attendance_status ? "is-active" : ""}>{row.attendance_status ?? "Not marked yet"}</span>
