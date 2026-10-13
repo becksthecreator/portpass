@@ -25,6 +25,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
+| `feat/hermes-agent-setup` (Hermes Agent "Scout" on Antonio's laptop: guide, persona, skills, apply script; docs only) | #226 | CI green, merge. On the laptop: provider login and the Telegram bot (guide, steps 2 and 3) | Antonio |
 | `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
 | `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green | Antonio's OK |
@@ -54,6 +55,7 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 ## Waiting on Antonio
 - **First: set `CRON_SECRET`** (Vercel → Production). Production logs show `/api/cron/daily` and `/api/cron/attendance-nudge` refused with 503 on every run since at least 9 Oct, so the 90-day health-record purge (rule 3), billing, the demo reset and export pruning are not running.
 - **Also now: create the Wedding Desk's first staff account** at `/weddings/staff/login`. None has ever been made, so the page offers "Create the first account" to anyone, and whoever fills it in becomes its admin. The PIN-hardening session is adding a platform-owner sign-in to that screen on both desks.
+- Hermes Agent (Scout), installed 12 Oct: run `hermes model` with a new Anthropic key (Claude Sonnet 5.5), then create the Telegram bot and run `hermes gateway setup`, `hermes gateway install` and `/sethome`. Steps 2 to 5 of `docs/hermes/README.md`. Scout drafts; you add the business in Admin → Leads and send by hand.
 - #197 (brief 31 A): answer its four questions; nothing is switched until then.
 - #185: confirm its live migration once renumbered. #190: OK or no.
 - Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
@@ -78,4 +80,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
 
 ## Last updated
-12 Oct 2026, `main` at `ab65e65`, by Claude Code (PR #222).
+12 Oct 2026, `main` at `ae4810a`, by Claude Code (PR #226, docs only).
