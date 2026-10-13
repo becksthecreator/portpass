@@ -1,0 +1,103 @@
+# Hermes Agent config for the PortPass Scout profile.
+# Lives at %LOCALAPPDATA%\hermes\config.yaml on native Windows.
+# Non-secret settings only. Secrets go in .env (see env.example).
+# Apply the important keys with `hermes config set <key> <value>` (see apply.ps1)
+# rather than pasting this whole file over a config Hermes has already written.
+
+# Model: set through `hermes model` (or `hermes setup --portal`). With an
+# Anthropic key the recommended main model is Claude Sonnet 5.5
+# ($2/$10 per million tokens); Opus 5.5 ($4/$20) per session for hard work;
+# Haiku 5.5 ($0.10/$0.50 under 100k tokens of prompt) for the side jobs.
+# Keep one model per profile so the system prompt stays cacheable.
+# prompt_caching:
+#   cache_ttl: 1h              # the Telegram bot reuses its prefix between tasks
+
+terminal:
+  backend: local            # no Docker on this laptop; approvals stay ON
+  cwd: C:\Users\<you>\Documents\PortPass-Scout   # apply.ps1 fills in the real path
+  timeout: 180
+
+approvals:
+  mode: smart               # auto-approve safe commands, ask on risky ones
+  timeout: 300              # unanswered prompts are denied
+  # Scheduled and unattended runs never get to run a risky command.
+  cron_mode: deny
+  unattended_mode: deny
+  single_query_mode: deny
+  # Terminal-only patterns, checked before YOLO or mode: off. Not a sandbox:
+  # they see the `terminal` tool's command string, nothing else.
+  deny:
+    - "*git push --force*"
+    - "*rm -rf *"
+    - "*Remove-Item * -Recurse*"
+    - "*hermes send*"        # Scout never sends; cron delivers to the home channel only
+    - "*| sh*"
+    - "*| bash*"
+    - "*| powershell*"
+    - "*wa.me*"
+    - "*graph.facebook.com*"
+
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  write_approval: false
+
+skills:
+  write_approval: true       # review skills the agent writes for itself
+  guard_agent_created: true
+
+goals:
+  max_turns: 20
+
+delegation:
+  max_concurrent_children: 3 # 6 GB of RAM: keep fleets small
+  # Cheap workers once the Anthropic key is in (empty = inherit the main model):
+  # provider: anthropic
+  # model: claude-haiku-5-5
+
+auxiliary:
+  # Side jobs on a cheap model save most of the bill. "auto" means the MAIN
+  # model, not a cheap one. Compression needs a context window at least as
+  # large as the main model's, so it stays on Sonnet.
+  # goal_judge:        { provider: anthropic, model: claude-haiku-5-5 }
+  # background_review: { provider: anthropic, model: claude-haiku-5-5 }
+  # vision:            { provider: anthropic, model: claude-haiku-5-5 }
+  # compression:       { provider: anthropic, model: claude-sonnet-5-5 }
+
+cron:
+  wrap_response: true
+  max_parallel_jobs: 1
+
+display:
+  memory_notifications: "on"
+
+security:
+  website_blocklist:
+    enabled: true
+    domains:
+      - "instagram.com"
+      - "*.instagram.com"
+      - "facebook.com"
+      - "*.facebook.com"
+      - "messenger.com"
+      - "*.messenger.com"
+      - "web.whatsapp.com"
+      - "*.whatsapp.com"
+      - "wa.me"
+
+browser:
+  # Default stays off for real-profile browsing: Scout never uses Antonio's logins.
+  use_real_profile: false
+  record_sessions: false
+
+# Telegram command tiers (optional). Who may talk to the bot is set by
+# TELEGRAM_ALLOWED_USERS in .env; this only limits slash commands for anyone
+# who is allowed but not an admin. Unknown users get a pairing code
+# (unauthorized_dm_behavior: pair, the default), which you approve with
+# `hermes pairing approve telegram <code>` or ignore.
+# gateway:
+#   platforms:
+#     telegram:
+#       extra:
+#         allow_admin_from: ["<Antonio's numeric id>"]
+#         user_allowed_commands: [status]
