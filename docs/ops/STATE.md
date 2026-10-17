@@ -29,7 +29,7 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | --- | --- | --- | --- |
 | `fix/promotions-under-lock` (waitlist promotions and "Confirm the place" under the class's lock) | #220 | Its fix and migration | Claude Code |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green | Antonio's OK |
-| `claude/keen-volta-6u6jdp` (WeddingWire, fixes a #183 finding) | #185 | Renumber its migration, apply it live, merge | Antonio: confirm the apply (it drops and re-adds columns) |
+| `claude/keen-volta-6u6jdp` (WeddingWire, fixes a #183 finding) | #185 | Merge. Its migration (`202610270001`) is live since 17 Oct, and the Desk's content screen can't save until this merges. Then a follow-up drops the three read-only HTML columns | Antonio: merge |
 | `chore/csp-enforce` (brief 26) | #183 | Merge after #185 | #185 |
 | `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct) | A decision: merge or close |
 
@@ -57,7 +57,7 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 - **First: set `CRON_SECRET`** (Vercel → Production). Production logs show `/api/cron/daily` and `/api/cron/attendance-nudge` refused with 503 on every run since at least 9 Oct, so the 90-day health-record purge (rule 3), billing, the demo reset and export pruning are not running.
 - **Also now: create the Wedding Desk's first staff account** at `/weddings/staff/login`. None has ever been made, so the page offers "Create the first account" to anyone, and whoever fills it in becomes its admin. The PIN-hardening session is adding a platform-owner sign-in to that screen on both desks.
 - #197 (brief 31 A): answer its four questions; nothing is switched until then.
-- #185: confirm its live migration once renumbered. #190: OK or no.
+- #185: merge it. Its migration is live since 17 Oct; until it merges the Wedding Desk's content screen can't save (the page is unaffected). #190: OK or no.
 - Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
 - Futprep data: clear or keep Term 2's 12 Dec taster date before 19 Nov; offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
 - The other brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
@@ -73,7 +73,6 @@ Left open by the reviews of #200, #203, #216, #217 and #222 (not fixed):
 - Still unpaged in `db/staff.ts`: session counts (~252), session plans (~798), work logs (~819), the roster export's payments and attendance (~1420; a long camp passes 1,000 attendance rows); `listProgramPnl`'s payments (`db/coachPay.ts`); the private sessions inbox's payments (`listPrivateSessionRequests`, every business's); the admin page builds the desk list twice.
 
 Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
-- #185's migration `202610190002_weddingwire_widgets_structured.sql` clashes with `202610190002_private_sessions_from_the_database.sql` on `main`.
 - The CSP keeps `'unsafe-inline'` and is report-only until #183.
 - 91 signed-in API routes still take bodies without zod; `lib/api/body.static.test.ts` lists them and can only shrink.
 - Lint is not in CI (#176); 35 warnings remain.
@@ -81,4 +80,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
 
 ## Last updated
-12 Oct 2026, `main` at `ae4810a`, by Claude Code (PR #217, brief 34).
+17 Oct 2026, `main` at `0067166`, by Claude Code (PR #217, brief 34; #185 added its own rows on 17 Oct).

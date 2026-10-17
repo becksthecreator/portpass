@@ -158,8 +158,7 @@ export default async function BahamasWeddingsListingPage() {
           reviewsUrl={WEDDINGWIRE_URL}
           reviewsPlatform="WeddingWire"
           awards={settings.awardYears.map(() => "Couples' Choice Award")}
-          ratingBadgeHtml={settings.ratingBadgeHtml}
-          awardBadgeHtml={settings.awardBadgeHtml}
+          weddingWire={settings.weddingWire}
         />
         <MemberPerkStrip slug="bahamas-weddings" path="/weddings/bahamas-weddings-by-the-sea" />
         <section className="tpl-gallery-carousel-section">
@@ -201,13 +200,13 @@ export default async function BahamasWeddingsListingPage() {
           section itself if the widget never populates, rather than leave
           a hole above the action block.
         */}
-        {settings.reviewsWidgetHtml && (
+        {settings.weddingWire.reviews && settings.weddingWire.memberId && (
           <section className="tpl-reviews">
             <div className="tpl-section-heading">
               <p className="tpl-eyebrow">In their words</p>
               <h2>One hundred five-star reviews.</h2>
             </div>
-            <ReviewsPanel html={settings.reviewsWidgetHtml} />
+            <ReviewsPanel memberId={settings.weddingWire.memberId} />
             <a
               className="tpl-text-link"
               target="_blank"
