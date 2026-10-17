@@ -45,3 +45,9 @@ work/
 # with the repo; a session's worktrees and one person's local settings are not.
 /.claude/worktrees/
 /.claude/settings.local.json
+
+# Graphify (Brief 30): each machine builds its own code map. It is about
+# 8 MB and changes on every commit, so it is never committed, and neither is
+# the backup graphify makes of .claude/settings.json when it adds its hooks.
+/graphify-out/
+/.claude/settings.json.graphify-bak
