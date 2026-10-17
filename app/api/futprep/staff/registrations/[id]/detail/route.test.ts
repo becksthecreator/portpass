@@ -29,6 +29,22 @@ beforeEach(() => {
   saved.bodies = [];
 });
 
+describe("saving a registration: the emergency contact and pickup (brief 34)", () => {
+  const withEmergency = { childName: "TEST Child", emergencyContactName: "", emergencyContactPhone: "", authorizedPickup: "" };
+  const putEmergency = () => PUT(new Request("http://localhost/api/futprep/staff/registrations/7/detail", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(withEmergency) }), { params: Promise.resolve({ id: "7" }) });
+
+  it("drops them for an admin without the medical switch, so a hidden field is never saved blank", async () => {
+    expect((await putEmergency()).status).toBe(200);
+    expect(saved.bodies).toEqual([{ childName: "TEST Child" }]);
+  });
+
+  it("keeps them for a login with the medical view", async () => {
+    auth.medical = true;
+    expect((await putEmergency()).status).toBe(200);
+    expect(saved.bodies[0]).toEqual(withEmergency);
+  });
+});
+
 describe("saving a registration (brief 31, A1)", () => {
   it("drops the health fields for an admin without the medical switch", async () => {
     expect((await put()).status).toBe(200);

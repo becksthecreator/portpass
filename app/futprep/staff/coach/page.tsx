@@ -1,7 +1,8 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { requireFutprepStaff, currentFutprepStaffCanViewMedical, currentFutprepStaffId, currentFutprepStaffName } from "../../staff-auth";
-import { canSeeMedical, COACH_WORKSPACE_ROLES } from "@/lib/futprepRoles";
+import { canSeeMedical, COACH_WORKSPACE_ROLES, rosterSafetyShown } from "@/lib/futprepRoles";
+import { nassauToday } from "@/lib/futprepTerms";
 import { coachSlotPrompt } from "@/db/coaches";
 import {
   getFutprepSessionPlan,
@@ -11,6 +12,8 @@ import {
   rosterForSession,
 } from "@/db/staff";
 import { getSessionStaff, listPayCoaches } from "@/db/coachPay";
+import { logAudit } from "@/db/audit";
+import { futprepOrganizationId } from "@/db/programs";
 import { CoachRoster } from "./CoachRoster";
 import { CoachSessionTools } from "./CoachSessionTools";
 import { StaffLogoutButton } from "../StaffLogoutButton";
@@ -31,9 +34,10 @@ export default async function FutprepCoachPage({
   const readOnly = role === "helper";
   // An admin here gets the roster for passports and attendance, without the
   // emergency, pickup and health columns: the desk's own views carry those
-  // (rule 3; brief 31 D review). Switch back: drop the two `admin` checks.
+  // (rule 3; brief 31 D review). Switch back: drop the `admin` checks.
   const admin = role === "admin";
-  const healthShown = !readOnly && !admin && canSeeMedical(role, await currentFutprepStaffCanViewMedical());
+  const canViewMedical = await currentFutprepStaffCanViewMedical();
+  const healthShown = !readOnly && !admin && canSeeMedical(role, canViewMedical);
   const [staffName, sessions, staffId] = await Promise.all([
     currentFutprepStaffName(),
     listFutprepStaffSessions(),
@@ -55,13 +59,25 @@ export default async function FutprepCoachPage({
   const programTabs = sessions.filter((item, index, all)=>all.findIndex((other)=>other.program_id===item.program_id)===index);
   const pickerSessions = selected ? inProgram(selected.program_id) : [];
 
+  // Brief 34: the emergency contact and pickup reach this roster only for
+  // the medical view, or for a coach login on the session's own day in
+  // Nassau (lib/futprepRoles.ts rosterSafetyShown). A helper never.
+  const safetyShown = !readOnly && !admin && !!selected && rosterSafetyShown({ role, canViewMedical, sessionDate: selected.session_date, today: nassauToday() });
+  // A coach seeing them on the day (not through the medical view) leaves
+  // an audit line: which session and which login, never a child's
+  // details. A failed write doesn't stop the roster opening.
+  if (safetyShown && selected && !canSeeMedical(role, canViewMedical)) {
+    await logAudit({ organizationId: await futprepOrganizationId(), action: "futprep.roster_contacts_day_of", targetTable: "sessions", targetId: selected.id, after: { staffId, by: staffName ?? role } })
+      .catch((error) => console.error("roster contacts audit failed", error instanceof Error ? error.message : "unknown error"));
+  }
+
   const [roster, registrations, sessionPlan, workLog, sessionStaff, payCoaches] = selected
     ? await Promise.all([
-        // A helper's roster is fetched without the emergency, pickup and
-        // health columns, so they never reach that browser.
+        // Without safetyShown the roster is fetched without the emergency,
+        // pickup and health columns, so they never reach that browser.
         // Brief 31 (A1): a coach login gets the health columns only when
         // the CEO has switched its medical view on; the CEO always does.
-        rosterForSession(selected.id, { includeSafety: !readOnly && !admin, includeHealth: healthShown }),
+        rosterForSession(selected.id, { includeSafety: safetyShown, includeHealth: healthShown }),
         listFutprepStaffRegistrations(),
         getFutprepSessionPlan(selected.id),
         getFutprepWorkLog(selected.id, staffName ?? role),
@@ -145,7 +161,7 @@ export default async function FutprepCoachPage({
         {selected ? (
           <>
             <CoachSessionTools session={selected} initialPlan={sessionPlan} initialWorkLog={workLog} readOnly={readOnly} />
-            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} healthHidden={!readOnly && !healthShown} safetyHidden={admin} coachOptions={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={readOnly ? sessionStaff.entries.map((entry) => ({ ...entry, locked: false })) : sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
+            <CoachRoster session={selected} initialRoster={roster} registrations={paymentRows} readOnly={readOnly} healthHidden={!readOnly && !healthShown} safetyHidden={!readOnly && !safetyShown} safetyAtDesk={admin} coachOptions={payCoaches.map((coach) => ({ id: coach.id, name: coach.name }))} initialStaff={readOnly ? sessionStaff.entries.map((entry) => ({ ...entry, locked: false })) : sessionStaff.entries} suggestedLead={sessionStaff.suggestedLead} />
           </>
         ) : <div className="dashboard-empty"><h3>No sessions scheduled.</h3></div>}
       </section>

@@ -5,10 +5,12 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 ## Live on production
 | Feature | PR | Merged |
 | --- | --- | --- |
+| Brief 34, children's data locked: every Futprep staff action (sessions, coaches, private sessions, Team, classes, login links) reads and writes Futprep's rows only; emergency contact and pickup only for the medical view, and for coaches on the session's own day (logged); one child's balance reads every payment | #217 | 17 Oct |
 | Growth plan week 1 ([report](../briefs/growth-week1-report.md)): the plan cards list only features with a screen (migration `202610270003`, live), and /pricing carries the Marketplace attribution rule | #234 | 17 Oct |
 | Each PortPass invoice carries the agreement version it was raised under, on its PDF and the Admin invoice page (migration `202610270002`, live) | #235 | 17 Oct |
 | Billing rehearsal: `.github/workflows/billing-rehearsal.yml` plays the billing chain end to end on TEST data on every PR to `main` (about 3 minutes; draft, send refused without bank details, sent, part paid, paid, PDFs in the artifact) | #233 | 17 Oct |
 | WeddingWire widgets from a member ID and three switches, never stored HTML (migration `202610270001`, live) | #185 | 17 Oct |
+| PortPass Market (brief 25 B–D): the public Market, orders through payment requests, PortPass Points (a ledger only) | #196, #199, #207 | 11–12 Oct |
 | Term 2 ready: the last place in a class goes to one child (one locked database call, `create_registration_within_cap`), desk balances read every payment, Futprep's doors open Futprep's classes only | #200, #203, #216 | 12 Oct |
 | Rule 3 (review of #216): Futprep's lookups by reference code (parent lookup, finish registration, join after a taster) find Futprep's registrations only; `futprepOrganizationId()` by slug alone, no name-match fallback | #222 | 12 Oct |
 | Rule 3 (audit 1, 3, 4): Futprep's desk reads Futprep's registrations only, notes behind the medical permission, pickup and emergency details out of lists and the CSV | #205 | 12 Oct |
@@ -29,8 +31,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
-| `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
-| `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
+| `fix/promotions-under-lock` (waitlist promotions and "Confirm the place" under the class's lock) | #220 | Its fix and migration | Claude Code |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green. Parked by the growth plan | The fifth paid invoice |
 | `chore/csp-enforce` (brief 26) | #183 | #185 is in; rebase on `main`. Parked by the growth plan | The fifth paid invoice |
 | `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct). Parked by the growth plan | The fifth paid invoice |
@@ -46,13 +47,14 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | 22 | Harbour Motion | merged | none (`docs/motion.md`) |
 | 23 | Agents from everything-claude-code | merged | none |
 | 24 | Hardening follow-ups | merged | none |
-| 25 | PortPass Market, Phase 1 | building (A merged, B in review) | none yet |
+| 25 | PortPass Market, Phase 1 | merged (A–D) | none (in the PR bodies) |
 | 26 | Enforce the CSP | held | none |
 | 27 | Futprep reset | merged | [brief27](../briefs/brief27-futprep-reset-report.md) |
 | 29 | Private sessions | merged | [brief29](../briefs/brief29-private-sessions-report.md) |
 | 30 | graphify | held | [brief30](../briefs/brief30-graphify-report.md) |
 | 31 | Staff logins: one person, one login, one role | building | none yet |
 | 33 | One Mind: STATE.md and `/handoff` | merged | [brief33](../briefs/brief33-one-mind-report.md) |
+| 34 | Lock children's data before launch | merged | [brief34](../briefs/brief34-child-data-lock-report.md) |
 | none | Growth plan, week 1 (the 16 Oct plan's Claude Code pieces) | merged | [growth-week1](../briefs/growth-week1-report.md) |
 
 Briefs 28 and 32 have left no trace in this repo; their status is in the HQ project.
@@ -74,13 +76,14 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 - The other brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
 
 ## Known issues
-Ponytail audit, 11 Oct (15 findings, in the brief 33 PR). The top five are fixed: 1, 3 and 4 by #205; 2 by #200 (migration `202610220001`, applied live 12 Oct); 5 by #203. Findings 6, 7 and 9 (sign-in) have their own PRs; 8 and 10–15 are not fixed.
+Ponytail audit, 11 Oct (15 findings, in the brief 33 PR). The top five are fixed: 1, 3 and 4 by #205; 2 by #200 (migration `202610220001`, applied live 12 Oct); 5 by #203; brief 34 (#217) closed what they left of 1, 4 and 5 (who sees what: `docs/briefs/brief34-child-data-lock-report.md`). Findings 6, 7 and 9 (sign-in) have their own PRs; 8 and 10–15 are not fixed.
 
-Left open by the reviews of #200, #203, #216 and #222 (not fixed):
-- Promoting a child from the waitlist (`db/staff.ts` `updateFutprepRegistration`) and the business "Confirm the place" button (audit 10) count and then write without the class lock; moving a cancelled row back to pending has no cap check.
+Left open by the reviews of #200, #203, #216, #217 and #222 (not fixed):
+- Promoting a child from the waitlist (`db/staff.ts` `updateFutprepRegistration`) and the business "Confirm the place" button (audit 10) count and then write without the class lock; moving a cancelled row back to pending has no cap check. Being fixed in #220.
+- Moving a child to another class from the desk record (`updateFutprepRegistrationDetail`) doesn't check that class's cap.
 - A child can get free tasters in two classes at the same moment (`TRIAL_ALREADY_USED` covers the business, the lock one class).
-- `db/coaches.ts` loads and writes `private_session_requests` and `coach_profiles` rows by id alone (behind the staff PIN; only Futprep has these rows today), and keeps `if (!organizationId)` guards that are dead now `futprepOrganizationId()` throws instead. Noted by the reviews of #222.
-- Still unpaged in `db/staff.ts`: session counts (~252), session plans (~798), work logs (~819), the roster export's payments (~1399); the admin page builds the desk list twice.
+- `db/coaches.ts` keeps `if (!organizationId)` guards that are dead now `futprepOrganizationId()` throws instead (#222). Its rows by id alone are Futprep-only since #217.
+- Still unpaged: `listProgramPnl`'s payments (`db/coachPay.ts`) and the private sessions inbox's payments (`listPrivateSessionRequests`, every business's). The rest of the desk's reads are paged since #223.
 
 Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
 - The CSP keeps `'unsafe-inline'` and is report-only until #183.
@@ -93,4 +96,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - The billing chain has run only in the rehearsal, never in production: no billing account, no invoice yet.
 
 ## Last updated
-17 Oct 2026, by Claude Code (PR #234, the last of the growth plan's week-1 PRs: #185, #233, #235, #234). Other rows are as of 12 Oct.
+17 Oct 2026, `main` at `ba1465a`, by Claude Code (PR #217, brief 34). The growth plan's week-1 rows are as of #234; other rows as of 12 Oct.
