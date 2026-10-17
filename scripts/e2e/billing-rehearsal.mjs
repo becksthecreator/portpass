@@ -110,7 +110,7 @@ function totp(base32Secret, now = Date.now()) {
 }
 
 async function invoiceRow() {
-  const { data, error } = await admin.from("portpass_invoices").select("id,number,kind,status,issued_on,due_on,subtotal_cents,vat_cents,total_cents,paid_cents,sent_via").eq("organization_id", state.orgId).order("id");
+  const { data, error } = await admin.from("portpass_invoices").select("id,number,kind,status,issued_on,due_on,subtotal_cents,vat_cents,total_cents,paid_cents,sent_via,agreement_version").eq("organization_id", state.orgId).order("id");
   if (error) throw new Error(`Could not read the invoices: ${error.message}`);
   return data ?? [];
 }
@@ -185,6 +185,7 @@ try {
     const [invoice] = invoices;
     expect(invoice.kind === "subscription" && invoice.status === "draft", `The invoice should be a subscription draft; it is ${invoice.kind}, ${invoice.status}.`);
     expect(invoice.total_cents === PRICE_CENTS && invoice.vat_cents === 0, `The invoice should be $65.00 with no VAT; it is ${invoice.total_cents} cents, VAT ${invoice.vat_cents}.`);
+    expect(invoice.agreement_version === AGREEMENT_VERSION, `The invoice should carry the account's agreement version (${AGREEMENT_VERSION}); it has ${invoice.agreement_version}.`);
     const { data: lines } = await admin.from("portpass_invoice_lines").select("description,amount_cents,source").eq("invoice_id", invoice.id);
     expect(lines?.length === 1 && lines[0].source === "plan", `One plan line expected (setup is waived); found ${JSON.stringify(lines)}.`);
     state.invoiceId = invoice.id;
@@ -230,10 +231,11 @@ try {
     const pdf = await savePdf(founder, "sent");
     for (const words of [state.number, "INVOICE", "65.00", BANK.accountNumber]) expect(pdf.text.includes(words), `The sent PDF does not show "${words}".`);
     expect(!pdf.text.includes("DRAFT INVOICE"), "The sent PDF still says DRAFT.");
-    state.agreementOnPdf = pdf.text.includes(AGREEMENT_VERSION);
+    expect(/\(Agreement\)[\s\S]*\(TEST v1\.0\)/.test(pdf.text), `The sent PDF does not show the agreement version (${AGREEMENT_VERSION}).`);
     await founder.goto(`${BASE}/admin/billing/invoices/${state.invoiceId}`, { waitUntil: "load" });
     await photo(founder, "invoice-sent");
-    return `${pdf.file}; agreement version on the PDF: ${state.agreementOnPdf ? "yes" : "no"}`;
+    await founder.getByText(AGREEMENT_VERSION).first().waitFor({ timeout: 15_000 });
+    return `${pdf.file}; agreement ${AGREEMENT_VERSION} on the invoice, its PDF and its page`;
   });
 
   await step("8. A part payment, then the rest: part paid, then paid; the account is not past due", async () => {
