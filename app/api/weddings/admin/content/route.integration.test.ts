@@ -1,13 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { randomInt } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 // The WeddingWire widgets as structured data (security review of PR #183),
 // against CI's local Supabase stack: what migration 202610270001 made of the
-// snippets 202609241015 stored, that the database takes no HTML any more,
-// and the Wedding Desk's save route end to end with a TEST Desk account.
+// snippets 202609241015 stored, that the row has no HTML columns left
+// (202610280001), and the Wedding Desk's save route end to end with a TEST
+// Desk account.
 // The PIN is drawn at random each run and never written anywhere but here.
 //
 // The route reads the staff cookie through next/headers, which only exists
@@ -29,7 +28,6 @@ vi.mock("next/headers", () => ({
 
 import { POST } from "./route";
 import { createWeddingStaffAccount, makeWeddingStaffToken, WEDDING_STAFF_COOKIE } from "@/app/weddings/staff-auth";
-import { weddingWireSnippet } from "@/lib/weddingWire";
 
 const db = () => createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
 const TAG = Date.now().toString(36);
@@ -61,20 +59,6 @@ const row = async () => {
   return data as unknown as Record<string, unknown>;
 };
 
-const builtHtml = async () => {
-  const { data, error } = await db().from("wedding_site_settings").select("rating_badge_html,award_badge_html,reviews_widget_html").eq("id", 1).single();
-  if (error) throw new Error(`could not read the read-only columns: ${error.message}`);
-  return data as { rating_badge_html: string | null; award_badge_html: string | null; reviews_widget_html: string | null };
-};
-
-// The snippets as 202609241015 stored them: one SQL literal per column.
-function storedBy202609241015(column: string): string {
-  const sql = readFileSync(join(process.cwd(), "supabase/migrations/202609241015_wedding_site_weddingwire_widgets.sql"), "utf8");
-  const match = sql.match(new RegExp(`${column} = '((?:[^']|'')*)'`));
-  if (!match) throw new Error(`${column} is not in 202609241015`);
-  return match[1].replace(/''/g, "'");
-}
-
 beforeAll(async () => {
   original = await row();
   const account = await createWeddingStaffAccount({ name: `TEST — delete ${TAG}`, accountKey: ACCOUNT, role: "wedding_desk", pin });
@@ -104,21 +88,13 @@ describe("the WeddingWire widgets as a member ID and three switches", () => {
     expect(await row()).toMatchObject({ weddingwire_member_id: "946150", show_rating_badge: true, show_award_badge: true, show_reviews_widget: true });
   });
 
-  it("build, in the database's read-only columns, exactly the embed code that was stored", async () => {
-    const html = await builtHtml();
-    expect(html.rating_badge_html).toBe(storedBy202609241015("rating_badge_html"));
-    expect(html.award_badge_html).toBe(storedBy202609241015("award_badge_html"));
-    expect(html.reviews_widget_html).toBe(storedBy202609241015("reviews_widget_html"));
-    // ...which is what the page now builds in code from the member ID.
-    expect(html.rating_badge_html).toBe(weddingWireSnippet("rating", "946150"));
-    expect(html.award_badge_html).toBe(weddingWireSnippet("award", "946150"));
-    expect(html.reviews_widget_html).toBe(weddingWireSnippet("reviews", "946150"));
-  });
-
   it("can't be given HTML or anything but digits, whoever writes to the database", async () => {
+    // The HTML columns are gone: nothing to read, nothing to write.
     for (const column of ["reviews_widget_html", "rating_badge_html", "award_badge_html"]) {
-      const { error } = await db().from("wedding_site_settings").update({ [column]: "<script>fetch('/api/admin/people')</script>" }).eq("id", 1);
-      expect(error?.code, column).toBe("428C9");
+      const read = await db().from("wedding_site_settings").select(column).eq("id", 1);
+      expect(read.error?.message, column).toContain(column);
+      const write = await db().from("wedding_site_settings").update({ [column]: "<script>fetch('/api/admin/people')</script>" }).eq("id", 1);
+      expect(write.error?.message, column).toContain(column);
     }
     for (const memberId of ["946150');alert(1);//", "0946150", "abc", ""]) {
       const { error } = await db().from("wedding_site_settings").update({ weddingwire_member_id: memberId }).eq("id", 1);
@@ -146,7 +122,6 @@ describe("POST /api/weddings/admin/content", () => {
     const answer = await response.json();
     expect(answer.settings).toMatchObject({ reviewCount: 101, weddingWire: { memberId: "946150", ratingBadge: true, awardBadge: true, reviews: false } });
     expect(await row()).toMatchObject({ review_count: 101, show_reviews_widget: false, show_rating_badge: true });
-    expect((await builtHtml()).reviews_widget_html).toBeNull();
 
     const { data: org } = await db().from("organizations").select("id").eq("slug", "bahamas-weddings").single();
     const { data: entries } = await db()
@@ -188,13 +163,8 @@ describe("POST /api/weddings/admin/content", () => {
     const off = await save({ ...GOOD, weddingWireMemberId: "", showRatingBadge: false, showAwardBadge: false, showReviews: false });
     expect(off.status).toBe(200);
     expect(await row()).toMatchObject({ weddingwire_member_id: null, show_rating_badge: false, show_award_badge: false, show_reviews_widget: false });
-    expect(await builtHtml()).toEqual({ rating_badge_html: null, award_badge_html: null, reviews_widget_html: null });
 
     expect((await save(GOOD)).status).toBe(200);
-    expect(await builtHtml()).toEqual({
-      rating_badge_html: weddingWireSnippet("rating", "946150"),
-      award_badge_html: weddingWireSnippet("award", "946150"),
-      reviews_widget_html: weddingWireSnippet("reviews", "946150"),
-    });
+    expect(await row()).toMatchObject({ weddingwire_member_id: "946150", show_rating_badge: true, show_award_badge: true, show_reviews_widget: true });
   });
 });
