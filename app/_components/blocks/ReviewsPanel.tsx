@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { weddingWireSnippet } from "@/lib/weddingWire";
 
 const WIDGET_TARGET_ID = "wp-widget-reviews";
 const CONTENT_TIMEOUT_MS = 6000;
@@ -19,7 +20,12 @@ const CONTENT_TIMEOUT_MS = 6000;
 // (on the first sign of real content, rather than waiting for mutations
 // to go quiet) is harmless -- whatever the widget adds afterward just
 // continues to render inside the same scrollable div.
-export function ReviewsPanel({ html }: { html: string }) {
+//
+// The widget is built from the member ID by lib/weddingWire.ts, never from
+// stored HTML: WeddingWire's fixed embed code with a digits-only ID in it
+// (the security review of PR #183).
+export function ReviewsPanel({ memberId }: { memberId: string }) {
+  const html = weddingWireSnippet("reviews", memberId);
   const rootRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [removed, setRemoved] = useState(false);
@@ -117,7 +123,7 @@ export function ReviewsPanel({ html }: { html: string }) {
     };
   }, [shouldLoad]);
 
-  if (removed) return null;
+  if (removed || !html) return null;
 
   return (
     <div ref={rootRef} className="tpl-reviews-panel">

@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { weddingWireSnippet } from "@/lib/weddingWire";
 
+// WeddingWire's rating badge or award badge, built from the member ID by
+// lib/weddingWire.ts. This takes no HTML: the snippet, scripts included, is
+// always WeddingWire's fixed embed code with a digits-only member ID in it
+// (the security review of PR #183 found the stored HTML could run anything).
+//
 // Setting .innerHTML (what dangerouslySetInnerHTML does under the hood)
 // never executes embedded <script> tags -- a browser security behavior,
 // not a framework quirk. WeddingWire's rating badge, award badge and
@@ -15,7 +21,8 @@ import { useEffect, useRef, useState } from "react";
 // deferred, after page content" from the brief, since three third-party
 // loaders in <head> would cost first paint on the mobile connections most
 // of Antonio's couples are on.
-export function ExternalWidget({ html, className }: { html: string; className?: string }) {
+export function ExternalWidget({ widget, memberId, className }: { widget: "rating" | "award"; memberId: string; className?: string }) {
+  const html = weddingWireSnippet(widget, memberId);
   const containerRef = useRef<HTMLDivElement>(null);
   const [shouldLoad, setShouldLoad] = useState(false);
 
@@ -47,7 +54,7 @@ export function ExternalWidget({ html, className }: { html: string; className?: 
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || !shouldLoad) return;
+    if (!el || !shouldLoad || !html) return;
     let cancelled = false;
     el.innerHTML = html;
 
