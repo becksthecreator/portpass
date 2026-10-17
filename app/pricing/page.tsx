@@ -49,6 +49,9 @@ function faqItems(plans: PricingPlan[]): { q: string; a: string }[] {
     { q: "What happens after 30 days?", a: "We'll message you a week before. If you stay, your first invoice comes the day after the free period, then monthly. No card needed to start." },
     { q: "Can I cancel?", a: "Yes, any time before the end of a month. Annual plans run to the end of the prepaid year. You can always download your records." },
     { q: "Do you take a cut of my payments?", a: `No. On ${flat} you pay a flat monthly price. ${cut}We never deduct it from your customers' payments.` },
+    // The attribution rule (growth plan, 16 Oct): written down before the
+    // commission is sold, so it can be sold the day it is computed.
+    ...(marketplace ? [{ q: "When does a booking count as brought by PortPass?", a: `On ${marketplace.name}, a booking counts as brought by PortPass when the request came through your PortPass page or a PortPass link; we invoice it monthly, never from money held.` }] : []),
     { q: "Do I need to set it up myself?", a: "No. Send us your prices and photos on WhatsApp and we'll build your page." },
     { q: "Can customers pay by card?", a: "Coming soon, through a licensed payment partner. We'll publish the card fees here before it launches. Cash and bank transfer are tracked today." },
     // VAT wording waits for the accountant's confirmation; this is the placeholder the brief asks for.

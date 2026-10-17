@@ -54,8 +54,10 @@ async function fetchAddons(): Promise<PricingAddon[]> {
 
 // Cached under the "pricing" tag: every price on the site reads through
 // here, and the admin's save calls revalidateTag("pricing"), so a change
-// is live on the next request with no deploy.
-const cachedPlans = unstable_cache(fetchPlans, ["pricing-plans"], { tags: [PRICING_TAG] });
+// is live on the next request with no deploy. A migration that changes the
+// plans calls no save, and the cache outlives deploys, so the key carries
+// the last such migration's number: the deploy after it reads afresh.
+const cachedPlans = unstable_cache(fetchPlans, ["pricing-plans", "202610270003"], { tags: [PRICING_TAG] });
 const cachedAddons = unstable_cache(fetchAddons, ["pricing-addons"], { tags: [PRICING_TAG] });
 
 export async function listPlans(options: { publicOnly?: boolean; fresh?: boolean; includeInactive?: boolean } = {}): Promise<PricingPlan[]> {
