@@ -19,6 +19,12 @@ describe("pricing tables", () => {
     expect(marketplace.commissionBps).toBe(800);
   });
 
+  it("lists on the public cards only features with a screen (202610270003)", async () => {
+    const pub = await listPlans({ fresh: true, publicOnly: true });
+    for (const plan of pub) for (const gone of ["Availability", "Packages", "Per-staff reporting", "Priority support"]) expect(plan.features).not.toContain(gone);
+    expect((await getPlan("growing", { fresh: true }))!.features).toEqual(["Unlimited clients and bookings", "Booking page", "Client records", "Payment requests", "Dashboard", "Group sessions and camps", "Staff roles", "Attendance"]);
+  });
+
   it("hides Promote while it is proposed", async () => {
     const pub = await listAddons({ fresh: true, publicOnly: true });
     expect(pub.map((a) => a.code)).toEqual(["setup", "retainer", "extra_location"]);
