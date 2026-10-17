@@ -20,7 +20,7 @@ Futprep's Term 2 registration opens to parents at 05:00 UTC (midnight in Nassau)
 | The ecosystem's dependency audit (`npm audit`, `pip-audit`, `cargo audit`, ...) shows no critical or high vulnerabilities | pass | `npm audit --omit=dev --audit-level=high` blocks in `ci.yml`. A dev-only high (`braces` via `eslint-config-next`) is reported, not blocking; it never ships |
 | Input validation on all user-facing endpoints | fail | Public routes use zod (`lib/api/body.ts`); 91 signed-in routes still read bodies themselves (`lib/api/body.static.test.ts`), Futprep's staff routes among them |
 | Authentication and authorization checks in place | pass | RLS and a policy on every table (`202610180001_rls_policies.sql`), held at zero in CI by `admin_database_checks()`; admin needs a TOTP code (`lib/auth/admin.ts`); staff PINs scrypt-hashed, 15-minute lock |
-| Security headers configured (CSP, HSTS, etc.) | fail | HSTS (preload), nosniff, X-Frame-Options, Referrer-Policy and Permissions-Policy are live. The CSP is report-only (`CSP_MODE`, `lib/securityHeaders.ts`) until #185 and #183 merge |
+| Security headers configured (CSP, HSTS, etc.) | fail | HSTS (preload), nosniff, X-Frame-Options, Referrer-Policy and Permissions-Policy are live. The CSP is report-only (`CSP_MODE`, `lib/securityHeaders.ts`) until #183 merges (#185 merged 17 Oct) |
 | Rate limiting on authentication endpoints | fail | In-app limits (`app/api/auth/send`, `verify`: 5 per email per 10 minutes) are per server instance; the PIN lock is in the database. The firewall's sign-in rule and Supabase's OTP expiry are unticked in `docs/security/README.md` |
 | CORS configured to specific origins (not wildcard) | pass | No `Access-Control-Allow-Origin` in the code; live `/api/health` sent none to a foreign origin. Same-origin only |
 
@@ -86,7 +86,7 @@ Futprep's Term 2 registration opens to parents at 05:00 UTC (midnight in Nassau)
 1. Tick the brief 21 switches in `docs/security/README.md`: set `CRON_SECRET`, `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`; publish the two firewall rules and bot protection; set Supabase's OTP expiry and session limits (Antonio).
 2. Futprep: make its owner in Admin → People, add emails to the staff logins, settle the 12 Dec taster and the Saturday pages' dates (Antonio).
 3. Run the restore drill and write its row (Antonio).
-4. Merge #185 (its migration is live since 17 Oct), then #183 to enforce the CSP (Antonio, then Claude Code).
+4. Merge #183 to enforce the CSP; #185, which it waited on, merged 17 Oct (Antonio, then Claude Code).
 5. Fix the private-session drawer's focus and tie registration errors to their fields (Claude Code).
 6. Decide #176; if yes, rebase it so lint runs in CI (Antonio, then Claude Code).
 7. Merge brief 33 A for the changelog, refresh `README.md`, write a one-page error budget policy (Claude Code).
