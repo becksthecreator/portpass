@@ -44,6 +44,7 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
         <div><dt>Sent</dt><dd>{invoice.sentAt ? `${longDay(nassauToday(new Date(invoice.sentAt)))}${invoice.sentVia ? ` by ${invoice.sentVia.replace("_", " ")}` : ""}` : "Not yet"}</dd></div>
         <div><dt>Bill to</dt><dd>{account?.billingEmail ?? "No billing email"}{account?.billingWhatsappE164 ? ` · ${account.billingWhatsappE164}` : ""}</dd></div>
         <div><dt>How to pay</dt><dd>{howToPay(bank)}</dd></div>
+        <div><dt>Agreement</dt><dd>{invoice.agreementVersion ?? "No version on this invoice"}</dd></div>
       </dl>
 
       <section className="admin-group" aria-labelledby="invoice-lines">

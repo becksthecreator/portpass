@@ -196,7 +196,7 @@ export type InvoiceLine = { id: number; description: string; qty: number; unitCe
 export type Receipt = { id: number; invoiceId: number; organizationId: number; amountCents: number; method: ReceiptMethod; reference: string | null; receivedOn: string; note: string | null; createdAt: string; reversedAt: string | null; reversedReason: string | null };
 export type InvoiceDetail = StoredInvoice & { lines: InvoiceLine[]; receipts: Receipt[] };
 
-const INVOICE_COLUMNS = "id,number,organization_id,kind,period_start,period_end,issued_on,due_on,status,subtotal_cents,vat_cents,total_cents,paid_cents,sent_at,sent_via,void_reason,created_at,organizations(name,slug)";
+const INVOICE_COLUMNS = "id,number,organization_id,kind,period_start,period_end,issued_on,due_on,status,subtotal_cents,vat_cents,total_cents,paid_cents,sent_at,sent_via,void_reason,agreement_version,created_at,organizations(name,slug)";
 const RECEIPT_COLUMNS = "id,invoice_id,organization_id,amount_cents,method,reference,received_on,note,created_at,reversed_at,reversed_reason";
 
 function toInvoice(row: Row): StoredInvoice {
@@ -205,7 +205,7 @@ function toInvoice(row: Row): StoredInvoice {
     id: Number(row.id), number: String(row.number), organizationId: Number(row.organization_id), organizationName: org?.name ?? "", organizationSlug: org?.slug ?? null, kind: row.kind as Invoice["kind"],
     periodStart: String(row.period_start), periodEnd: String(row.period_end), issuedOn: String(row.issued_on), dueOn: String(row.due_on), status: row.status as InvoiceStatus,
     subtotalCents: Number(row.subtotal_cents), vatCents: Number(row.vat_cents), totalCents: Number(row.total_cents), paidCents: Number(row.paid_cents),
-    sentAt: (row.sent_at as string | null) ?? null, sentVia: text(row.sent_via), voidReason: text(row.void_reason), createdAt: String(row.created_at),
+    sentAt: (row.sent_at as string | null) ?? null, sentVia: text(row.sent_via), voidReason: text(row.void_reason), agreementVersion: text(row.agreement_version), createdAt: String(row.created_at),
   };
 }
 
