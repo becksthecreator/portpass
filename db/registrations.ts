@@ -658,7 +658,7 @@ async function insertWithinCap(db: ReturnType<typeof getSupabaseAdmin>, row: Rec
 
 // A status change that may TAKE a place (a child promoted from the
 // waitlist, or a cancelled one brought back) goes through the same lock
-// (set_registration_status_within_cap, migration 202610260001), so two
+// (set_registration_status_within_cap, migration 202610280002), so two
 // promotions at the same moment, or a promotion racing a parent's
 // registration, can't put a class over its cap. The cap is the one the
 // coaches on duty allow (brief 12). A child who already has a place is
