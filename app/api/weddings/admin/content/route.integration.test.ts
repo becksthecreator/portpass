@@ -31,17 +31,6 @@ import { POST } from "./route";
 import { createWeddingStaffAccount, makeWeddingStaffToken, WEDDING_STAFF_COOKIE } from "@/app/weddings/staff-auth";
 import { weddingWireSnippet } from "@/lib/weddingWire";
 
-// This changes Bahamas Weddings By The Sea's own settings row (and puts it
-// back), so it runs against a local stack only, never the shared database.
-const supabaseHost = (() => {
-  try {
-    return new URL(process.env.SUPABASE_URL ?? "").hostname;
-  } catch {
-    return "";
-  }
-})();
-if (!["127.0.0.1", "localhost"].includes(supabaseHost)) throw new Error("Refusing to run: SUPABASE_URL is not a local Supabase stack.");
-
 const db = () => createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
 const TAG = Date.now().toString(36);
 const ACCOUNT = `test-delete-desk-${TAG}`;

@@ -18,6 +18,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 
 const BASE = process.env.SCREENSHOT_BASE_URL ?? "http://localhost:3000";
 const PHASE = process.env.SCREENSHOT_PHASE ?? "";
@@ -25,7 +26,7 @@ const PIN = process.env.SCREENSHOT_PIN;
 if (!["before", "window", "after"].includes(PHASE)) throw new Error("SCREENSHOT_PHASE must be before, window or after.");
 if (!PIN) throw new Error("SCREENSHOT_PIN is not set.");
 if (!["localhost", "127.0.0.1"].includes(new URL(BASE).hostname)) throw new Error("Refusing to run against anything but the app on localhost.");
-if (!process.env.SUPABASE_URL?.includes("127.0.0.1") && !process.env.SUPABASE_URL?.includes("localhost")) throw new Error("Refusing to read anything but a local Supabase stack.");
+assertLocalSupabase();
 
 const PAGE = "/weddings/bahamas-weddings-by-the-sea";
 const DESK_ACCOUNT = "test-delete-desk"; // seed-weddings-fixture.ts
