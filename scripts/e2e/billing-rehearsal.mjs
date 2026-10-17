@@ -31,10 +31,14 @@ import { chromium } from "playwright";
 
 const BASE = process.env.SCREENSHOT_BASE_URL ?? "http://localhost:3000";
 assertLocalSupabase();
+// The cron secret goes to BASE and the daily job runs there, so BASE must
+// be this machine too: never a preview or the live site.
+if (!["localhost", "127.0.0.1"].includes(new URL(BASE).hostname)) throw new Error("SCREENSHOT_BASE_URL must be the app on this machine (localhost or 127.0.0.1): the rehearsal runs the daily job wherever it points.");
 const CRON_SECRET = process.env.CRON_SECRET;
 if (!CRON_SECRET) throw new Error("Set CRON_SECRET for this run: the daily job refuses every call without it.");
 const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
-const ADMIN_EMAIL = process.env.PLATFORM_OWNER_EMAILS;
+const ADMIN_EMAIL = process.env.PLATFORM_OWNER_EMAILS ?? "";
+if (!/^[^\s@,]+@test\.portpass\.local$/i.test(ADMIN_EMAIL)) throw new Error("PLATFORM_OWNER_EMAILS must be one TEST founder at @test.portpass.local.");
 mkdirSync("screenshots", { recursive: true });
 mkdirSync("invoices", { recursive: true });
 

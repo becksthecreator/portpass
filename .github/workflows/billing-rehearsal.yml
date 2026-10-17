@@ -28,6 +28,9 @@ on:
       - "app/api/admin/billing/**"
       - "supabase/migrations/**billing**"
 
+permissions:
+  contents: read
+
 concurrency:
   group: billing-rehearsal-${{ github.ref }}
   cancel-in-progress: true
