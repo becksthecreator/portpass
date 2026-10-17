@@ -89,12 +89,14 @@ describe("the WeddingWire widgets as a member ID and three switches", () => {
   });
 
   it("can't be given HTML or anything but digits, whoever writes to the database", async () => {
-    // The HTML columns are gone: nothing to read, nothing to write.
+    // The HTML columns are gone: nothing to read (Postgres: no such column),
+    // nothing to write (PostgREST: not in its schema). A column still there,
+    // even a read-only one, would answer 428C9 instead.
     for (const column of ["reviews_widget_html", "rating_badge_html", "award_badge_html"]) {
       const read = await db().from("wedding_site_settings").select(column).eq("id", 1);
-      expect(read.error?.message, column).toContain(column);
+      expect(read.error?.code, column).toBe("42703");
       const write = await db().from("wedding_site_settings").update({ [column]: "<script>fetch('/api/admin/people')</script>" }).eq("id", 1);
-      expect(write.error?.message, column).toContain(column);
+      expect(write.error?.code, column).toBe("PGRST204");
     }
     for (const memberId of ["946150');alert(1);//", "0946150", "abc", ""]) {
       const { error } = await db().from("wedding_site_settings").update({ weddingwire_member_id: memberId }).eq("id", 1);
