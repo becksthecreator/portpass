@@ -448,8 +448,11 @@ describe("fees and credits typed in by a founder", () => {
 });
 
 describe("the agreement version", () => {
-  it("is copied onto each invoice as the account has it that day, and a later change never rewrites one", async () => {
+  beforeAll(async () => {
     versionOrgId = (await createDraftBusiness({ name: `TEST delete ${TAG} Billing Version`, section: "entertainment", subcategory: null, ownerUserId: null, createdByAdmin: true, actorUserId: founder })).id;
+  });
+
+  it("is copied onto each invoice as the account has it the day it is drafted, and a later change never rewrites one", async () => {
     await saveAccount(versionOrgId, account({ agreementSignedOn: "2026-10-01", agreementVersion: "TEST v1.0" }), founder, "2026-10-05");
     const first = await createManualInvoice({ organizationId: versionOrgId, periodStart: "2026-10-01", periodEnd: "2026-10-31", issuedOn: "2026-10-05", lines: [{ description: "TEST delete line", amountCents: 1000 }] }, founder);
     expect(first.agreementVersion).toBe("TEST v1.0");
