@@ -99,9 +99,5 @@ The red runs were each pushed as tests only, before any fix.
 - **#220:** waitlist promotions, reinstatements and a business's "Confirm the place" under the class's lock.
 - **Moving a child to another class** from the record (`updateFutprepRegistrationDetail`) doesn't check that class's cap.
 - **`/api/futprep/registrations/lookup`:** the three reference-code lookups behind it have no organisation filter (in STATE.md since #216).
-- **Still unpaged:**
-  - the roster export's payments and attendance (a long camp can pass 1,000 attendance rows);
-  - the private sessions inbox's payments (`listPrivateSessionRequests` reads every business's);
-  - `listProgramPnl` payments;
-  - session counts on the staff session list.
+- **Still unpaged:** the private sessions inbox's payments (`listPrivateSessionRequests` reads every business's) and `listProgramPnl` payments. The roster export, session counts, plans and work logs are paged since #223.
 - **Two ways of finding Futprep:** `app/futprep/staff-auth.ts` uses organisation 1, while the db modules find Futprep by its slug. They agree on production (Futprep is 1), not on CI's fresh database.

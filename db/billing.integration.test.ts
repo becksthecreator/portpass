@@ -44,6 +44,7 @@ let weddingLeadId = 0;
 let hadWeddingAccount = false;
 let soloInvoiceId = 0;
 let scheduleOrgId = 0;
+let versionOrgId = 0;
 // Invoices this file voided for the wedding business: no fee points at them any more.
 const voidedWeddingInvoices: number[] = [];
 
@@ -78,7 +79,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  for (const id of [orgId, otherOrgId, scheduleOrgId]) {
+  for (const id of [orgId, otherOrgId, scheduleOrgId, versionOrgId]) {
     if (!id) continue;
     await removeBilling(id);
     await admin.from("billing_accounts").delete().eq("organization_id", id);
@@ -443,5 +444,28 @@ describe("fees and credits typed in by a founder", () => {
     await expect(removeEvent(spare.id, "  ", founder)).rejects.toThrow("REASON_REQUIRED");
     await removeEvent(spare.id, "TEST typed by mistake", founder);
     expect((await listEvents({ organizationId: otherOrgId })).map((event) => event.id)).not.toContain(spare.id);
+  });
+});
+
+describe("the agreement version", () => {
+  beforeAll(async () => {
+    versionOrgId = (await createDraftBusiness({ name: `TEST delete ${TAG} Billing Version`, section: "entertainment", subcategory: null, ownerUserId: null, createdByAdmin: true, actorUserId: founder })).id;
+  });
+
+  it("is copied onto each invoice as the account has it the day it is drafted, and a later change never rewrites one", async () => {
+    await saveAccount(versionOrgId, account({ agreementSignedOn: "2026-10-01", agreementVersion: "TEST v1.0" }), founder, "2026-10-05");
+    const first = await createManualInvoice({ organizationId: versionOrgId, periodStart: "2026-10-01", periodEnd: "2026-10-31", issuedOn: "2026-10-05", lines: [{ description: "TEST delete line", amountCents: 1000 }] }, founder);
+    expect(first.agreementVersion).toBe("TEST v1.0");
+    await saveAccount(versionOrgId, account({ agreementSignedOn: "2026-10-01", agreementVersion: "TEST v2.0" }), founder, "2026-10-05");
+    expect((await getInvoice(first.id))!.agreementVersion).toBe("TEST v1.0");
+    const second = await createManualInvoice({ organizationId: versionOrgId, periodStart: "2026-11-01", periodEnd: "2026-11-30", issuedOn: "2026-10-05", lines: [{ description: "TEST delete line", amountCents: 1000 }] }, founder);
+    expect(second.agreementVersion).toBe("TEST v2.0");
+  });
+
+  it("is left off an invoice entered from before, and off one for an account with no version", async () => {
+    const historical = await createManualInvoice({ organizationId: versionOrgId, periodStart: "2026-09-01", periodEnd: "2026-09-30", issuedOn: "2026-09-01", lines: [{ description: "TEST delete line", amountCents: 1000 }], historicalNumber: `TEST-${TAG}-OLD` }, founder);
+    expect(historical.agreementVersion).toBeNull();
+    const plain = await createManualInvoice({ organizationId: otherOrgId, periodStart: "2026-12-01", periodEnd: "2026-12-31", issuedOn: "2026-10-05", lines: [{ description: "TEST delete line", amountCents: 1000 }] }, founder);
+    expect(plain.agreementVersion ?? null).toBeNull();
   });
 });

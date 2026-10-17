@@ -5,7 +5,11 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 ## Live on production
 | Feature | PR | Merged |
 | --- | --- | --- |
-| Brief 34, children's data locked: every Futprep staff action (sessions, coaches, private sessions, Team, classes, login links) reads and writes Futprep's rows only; emergency contact and pickup only for the medical view, and for coaches on the session's own day (logged); one child's balance reads every payment | #217 | 12 Oct |
+| Brief 34, children's data locked: every Futprep staff action (sessions, coaches, private sessions, Team, classes, login links) reads and writes Futprep's rows only; emergency contact and pickup only for the medical view, and for coaches on the session's own day (logged); one child's balance reads every payment | #217 | 17 Oct |
+| Growth plan week 1 ([report](../briefs/growth-week1-report.md)): the plan cards list only features with a screen (migration `202610270003`, live), and /pricing carries the Marketplace attribution rule | #234 | 17 Oct |
+| Each PortPass invoice carries the agreement version it was raised under, on its PDF and the Admin invoice page (migration `202610270002`, live) | #235 | 17 Oct |
+| Billing rehearsal: `.github/workflows/billing-rehearsal.yml` plays the billing chain end to end on TEST data on every PR to `main` (about 3 minutes; draft, send refused without bank details, sent, part paid, paid, PDFs in the artifact) | #233 | 17 Oct |
+| WeddingWire widgets from a member ID and three switches, never stored HTML (migration `202610270001`, live) | #185 | 17 Oct |
 | PortPass Market (brief 25 B–D): the public Market, orders through payment requests, PortPass Points (a ledger only) | #196, #199, #207 | 11–12 Oct |
 | Term 2 ready: the last place in a class goes to one child (one locked database call, `create_registration_within_cap`), desk balances read every payment, Futprep's doors open Futprep's classes only | #200, #203, #216 | 12 Oct |
 | Rule 3 (review of #216): Futprep's lookups by reference code (parent lookup, finish registration, join after a taster) find Futprep's registrations only; `futprepOrganizationId()` by slug alone, no name-match fallback | #222 | 12 Oct |
@@ -28,10 +32,11 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
 | `fix/promotions-under-lock` (waitlist promotions and "Confirm the place" under the class's lock) | #220 | Its fix and migration | Claude Code |
-| `chore/graphify` (brief 30) | #190 | Nothing; CI green | Antonio's OK |
-| `claude/keen-volta-6u6jdp` (WeddingWire, fixes a #183 finding) | #185 | Merge. Its migration (`202610270001`) is live since 17 Oct, and the Desk's content screen can't save until this merges. Then a follow-up drops the three read-only HTML columns | Antonio: merge |
-| `chore/csp-enforce` (brief 26) | #183 | Merge after #185 | #185 |
-| `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct) | A decision: merge or close |
+| `chore/graphify` (brief 30) | #190 | Nothing; CI green. Parked by the growth plan | The fifth paid invoice |
+| `chore/csp-enforce` (brief 26) | #183 | #185 is in; rebase on `main`. Parked by the growth plan | The fifth paid invoice |
+| `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct). Parked by the growth plan | The fifth paid invoice |
+
+**The growth plan of 16 Oct ("cash first, in the wedge") says no new PRs until the fifth paid invoice.** Week 1's builds are merged (#185, #233, #235, #234). Also parked by it: brief 35 (#232), the Hermes link (#226), the BWS domain plan.
 
 ## Briefs
 | No. | Title | Status | Report |
@@ -50,14 +55,22 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | 31 | Staff logins: one person, one login, one role | building | none yet |
 | 33 | One Mind: STATE.md and `/handoff` | merged | [brief33](../briefs/brief33-one-mind-report.md) |
 | 34 | Lock children's data before launch | merged | [brief34](../briefs/brief34-child-data-lock-report.md) |
+| none | Growth plan, week 1 (the 16 Oct plan's Claude Code pieces) | merged | [growth-week1](../briefs/growth-week1-report.md) |
 
 Briefs 28 and 32 have left no trace in this repo; their status is in the HQ project.
 
 ## Waiting on Antonio
 - **First: set `CRON_SECRET`** (Vercel → Production). Production logs show `/api/cron/daily` and `/api/cron/attendance-nudge` refused with 503 on every run since at least 9 Oct, so the 90-day health-record purge (rule 3), billing, the demo reset and export pruning are not running.
+- **Before the first invoice (growth plan week 1), all clicks, no code:**
+  - `PORTPASS_FROM_EMAIL` on a verified Resend domain;
+  - `RESEND_WEBHOOK_SECRET`;
+  - the four bank details in Admin → Settings (bank, account name, account number, branch). No invoice can be sent until all four are in;
+  - Futprep owner access;
+  - the agreement text v1.0, with its version typed on each billing account;
+  - confirm the attribution wording on /pricing. The reviewer noted "came through your PortPass page" also covers customers a business sends to its own page;
+  - say whether quotes and /pricing should read "no VAT charged". PortPass is not VAT-registered (Antonio, 17 Oct); /pricing still says "Prices are in BSD."
 - **Also now: create the Wedding Desk's first staff account** at `/weddings/staff/login`. None has ever been made, so the page offers "Create the first account" to anyone, and whoever fills it in becomes its admin. The PIN-hardening session is adding a platform-owner sign-in to that screen on both desks.
 - #197 (brief 31 A): answer its four questions; nothing is switched until then.
-- #185: merge it. Its migration is live since 17 Oct; until it merges the Wedding Desk's content screen can't save (the page is unaffected). #190: OK or no.
 - Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
 - Futprep data: clear or keep Term 2's 12 Dec taster date before 19 Nov; offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
 - The other brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
@@ -70,7 +83,7 @@ Left open by the reviews of #200, #203, #216, #217 and #222 (not fixed):
 - Moving a child to another class from the desk record (`updateFutprepRegistrationDetail`) doesn't check that class's cap.
 - A child can get free tasters in two classes at the same moment (`TRIAL_ALREADY_USED` covers the business, the lock one class).
 - `db/coaches.ts` keeps `if (!organizationId)` guards that are dead now `futprepOrganizationId()` throws instead (#222). Its rows by id alone are Futprep-only since #217.
-- Still unpaged in `db/staff.ts`: session counts (~252), session plans (~798), work logs (~819), the roster export's payments and attendance (~1420; a long camp passes 1,000 attendance rows); `listProgramPnl`'s payments (`db/coachPay.ts`); the private sessions inbox's payments (`listPrivateSessionRequests`, every business's); the admin page builds the desk list twice.
+- Still unpaged: `listProgramPnl`'s payments (`db/coachPay.ts`) and the private sessions inbox's payments (`listPrivateSessionRequests`, every business's). The rest of the desk's reads are paged since #223.
 
 Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
 - The CSP keeps `'unsafe-inline'` and is report-only until #183.
@@ -78,6 +91,9 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - Lint is not in CI (#176); 35 warnings remain.
 - The owner dashboard's "Collected" counts payment requests only; Term 1's desk payments are not in it.
 - A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
+- `wedding_site_settings` keeps three read-only generated `*_html` columns (from `202610270001`) until a follow-up migration drops them; nothing reads them now #185 is deployed.
+- The plan cache key in `db/pricing.ts` carries `202610270003`: the next migration that changes `pricing_plans` must bump it, or /pricing keeps the old plans until someone saves a price.
+- The billing chain has run only in the rehearsal, never in production: no billing account, no invoice yet.
 
 ## Last updated
-17 Oct 2026, `main` at `0067166`, by Claude Code (PR #217, brief 34; #185 added its own rows on 17 Oct).
+17 Oct 2026, `main` at `ba1465a`, by Claude Code (PR #217, brief 34). The growth plan's week-1 rows are as of #234; other rows as of 12 Oct.

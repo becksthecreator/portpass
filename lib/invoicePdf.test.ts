@@ -37,6 +37,12 @@ describe("the invoice PDF", () => {
     expect(file).not.toMatch(/VAT-registered|not registered/i);
   });
 
+  it("prints the agreement version it was raised under, and no line when it has none", () => {
+    expect(text(invoicePdf(invoice({ agreementVersion: "v1.0" })))).toMatch(/\(Agreement\)[\s\S]*\(v1\.0\)/);
+    expect(text(invoicePdf(invoice()))).not.toContain("(Agreement)");
+    expect(text(invoicePdf(invoice({ agreementVersion: null })))).not.toContain("(Agreement)");
+  });
+
   it("says plainly when it is a draft or void, and when bank details are missing", () => {
     expect(text(invoicePdf(invoice({ status: "draft" })))).toContain("DRAFT INVOICE");
     expect(text(invoicePdf(invoice({ status: "void" })))).toContain("VOID INVOICE");

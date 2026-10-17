@@ -360,6 +360,9 @@ export type Invoice = {
   sentAt: string | null;
   sentVia: string | null;
   voidReason: string | null;
+  // The account's agreement version the day it was raised (printed on the
+  // PDF). Optional so invoices built in tests needn't say.
+  agreementVersion?: string | null;
 };
 
 export function invoiceNumber(year: number, sequence: number): string {

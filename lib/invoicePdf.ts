@@ -23,6 +23,9 @@ export type PdfInvoice = {
   vatCents: number;
   totalCents: number;
   paidCents: number;
+  // The agreement version the invoice was raised under, printed under the
+  // due date. None on an invoice raised before versions were kept.
+  agreementVersion?: string | null;
   bank: BankDetails;
 };
 
@@ -111,7 +114,9 @@ export function invoicePdf(invoice: PdfInvoice): Uint8Array {
   page.text(`${PORTPASS_SUPPORT_EMAIL} · ${PORTPASS_PHONE_DISPLAY}`, LEFT, y, { size: 9, grey: true });
 
   let side = HEIGHT - 82;
-  for (const [label, value] of [["Invoice no.", invoice.number], ["Date", longDay(invoice.issuedOn)], ["Due date", longDay(invoice.dueOn)]] as const) {
+  const facts: Array<[string, string]> = [["Invoice no.", invoice.number], ["Date", longDay(invoice.issuedOn)], ["Due date", longDay(invoice.dueOn)]];
+  if (invoice.agreementVersion) facts.push(["Agreement", invoice.agreementVersion]);
+  for (const [label, value] of facts) {
     page.text(label, 400, side, { size: 9, grey: true });
     page.text(value, RIGHT, side, { size: 10, bold: label === "Invoice no.", align: "right" });
     side -= 14;
