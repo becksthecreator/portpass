@@ -6,6 +6,14 @@ import { effectiveCapForTerm, ensureFutprepPilotData, type PaymentFrequency, typ
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, pageAll, throwIfSupabaseError } from "./supabase";
 
+// A long list of ids goes into `.in()` 200 at a time, so no request's URL
+// outgrows what the API accepts.
+function chunks<T>(items: T[], size = 200): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
 // One child on the registration desk's list. A list, so it carries no
 // health, emergency or pickup detail (CLAUDE.md rule 3, lib/health.ts):
 // those are on the child's own record (getFutprepRegistrationDetail).
@@ -258,19 +266,31 @@ export async function listFutprepStaffSessions(): Promise<StaffSession[]> {
 
   const programById = new Map(programRows.map((row) => [row.id, row]));
   const programIds = programRows.map((row) => row.id);
-  const [{ data: sessions, error }, { data: terms, error: termsError }, { data: counted, error: countedError }] = await Promise.all([
-    db
-      .from("sessions")
-      .select("id,program_id,term_id,session_date,start_time,location,status,coaches_on_duty")
-      .in("program_id", programIds)
-      .order("session_date", { ascending: true })
-      .order("start_time", { ascending: true }),
-    db.from("program_terms").select("id,name,active,taster_date").in("program_id", programIds),
-    db.from("registrations").select("term_id,registration_status,trial_session_id").in("program_id", programIds).in("registration_status", ["pending_details", "pending", "confirmed", "trial"]),
+  // Each list is read in pages: the API returns at most 1,000 rows a call,
+  // and past that the sessions list and the "registered" counts came up
+  // short (audit finding 5's siblings).
+  const [sessions, terms, counted] = await Promise.all([
+    pageAll<{ id: number; program_id: number; term_id: number; session_date: string; start_time: string; location: string; status: string; coaches_on_duty: number | null }>(
+      (from, to) =>
+        db
+          .from("sessions")
+          .select("id,program_id,term_id,session_date,start_time,location,status,coaches_on_duty")
+          .in("program_id", programIds)
+          .order("session_date", { ascending: true })
+          .order("start_time", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      "Could not load Futprep sessions",
+    ),
+    pageAll<{ id: number; name: string; active: boolean; taster_date: string | null }>(
+      (from, to) => db.from("program_terms").select("id,name,active,taster_date").in("program_id", programIds).order("id", { ascending: true }).range(from, to),
+      "Could not load Futprep terms",
+    ),
+    pageAll<{ term_id: number; registration_status: string; trial_session_id: number | null }>(
+      (from, to) => db.from("registrations").select("term_id,registration_status,trial_session_id").in("program_id", programIds).in("registration_status", ["pending_details", "pending", "confirmed", "trial"]).order("id", { ascending: true }).range(from, to),
+      "Could not count Futprep registrations",
+    ),
   ]);
-  throwIfSupabaseError(error, "Could not load Futprep sessions");
-  throwIfSupabaseError(termsError, "Could not load Futprep terms");
-  throwIfSupabaseError(countedError, "Could not count Futprep registrations");
   const tasterDate = new Map((terms ?? []).map((t: { id: number; taster_date: string | null }) => [Number(t.id), t.taster_date]));
   const registeredByTerm = new Map<number, number>();
   const tastersBySession = new Map<number, number>();
@@ -854,17 +874,35 @@ export async function saveFutprepWorkLog(input: {
   return data;
 }
 
+// Like pageAll, but a missing optional table (session_plans,
+// staff_work_logs) reads as "no rows", as the single-call reads did.
+async function pageAllOptional<T>(fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message?: string; code?: string } | null }>, context: string): Promise<T[] | null> {
+  const out: T[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await fetchPage(from, from + 999);
+    if (optionalStaffToolsMissing(error)) return null;
+    throwIfSupabaseError(error, context);
+    out.push(...(data ?? []));
+    if (!data || data.length < 1000) return out;
+  }
+}
+
+// The plans and logs of every session: session ids 200 a request, each
+// request in pages, so a long-running programme's are all read.
 export async function listFutprepSessionPlans(): Promise<StaffSessionPlan[]> {
   const sessions = await listFutprepStaffSessions();
   if (!sessions.length) return [];
   const db = getSupabaseAdmin();
-  const { data, error } = await db
-    .from("session_plans")
-    .select("session_id,title,plan_text,parent_note,attachment_url,updated_by,updated_at")
-    .in("session_id", sessions.map((item) => item.id));
-  if (optionalStaffToolsMissing(error)) return [];
-  throwIfSupabaseError(error, "Could not load Futprep session plans");
-  return (data ?? []).map((row: Record<string, unknown>) => ({
+  const data: Record<string, unknown>[] = [];
+  for (const ids of chunks(sessions.map((item) => item.id))) {
+    const rows = await pageAllOptional<Record<string, unknown>>(
+      (from, to) => db.from("session_plans").select("session_id,title,plan_text,parent_note,attachment_url,updated_by,updated_at").in("session_id", ids).order("session_id", { ascending: true }).range(from, to),
+      "Could not load Futprep session plans",
+    );
+    if (rows === null) return [];
+    data.push(...rows);
+  }
+  return data.map((row: Record<string, unknown>) => ({
     session_id: Number(row.session_id),
     title: String(row.title ?? ""),
     plan_text: String(row.plan_text ?? ""),
@@ -879,14 +917,17 @@ export async function listFutprepWorkLogs(): Promise<StaffWorkLog[]> {
   const sessions = await listFutprepStaffSessions();
   if (!sessions.length) return [];
   const db = getSupabaseAdmin();
-  const { data, error } = await db
-    .from("staff_work_logs")
-    .select("session_id,staff_name,work_date,start_time,end_time,hours,notes,updated_at")
-    .in("session_id", sessions.map((item) => item.id))
-    .order("work_date", { ascending: true });
-  if (optionalStaffToolsMissing(error)) return [];
-  throwIfSupabaseError(error, "Could not load Futprep work logs");
-  return (data ?? []).map((row: Record<string, unknown>) => ({
+  const data: Record<string, unknown>[] = [];
+  for (const ids of chunks(sessions.map((item) => item.id))) {
+    const rows = await pageAllOptional<Record<string, unknown>>(
+      (from, to) => db.from("staff_work_logs").select("session_id,staff_name,work_date,start_time,end_time,hours,notes,updated_at").in("session_id", ids).order("work_date", { ascending: true }).order("id", { ascending: true }).range(from, to),
+      "Could not load Futprep work logs",
+    );
+    if (rows === null) return [];
+    data.push(...rows);
+  }
+  data.sort((a, b) => String(a.work_date).localeCompare(String(b.work_date)));
+  return data.map((row: Record<string, unknown>) => ({
     session_id: Number(row.session_id),
     staff_name: String(row.staff_name ?? ""),
     work_date: String(row.work_date ?? ""),
@@ -1390,8 +1431,10 @@ export type FutprepMoneySummary = {
 // Built directly from the same rows the roster shows (registrations +
 // summed received payments) so the strip's totals can never drift from
 // what a direct sum of those two tables would produce.
-export async function getFutprepMoneySummary(): Promise<FutprepMoneySummary> {
-  const registrations = await listFutprepStaffRegistrations();
+// A page that already holds the desk list passes it in, so the list is
+// read once.
+export async function getFutprepMoneySummary(loaded?: StaffRegistration[]): Promise<FutprepMoneySummary> {
+  const registrations = loaded ?? (await listFutprepStaffRegistrations());
 
   const byProgramMap = new Map<string, FutprepMoneySummaryBucket>();
   for (const registration of registrations) {
@@ -1451,36 +1494,53 @@ export async function rosterExportForTerm(programId: number, termId: number): Pr
   throwIfSupabaseError(termError, "Could not load term");
   if (!program || !term || Number(program.organization_id) !== organizationId || Number(term.program_id) !== programId) return null;
 
-  const [{ data: registrations, error }, { data: sessions, error: sessionsError }] = await Promise.all([
-    db
-      .from("registrations")
-      .select("id,reference_code,child_name,child_dob,parent_name,parent_phone,parent_email,photo_consent,registration_status,payment_status,amount_due_cents")
-      .eq("organization_id", organizationId)
-      .eq("program_id", programId)
-      .eq("term_id", termId)
-      .in("registration_status", ["pending_details", "pending", "confirmed"])
-      .order("child_name", { ascending: true }),
-    db.from("sessions").select("id,session_date,status").eq("program_id", programId).eq("term_id", termId).neq("status", "cancelled").order("session_date", { ascending: true }),
+  const [regRows, sessionRows] = await Promise.all([
+    pageAll<Record<string, unknown>>(
+      (from, to) =>
+        db
+          .from("registrations")
+          .select("id,reference_code,child_name,child_dob,parent_name,parent_phone,parent_email,photo_consent,registration_status,payment_status,amount_due_cents")
+          .eq("organization_id", organizationId)
+          .eq("program_id", programId)
+          .eq("term_id", termId)
+          .in("registration_status", ["pending_details", "pending", "confirmed"])
+          .order("child_name", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      "Could not load roster",
+    ),
+    pageAll<{ id: number; session_date: string }>(
+      (from, to) => db.from("sessions").select("id,session_date,status").eq("program_id", programId).eq("term_id", termId).neq("status", "cancelled").order("session_date", { ascending: true }).order("id", { ascending: true }).range(from, to),
+      "Could not load camp days",
+    ),
   ]);
-  throwIfSupabaseError(error, "Could not load roster");
-  throwIfSupabaseError(sessionsError, "Could not load camp days");
-
-  const regRows = (registrations ?? []) as Array<Record<string, unknown>>;
-  const sessionRows = (sessions ?? []) as Array<{ id: number; session_date: string }>;
   const ids = regRows.map((r) => Number(r.id));
-  const [{ data: payments, error: paymentsError }, { data: attendance, error: attendanceError }] = ids.length
-    ? await Promise.all([
-        db.from("payments").select("registration_id,amount_cents").in("registration_id", ids).eq("status", "received"),
-        sessionRows.length
-          ? db.from("attendance").select("registration_id,session_id,status").in("registration_id", ids).in("session_id", sessionRows.map((s) => s.id))
-          : Promise.resolve({ data: [], error: null }),
-      ])
-    : [{ data: [], error: null }, { data: [], error: null }];
-  throwIfSupabaseError(paymentsError, "Could not load payments");
-  throwIfSupabaseError(attendanceError, "Could not load attendance");
+  // Payments and attendance for these children, 200 ids a request and
+  // each request in pages: a weekly payer's class can pass 1,000 payments.
+  // A child's attendance can only be on this term's days, and a mark on a
+  // day not in `dayBySession` (a cancelled one) is skipped below, so the
+  // registration ids are filter enough: no list of session ids in the URL.
+  const payments: Array<{ registration_id: number; amount_cents: number }> = [];
+  const attendance: Array<{ registration_id: number; session_id: number; status: string }> = [];
+  for (const chunk of chunks(ids)) {
+    payments.push(
+      ...(await pageAll<{ registration_id: number; amount_cents: number }>(
+        (from, to) => db.from("payments").select("registration_id,amount_cents").in("registration_id", chunk).eq("status", "received").order("id", { ascending: true }).range(from, to),
+        "Could not load payments",
+      )),
+    );
+    if (sessionRows.length) {
+      attendance.push(
+        ...(await pageAll<{ registration_id: number; session_id: number; status: string }>(
+          (from, to) => db.from("attendance").select("registration_id,session_id,status").in("registration_id", chunk).order("id", { ascending: true }).range(from, to),
+          "Could not load attendance",
+        )),
+      );
+    }
+  }
 
   const paid = new Map<number, number>();
-  for (const p of (payments ?? []) as Array<{ registration_id: number; amount_cents: number }>) paid.set(Number(p.registration_id), (paid.get(Number(p.registration_id)) ?? 0) + Number(p.amount_cents));
+  for (const p of payments) paid.set(Number(p.registration_id), (paid.get(Number(p.registration_id)) ?? 0) + Number(p.amount_cents));
   const dayBySession = new Map(sessionRows.map((s) => [Number(s.id), s.session_date]));
   const marks = new Map<number, Record<string, string>>();
   for (const a of (attendance ?? []) as Array<{ registration_id: number; session_id: number; status: string }>) {
