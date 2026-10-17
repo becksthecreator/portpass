@@ -56,8 +56,8 @@ The red runs were each pushed as tests only, before any fix.
 | #205: `futprepOrgScope` (8 cases), `rosterCsv`, `health.static`, `camps` | Recorded on a local stack before the push; CI was green from the first push (see #205's body) | #205's CI |
 | #200: the last place, double taps (9 of 10 failed; the waitlist guard passed) | [run 38185396472](https://github.com/becksthecreator/portpass/actions/runs/38185396472) | #200's CI |
 | #203: balances past 1,000 payments (both failed) | [run 38185806506](https://github.com/becksthecreator/portpass/actions/runs/38185806506) | #203's CI |
-| #217 round one: coaches today, who coached, the default lead, open times (4 integration); who sees emergency contact and pickup (4 unit) | [run 38193925472](https://github.com/becksthecreator/portpass/actions/runs/38193925472) | GREEN_RUN |
-| #217 round two (from the tdd-guide's list): private session actions and payments, the Team screen, the public coach pages, switching a class, a coach's login link, one child's balance | [run 38195283198](https://github.com/becksthecreator/portpass/actions/runs/38195283198) | GREEN_RUN |
+| #217 round one: coaches today, who coached, the default lead, open times (4 integration); who sees emergency contact and pickup (4 unit) | [run 38193925472](https://github.com/becksthecreator/portpass/actions/runs/38193925472) | [run 38198530909](https://github.com/becksthecreator/portpass/actions/runs/38198530909) (31da60a, with #209, #213, #216 and #222 merged in) |
+| #217 round two (from the tdd-guide's list): private session actions and payments, the Team screen, the public coach pages, switching a class, a coach's login link, one child's balance | [run 38195283198](https://github.com/becksthecreator/portpass/actions/runs/38195283198) | [run 38198530909](https://github.com/becksthecreator/portpass/actions/runs/38198530909) (31da60a, with #209, #213, #216 and #222 merged in) |
 
 - **Passed without a fix of ours.** Twenty parents for ten places passed on its first run, because #200 was already on `main`; it is a proof, not a red-first test. In round two, the request list, its numbers and the coach a request goes to passed against `main`, because #209 had merged minutes earlier. Those tests now guard #209's fixes.
 - **The save route's test** for the emergency keys was written after its fix. Its unit test, `withoutEmergencyInput`, was red first in round one.
@@ -67,8 +67,8 @@ The red runs were each pushed as tests only, before any fix.
   - brief 27: `app/api/futprep/registrations/route.integration.test.ts`, `db/camps`, `db/ownerDashboard`;
   - brief 29: `db/privateSessions`.
 
-  They passed on GREEN_RUN (113 test files on 71565b6, per the reviewer).
-- **Screenshots (375px, TEST data):** SCREENSHOTS
+  They passed on [run 38198530909](https://github.com/becksthecreator/portpass/actions/runs/38198530909) (31da60a, with #209, #213, #216 and #222 merged in) (113 test files on 71565b6, per the reviewer).
+- **Screenshots (375px, TEST data):** Artifact `staff-screenshots` of [run 38198530992](https://github.com/becksthecreator/portpass/actions/runs/38198530992) (31da60a): `brief31-registration-no-medical-375.png`, a desk login without the medical view on a child's record, where the Emergency contact panel says it is hidden for that login; `brief31-roster-no-health-375.png`, a coach on a session that is not today, where Safety notes say "shown to coaches on the day of the session, and to the logins Alex has allowed".
 
 ## Agent output
 - **tdd-guide (before the code):**
