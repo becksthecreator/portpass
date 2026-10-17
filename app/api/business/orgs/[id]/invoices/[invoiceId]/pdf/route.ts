@@ -27,7 +27,7 @@ export async function GET(_request: Request, ctx: Ctx) {
   const pdf = invoicePdf({
     number: invoice.number, status: invoiceStatus(invoice, nassauToday()), issuedOn: invoice.issuedOn, dueOn: invoice.dueOn, periodStart: invoice.periodStart, periodEnd: invoice.periodEnd,
     businessName: invoice.organizationName, billTo: [account?.billingEmail ?? "", account?.billingWhatsappE164 ?? ""], lines: invoice.lines,
-    subtotalCents: invoice.subtotalCents, vatCents: invoice.vatCents, totalCents: invoice.totalCents, paidCents: invoice.paidCents, bank,
+    subtotalCents: invoice.subtotalCents, vatCents: invoice.vatCents, totalCents: invoice.totalCents, paidCents: invoice.paidCents, agreementVersion: invoice.agreementVersion, bank,
   });
   return new NextResponse(Buffer.from(pdf), { status: 200, headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${invoice.number}.pdf"`, "Cache-Control": "private, no-store" } });
 }
