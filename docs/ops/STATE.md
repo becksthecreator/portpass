@@ -31,6 +31,7 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | --- | --- | --- | --- |
 | `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
 | `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
+| `claude/keen-volta-6u6jdp` (follow-up to #185) | #236 | Apply `202610280001` live (drops the three read-only WeddingWire HTML columns), then merge. Opened 17 Oct at Antonio's request in the session; CI green | Antonio: confirm the apply, or park it with the growth plan |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green. Parked by the growth plan | The fifth paid invoice |
 | `chore/csp-enforce` (brief 26) | #183 | #185 is in; rebase on `main`. Parked by the growth plan | The fifth paid invoice |
 | `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct). Parked by the growth plan | The fifth paid invoice |
@@ -69,6 +70,7 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
   - say whether quotes and /pricing should read "no VAT charged". PortPass is not VAT-registered (Antonio, 17 Oct); /pricing still says "Prices are in BSD."
 - **Also now: create the Wedding Desk's first staff account** at `/weddings/staff/login`. None has ever been made, so the page offers "Create the first account" to anyone, and whoever fills it in becomes its admin. The PIN-hardening session is adding a platform-owner sign-in to that screen on both desks.
 - #197 (brief 31 A): answer its four questions; nothing is switched until then.
+- #236: confirm its live migration (it drops the three read-only WeddingWire HTML columns), then merge; or park it with the growth plan.
 - Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
 - Futprep data: clear or keep Term 2's 12 Dec taster date before 19 Nov; offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
 - The other brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
@@ -88,9 +90,9 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - Lint is not in CI (#176); 35 warnings remain.
 - The owner dashboard's "Collected" counts payment requests only; Term 1's desk payments are not in it.
 - A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
-- `wedding_site_settings` keeps three read-only generated `*_html` columns (from `202610270001`) until a follow-up migration drops them; nothing reads them now #185 is deployed.
+- `wedding_site_settings` keeps three read-only generated `*_html` columns (from `202610270001`) until #236's `202610280001` drops them; nothing reads them now #185 is deployed.
 - The plan cache key in `db/pricing.ts` carries `202610270003`: the next migration that changes `pricing_plans` must bump it, or /pricing keeps the old plans until someone saves a price.
 - The billing chain has run only in the rehearsal, never in production: no billing account, no invoice yet.
 
 ## Last updated
-17 Oct 2026, by Claude Code (PR #234, the last of the growth plan's week-1 PRs: #185, #233, #235, #234). Other rows are as of 12 Oct.
+17 Oct 2026, by Claude Code (PR #236, its own rows; before it PR #234, the last of the growth plan's week-1 PRs: #185, #233, #235, #234). Other rows are as of 12 Oct.
