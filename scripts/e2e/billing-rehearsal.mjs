@@ -4,25 +4,26 @@
 // never run in production.
 //
 //   1. A TEST founder signs in (code and authenticator step).
-//   2. Sending is refused while PortPass's bank details are missing.
-//   3. The four bank details go in (TEST values), through Admin -> Settings'
-//      own route.
-//   4. A TEST business gets a billing account through Admin -> Billing's own
+//   2. A TEST business gets a billing account through Admin -> Billing's own
 //      route: monthly, $65 per month, its free 30 days ending yesterday, an
 //      agreement date and version, and a billing email at @example.com.
-//   5. The daily job (/api/cron/daily, with this run's own CRON_SECRET)
+//   3. The daily job (/api/cron/daily, with this run's own CRON_SECRET)
 //      drafts its first invoice. Run twice: still one invoice.
+//   4. Sending is refused while PortPass's bank details are missing.
+//   5. The four bank details go in (TEST values), through Admin -> Settings'
+//      own route.
 //   6. "Send by email" is pressed: the address is @example.com, so nothing
 //      leaves (lib/email.ts) and the invoice stays a draft.
-//   7. "Mark as sent another way": sent, dated today, due in 14 days. Its PDF
-//      is saved into the artifact.
-//   8. A part payment, an overpayment (refused) and the rest: part paid,
-//      then paid; the account reads active. The paid PDF is saved too.
-//   9. Every row it made is deleted.
+//   7. "Mark as sent another way": sent, dated today, due in 14 days; an
+//      overpayment is refused. Its PDF is saved into the artifact.
+//   8. A part payment and the rest: part paid, then paid, and the account
+//      is not past due. The paid PDF is saved too.
+//   9. What it made in the stack is deleted, the TEST founder included.
 //
 // No real database and no real inbox: the app runs with no email key, and
 // the only address is @example.com. Each screen a founder sees is
-// photographed at 375px into ./screenshots.
+// photographed at 375px into ./screenshots. Dates are worked out once, in
+// Nassau: a run that crosses midnight there can fail on them.
 import { createHmac } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
@@ -212,8 +213,9 @@ try {
     expect(pressed.status === 502 && /test address|isn't set up/i.test(pressed.data.error ?? ""), `Send by email answered ${pressed.status}: ${pressed.data.error ?? ""}`);
     const [invoice] = await invoiceRow();
     expect(invoice.status === "draft", `A send that did not go must leave a draft; it is ${invoice.status}.`);
-    const { data: logged } = await admin.from("message_log").select("status").eq("recipient", BILLING_EMAIL).eq("status", "sent");
-    expect(!(logged ?? []).length, "The Messages log says an email was sent to the TEST address.");
+    // An example address is refused before anything is logged or sent.
+    const { data: logged } = await admin.from("message_log").select("status").eq("recipient", BILLING_EMAIL);
+    expect(!(logged ?? []).length, `The Messages log has ${logged?.length} line(s) for the TEST address: something tried to email it.`);
     return "skipped: nothing left the app";
   });
 
@@ -234,13 +236,14 @@ try {
     return `${pdf.file}; agreement version on the PDF: ${state.agreementOnPdf ? "yes" : "no"}`;
   });
 
-  await step("8. A part payment, then the rest: part paid, then paid; the account is active", async () => {
+  await step("8. A part payment, then the rest: part paid, then paid; the account is not past due", async () => {
     const part = await call(founder, "POST", `/api/admin/billing/invoices/${state.invoiceId}`, { action: "receipt", receipt: { amountCents: 2500, method: "bank_transfer", reference: "TEST-REF-1", receivedOn: TODAY, note: "TEST — delete" } });
     expect(part.status === 200 && part.data.status === "part_paid" && part.data.paidCents === 2500, `The part payment answered ${part.status}: ${part.data.error ?? `${part.data.status}, ${part.data.paidCents}`}`);
     const rest = await call(founder, "POST", `/api/admin/billing/invoices/${state.invoiceId}`, { action: "receipt", receipt: { amountCents: PRICE_CENTS - 2500, method: "cash", receivedOn: TODAY, note: "TEST — delete" } });
     expect(rest.status === 200 && rest.data.status === "paid" && rest.data.paidCents === PRICE_CENTS, `The rest answered ${rest.status}: ${rest.data.error ?? `${rest.data.status}, ${rest.data.paidCents}`}`);
     const { data: account } = await admin.from("billing_accounts").select("status,next_invoice_on").eq("organization_id", state.orgId).single();
-    expect(account.status === "active", `The account should be active once paid; it is ${account.status}.`);
+    // Active once billing has started and nothing is overdue (lib/billing.ts accountStatus).
+    expect(account.status === "active", `The account should be active, not past due; it is ${account.status}.`);
     const pdf = await savePdf(founder, "paid");
     await founder.goto(`${BASE}/admin/billing/invoices/${state.invoiceId}`, { waitUntil: "load" });
     await photo(founder, "invoice-paid");
@@ -251,8 +254,18 @@ try {
 } finally {
   await browser.close();
   // ---------------------------------------------------------------- cleanup
-  await step("9. Every row the rehearsal made is deleted", async () => {
+  await step("9. What the rehearsal made is deleted, the TEST founder included", async () => {
     const left = [];
+    // The founder and the authenticator it enrolled: a second run on the
+    // same stack starts from a fresh account. (The invoice-number counter
+    // keeps its count: numbers are never reused.)
+    const { data: users } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    const founderUser = users?.users?.find((user) => user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+    if (founderUser) {
+      await admin.from("audit_log").delete().eq("actor_user_id", founderUser.id);
+      const { error } = await admin.auth.admin.deleteUser(founderUser.id);
+      if (error) left.push(`the TEST founder: ${error.message}`);
+    }
     if (state.orgId) {
       const invoiceIds = (await invoiceRow().catch(() => [])).map((invoice) => invoice.id);
       if (invoiceIds.length) {

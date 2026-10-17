@@ -9,24 +9,14 @@ name: Billing rehearsal (TEST data)
 #
 # It runs the app on localhost against a throwaway local Supabase stack,
 # with this run's own CRON_SECRET and no email key. The only address is
-# @example.com, which lib/email.ts never emails. Not a required check: it
-# takes as long as a build, so it runs when the billing code changes and by
-# hand.
+# @example.com, which lib/email.ts never emails. It takes about three
+# minutes, so it runs on every pull request to main, beside CI (not a
+# required check), and by hand.
 
 on:
   workflow_dispatch:
   pull_request:
     branches: [main]
-    paths:
-      - "scripts/e2e/billing-rehearsal.mjs"
-      - ".github/workflows/billing-rehearsal.yml"
-      - "lib/billing.ts"
-      - "lib/billingInput.ts"
-      - "lib/invoicePdf.ts"
-      - "db/billing.ts"
-      - "app/api/cron/daily/**"
-      - "app/api/admin/billing/**"
-      - "supabase/migrations/**billing**"
 
 permissions:
   contents: read
