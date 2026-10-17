@@ -24,6 +24,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
     return NextResponse.json({ ok: true, status: updated.status });
   } catch (error) {
     if (error instanceof Error && error.message === "NOT_FOUND") return NextResponse.json({ error: "Not found." }, { status: 404 });
+    if (error instanceof Error && error.message === "PROGRAM_FULL") return NextResponse.json({ error: "The class is full. Free a place first, or raise its capacity." }, { status: 409 });
     console.error("demo registration status", error instanceof Error ? error.message : "");
     return NextResponse.json({ error: "Could not change it." }, { status: 500 });
   }

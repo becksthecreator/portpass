@@ -2,7 +2,7 @@ import { derivePaymentStatus } from "@/lib/payments";
 import { ageOnDate } from "@/lib/scheduling";
 import { effectiveCap } from "@/lib/futprepClasses";
 import { missingRegistrationFields } from "@/lib/futprepRegistrations";
-import { effectiveCapForTerm, ensureFutprepPilotData, type PaymentFrequency, type PaymentMethod } from "./registrations";
+import { ensureFutprepPilotData, setRegistrationStatusWithinCap, type PaymentFrequency, type PaymentMethod } from "./registrations";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, pageAll, throwIfSupabaseError } from "./supabase";
 
@@ -457,34 +457,21 @@ export async function updateFutprepRegistration(input: {
   const db = getSupabaseAdmin();
   const organizationId = await futprepOrganizationId();
 
-  const updates: Record<string, string> = {};
-  if (input.registrationStatus) {
-    // Promoting from the waitlist (brief 06 v2, Part C) takes a class
-    // spot, so it needs one free.
-    if (input.registrationStatus !== "cancelled") {
-      const { data: current, error: currentError } = await db.from("registrations").select("registration_status,program_id,term_id").eq("id", input.registrationId).eq("organization_id", organizationId).maybeSingle();
-      throwIfSupabaseError(currentError, "Could not load registration");
-      if (current?.registration_status === "waitlist") {
-        const [{ count }, cap] = await Promise.all([
-          db.from("registrations").select("id", { count: "exact", head: true }).eq("program_id", current.program_id).eq("term_id", current.term_id).in("registration_status", ["pending_details", "pending", "confirmed"]),
-          // Brief 12: the cap the coaches on duty allow at the next session.
-          effectiveCapForTerm(Number(current.program_id), Number(current.term_id)),
-        ]);
-        if (Number(count ?? 0) >= cap) throw new Error("PROGRAM_FULL");
-      }
-    }
-    updates.registration_status = input.registrationStatus;
-  }
-  if (input.paymentStatus) updates.payment_status = input.paymentStatus;
-  if (!Object.keys(updates).length) return;
+  if (!input.registrationStatus && !input.paymentStatus) return;
 
-  const { data, error } = await db
-    .from("registrations")
-    .update(updates)
-    .eq("id", input.registrationId)
-    .eq("organization_id", organizationId)
-    .select("id,program_id,parent_name,parent_email,child_name")
-    .maybeSingle();
+  if (input.registrationStatus) {
+    // Promoting from the waitlist (brief 06 v2, Part C), or bringing a
+    // cancelled child back, takes a class spot: the database checks the
+    // cap and writes the status under the class's lock, so two promotions
+    // at the same moment can't both take the last one (PROGRAM_FULL).
+    const changed = await setRegistrationStatusWithinCap(db, { registrationId: input.registrationId, organizationId, status: input.registrationStatus });
+    if (!changed) throw new Error("REGISTRATION_NOT_FOUND");
+  }
+
+  const columns = "id,program_id,parent_name,parent_email,child_name";
+  const { data, error } = input.paymentStatus
+    ? await db.from("registrations").update({ payment_status: input.paymentStatus }).eq("id", input.registrationId).eq("organization_id", organizationId).select(columns).maybeSingle()
+    : await db.from("registrations").select(columns).eq("id", input.registrationId).eq("organization_id", organizationId).maybeSingle();
   throwIfSupabaseError(error, "Could not update registration");
   if (!data) throw new Error("REGISTRATION_NOT_FOUND");
 
