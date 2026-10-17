@@ -86,7 +86,7 @@ Futprep's Term 2 registration opens to parents at 05:00 UTC (midnight in Nassau)
 1. Tick the brief 21 switches in `docs/security/README.md`: set `CRON_SECRET`, `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`; publish the two firewall rules and bot protection; set Supabase's OTP expiry and session limits (Antonio).
 2. Futprep: make its owner in Admin → People, add emails to the staff logins, settle the 12 Dec taster and the Saturday pages' dates (Antonio).
 3. Run the restore drill and write its row (Antonio).
-4. Confirm #185's migration; then merge #185 and #183 to enforce the CSP (Antonio, then Claude Code).
+4. Merge #185 (its migration is live since 17 Oct), then #183 to enforce the CSP (Antonio, then Claude Code).
 5. Fix the private-session drawer's focus and tie registration errors to their fields (Claude Code).
 6. Decide #176; if yes, rebase it so lint runs in CI (Antonio, then Claude Code).
 7. Merge brief 33 A for the changelog, refresh `README.md`, write a one-page error budget policy (Claude Code).
