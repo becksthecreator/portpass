@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { AdminWeddingGalleryImage } from "@/db/weddingSite";
+import { readWeddingImage } from "@/lib/weddingImage";
 
 type Draft = {
   imageUrl: string;
@@ -27,8 +28,11 @@ function toDraft(image: AdminWeddingGalleryImage): Draft {
 
 const BLANK_DRAFT: Draft = { imageUrl: "", caption: "", photographerName: "", photographerUrl: "", isHero: false, visibility: "draft", sortOrder: 99 };
 
-function ImageEditor({ id, initial, onSaved, onDeleted }: { id: number | null; initial: Draft; onSaved: (images: AdminWeddingGalleryImage[]) => void; onDeleted?: () => void }) {
+function ImageEditor({ id, initial, supabaseUrl, onSaved, onDeleted }: { id: number | null; initial: Draft; supabaseUrl: string | null; onSaved: (images: AdminWeddingGalleryImage[]) => void; onDeleted?: () => void }) {
   const [draft, setDraft] = useState(initial);
+  // Previewed only when the save would take it (lib/weddingImage.ts), so an
+  // outside link or tracking pixel is never loaded, not even here.
+  const preview = readWeddingImage(draft.imageUrl, supabaseUrl ?? undefined)?.url;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -69,9 +73,9 @@ function ImageEditor({ id, initial, onSaved, onDeleted }: { id: number | null; i
 
   return (
     <div className="wedding-admin-panel">
-      {draft.imageUrl && <img src={draft.imageUrl} alt="" style={{ maxWidth: 220, maxHeight: 160, objectFit: "cover", marginBottom: 12 }} />}
+      {preview && <img src={preview} alt="" style={{ maxWidth: 220, maxHeight: 160, objectFit: "cover", marginBottom: 12 }} />}
       <div className="wedding-admin-field-grid">
-        <label className="wedding-admin-field-full"><span>Image URL</span><input value={draft.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="https://…" /></label>
+        <label className="wedding-admin-field-full"><span>Image (path under /weddings/bahamas-by-the-sea/, or a photo uploaded for BWS)</span><input value={draft.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="/weddings/bahamas-by-the-sea/bws-11.webp" /></label>
         <label className="wedding-admin-field-full"><span>Caption</span><input value={draft.caption} onChange={(e) => set("caption", e.target.value)} /></label>
         <label><span>Photographer name</span><input value={draft.photographerName} onChange={(e) => set("photographerName", e.target.value)} /></label>
         <label><span>Photographer link (optional)</span><input value={draft.photographerUrl} onChange={(e) => set("photographerUrl", e.target.value)} placeholder="https://…" /></label>
@@ -99,17 +103,17 @@ function ImageEditor({ id, initial, onSaved, onDeleted }: { id: number | null; i
   );
 }
 
-export function GalleryManager({ initialImages }: { initialImages: AdminWeddingGalleryImage[] }) {
+export function GalleryManager({ initialImages, supabaseUrl }: { initialImages: AdminWeddingGalleryImage[]; supabaseUrl: string | null }) {
   const [images, setImages] = useState(initialImages);
   const [adding, setAdding] = useState(false);
 
   return (
     <>
       {images.map((image) => (
-        <ImageEditor key={image.id} id={image.id} initial={toDraft(image)} onSaved={setImages} />
+        <ImageEditor key={image.id} id={image.id} initial={toDraft(image)} supabaseUrl={supabaseUrl} onSaved={setImages} />
       ))}
       {adding ? (
-        <ImageEditor id={null} initial={BLANK_DRAFT} onSaved={(next) => { setImages(next); setAdding(false); }} />
+        <ImageEditor id={null} initial={BLANK_DRAFT} supabaseUrl={supabaseUrl} onSaved={(next) => { setImages(next); setAdding(false); }} />
       ) : (
         <button className="secondary-button" onClick={() => setAdding(true)}>+ Add a photo</button>
       )}

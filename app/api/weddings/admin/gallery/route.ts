@@ -31,6 +31,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "IMAGE_URL_REQUIRED") return NextResponse.json({ error: "Add an image URL." }, { status: 400 });
+    if (message === "INVALID_IMAGE") return NextResponse.json({ error: "Use a photo from /weddings/bahamas-by-the-sea/ or one uploaded for Bahamas Weddings By The Sea. Links to other websites can't be used." }, { status: 400 });
     console.error("Wedding gallery save error", error);
     return NextResponse.json({ error: "Could not save the photo." }, { status: 500 });
   }

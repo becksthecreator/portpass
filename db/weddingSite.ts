@@ -3,6 +3,7 @@ import { isWeddingWireMemberId, NO_WEDDINGWIRE } from "@/lib/weddingWire";
 import { siteContentChanges, type SiteContent } from "@/lib/weddingSiteContent";
 import { logAudit } from "./audit";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
+import { ownWeddingImageUrl } from "./weddingImage";
 
 // The trust numbers and the WeddingWire widgets. The widgets are a member
 // ID and which ones to show, never HTML: lib/weddingWire.ts builds each one
@@ -151,7 +152,10 @@ export type WeddingGalleryImageInput = {
 };
 
 export async function upsertWeddingGalleryImage(id: number | null, input: WeddingGalleryImageInput): Promise<void> {
-  const imageUrl = input.imageUrl.trim();
+  // Only one of BWS's own photos (db/weddingImage.ts): an outside link
+  // throws INVALID_IMAGE before anything is written. Blank comes back null,
+  // and a gallery photo is required.
+  const imageUrl = await ownWeddingImageUrl(input.imageUrl);
   if (!imageUrl) throw new Error("IMAGE_URL_REQUIRED");
 
   const supabase = getSupabaseAdmin();

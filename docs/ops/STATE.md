@@ -25,6 +25,8 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
+| `claude/wonderful-bohr-t2k9hi` (Wedding Desk package photo: BWS's own only) | #215 | `build` red on the Google Fonts flake only; re-run, then merge | Claude Code |
+| `feat/wedding-gallery-image-check` (the same check for gallery photos; carries #215's commits) | #218 | CI; merge after #215, then rebase on `main` | #215 |
 | `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
 | `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green | Antonio's OK |
