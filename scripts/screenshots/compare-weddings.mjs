@@ -2,7 +2,7 @@
 // proof and reviews sections as the server sends them, and every
 // WeddingWire snippet the page puts into its widget containers, are the
 // same before the change, in the window (main's code after migration
-// 202610190002) and after it. Also reads each run's checks. Writes a table
+// 202610270001) and after it. Also reads each run's checks. Writes a table
 // to the job summary and exits 1 on any difference or failed check.
 import { appendFileSync, readFileSync } from "node:fs";
 

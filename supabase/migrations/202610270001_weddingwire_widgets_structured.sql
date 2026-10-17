@@ -171,9 +171,9 @@ begin
 end;
 $$;
 
-comment on column public.wedding_site_settings.rating_badge_html is 'Read-only: built from weddingwire_member_id and show_rating_badge (202610190002) for code deployed before that migration. The current code never reads it; dropped once that code is gone.';
-comment on column public.wedding_site_settings.award_badge_html is 'Read-only: built from weddingwire_member_id and show_award_badge (202610190002) for code deployed before that migration. The current code never reads it; dropped once that code is gone.';
-comment on column public.wedding_site_settings.reviews_widget_html is 'Read-only: built from weddingwire_member_id and show_reviews_widget (202610190002) for code deployed before that migration. The current code never reads it; dropped once that code is gone.';
+comment on column public.wedding_site_settings.rating_badge_html is 'Read-only: built from weddingwire_member_id and show_rating_badge (202610270001) for code deployed before that migration. The current code never reads it; dropped once that code is gone.';
+comment on column public.wedding_site_settings.award_badge_html is 'Read-only: built from weddingwire_member_id and show_award_badge (202610270001) for code deployed before that migration. The current code never reads it; dropped once that code is gone.';
+comment on column public.wedding_site_settings.reviews_widget_html is 'Read-only: built from weddingwire_member_id and show_reviews_widget (202610270001) for code deployed before that migration. The current code never reads it; dropped once that code is gone.';
 
 -- 4 ---------------------------------------------------------- RLS, grants
 alter table public.wedding_site_settings enable row level security;

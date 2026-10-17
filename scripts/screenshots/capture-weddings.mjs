@@ -5,7 +5,7 @@
 // screenshot job runs it three times, named by SCREENSHOT_PHASE:
 //
 //   before  main's code on the database as it is live today
-//   window  main's code after migration 202610190002: what is live between
+//   window  main's code after migration 202610270001: what is live between
 //           applying the migration and merging
 //   after   this branch's code
 //

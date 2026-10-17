@@ -6,7 +6,7 @@ import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // The trust numbers and the WeddingWire widgets. The widgets are a member
 // ID and which ones to show, never HTML: lib/weddingWire.ts builds each one
-// (supabase/migrations/202610190002).
+// (supabase/migrations/202610270001).
 export type WeddingSiteSettings = SiteContent;
 
 // Exported so a caller that can't afford to have this fetch throw (e.g. a

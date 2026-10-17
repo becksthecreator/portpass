@@ -4,7 +4,7 @@
 // Until the security review of PR #183 these were stored as HTML that any
 // Wedding Desk account could replace, and the page ran every <script> in it
 // as PortPass, with the visitor's session. Now only the member ID and which
-// widgets to show are stored (supabase/migrations/202610190002), and each
+// widgets to show are stored (supabase/migrations/202610270001), and each
 // snippet is built here from WeddingWire's own embed code, exactly as
 // Antonio supplied it on 24 Sept 2026 (202609241015). The member ID is the
 // only stored value that reaches a snippet, and it is digits or nothing.
