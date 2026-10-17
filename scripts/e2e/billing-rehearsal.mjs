@@ -24,7 +24,7 @@
 // the only address is @example.com. Each screen a founder sees is
 // photographed at 375px into ./screenshots. Dates are worked out once, in
 // Nassau: a run that crosses midnight there can fail on them.
-import { createHmac } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
@@ -43,7 +43,7 @@ if (!/^[^\s@,]+@test\.portpass\.local$/i.test(ADMIN_EMAIL)) throw new Error("PLA
 mkdirSync("screenshots", { recursive: true });
 mkdirSync("invoices", { recursive: true });
 
-const TAG = Math.random().toString(36).slice(2, 8);
+const TAG = randomBytes(3).toString("hex");
 const BUSINESS_NAME = `TEST Billing Rehearsal ${TAG} (delete)`;
 const SLUG = `test-delete-billing-${TAG}`;
 const BILLING_EMAIL = `test-delete-billing-${TAG}@example.com`;
@@ -301,7 +301,7 @@ try {
     "",
     "| Step | Result | Time | Note |",
     "| --- | --- | --- | --- |",
-    ...results.map((r) => `| ${r.name} | ${r.ok ? "ok" : "**FAIL**"} | ${(r.ms / 1000).toFixed(1)} s | ${r.note.replace(/\|/g, "\\|")} |`),
+    ...results.map((r) => `| ${r.name} | ${r.ok ? "ok" : "**FAIL**"} | ${(r.ms / 1000).toFixed(1)} s | ${r.note.replace(/\\/g, "\\\\").replace(/\|/g, "\\|")} |`),
   ];
   writeFileSync("billing-rehearsal-result.md", `${lines.join("\n")}\n`);
   if (failed) process.exitCode = 1;
