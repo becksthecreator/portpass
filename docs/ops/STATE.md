@@ -29,11 +29,14 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
+| `feat/sports-only` | (this PR) | Merge once bahamasweddingsbythesea.com is live (its redirects point there); then set BWS's `custom_domain` | Antonio: the domain's DNS |
 | `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
 | `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green. Parked by the growth plan | The fifth paid invoice |
 | `chore/csp-enforce` (brief 26) | #183 | #185 is in; rebase on `main`. Parked by the growth plan | The fifth paid invoice |
 | `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct). Parked by the growth plan | The fifth paid invoice |
+
+**19 Oct 2026: PortPass is sports, fitness and gyms only.** Weddings, Venues, Tours, Entertainment, Food & Drink, Services and Shop are hidden in Admin → Sections; PortPass Market, Drops and orders redirect home on portpassbahamas.com; the wedding pages redirect to Bahamas Weddings By The Sea's own domain, which renders it through `/sites` (the business stays published for that, unlisted from the directory and filtered out of search). No code was deleted: each section comes back by un-hiding it and deleting its redirect lines in `next.config.ts`. This PR is the one exception to the no-PRs rule below.
 
 **The growth plan of 16 Oct ("cash first, in the wedge") says no new PRs until the fifth paid invoice.** Week 1's builds are merged (#185, #233, #235, #234). Also parked by it: brief 35 (#232), the Hermes link (#226), the BWS domain plan.
 
@@ -93,4 +96,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - The billing chain has run only in the rehearsal, never in production: no billing account, no invoice yet.
 
 ## Last updated
-17 Oct 2026, by Claude Code (PR #234, the last of the growth plan's week-1 PRs: #185, #233, #235, #234). Other rows are as of 12 Oct.
+19 Oct 2026, by Claude Code (feat/sports-only: sports, fitness and gyms only). Other rows are as of 17 Oct.

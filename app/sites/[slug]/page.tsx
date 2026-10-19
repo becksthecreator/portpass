@@ -42,6 +42,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title,
     description,
+    // The business's own domain is the page's one address in search
+    // results; without it the domain and portpassbahamas.com compete.
+    ...(url ? { alternates: { canonical: url } } : {}),
     openGraph: {
       type: "website",
       siteName: org.name,

@@ -34,7 +34,7 @@ export default function ContactPage() {
         </p>
 
         <h2>Booking a specific business</h2>
-        <p>If your question is about a specific booking &mdash; a Futprep program or a Bahamas Weddings By The Sea ceremony &mdash; that business&rsquo;s own page has the fastest way to reach them directly.</p>
+        <p>If your question is about a specific booking &mdash; a Futprep program or another club&rsquo;s class &mdash; that business&rsquo;s own page has the fastest way to reach them directly.</p>
 
         <h2>Listing your business</h2>
         <p>If you run a Bahamian business and want to list with PortPass, start on our <a href="/apply">apply page</a> instead of here &mdash; it goes straight to the right form.</p>

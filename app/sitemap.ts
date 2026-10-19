@@ -5,7 +5,6 @@ import { getOrganizationListingBySlug, listSectionBusinesses, liveCountsByCatego
 import { directoryHref } from "@/app/_components/blocks/directoryHref";
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/lib/legal";
 import { listPublishedGuides } from "@/db/guides";
-import { listMarketProductPaths } from "@/db/market";
 
 const PLATFORM_HOST = "portpassbahamas.com";
 
@@ -31,15 +30,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `https://${PLATFORM_HOST}/business` },
     { url: `https://${PLATFORM_HOST}/pricing` },
     { url: `https://${PLATFORM_HOST}/apply` },
-    { url: `https://${PLATFORM_HOST}/sell` },
-    { url: `https://${PLATFORM_HOST}/market` },
     { url: `https://${PLATFORM_HOST}/about` },
     { url: `https://${PLATFORM_HOST}/contact` },
     { url: `https://${PLATFORM_HOST}/app` },
     { url: `https://${PLATFORM_HOST}/perks` },
     { url: `https://${PLATFORM_HOST}/futprep/coaches` },
     { url: `https://${PLATFORM_HOST}/futprep/camps` },
-    { url: `https://${PLATFORM_HOST}/weddings/bahamas-weddings-by-the-sea/plan` },
     { url: `https://${PLATFORM_HOST}/privacy`, lastModified: new Date(`${PRIVACY_POLICY.updated}T12:00:00Z`) },
     { url: `https://${PLATFORM_HOST}/terms`, lastModified: new Date(`${TERMS_OF_SERVICE.updated}T12:00:00Z`) },
   ];
@@ -55,20 +51,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const guide of guides) entries.push({ url: `https://${PLATFORM_HOST}/guides/${guide.slug}`, lastModified: new Date(guide.updatedAt) });
   }
 
-  // PortPass Market (brief 25, B4): every product page and every category
-  // with something in it. The market_products view lists only verified
-  // sellers' published products and never the demo business.
-  try {
-    const products = await listMarketProductPaths();
-    const categories = new Map<string, string[]>();
-    for (const product of products) {
-      entries.push({ url: `https://${PLATFORM_HOST}/market/p/${product.sellerSlug}/${product.slug}`, lastModified: newest([product.createdAt]) });
-      if (product.marketCategory) categories.set(product.marketCategory, [...(categories.get(product.marketCategory) ?? []), product.createdAt]);
-    }
-    for (const [category, dates] of categories) entries.push({ url: `https://${PLATFORM_HOST}/market/${category}`, lastModified: newest(dates) });
-  } catch {
-    // The rest of the sitemap stands without the Market's pages.
-  }
+  // PortPass Market's pages are off the site since 19 Oct 2026 (sports,
+  // fitness and gyms only; /market redirects home), so none is listed.
 
   try {
     const [sections, live] = await Promise.all([listSections(), liveCountsByCategory()]);
@@ -106,8 +90,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entries.push(
       { url: `https://${PLATFORM_HOST}/sports-fitness` },
       { url: `https://${PLATFORM_HOST}/sports-fitness/futprep-athletics` },
-      { url: `https://${PLATFORM_HOST}/weddings` },
-      { url: `https://${PLATFORM_HOST}/weddings/bahamas-weddings-by-the-sea` },
     );
   }
 
