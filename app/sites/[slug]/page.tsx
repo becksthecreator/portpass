@@ -8,6 +8,7 @@ import { bizDisplay, ppSans } from "@/app/fonts";
 import { JsonLd } from "@/app/_components/seo/JsonLd";
 import { directoryHref } from "@/app/_components/blocks/directoryHref";
 import { listingJsonLd } from "@/lib/seo/fromListing";
+import { BwsListingMain, loadBwsListing } from "@/app/weddings/bahamas-weddings-by-the-sea/BwsListing";
 
 // The paid-tier shell: a business's own domain, its own header/footer (no
 // PortPass chrome, no breadcrumb), its own accent -- and the exact same
@@ -91,7 +92,10 @@ export default async function BusinessSitePage({ params }: { params: Promise<{ s
         brand={brand}
         wordmarkMark={slug === "bahamas-weddings" ? "🌴" : undefined}
       />
-      <OrganizationTemplate listing={listing} />
+      {/* Bahamas Weddings By The Sea's own domain shows the same page as
+          its PortPass address (gallery, services, reviews), without
+          PortPass's parts (29 Oct 2026). */}
+      {slug === "bahamas-weddings" ? <BwsListingMain data={await loadBwsListing()} ownDomain /> : <OrganizationTemplate listing={listing} />}
       <BusinessFooter name={org.name} />
     </div>
   );

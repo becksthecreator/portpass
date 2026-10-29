@@ -29,7 +29,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
-| `feat/sports-only` | (this PR) | Merge once bahamasweddingsbythesea.com is live (its redirects point there); then set BWS's `custom_domain` | Antonio: the domain's DNS |
+| `feat/sports-only` | (this PR) | bahamasweddingsbythesea.com is live (Vercel domain added, GoDaddy A record to 76.76.21.21, BWS `custom_domain` set, 29 Oct); the domain now shows the full wedding page (gallery, services, reviews) without PortPass's parts | None |
 | `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
 | `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green. Parked by the growth plan | The fifth paid invoice |
@@ -96,4 +96,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - The billing chain has run only in the rehearsal, never in production: no billing account, no invoice yet.
 
 ## Last updated
-19 Oct 2026, by Claude Code (feat/sports-only: sports, fitness and gyms only). Other rows are as of 17 Oct.
+29 Oct 2026, by Claude Code (feat/sports-only: sports, fitness and gyms only; BWS on its own domain). Other rows are as of 17 Oct.
