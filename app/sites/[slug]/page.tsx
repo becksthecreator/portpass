@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { getOrganizationListingBySlug } from "@/db/organizations";
 import { OrganizationTemplate } from "@/app/_components/blocks/OrganizationTemplate";
 import { BusinessHeader, BusinessFooter } from "@/app/_components/BusinessShell";
-import { BusinessArrivalPlate } from "@/app/_components/BusinessArrivalPlate";
 import { computeBrandTokens } from "@/app/_components/blocks/brand";
 import { bizDisplay, ppSans } from "@/app/fonts";
 import { JsonLd } from "@/app/_components/seo/JsonLd";
@@ -84,7 +83,6 @@ export default async function BusinessSitePage({ params }: { params: Promise<{ s
       className={`site-shell-business ${bizDisplay.variable} ${ppSans.variable}`}
       style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}
     >
-      {slug === "bahamas-weddings" && <BusinessArrivalPlate mark="🌴" word="Bahamas" sub="Weddings by the sea" />}
       <JsonLd data={schema} />
       <BusinessHeader
         name={org.name}
