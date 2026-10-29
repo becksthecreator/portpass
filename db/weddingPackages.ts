@@ -1,5 +1,6 @@
 import { bumpListings } from "@/lib/revalidate";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
+import { ownWeddingImageUrl } from "./weddingImage";
 
 export type PublicWeddingPackage = {
   id: number;
@@ -92,6 +93,9 @@ export async function upsertWeddingPackage(id: number | null, input: WeddingPack
   if (!SLUG_PATTERN.test(slug)) throw new Error("INVALID_SLUG");
   if (!name) throw new Error("NAME_REQUIRED");
   if (input.priceFromCents !== null && (!Number.isInteger(input.priceFromCents) || input.priceFromCents < 0)) throw new Error("INVALID_PRICE");
+  // Only BWS's own photos, or none (db/weddingImage.ts). Checked before
+  // anything is written.
+  const imageUrl = await ownWeddingImageUrl(input.imageUrl);
 
   const supabase = getSupabaseAdmin();
   const record = {
@@ -105,7 +109,7 @@ export async function upsertWeddingPackage(id: number | null, input: WeddingPack
     currency,
     visibility: input.visibility,
     is_featured: input.isFeatured,
-    image_url: input.imageUrl?.trim() || null,
+    image_url: imageUrl,
     sort_order: input.sortOrder,
     updated_at: new Date().toISOString(),
   };
