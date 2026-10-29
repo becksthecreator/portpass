@@ -12,7 +12,6 @@ import { OpenNowSkeleton } from "./_components/motion/Skeleton";
 import { Suspense } from "react";
 import { getSectionTiles } from "@/lib/navSections";
 import { HomePerksRow } from "./_components/perks/HomePerksRow";
-import { FromTheMarket } from "./_components/market/FromTheMarket";
 import { MARKET_TAGLINE } from "@/lib/market/copy";
 import { DEFAULT_BRAND } from "./_components/blocks/brand";
 import { categoryLabel } from "./_components/blocks/categoryLabel";
@@ -138,8 +137,6 @@ export default async function Home() {
       </Suspense>
       {carousel && <BusinessCarousel businesses={directory} />}
 
-      {/* PortPass Market (brief 25, B3): the newest products, under Open now. */}
-      <FromTheMarket />
 
       {/* Member perks (brief 10): hidden until three are live. */}
       <HomePerksRow />
@@ -195,7 +192,7 @@ export default async function Home() {
         <div>
           <span className="home-eyebrow">Run a club or a business?</span>
           <h2>List with PortPass.</h2>
-          <p>Bring your organization onto the same system powering Futprep and Bahamas Weddings By The Sea.</p>
+          <p>Bring your organization onto the same system powering Futprep Athletics.</p>
         </div>
         <div className="home-business-action">
           <Link className="home-button home-button-light" href="/business">Learn more →</Link>

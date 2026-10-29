@@ -41,6 +41,11 @@ const NEVER_REWRITE_PREFIXES = [
   "/demo",
   "/own",
   "/join",
+  // Bahamas Weddings By The Sea's planner, staff desk, admin and photos
+  // (app/weddings, public/weddings) serve its own domain as they are: its
+  // package buttons link to /weddings/.../plan, which would otherwise be
+  // rewritten under /sites and not found (19 Oct 2026).
+  "/weddings",
 ];
 
 let domainCache: { map: Map<string, string>; fetchedAt: number } | null = null;

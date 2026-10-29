@@ -29,10 +29,10 @@ export default function AboutPage() {
       </section>
       <article className="legal-body">
         <h2>What we do</h2>
-        <p>PortPass is a booking platform. A business lists what it offers &mdash; a sports program, a wedding package, a venue, an event &mdash; with real prices. Customers book online and pay the business directly, by cash or bank transfer, and the business records every payment, instead of going back and forth over WhatsApp or a phone call. PortPass does not take card payments.</p>
+        <p>PortPass is a booking platform. A sports club, coach or gym lists what it offers &mdash; a term, a class, a session or a membership &mdash; with real prices. Customers book online and pay the business directly, by cash or bank transfer, and the business records every payment, instead of going back and forth over WhatsApp or a phone call. PortPass does not take card payments.</p>
 
         <h2>Who&rsquo;s live today</h2>
-        <p>Futprep Athletics runs its Saturday football programs through PortPass, and Bahamas Weddings By The Sea runs its wedding packages through PortPass. We&rsquo;re early &mdash; two real businesses, not a long list padded out for show.</p>
+        <p>Futprep Athletics runs its football programs through PortPass. We&rsquo;re early &mdash; real clubs, not a long list padded out for show.</p>
 
         <h2>Where we&rsquo;re based</h2>
         <p>PortPass Bahamas Technologies is based in Nassau, The Bahamas.</p>

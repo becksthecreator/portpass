@@ -109,9 +109,34 @@ const nextConfig: NextConfig = {
       {
         source: "/sites/bahamas-weddings",
         has: [{ type: "host", value: "^(www\\.)?portpassbahamas\\.com$" }],
-        destination: "/weddings/bahamas-weddings-by-the-sea",
-        permanent: true,
+        destination: "https://bahamasweddingsbythesea.com/",
+        permanent: false,
       },
+      // Sports, fitness and gyms only (19 Oct 2026). On portpassbahamas.com
+      // the wedding pages move to Bahamas Weddings By The Sea's own domain,
+      // and PortPass Market, Drops and orders go back to the homepage. The
+      // code stays: the wedding routes still serve that domain (middleware
+      // lets /weddings through there), and none of these is permanent, so
+      // a section can come back by deleting its lines here.
+      ...[
+        { source: "/weddings", destination: "https://bahamasweddingsbythesea.com/" },
+        { source: "/weddings/bahamas-weddings-by-the-sea", destination: "https://bahamasweddingsbythesea.com/" },
+        { source: "/weddings/:path*", destination: "https://bahamasweddingsbythesea.com/weddings/:path*" },
+        { source: "/market", destination: "/" },
+        { source: "/market/:path*", destination: "/" },
+        { source: "/shop", destination: "/" },
+        { source: "/shop/:path*", destination: "/" },
+        { source: "/sell", destination: "/" },
+        { source: "/sell/:path*", destination: "/" },
+        { source: "/order/:path*", destination: "/" },
+      ].map((rule) => ({ ...rule, has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$" }], permanent: false })),
+      // On Bahamas Weddings By The Sea's own domain, its home is the page
+      // at "/" (app/sites/[slug]); the PortPass-chrome copy of the same page
+      // sends couples there. The planner, staff desk and admin stay put.
+      ...[
+        { source: "/weddings", destination: "/" },
+        { source: "/weddings/bahamas-weddings-by-the-sea", destination: "/" },
+      ].map((rule) => ({ ...rule, has: [{ type: "host" as const, value: "^(www\\.)?bahamasweddingsbythesea\\.com$" }], permanent: false })),
       // Events became a subsection of Entertainment (decided 27 Sept, for
       // the OWN Conference build); the old top-level placeholder is gone.
       {
