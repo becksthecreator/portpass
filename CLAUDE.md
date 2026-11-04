@@ -45,3 +45,13 @@ PortPass is a booking platform for Bahamian businesses (portpassbahamas.com). Fo
 * Agents and commands for this repo are in `.claude/`: `reviewer`, `qa-runner` and `onboarder` from brief 20, and `security-reviewer` (report-only), `planner` (read-only) and `tdd-guide`, taken from the everything-claude-code kit and rewritten for PortPass (brief 23).
 * Ponytail keeps diffs small (`.claude/skills/ponytail*`, brief 33). Briefs set the scope; Ponytail never cuts tests, validation, security, accessibility, the report or a brief's "Done when".
 * Addresses that are never emailed, whatever is pressed: `@example.com`, `@example.org`, `@example.net` and `@test.portpass.local` (`lib/email.ts`).
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
