@@ -8,6 +8,7 @@
 //
 // Exit code 0 when every page checked carries every header; 1 otherwise.
 // Nothing here needs a key, and nothing is written anywhere.
+import { readFileSync } from "node:fs";
 
 const base = (process.argv[2] ?? process.env.HEADERS_CHECK_URL ?? "https://portpassbahamas.com").replace(/\/$/, "");
 // A static page, a dynamic page, a business page and an API answer: the
@@ -23,8 +24,13 @@ const REQUIRED = {
   "referrer-policy": ["strict-origin-when-cross-origin"],
   "permissions-policy": ["camera=()", "microphone=()", "geolocation=()"],
 };
-// One of the two must be there (report-only for the first week, then enforced).
-const CSP = ["content-security-policy", "content-security-policy-report-only"];
+// The policy's header is the one lib/securityHeaders.ts's CSP_MODE names
+// ("enforce" since brief 26): a rollback to report-only is one line there,
+// and this check follows it. The other header must be absent, so a deploy
+// still on the old mode is caught.
+const MODE = /export const CSP_MODE: CspMode = "(report-only|enforce)";/.exec(readFileSync(new URL("../../lib/securityHeaders.ts", import.meta.url), "utf8"))?.[1] ?? "enforce";
+const CSP = MODE === "enforce" ? "content-security-policy" : "content-security-policy-report-only";
+const CSP_OTHER = MODE === "enforce" ? "content-security-policy-report-only" : "content-security-policy";
 const CSP_MUST_CONTAIN = ["default-src 'self'", "frame-ancestors 'none'", "object-src 'none'", "base-uri 'self'", "form-action 'self'"];
 
 async function check(path) {
@@ -44,13 +50,13 @@ async function check(path) {
     }
     for (const needle of needles) if (!value.includes(needle)) problems.push(`${path}: ${name} lacks "${needle}" (got "${value}")`);
   }
-  const cspName = CSP.find((name) => response.headers.get(name) !== null);
-  if (!cspName) {
-    problems.push(`${path}: neither content-security-policy nor content-security-policy-report-only is present`);
+  const policy = response.headers.get(CSP);
+  if (policy === null) {
+    problems.push(`${path}: ${CSP} is missing (CSP_MODE is "${MODE}")`);
   } else {
-    const value = response.headers.get(cspName) ?? "";
-    for (const needle of CSP_MUST_CONTAIN) if (!value.includes(needle)) problems.push(`${path}: ${cspName} lacks "${needle}"`);
+    for (const needle of CSP_MUST_CONTAIN) if (!policy.includes(needle)) problems.push(`${path}: ${CSP} lacks "${needle}"`);
   }
+  if (response.headers.get(CSP_OTHER) !== null) problems.push(`${path}: ${CSP_OTHER} is sent as well (CSP_MODE is "${MODE}")`);
   return problems;
 }
 

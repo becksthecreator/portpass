@@ -35,6 +35,15 @@ The live site publishes `/.well-known/security.txt` (RFC 9116: a contact for any
 - **Sign out everywhere**: My account → Security ends every session on every device at once (`/api/account/sessions`), by deleting the person's sessions server-side, not only the cookie on one device. Admin → People has the same button for a founder to use on anyone's account.
 - **Sessions** are cookies the browser cannot read (`httpOnly`, `Secure` in production). The admin window and staff sessions are signed with a key derived from the server's secret, so a cookie cannot be minted or extended in the browser.
 
+## Security headers and the content security policy
+
+Every answer carries six headers from `lib/securityHeaders.ts` (Brief 21 D). `headers-check.yml` checks them on the live site after each deploy and weekly (`scripts/security/headers-check.mjs`).
+
+- **The policy is enforced** (brief 26, 6 Oct 2026). A browser refuses scripts, styles, connections and frames from anywhere the policy does not list. It reports each refusal to `/api/security/csp-report`, which writes one line to Vercel's log: search `csp: the policy`.
+- **What the report-only run showed.** It ran from 6 Oct 2026, 03:19 UTC (#153) until the switch, about 16 hours rather than the week first planned. The only source reported was the WeddingWire review widget on a wedding business's page: its scripts and styles from `cdn1.weddingwire.com`, and its styles and calls back to `www.weddingwire.com`. Those exact hosts are allowed. Nothing else was reported.
+- **Tested page by page before it merged.** `csp-pages.yml` opens the homepage, a section, a business page, the Futprep registration, sign-in, a payment request and its receipt, the business area and Admin on the branch's own build, with TEST accounts, and fails on any violation.
+- **To roll back:** set `CSP_MODE` in `lib/securityHeaders.ts` to `"report-only"` (one line), merge, and let Vercel deploy. The browser then only reports again, and the live check expects the report-only header. In a hurry, Vercel → the project → Deployments → the production deployment before the change → **Instant Rollback** undoes the whole deploy without a code change.
+- **Adding a source:** a new third-party embed needs its exact host in the matching directive, with a comment saying what it is and why. `lib/securityHeaders.test.ts` refuses wildcards and scheme-wide sources for scripts, styles, connections and frames.
 ## Switched on by hand in Supabase
 
 These are dashboard settings, not code. Antonio makes each change and ticks it here with the date.
