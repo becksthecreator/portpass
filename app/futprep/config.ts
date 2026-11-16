@@ -1,8 +1,12 @@
+// The term an empty database is seeded with (db/registrations.ts
+// seedFutprepPilot). Production's terms, prices and the Juniors and
+// Fundamentals classes live in the database: Term 2's are set by migration
+// 202610270004_futprep_term2_schedule.sql and staff edit them from there.
 export const FUTPREP_TERM = {
-  name: "Term 1",
-  startDate: "2026-09-05",
-  endDate: "2026-12-05",
-  breakDates: ["2026-10-10", "2026-10-17"],
+  name: "Term 2",
+  startDate: "2027-01-09",
+  endDate: "2027-03-13",
+  breakDates: [] as string[],
   location: "Lyford Cay Lower Campus Soccer Field",
 } as const;
 
@@ -21,10 +25,10 @@ export const FUTPREP_PROGRAMS = [
     ageMaxMonths: 47,
     day: "Saturday",
     time: "9:00 AM",
-    endTime: "9:35 AM",
+    endTime: "9:30 AM",
     capacity: 20,
-    weeklyFeeCents: 3500,
-    termFeeCents: 30000,
+    weeklyFeeCents: 3400,
+    termFeeCents: 34000,
   },
   {
     slug: "kickers",
@@ -37,7 +41,7 @@ export const FUTPREP_PROGRAMS = [
     time: "10:00 AM",
     endTime: "10:45 AM",
     capacity: 20,
-    weeklyFeeCents: 4500,
+    weeklyFeeCents: 4200,
     termFeeCents: 42000,
   },
 ] as const;

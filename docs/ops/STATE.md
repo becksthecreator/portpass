@@ -74,7 +74,8 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 - **Also now: create the Wedding Desk's first staff account** at `/weddings/staff/login`. None has ever been made, so the page offers "Create the first account" to anyone, and whoever fills it in becomes its admin. The PIN-hardening session is adding a platform-owner sign-in to that screen on both desks.
 - #197 (brief 31 A): answer its four questions; nothing is switched until then.
 - Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
-- Futprep data: clear or keep Term 2's 12 Dec taster date before 19 Nov; offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
+- Futprep data: offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
+- **Futprep Term 2 (16 Nov, feat/futprep-term2):** migration `202610270004_futprep_term2_schedule.sql` is written but NOT applied. Until it is, live Term 2 rows end 20 Mar, charge $300/$420, keep the 12 Dec taster and open for registration on **19 Nov**. The migration sets 9 Jan–13 Mar, $340/$420, taster = free Kickoff Day 19 Dec, opening 7 Dec, and adds Juniors and three Fundamentals classes unlisted (Juniors proposed, Fundamentals field not confirmed). Weekly fees are set to a tenth of the term price; confirm or switch weekly payment off.
 - The other brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
 
 ## Known issues
