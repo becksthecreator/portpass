@@ -82,6 +82,9 @@ export default async function AccountPage() {
               ))}
             </ul>
           )}
+          {booked.registrations.some((r) => r.href?.startsWith("/futprep/") && r.status !== "cancelled" && r.status !== "waitlist") && (
+            <p className="auth-lead"><Link href="/futprep/feed">Class updates from your Futprep coaches →</Link></p>
+          )}
         </section>
 
         <section className="account-section" aria-labelledby="account-bookings">

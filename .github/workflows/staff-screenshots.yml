@@ -15,6 +15,7 @@ on:
     branches: [main]
     paths:
       - "app/futprep/staff/**"
+      - "app/futprep/feed/**"
       - "app/admin/leads/**"
       - "app/admin/businesses/**"
       - "app/admin/phase1/**"
