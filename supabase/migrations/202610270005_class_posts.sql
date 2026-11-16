@@ -31,3 +31,5 @@ create index if not exists class_posts_class_idx
 -- The server reads and writes it with the service role; nobody else.
 alter table public.class_posts enable row level security;
 revoke all on public.class_posts from anon, authenticated;
+drop policy if exists class_posts_browser_roles_denied on public.class_posts;
+create policy class_posts_browser_roles_denied on public.class_posts as restrictive for all to anon, authenticated using (false) with check (false);

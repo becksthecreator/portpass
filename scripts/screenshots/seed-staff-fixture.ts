@@ -422,7 +422,7 @@ async function main() {
   if (parentError) throw new Error(`Could not link the TEST parent: ${parentError.message}`);
   const { error: postError } = await db.from("class_posts").insert([
     { organization_id: org.id, program_id: program.id, term_id: term.id, author_account: "test-coach", author_name: `${MARK} Coach`, emailed_count: 11, created_at: new Date(Date.now() - 86_400_000).toISOString(), body: "Welcome to the term!\n\nBring water and shin pads. We start at 10:00 sharp on the field by the gate." },
-    { organization_id: org.id, program_id: program.id, term_id: term.id, author_account: "test-coach", author_name: `${MARK} Coach`, emailed_count: 11, body: "No class this Saturday because of the rain. See you next week." },
+    { organization_id: org.id, program_id: program.id, term_id: term.id, author_account: "test-coach", author_name: `${MARK} Coach`, emailed_count: 11, created_at: new Date().toISOString(), body: "No class this Saturday because of the rain. See you next week." },
   ]);
   if (postError) throw new Error(`Could not seed the class updates: ${postError.message}`);
 
