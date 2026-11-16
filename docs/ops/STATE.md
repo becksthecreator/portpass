@@ -75,7 +75,7 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 - #197 (brief 31 A): answer its four questions; nothing is switched until then.
 - Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
 - Futprep data: offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
-- **Futprep Term 2 (16 Nov, feat/futprep-term2):** migration `202610270004_futprep_term2_schedule.sql` is written but NOT applied. Until it is, live Term 2 rows end 20 Mar, charge $300/$420, keep the 12 Dec taster and open for registration on **19 Nov**. The migration sets 9 Jan–13 Mar, $340/$420, taster = free Kickoff Day 19 Dec, opening 7 Dec, and adds Juniors and three Fundamentals classes unlisted (Juniors proposed, Fundamentals field not confirmed). Weekly fees are set to a tenth of the term price; confirm or switch weekly payment off.
+- **Futprep Term 2 (16 Nov, feat/futprep-term2):** migration `202610270004_futprep_term2_schedule.sql` was applied to the live database on 16 Nov with Antonio's OK (before it, Term 2 ended 20 Mar, charged $300/$420, had a 12 Dec taster and opened on 19 Nov). It sets 9 Jan–13 Mar, $340/$420, taster = free Kickoff Day 19 Dec, opening 7 Dec, and adds Juniors and three Fundamentals classes unlisted (Juniors proposed, Fundamentals field not confirmed). Weekly fees are set to a tenth of the term price; confirm or switch weekly payment off.
 - The other brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
 
 ## Known issues
