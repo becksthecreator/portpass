@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { escapeHtml, sendFutprepPaymentRecordedEmail, sendFutprepRegistrationConfirmedEmail, sendFutprepRegistrationReceivedEmail } from "./email";
+import { cleanEnvValue, escapeHtml, sendEmail, sendFutprepPaymentRecordedEmail, sendFutprepRegistrationConfirmedEmail, sendFutprepRegistrationReceivedEmail } from "./email";
 
 // The registration emails go to whatever address was typed on a public
 // form, with the names that were typed. Those names must arrive as text,
@@ -34,6 +34,17 @@ describe("escapeHtml", () => {
   });
 });
 
+describe("cleanEnvValue", () => {
+  it("trims and unwraps a quoted paste, but leaves a quoted display name alone", () => {
+    expect(cleanEnvValue("  re_abc \n")).toBe("re_abc");
+    expect(cleanEnvValue("\"re_abc\"")).toBe("re_abc");
+    expect(cleanEnvValue("'re_abc'")).toBe("re_abc");
+    expect(cleanEnvValue("\"Futprep via PortPass\" <a@b.test>")).toBe("\"Futprep via PortPass\" <a@b.test>");
+    expect(cleanEnvValue("   ")).toBeUndefined();
+    expect(cleanEnvValue(undefined)).toBeUndefined();
+  });
+});
+
 describe("Futprep registration emails", () => {
   it("never let a typed name become markup", async () => {
     await sendFutprepRegistrationReceivedEmail({
@@ -51,6 +62,32 @@ describe("Futprep registration emails", () => {
       expect(email.html).not.toContain("https://evil.example\"");
       expect(email.html).toContain("&lt;img src=x");
     }
+  });
+
+  it("sends a key and sender pasted with quotes or a trailing newline", async () => {
+    let auth = "";
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init: { body: string; headers: Record<string, string> }) => {
+      auth = init.headers.Authorization;
+      sent.push(JSON.parse(init.body));
+      return new Response("{}", { status: 200 });
+    }));
+    process.env.RESEND_API_KEY = "\"re_test_not_real\"\n";
+    process.env.FUTPREP_FROM_EMAIL = " 'Futprep <hello@example.test>' ";
+    const outcome = await sendEmail({ to: "parent@family.test", subject: "s", html: "<p>h</p>" });
+    expect(outcome).toBe("sent");
+    expect(auth).toBe("Bearer re_test_not_real");
+    expect(sent[0]).toMatchObject({ from: "Futprep <hello@example.test>" });
+  });
+
+  it("logs Resend's reason for a refusal, without any address", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      new Response(JSON.stringify({ name: "validation_error", message: "Invalid `to` field: parent@family.test" }), { status: 400 }),
+    ));
+    const outcome = await sendEmail({ to: "parent@family.test", subject: "s", html: "<p>h</p>" });
+    expect(outcome).toBe("failed");
+    const logged = JSON.stringify(error.mock.calls);
+    expect(logged).toContain("Resend send failed (400): validation_error - Invalid `to` field: [address]");
+    expect(logged).not.toContain("parent@family.test");
   });
 
   it("says nothing about the recipient in the logs when email isn't configured", async () => {

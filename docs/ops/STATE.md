@@ -62,8 +62,9 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 
 ## Waiting on Antonio
 - **First: set `CRON_SECRET`** (Vercel → Production). Production logs show `/api/cron/daily` and `/api/cron/attendance-nudge` refused with 503 on every run since at least 9 Oct, so the 90-day health-record purge (rule 3), billing, the demo reset and export pruning are not running.
+- **Emails (16 Nov, fix/resend-send-failures):** no email has ever reached Resend; production logged `Resend send failed (400)` on 10 Nov. The domain is verified and `PORTPASS_FROM_EMAIL` / `FUTPREP_FROM_EMAIL` are well formed, so the likeliest cause is the `RESEND_API_KEY` value (Production only, not Preview). Paste the "PortPass production" key again in Vercel, with no quotes or spaces. The PR trims stray quotes and whitespace and logs Resend's reason for any refusal, so the next failure names its cause.
 - **Before the first invoice (growth plan week 1), all clicks, no code:**
-  - `PORTPASS_FROM_EMAIL` on a verified Resend domain;
+  - `PORTPASS_FROM_EMAIL` on a verified Resend domain (done: set, domain verified);
   - `RESEND_WEBHOOK_SECRET`;
   - the four bank details in Admin → Settings (bank, account name, account number, branch). No invoice can be sent until all four are in;
   - Futprep owner access;
