@@ -11,8 +11,9 @@ import { PwaRegister } from "./_components/PwaRegister";
 import { analyticsRedactionScript } from "@/lib/analyticsRedact";
 import { ppDisplay, ppSans } from "./fonts";
 
-const TITLE = "PortPass Bahamas | Sports clubs, coaches and gyms in The Bahamas";
-const DESCRIPTION = "Sports clubs, coaches and gyms in The Bahamas: find a class, register and pay the club directly.";
+// 19 Nov 2026: the owner-facing line (a new set of eyes plus the tools).
+const TITLE = "PortPass Bahamas | A new set of eyes for your business";
+const DESCRIPTION = "We diagnose what's stuck in your Bahamian business, fix it with the PortPass app and run it with you. The first look is free.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://portpassbahamas.com"),
