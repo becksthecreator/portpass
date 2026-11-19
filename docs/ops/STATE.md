@@ -78,6 +78,8 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 - **Futprep Term 2 (16 Nov, feat/futprep-term2):** migration `202610270004_futprep_term2_schedule.sql` was applied to the live database on 16 Nov with Antonio's OK (before it, Term 2 ended 20 Mar, charged $300/$420, had a 12 Dec taster and opened on 19 Nov). It sets 9 Jan–13 Mar, $340/$420, taster = free Kickoff Day 19 Dec, opening 7 Dec, and adds Juniors and three Fundamentals classes unlisted (Juniors proposed, Fundamentals field not confirmed). Weekly fees are set to a tenth of the term price; confirm or switch weekly payment off.
 - The other brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
 
+- **Futprep off PortPass's public pages (19 Nov, feat/futprep-links-out, not merged):** Antonio asked to keep Futprep as one card that sends families to futprep.com. Its page, class pages, registration, camps, taster and booking redirect there; staff PINs, /futprep/my, /business/futprep and the APIs stay. The Christmas camp has no registrations.
+
 ## Known issues
 Ponytail audit, 11 Oct (15 findings, in the brief 33 PR). The top five are fixed: 1, 3 and 4 by #205; 2 by #200 (migration `202610220001`, applied live 12 Oct); 5 by #203. Findings 6, 7 and 9 (sign-in) have their own PRs; 8 and 10–15 are not fixed.
 

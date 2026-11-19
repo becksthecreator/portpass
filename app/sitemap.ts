@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import type { MetadataRoute } from "next";
 import { listSections } from "@/db/categories";
-import { getOrganizationListingBySlug, listSectionBusinesses, liveCountsByCategory } from "@/db/organizations";
+import { listSectionBusinesses, liveCountsByCategory } from "@/db/organizations";
 import { directoryHref } from "@/app/_components/blocks/directoryHref";
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/lib/legal";
 import { listPublishedGuides } from "@/db/guides";
@@ -34,8 +34,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `https://${PLATFORM_HOST}/contact` },
     { url: `https://${PLATFORM_HOST}/app` },
     { url: `https://${PLATFORM_HOST}/perks` },
-    { url: `https://${PLATFORM_HOST}/futprep/coaches` },
-    { url: `https://${PLATFORM_HOST}/futprep/camps` },
     { url: `https://${PLATFORM_HOST}/privacy`, lastModified: new Date(`${PRIVACY_POLICY.updated}T12:00:00Z`) },
     { url: `https://${PLATFORM_HOST}/terms`, lastModified: new Date(`${TERMS_OF_SERVICE.updated}T12:00:00Z`) },
   ];
@@ -74,23 +72,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}/${sub.slug}`, lastModified: newest(inSub.map((b) => b.updatedAt)) });
       }
       for (const business of businesses) {
-        if (seen.has(business.slug)) continue;
+        // Futprep's page sends families to its own site (lib/futprepOffSite.ts).
+        if (seen.has(business.slug) || business.slug === "futprep") continue;
         seen.add(business.slug);
         entries.push({ url: `https://${PLATFORM_HOST}${directoryHref(business.slug, business.primaryCategory)}`, lastModified: newest([business.updatedAt]) });
       }
     }
-    // Futprep's programme pages (published offerings only).
-    const futprep = await getOrganizationListingBySlug("futprep").catch(() => null);
-    for (const offering of futprep?.offerings ?? []) {
-      if (offering.slug) entries.push({ url: `https://${PLATFORM_HOST}/sports-fitness/futprep-athletics/${offering.slug}` });
-    }
+    // Futprep's programme pages are off PortPass for now (they redirect to
+    // Futprep's own site, lib/futprepOffSite.ts), so none is listed.
   } catch {
-    // No database (or a hiccup): the fixed pages plus the two known live
-    // businesses are still better than an empty sitemap.
-    entries.push(
-      { url: `https://${PLATFORM_HOST}/sports-fitness` },
-      { url: `https://${PLATFORM_HOST}/sports-fitness/futprep-athletics` },
-    );
+    // No database (or a hiccup): the fixed pages are still better than an
+    // empty sitemap.
+    entries.push({ url: `https://${PLATFORM_HOST}/sports-fitness` });
   }
 
   return entries;
