@@ -4,11 +4,19 @@ Website & Growth, 19 Nov 2026. **A proposal only. Nothing here is built or shipp
 
 Antonio's brief, in his words: *"We dont want portpass to be for just sportregistration. we want it to be able to get everybusines ruuning at its most efficient version. like companies who hire consultants to fix problems in their business they have been trying to fix but it wouldnt work out, until they bring a new set of eyes."*
 
+**Aligned with Business Ops' business plan** (section "4. The offer: diagnose, fix, run"): the site uses the plan's two phrases, **"a new set of eyes plus the tools"** and **"diagnose, fix, run"**, and describes the same three steps, so the website and the plan say one thing.
+
+Where the site has to say it differently from the plan (house rules, not new wording):
+* **Card payments.** The plan lists "card payments through the client's own merchant account" as planned. The site says only "card payments are not available yet" (rule 2).
+* **"Platform".** The plan says "any business on the platform" in two places. The site says "the PortPass app".
+* **"Diagnose".** The site keeps the word, glossed the first time it appears: "we look at where your time, money and customers leak".
+* **Revenue share.** The site names it as a way to pay for "run", never a figure. Futprep's terms stay off the site.
+
 Lenses: `understand-customers` (who, and what hurts), `blitz-copy` (headlines), `ig-human` (the copy below has no AI tells; its weak spot is specificity, which real Futprep numbers would fix). House rules still apply: no "platform", "solution" or "SaaS", and never say card payments work.
 
 ## 1. Who it's for (understand-customers)
 
-**The owner of a small Bahamian business who is the bottleneck.** Gyms, clubs, coaches, salons, tour and boat operators, cleaners, tutors, caterers: anyone who takes bookings, chases payments and answers the same questions all day.
+**The owner of a small Bahamian business with a problem they've tried to fix and couldn't.** That's the business plan's wording. In practice it's anyone who takes bookings, chases payments and answers the same questions all day. As in the plan, we start where we have proof (sports, fitness, gyms and events) and add 2–3 more kinds of business once Antonio picks them.
 
 * **Their nightmare:** the business runs through their phone. Bookings are in WhatsApp, payments are in a notebook or their head, and staff ask them everything. They can't take a day off, and they don't know who still owes them.
 * **What they've tried:** a US booking app that wants cards in US dollars; a spreadsheet nobody updates; a cousin who "does websites"; one more hire. None of it stuck, because nobody changed how the work actually moves.
@@ -18,13 +26,15 @@ Lenses: `understand-customers` (who, and what hurts), `blitz-copy` (headlines), 
 
 ## 2. One breath: what we do
 
-> We look at how your business runs, fix what slows it down, and give you the tools to keep it fixed.
+> A new set of eyes plus the tools: we diagnose what's stuck in your business, fix it, then run it with you.
+
+(The plan's phrase, word for word, then the three steps in plain words. My earlier draft said "We look at how your business runs, fix what slows it down, and give you the tools to keep it fixed." I'm dropping it so there is one line, not two.)
 
 ## 3. Headline options (blitz-copy, owner-facing)
 
 **Option 1: identity, relief.**
-> **A new set of eyes for your business.**
-> We sit with you in Nassau, find what's been stuck for years, and fix it with tools built for cash, bank transfer and Kanoo. Then we keep it running with you.
+> **A new set of eyes for your business. Plus the tools.**
+> We sit with you in Nassau, find what's been stuck for years, and fix it with tools built for cash, bank transfer and Kanoo. Then we run it with you.
 
 *Triggers:* validation (it's not your fault), relief, belonging (local, in person).
 
@@ -42,22 +52,31 @@ Lenses: `understand-customers` (who, and what hurts), `blitz-copy` (headlines), 
 
 **Recommendation: Option 1 as the H1, with Option 3's scene as the first section under it.** Option 1 says what Antonio described, a new set of eyes, in his own frame. Option 3's scene does the persuading underneath.
 
-## 4. How it works: we look, we fix, we run it on PortPass
+## 4. How it works: diagnose, fix, run
 
-1. **We look.** We spend a day in your business and write down where the hours and the money go.
-2. **We fix.** We set up what's missing on PortPass: your page, bookings, registration, payment requests, staff logins, your price list and your customer list. Then we show your staff how to use it.
-3. **We run it with you.** Once a month we sit down with your numbers and change what isn't working.
+The same three steps as the business plan, in the plan's order and scope:
 
-Honest limits to print next to it: customers pay you directly (cash, bank transfer, Kanoo); card payments are not available yet; PortPass never holds your money. "Fix" means how bookings, payments and customer records move. It does not mean accounting, payroll, HR or tax advice.
+1. **Diagnose.** We look at where your time, money and customers leak, and why earlier fixes didn't stick. You get a short written diagnosis and a plan. (How long it takes and what it costs are blanks in the plan too: Antonio's call.)
+2. **Fix.** We set up the new way of working: the PortPass app set up for your business, your website and marketing where you need them, and your staff shown how to use it.
+3. **Run.** We keep it running for you, on a monthly retainer or a share of revenue, and report to you every week. Futprep gets a Monday update.
+
+Honest limits to print next to it: customers pay you directly (cash, bank transfer, Kanoo); card payments are not available yet; PortPass never holds your money. "Fix" covers how bookings, payments, customer messages, staff and marketing run. It does not cover accounting, payroll or tax advice.
+
+How the site shows the price: as "a monthly retainer or a share of revenue, agreed after the diagnosis". No figures until Antonio confirms them; the plan's setup prices are still drafts.
 
 ## 5. Proof: the Futprep case study
 
 > Futprep Athletics runs its kids' football in Lyford Cay on PortPass. Parents register in three taps, the owner sees who has paid on one screen, and staff sign in to the desk with a PIN.
 
-These are facts from the build (`docs/ops/STATE.md`). The page needs Antonio to fill in, from Admin and with Futprep's OK:
-* **Before:** how registrations and payments were handled before PortPass.
-* **One number:** for example, registrations in Term 1, or the share paid before the first session.
-* **One quote** from Futprep's owner, used with permission.
+These are facts from the build (`docs/ops/STATE.md`). The business plan adds:
+* **The before:** registrations, payments and parent messages ran over WhatsApp groups.
+* **The case:** it is "the first full diagnose → fix → run case". PortPass runs Futprep's programmes, marketing and rebrand on a retainer, agreed in principle on 14 Nov 2026.
+
+So the case study can read: *"Futprep ran registrations, payments and parent messages through WhatsApp groups. We diagnosed it, moved it onto PortPass, and now run the programmes with them."* The deal terms stay off the website.
+
+Still needed, with Futprep's OK:
+* **One number:** Term 2 sign-ups, after 7 Dec. The plan has the same blank.
+* **One quote** from Futprep's owner.
 
 Without them the case study is a description, not proof.
 
@@ -65,9 +84,9 @@ Without them the case study is a description, not proof.
 
 | Where | Today | Proposed |
 | --- | --- | --- |
-| **Home** (`app/HomeHero.tsx`, `app/page.tsx`) | "Sports and fitness in The Bahamas." Written for parents and owners at once; counters show 1 business | Owner-first hero (Option 1), the three steps, the Futprep case study, one button: "Book a first look". Parents get a small "Looking for a class? See what's open" link. Counters hidden until 3+ live businesses |
-| **/business** | "Your bookings and payments in one place, not lost in WhatsApp." A tool pitch | Becomes the long version: the owner's day today, look / fix / run, what "fix" covers and doesn't, Futprep, FAQ |
-| **/pricing** | Monthly plans only | Adds the first look (free or priced: Antonio's call) and what the monthly plan includes once we've fixed things. Plans stay; no fee is taken from customers' payments |
+| **Home** (`app/HomeHero.tsx`, `app/page.tsx`) | "Sports and fitness in The Bahamas." Written for parents and owners at once; counters show 1 business | Owner-first hero (Option 1), the three steps, the Futprep case study, one button: "Book a diagnosis". Parents get a small "Looking for a class? See what's open" link. Counters hidden until 3+ live businesses |
+| **/business** | "Your bookings and payments in one place, not lost in WhatsApp." A tool pitch | Becomes the long version: the owner's day today, diagnose / fix / run, what "fix" covers and doesn't, Futprep, FAQ |
+| **/pricing** | Monthly plans only | Adds the diagnosis (price is Antonio's call) and "Run: a monthly retainer or a share of revenue, agreed after the diagnosis". The app plans stay for businesses that only want the tools |
 | **Menu** (`app/_components/SiteNav.tsx`) | "Browse" first, by category | "For businesses" first. Browse stays, but shows only sections with a live business (rule 7) |
 | **Hidden sections** (Admin → Sections; redirects in `next.config.ts`) | Everything but Sports & Fitness hidden since 19 Oct | Un-hide a section only when a business in it goes live. Market, Shop, Sell and Order stay redirected; that is a separate decision |
 | **/about** | "Built in Nassau, for Bahamian businesses." Booking-tool description | The founders and why: two brothers who fix how local businesses run |
@@ -100,15 +119,15 @@ Without them the case study is a description, not proof.
 ## 8. Risks
 
 * **Spreading thin again.** The 16 Oct growth plan ("cash first, in the wedge") narrowed to sports for a reason. Suggestion: say "any business" on the site, but sell to 2 or 3 kinds of business first, with sports staying the proof.
-* **Founder time.** "We look" and "we run it with you" are hours from Antonio and Adon. Price them, or cap how many new businesses a month.
+* **Founder time.** "Diagnose" and "run" are hours from Antonio and Adon. Price them, or cap how many new businesses a month.
 * **Promises.** "Fix" must stay inside what PortPass does. No card payments, no holding money, no accounting.
 * **Rule 5.** Outreach for the new pitch stays one to one and by hand. No bulk messages.
 
 ## 9. Questions for Antonio
 
 1. Which 2 or 3 kinds of business do we sell to first, besides sports?
-2. Is the first look free, or priced? If priced, how much (BSD)?
-3. What does "we fix" include, and what is out (accounting, payroll, marketing)?
+2. The diagnosis: what it includes, how long it takes, and its price (BSD). The business plan has the same blank.
+3. Is accounting, payroll and tax advice out of "fix"? (The plan puts the website and marketing in.)
 4. Headline: Option 1, 2 or 3?
 5. Futprep: the "before", one number and one quote, and their OK to be named as the case study.
 6. Can Weddings By The Sea be a second example (it runs on PortPass under its own domain), or does it stay separate?
