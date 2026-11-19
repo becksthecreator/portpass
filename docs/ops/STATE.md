@@ -81,6 +81,8 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 
 - **Futprep off PortPass's public pages (19 Nov, feat/futprep-links-out, not merged):** Antonio asked to keep Futprep as one card that sends families to futprep.com. Its page, class pages, registration, camps, taster and booking redirect there; staff PINs, /futprep/my, /business/futprep and the APIs stay. The Christmas camp has no registrations.
 
+- **register.futprep.com (19 Nov, feat/register-futprep-domain, stacked on #258, not merged):** futprep.com's Register and Book buttons go to register.futprep.com, which serves Futprep registration, the taster, booking, camps, /futprep/my, /futprep/feed and sign-in; anything else goes to futprep.com, staff back to PortPass. Needs, after 23 Nov: the DNS record, the domain in Vercel, and the address in Supabase Auth's redirect URLs.
+
 ## Known issues
 - **Public repo, private files (19 Nov):** client documents (`.docx`, `.pdf`), a WhatsApp export and two local HTML calculators sat untracked in the repo root of one PC. None was ever committed (checked across every branch). `.gitignore` now keeps root-level `.docx`, `.pdf`, `whatsapp-export/` and those files out. Antonio: move them to a private folder outside the repo.
 Ponytail audit, 11 Oct (15 findings, in the brief 33 PR). The top five are fixed: 1, 3 and 4 by #205; 2 by #200 (migration `202610220001`, applied live 12 Oct); 5 by #203. Findings 6, 7 and 9 (sign-in) have their own PRs; 8 and 10–15 are not fixed.

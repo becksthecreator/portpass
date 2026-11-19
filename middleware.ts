@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ATTRIBUTION_COOKIE, ATTRIBUTION_MAX_AGE_SECONDS, attributionFromRequest, isFutprepPath, isShopOwnPath, mergeAttribution, parseAttributionCookie, serializeAttributionCookie, shopAttributionCookie, shopSlugFromPath } from "@/lib/attribution";
 import { needsSession, updateSession } from "@/lib/auth/middleware";
+import { futprepAppRoute, isFutprepAppHost } from "@/lib/futprepAppHost";
 
 // Broadened from the old admin-only matcher so the domain-routing check
 // below runs on every real page request. Still excludes _next and any
@@ -160,10 +161,18 @@ export async function middleware(request: NextRequest) {
     // it never stops the request.
   }
 
-  const domainRewrite = await rewriteForCustomDomain(request);
-  if (domainRewrite) return domainRewrite;
-
   const { pathname, search } = request.nextUrl;
+
+  // register.futprep.com: Futprep's registration on its own subdomain
+  // (lib/futprepAppHost.ts). Anything it doesn't serve goes to futprep.com,
+  // and staff go back to PortPass.
+  if (isFutprepAppHost(request.headers.get("host"))) {
+    const route = futprepAppRoute(pathname, search);
+    if (route.kind === "redirect") return NextResponse.redirect(new URL(route.to, request.url));
+  } else {
+    const domainRewrite = await rewriteForCustomDomain(request);
+    if (domainRewrite) return domainRewrite;
+  }
 
   // Fast path (speed brief, 29 Sept, 1.4): a public page never pays for
   // an auth round trip. Sessions are refreshed where they are read -- on
