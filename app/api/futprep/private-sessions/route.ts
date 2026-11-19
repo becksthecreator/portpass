@@ -6,6 +6,7 @@ import { afterResponse } from "@/lib/afterResponse";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { cleanHost, tag } from "@/lib/attribution";
 import { isEmail } from "@/lib/paymentRequests/input";
+import { FUTPREP_CLOSED_MESSAGE, FUTPREP_SITE, publicFutprepWriteAllowed } from "@/lib/futprepOffSite";
 
 // @public-route: parents request a private session or party here.
 const limited = createRateLimiter(8, 10 * 60_000);
@@ -19,6 +20,9 @@ const Body = bodyOf(["requestType", "serviceSlug", "childrenCount", "preferredCo
 const utm=(value:unknown)=>tag(typeof value==="string"?value:null);
 
 export async function POST(request:Request){
+  // Futprep is off PortPass's public pages (lib/futprepOffSite.ts): new
+  // requests come only through register.futprep.com.
+  if(!publicFutprepWriteAllowed(request.headers.get("host"))) return NextResponse.json({error:FUTPREP_CLOSED_MESSAGE,url:FUTPREP_SITE},{status:410});
   if(limited(clientIp(request))) return NextResponse.json({error:"Too many requests. Try again in a few minutes."},{status:429});
   const read=await readJson(request,Body);
   if(!read.ok) return read.response;
