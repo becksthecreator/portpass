@@ -33,7 +33,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const title = `${guide.title} | PortPass Bahamas`;
   const description = fitDescription(guide.description || guide.title);
   const url = `${SITE_URL}/guides/${guide.slug}`;
-  return { title, description, alternates: { canonical: url }, openGraph: { type: "article", siteName: SITE_NAME, title, description, url, modifiedTime: guide.updatedAt }, twitter: { card: "summary_large_image", title, description } };
+  // Out of search like /guides (19 Nov 2026); the guide stays readable.
+  return { title, description, robots: { index: false, follow: true }, alternates: { canonical: url }, openGraph: { type: "article", siteName: SITE_NAME, title, description, url, modifiedTime: guide.updatedAt }, twitter: { card: "summary_large_image", title, description } };
 }
 
 // A guide (brief 11, 3): written by the founders, linking to businesses
