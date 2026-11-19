@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 
 const STEPS: { step: string; name: string; price: string; text: string }[] = [
   { step: "Diagnose", name: "We look", price: "Free", text: "We sit with you, find where your time, money and customers leak, and why earlier fixes didn't stick. You get a short written plan. No charge, and nothing to sign." },
-  { step: "Fix", name: "We fix", price: "Quoted for you", text: "If you want us to fix it, we quote the set-up for your business before we start: PortPass set up for you, your website and marketing where you need them, and your staff shown how to use it." },
+  { step: "Fix", name: "We fix", price: "Quoted", text: "If you want us to fix it, we quote the set-up for your business before we start: PortPass set up for you, your website and marketing where you need them, and your staff shown how to use it." },
   { step: "Run", name: "We run it with you", price: "Monthly", text: "We keep it running and send you an update every week, on a monthly retainer or a share of revenue. We agree which, and the amount, before we start." },
 ];
 
@@ -53,7 +53,7 @@ export default function PricingPage() {
 
       <section className="pricing-hero">
         <span className="home-eyebrow">Pricing</span>
-        <h1>Priced for your business. <strong>The first look is free.</strong></h1>
+        <h1>Priced for your business. <strong>First look free.</strong></h1>
         <p>{SUB}</p>
       </section>
 
