@@ -48,9 +48,17 @@ export const PRIVACY_POLICY: LegalDocument = {
 };
 
 export const TERMS_OF_SERVICE: LegalDocument = {
-  version: 2,
-  updated: "2026-10-01",
+  version: 3,
+  updated: "2026-11-19",
   changelog: [
+    {
+      version: 3,
+      date: "2026-11-19",
+      changes: [
+        "Says PortPass is for sports, fitness and gym businesses, and takes out the wedding examples.",
+        "Says card payments are not available yet, in the same words as the rest of the site. Nothing else about paying changes.",
+      ],
+    },
     {
       version: 2,
       date: "2026-10-01",

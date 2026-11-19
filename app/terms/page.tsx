@@ -14,8 +14,8 @@ export const metadata = {
   description: "The terms for using PortPass Bahamas: accounts, registering and booking, paying a business, and listing your business.",
 };
 
-// Terms of Service v2 (brief 16 D, brief 07). Describes the product as it
-// works today: no card payments, no PortPass review system, businesses paid
+// Terms of Service v3 (brief 16 D, brief 07; v3 is sports, fitness and
+// gyms only). Describes the product as it works today: no card payments, no PortPass review system, businesses paid
 // directly. Prices, plan rules and tax are deliberately not restated here:
 // they live on /pricing and in each business's agreement. The version, date
 // and changelog live in lib/legal.ts.
@@ -35,7 +35,7 @@ export default function TermsPage() {
 
         <h2>What PortPass is</h2>
         <p>
-          PortPass is where people in The Bahamas find and book local businesses: sports programmes, wedding services and more. Each business listed here is a separate business. It sets its own prices, runs its own sessions and events, and is responsible for the service it gives you. PortPass provides the page, the forms and the record-keeping.
+          PortPass is where people in The Bahamas find and book local sports, fitness and gym businesses: programmes, classes, sessions and memberships. Each business listed here is a separate business. It sets its own prices, runs its own sessions and events, and is responsible for the service it gives you. PortPass provides the page, the forms and the record-keeping.
         </p>
         <p>
           PortPass’s founders also own or work in some of the businesses listed here, and may answer messages for them. Those businesses are still separate from PortPass and answer for their own services.
@@ -67,7 +67,7 @@ export default function TermsPage() {
           <li><strong>A waitlist entry</strong> does not hold a place. There is nothing to pay unless the business offers you one.</li>
           <li><strong>A free taster</strong> needs a PortPass account, is limited to one per child at each business, and is booked when you send the form.</li>
           <li><strong>A request for a private session or a party</strong> is not confirmed until the business accepts it.</li>
-          <li><strong>An enquiry</strong>, such as a wedding enquiry, starts a conversation. Nothing is booked until the business confirms it with you.</li>
+          <li><strong>An enquiry</strong>, such as asking a gym about a membership, starts a conversation. Nothing is booked until the business confirms it with you.</li>
         </ul>
         <p>
           Give accurate information, and tell the business if it changes.
@@ -86,7 +86,7 @@ export default function TermsPage() {
 
         <h2>Prices and payments</h2>
         <p>
-          Each business sets its own prices. Prices are in Bahamian dollars, which are equal in value to US dollars. You pay the business directly, by cash or bank transfer, using the details the business gives you. PortPass does not take card payments and never holds your money. When you register or book a session through PortPass, the business records your payment against your booking.
+          Each business sets its own prices. Prices are in Bahamian dollars, which are equal in value to US dollars. You pay the business directly, by cash or bank transfer, using the details the business gives you. Card payments are not available yet, and PortPass never holds your money. When you register or book a session through PortPass, the business records your payment against your booking.
         </p>
         <p>
           Because PortPass does not receive your payment, we cannot refund it. Refunds come from the business.

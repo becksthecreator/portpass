@@ -53,7 +53,7 @@ function faqItems(plans: PricingPlan[]): { q: string; a: string }[] {
     // commission is sold, so it can be sold the day it is computed.
     ...(marketplace ? [{ q: "When does a booking count as brought by PortPass?", a: `On ${marketplace.name}, a booking counts as brought by PortPass when the request came through your PortPass page or a PortPass link; we invoice it monthly, never from money held.` }] : []),
     { q: "Do I need to set it up myself?", a: "No. Send us your prices and photos on WhatsApp and we'll build your page." },
-    { q: "Can customers pay by card?", a: "Coming soon, through a licensed payment partner. We'll publish the card fees here before it launches. Cash and bank transfer are tracked today." },
+    { q: "Can customers pay by card?", a: "Card payments are not available yet. Cash and bank transfer work today, paid straight to you. Before cards are offered, their fees will be on this page." },
     // VAT wording waits for the accountant's confirmation; this is the placeholder the brief asks for.
     { q: "Is VAT included?", a: "Prices are in BSD." },
   ];
@@ -149,7 +149,7 @@ export default async function PricingPage() {
           <h2 id="who-h">Who pays what</h2>
           <ul>
             <li>Customers browse and book for free.</li>
-            <li><strong>Your customers pay you directly</strong>: cash, bank transfer, and card once our licensed partner is live. PortPass never holds your money.</li>
+            <li><strong>Your customers pay you directly</strong>: cash and bank transfer work today. Card payments are not available yet. PortPass never holds your money.</li>
             <li>We send you one invoice a month for your plan. We never take our fee out of your customers&rsquo; payments.</li>
           </ul>
         </div>
