@@ -71,7 +71,7 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
   - the agreement text v1.0, with its version typed on each billing account;
   - confirm the attribution wording on /pricing. The reviewer noted "came through your PortPass page" also covers customers a business sends to its own page;
   - say whether quotes and /pricing should read "no VAT charged". PortPass is not VAT-registered (Antonio, 17 Oct); /pricing still says "Prices are in BSD."
-- **Also now: create the Wedding Desk's first staff account** at `/weddings/staff/login`. None has ever been made, so the page offers "Create the first account" to anyone, and whoever fills it in becomes its admin. The PIN-hardening session is adding a platform-owner sign-in to that screen on both desks.
+- **First-admin doors (#206, 19 Nov):** on both desks, "Create the first account" now opens only for a signed-in PortPass owner with the admin second step; anyone else gets a 404. The Wedding Desk's one login (12 Oct) is Antonio's. Antonio asked on 19 Nov to wipe every staff and admin login and start over; that waits on his OK to the exact list.
 - #197 (brief 31 A): answer its four questions; nothing is switched until then.
 - Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
 - Futprep data: offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
