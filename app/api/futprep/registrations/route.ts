@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { bodyOf, readJson } from "@/lib/api/body";
+import { FUTPREP_CLOSED_MESSAGE, FUTPREP_SITE, publicFutprepWriteAllowed } from "@/lib/futprepOffSite";
 import { futprepOrganization } from "@/db/growth";
 import { memberEarlyAccess, recordOnlineRedemption } from "@/db/memberPerks";
 import { afterResponse } from "@/lib/afterResponse";
@@ -63,6 +64,13 @@ export async function POST(request: Request) {
     body = read.value;
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  // Futprep is off PortPass's public pages (lib/futprepOffSite.ts): a new
+  // registration comes only through register.futprep.com; a returning
+  // family's own link still finishes here.
+  if (!publicFutprepWriteAllowed(request.headers.get("host"), { returnToken: body.returnToken })) {
+    return NextResponse.json({ error: FUTPREP_CLOSED_MESSAGE, url: FUTPREP_SITE }, { status: 410 });
   }
 
   const typedEmail = clean(body, "parentEmail").toLowerCase();
