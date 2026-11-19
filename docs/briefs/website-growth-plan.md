@@ -21,15 +21,16 @@ Scope: home, /about, /pricing, /terms, /privacy, /business, /demo, /apply and th
 ## Should fix (ranked by money)
 
 1. **Home says who it is for** (impeccable, blitz-copy). See the rewrite below. Hide the counters ("1 Business open · 1 Category open · 1 Camp open") and "One is open right now" until there are at least 3 live businesses; with one, they advertise emptiness. One "Open now" H2, not two.
-2. **Canonical tags on home, /about, /apply** (seo-roast revenue tier, under an hour). Only /pricing has one. Add `alternates.canonical` to each page's metadata.
-3. **Trust block on /about and the footer.** Company name (PortPass Bahamas Technologies, already in /terms), registration number, a Nassau address or P.O. Box, and an email on the company domain instead of the Outlook address in `lib/contact.ts`. Needs Antonio's answers (below).
-4. **The VAT answer on /pricing.** "Prices are in BSD." answers a different question. Antonio said in October that PortPass is not VAT-registered; the wording is his to approve (below).
-5. **/demo vs /business promise.** /demo and /demo/home say "Sign up in 30 seconds" (linking to /own, the OWN Conference sign-up); /business says "We build it for you". Pick one: "We build your page for you. You check it and say go." The 30-second line can stay on /own, where it is an event offer.
-6. **Coming-soon categories.** Six are in the menu but `noindex`. Either take them out of the menu until each has a live business (rule 7's spirit), or keep one "Coming next" link to a single page. A menu full of dead ends costs trust more than it earns.
-7. **Titles.** Two pages share "Kids Football Classes in Nassau…". Give /sports-fitness/football-soccer the category title and Futprep's page the business title (Futprep's page is Engineering's; agree the split with them).
-8. **"Carv Performance Coming soon" on /sports-fitness.** A drafted business shown as a card to the public. Hide it until it has a price (rule 7) or show it only in the "What's coming" panel.
-9. **Old lines still public: /perks, /guides, /where-to, /pass.** PortPass no longer sells them. Redirect or noindex them, and drop /guides from the sitemap. New or removed pages are Antonio's call (below).
-10. **Sitemap `lastModified`.** Only /privacy, /terms and /guides carry one. Add it to business and category entries from their `updated_at` (low value; do it when touching the sitemap for 9).
+2. **/about opens "PortPass is a booking platform."** The house copy rules ban "platform". Suggested: "PortPass is one page where a sports club, coach or gym takes bookings and keeps a record of every payment." Found on the preview on 19 Nov; a one-line PR.
+3. **Canonical tags on home, /about, /apply** (seo-roast revenue tier, under an hour). Only /pricing has one. Add `alternates.canonical` to each page's metadata.
+4. **Trust block on /about and the footer.** Company name (PortPass Bahamas Technologies, already in /terms), registration number, a Nassau address or P.O. Box, and an email on the company domain instead of the Outlook address in `lib/contact.ts`. Needs Antonio's answers (below).
+5. **The VAT answer on /pricing.** "Prices are in BSD." answers a different question. Antonio said in October that PortPass is not VAT-registered; the wording is his to approve (below).
+6. **/demo vs /business promise.** /demo and /demo/home say "Sign up in 30 seconds" (linking to /own, the OWN Conference sign-up); /business says "We build it for you". Pick one: "We build your page for you. You check it and say go." The 30-second line can stay on /own, where it is an event offer.
+7. **Coming-soon categories.** Six are in the menu but `noindex`. Either take them out of the menu until each has a live business (rule 7's spirit), or keep one "Coming next" link to a single page. A menu full of dead ends costs trust more than it earns.
+8. **Titles.** Two pages share "Kids Football Classes in Nassau…". Give /sports-fitness/football-soccer the category title and Futprep's page the business title (Futprep's page is Engineering's; agree the split with them).
+9. **"Carv Performance Coming soon" on /sports-fitness.** A drafted business shown as a card to the public. Hide it until it has a price (rule 7) or show it only in the "What's coming" panel.
+10. **Old lines still public: /perks, /guides, /where-to, /pass.** PortPass no longer sells them. Redirect or noindex them, and drop /guides from the sitemap. New or removed pages are Antonio's call (below).
+11. **Sitemap `lastModified`.** Only /privacy, /terms and /guides carry one. Add it to business and category entries from their `updated_at` (low value; do it when touching the sitemap for 9).
 
 Fluff, after all of the above: alt text checks, meta description lengths, heading order on the legal pages.
 

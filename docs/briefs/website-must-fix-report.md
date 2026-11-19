@@ -18,7 +18,7 @@ None.
 * /privacy keeps its wedding lines: they disclose the WeddingWire badges and wedding enquiries on the BWS site PortPass still runs.
 
 ## Tests run
-See the PR body.
+CI on the PR: unit tests and `next build --webpack` (build job), integration tests (Futprep's included; the first run failed on a runner port clash before any test ran, the re-run passed). `lib/legal.test.ts` locally. Server HTML of /, /sports-fitness and /sports-fitness/football-soccer read on the preview: no loading words in page text, one "Open now" heading. 375px screenshots in `docs/website-must-fix/`.
 
 ## For Antonio
 The questions are at the end of the [plan](website-growth-plan.md).
