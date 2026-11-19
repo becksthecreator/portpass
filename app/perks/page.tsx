@@ -20,9 +20,13 @@ export const revalidate = 300;
 const TITLE = "Member perks | PortPass Bahamas";
 const DESCRIPTION = "Perks from Bahamian businesses for people with a free PortPass account: money off, free extras and early booking.";
 
+// Hidden from search since 19 Nov 2026 (Antonio: "Hide from Google"):
+// PortPass no longer sells this line. The page stays up for anyone with
+// the link; it is noindex and out of the sitemap (app/sitemap.ts).
 export const metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  robots: { index: false, follow: true },
   alternates: { canonical: "https://portpassbahamas.com/perks" },
   openGraph: { type: "website", siteName: "PortPass Bahamas", title: TITLE, description: DESCRIPTION, url: "https://portpassbahamas.com/perks" },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
