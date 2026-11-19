@@ -16,7 +16,7 @@
    it is paused and loses its layer while the hero is off-screen
    (HeroMotion.tsx). */
 .pp-hero-kicker,.pp-hero-line,.pp-hero-lede,.pp-hero-actions{animation:pp-hero-rise var(--dur-hero) var(--ease-out) both}
-.pp-hero-line{display:block}
+.pp-hero-line{display:block;text-wrap:balance}
 .pp-hero-line:first-child{animation-delay:var(--dur-step)}
 .pp-hero-line+.pp-hero-line{animation-delay:calc(var(--dur-step) * 2)}
 .pp-hero-lede{animation-delay:calc(var(--dur-step) * 3)}
