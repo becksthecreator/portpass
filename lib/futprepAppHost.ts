@@ -1,3 +1,5 @@
+import { FUTPREP_REGISTRATION_HOST } from "./futprepOffSite";
+
 // register.futprep.com (19 Nov 2026, HQ's plan "Futprep × PortPass: How
 // the Site Connects to the App"): futprep.com stays on Squarespace, and its
 // Register and Book buttons come here, to PortPass's Futprep registration
@@ -10,7 +12,7 @@
 // this host. Prices, classes and the opening date (7 Dec) all come from
 // the database, as on any host.
 
-export const FUTPREP_APP_HOST = "register.futprep.com";
+export const FUTPREP_APP_HOST = FUTPREP_REGISTRATION_HOST;
 const FUTPREP_SITE = "https://www.futprep.com/";
 const PLATFORM_ORIGIN = "https://portpassbahamas.com";
 

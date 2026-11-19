@@ -34,6 +34,6 @@ describe("register.futprep.com (19 Nov 2026)", () => {
 
   it("is the only place registration opens: portpassbahamas.com redirects it away", () => {
     expect(FUTPREP_PUBLIC_PATHS).toContain("/futprep/register");
-    expect(FUTPREP_PUBLIC_PATHS).toContain("/futprep/register/:path*");
+    expect(FUTPREP_PUBLIC_PATHS.some((p) => p.startsWith("/futprep/register/"))).toBe(false);
   });
 });
