@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/auth/admin";
+import { hasPlatformRole } from "@/lib/auth/guards";
 import { STAFF_SESSION_MAX_AGE_SECONDS } from "@/lib/staffSession";
 import {
   WEDDING_STAFF_COOKIE,
@@ -7,6 +9,13 @@ import {
 } from "@/app/weddings/staff-auth";
 
 export async function POST(request: Request) {
+  // The first login is set up by a PortPass platform owner (a founder),
+  // signed in with the admin second step, never by whoever finds the page
+  // (audit finding 9; owner only, Antonio's call, 11 Oct 2026).
+  const founder = await requireAdminApi();
+  if (!founder.ok) return founder.response;
+  if (!hasPlatformRole(founder.session, "platform_owner")) return NextResponse.json({ error: "Only a PortPass owner can set up the first account." }, { status: 403 });
+
   const body = (await request.json().catch(() => ({}))) as { name?: string; accountKey?: string; pin?: string };
   const name = String(body.name ?? "").trim();
   const accountKey = String(body.accountKey ?? "").trim().toLowerCase();
