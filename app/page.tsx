@@ -163,7 +163,7 @@ export default async function Home() {
             <h3>If you&rsquo;re booking</h3>
             <div className="home-how-steps-wrap">
               <Reveal as="ol" className="home-how-steps" variant="rise" stagger>
-                <li><span className="home-how-num">1</span><span>Find what you&rsquo;re looking for — sessions, ceremonies, venues</span></li>
+                <li><span className="home-how-num">1</span><span>Find what you&rsquo;re looking for — classes, camps, sessions</span></li>
                 <li><span className="home-how-num">2</span><span>Book online, no phone tag. Pay the way the business accepts, and keep one record of it</span></li>
                 <li><span className="home-how-num">3</span><span>Your confirmation and details live in one place</span></li>
               </Reveal>
