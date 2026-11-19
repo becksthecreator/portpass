@@ -4,7 +4,6 @@ import { listSections } from "@/db/categories";
 import { listSectionBusinesses, liveCountsByCategory } from "@/db/organizations";
 import { directoryHref } from "@/app/_components/blocks/directoryHref";
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/lib/legal";
-import { listPublishedGuides } from "@/db/guides";
 
 const PLATFORM_HOST = "portpassbahamas.com";
 
@@ -36,7 +35,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `https://${PLATFORM_HOST}/about` },
     { url: `https://${PLATFORM_HOST}/contact` },
     { url: `https://${PLATFORM_HOST}/app` },
-    { url: `https://${PLATFORM_HOST}/perks` },
     { url: `https://${PLATFORM_HOST}/privacy`, lastModified: new Date(`${PRIVACY_POLICY.updated}T12:00:00Z`) },
     { url: `https://${PLATFORM_HOST}/terms`, lastModified: new Date(`${TERMS_OF_SERVICE.updated}T12:00:00Z`) },
   ];
@@ -45,12 +43,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return times.length ? new Date(Math.max(...times)) : undefined;
   };
 
-  // Published guides only (listPublishedGuides shows none on a failed read).
-  const guides = await listPublishedGuides();
-  if (guides.length) {
-    entries.push({ url: `https://${PLATFORM_HOST}/guides`, lastModified: new Date(Math.max(...guides.map((guide) => new Date(guide.updatedAt).getTime()))) });
-    for (const guide of guides) entries.push({ url: `https://${PLATFORM_HOST}/guides/${guide.slug}`, lastModified: new Date(guide.updatedAt) });
-  }
+  // /perks, /guides, /where-to and /pass are hidden from search since 19
+  // Nov 2026 (PortPass no longer sells those lines), so none is listed.
 
   // PortPass Market's pages are off the site since 19 Oct 2026 (sports,
   // fitness and gyms only; /market redirects home), so none is listed.
