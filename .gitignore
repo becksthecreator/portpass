@@ -45,3 +45,13 @@ work/
 # with the repo; a session's worktrees and one person's local settings are not.
 /.claude/worktrees/
 /.claude/settings.local.json
+
+# Private working files kept in the repo folder (19 Nov 2026). This repo is
+# public: client documents, WhatsApp exports and local calculators never go
+# in it. Root only, so the brand PDFs under public/brand/print stay tracked.
+/whatsapp-export/
+/*.docx
+/*.pdf
+/futprep-term2-calculator.html
+/growth-playbook.html
+/tsconfig.tsbuildinfo
