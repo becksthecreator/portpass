@@ -27,6 +27,7 @@ export function IdentityBlock({
   category,
   location,
   isOpen,
+  badgeText,
   heroImageUrl,
   layout = "overlay",
   logoUrl = null,
@@ -36,6 +37,9 @@ export function IdentityBlock({
   category: string | null;
   location: string | null;
   isOpen?: boolean;
+  // Words in place of "Open now" / "Currently closed" (e.g. "Registration
+  // opens Mon 7 Dec"); isOpen still picks the colour.
+  badgeText?: string;
   heroImageUrl?: string | null;
   layout?: "overlay" | "split";
   logoUrl?: string | null;
@@ -46,7 +50,7 @@ export function IdentityBlock({
 }) {
   const meta = [category, location].filter(Boolean).join(" · ");
   const badge = isOpen !== undefined && (
-    <span className={`tpl-badge${isOpen ? "" : " tpl-badge-closed"}`}>{isOpen ? "Open now" : "Currently closed"}</span>
+    <span className={`tpl-badge${isOpen ? "" : " tpl-badge-closed"}`}>{badgeText ?? (isOpen ? "Open now" : "Currently closed")}</span>
   );
 
   if (layout === "split" && heroImageUrl) {

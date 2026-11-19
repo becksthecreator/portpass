@@ -26,7 +26,8 @@ import "./brand-theme.css";
 //
 // This is also the SEO surface: a parent searching "football for 3 year
 // olds Nassau" should be able to land directly here.
-export function OfferingTemplate({ listing }: { listing: OfferingListing }) {
+// badge: what the identity badge says; without it, "Open now" as before.
+export function OfferingTemplate({ listing, badge }: { listing: OfferingListing; badge?: { open: boolean; label: string } }) {
   const { organization: org, offering, images, faqs } = listing;
 
   const practicalFacts: { label: string; value: string }[] = [];
@@ -51,7 +52,8 @@ export function OfferingTemplate({ listing }: { listing: OfferingListing }) {
         name={offering.name}
         category={categoryLabel(org.primaryCategory)}
         location={[org.area, org.island].filter(Boolean).join(", ") || null}
-        isOpen
+        isOpen={badge ? badge.open : true}
+        badgeText={badge?.label}
         heroImageUrl={offering.imageUrl ?? org.heroImageUrl}
         layout={org.identityLayout ?? "overlay"}
       />

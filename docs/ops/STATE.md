@@ -14,7 +14,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 | Rule 3 (audit 1, 3, 4): Futprep's desk reads Futprep's registrations only, notes behind the medical permission, pickup and emergency details out of lists and the CSV | #205 | 12 Oct |
 | One Mind: `docs/ops/STATE.md`, `/handoff`, Ponytail and shipping skills, the 19 Nov launch checklist | #198 | 12 Oct |
 | PortPass Market sellers: verification ("Made in The Bahamas"), always-on storefronts, Admin → Market | #184 | 11 Oct |
-| Futprep reset: Term 1 closed to new families, Term 2 opens 19 Nov, owner dashboard, three-tap registration, Flamingo Night | #191–#195 | 11 Oct |
+| Futprep reset: Term 1 closed to new families, Term 2 opens 7 Dec (moved from 19 Nov by `202610270004`), owner dashboard, three-tap registration, Flamingo Night | #191–#195 | 11 Oct |
 | Futprep private sessions: emails and log lines, 30 and 60 minutes from the database, FP-S references, coach working days, `/futprep/book` | #186–#189 | 8–9 Oct |
 | Harbour Motion (M1–M5) and the AA hero lede | #168, #175, #178–#182 | 6 Oct |
 | Hardening: scrypt staff PINs, `npm ci`, gitleaks fails on any error, planner limit | #169, #171, #172, #174 | 6 Oct |
@@ -74,7 +74,7 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 - **Also now: create the Wedding Desk's first staff account** at `/weddings/staff/login`. None has ever been made, so the page offers "Create the first account" to anyone, and whoever fills it in becomes its admin. The PIN-hardening session is adding a platform-owner sign-in to that screen on both desks.
 - #197 (brief 31 A): answer its four questions; nothing is switched until then.
 - Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
-- Futprep data: offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
+- Futprep data: offerings 1 and 2 (the public Lil Kickers and Kickers pages) still show Term 1 (5 Sep – 5 Dec, $35 / $45 per session) until migration `202610270006_futprep_offerings_term2.sql` (fix/futprep-class-pages-term2) is applied live with Antonio's OK; staff logins have no emails.
 - **Futprep Term 2 (16 Nov, feat/futprep-term2):** migration `202610270004_futprep_term2_schedule.sql` was applied to the live database on 16 Nov with Antonio's OK (before it, Term 2 ended 20 Mar, charged $300/$420, had a 12 Dec taster and opened on 19 Nov). It sets 9 Jan–13 Mar, $340/$420, taster = free Kickoff Day 19 Dec, opening 7 Dec, and adds Juniors and three Fundamentals classes unlisted (Juniors proposed, Fundamentals field not confirmed). Weekly fees are set to a tenth of the term price; confirm or switch weekly payment off.
 - The other brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
 
@@ -87,7 +87,7 @@ Left open by the reviews of #200, #203, #216 and #222 (not fixed):
 - `db/coaches.ts` loads and writes `private_session_requests` and `coach_profiles` rows by id alone (behind the staff PIN; only Futprep has these rows today), and keeps `if (!organizationId)` guards that are dead now `futprepOrganizationId()` throws instead. Noted by the reviews of #222.
 - Still unpaged in `db/staff.ts`: session counts (~252), session plans (~798), work logs (~819), the roster export's payments (~1399); the admin page builds the desk list twice.
 
-Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
+Launch checklist for Term 2's opening, now Mon 7 Dec (the file is still named for 19 Nov): `docs/ops/launch-checklist-19nov.md` (12 fail, 6 unchecked). Also deferred:
 - The CSP keeps `'unsafe-inline'` and is report-only until #183.
 - 91 signed-in API routes still take bodies without zod; `lib/api/body.static.test.ts` lists them and can only shrink.
 - Lint is not in CI (#176); 35 warnings remain.
