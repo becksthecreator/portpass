@@ -86,6 +86,7 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 
 ## Known issues
 - **Public repo, private files (19 Nov):** client documents (`.docx`, `.pdf`), a WhatsApp export and two local HTML calculators sat untracked in the repo root of one PC. None was ever committed (checked across every branch). `.gitignore` now keeps root-level `.docx`, `.pdf`, `whatsapp-export/` and those files out. Antonio: move them to a private folder outside the repo.
+- **Look book briefly public (20 Nov), accepted:** commit `4613af7` on #265's branch put Site Design's FutPrep Look Book Draft 1 (page, crest and kit drawings, Alex's photos of today's kit and crest, layout studies; no children's data, no photos of children) in this public repo for about 15 minutes before a force-push removed it. GitHub still serves the orphaned commit by its direct URL. Antonio: "Accept it", no purge request. Since then look books live only in the private Storage bucket `lookbooks`, `.gitignore` keeps `/private/` out, and screenshots of private pages go to the shared notes folder, never GitHub.
 Ponytail audit, 11 Oct (15 findings, in the brief 33 PR). The top five are fixed: 1, 3 and 4 by #205; 2 by #200 (migration `202610220001`, applied live 12 Oct); 5 by #203. Findings 6, 7 and 9 (sign-in) have their own PRs; 8 and 10–15 are not fixed.
 
 Left open by the reviews of #200, #203, #216 and #222 (not fixed):
