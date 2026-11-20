@@ -1,37 +1,65 @@
-// The Futprep look book, draft 1. A placeholder until PortPass Site Design
-// hands over the designed page, which replaces FUTPREP_LOOKBOOK_HTML whole.
-// Rules for whatever goes in here: no children's names, health, pickup or
-// emergency details (CLAUDE.md rule 3), no prices that aren't confirmed,
-// nothing that says card payments work, and no links that carry the key.
+import "server-only";
+import path from "node:path";
+import { getSupabaseAdmin } from "@/db/supabase";
 
-export const FUTPREP_LOOKBOOK_TITLE = "Futprep look book · Draft 1";
+// The Futprep look book, draft 1, made by PortPass Site Design (20 Nov 2026):
+// index.html plus assets/ (CSS, plain scripts, Alex's own kit photos and
+// layout studies). This repo is public, so the book is NEVER committed here
+// (not even under a "private" folder: anyone can read the repo). It lives
+// in a private Supabase Storage bucket that only the server can read, put
+// there by hand by a founder:
+//
+//   bucket  lookbooks           (private, created in the Supabase dashboard)
+//   folder  futprep-draft1/     index.html, assets/book.css, assets/img/...
+//
+// Rules for anything uploaded there: no children's names, photos, health,
+// pickup or emergency details (CLAUDE.md rule 3), no unconfirmed prices,
+// nothing saying card payments work.
 
-export const FUTPREP_LOOKBOOK_HTML = `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow, noarchive">
-<meta name="referrer" content="no-referrer">
-<title>${FUTPREP_LOOKBOOK_TITLE}</title>
-<style>
-  :root{--ink:#0b2a3c;--deck:#f4f6f8;--signal:#d7262e;--harbour:#1f5fa8;--muted:#5b6b78}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--deck);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
-  main{max-width:720px;margin:0 auto;padding:48px 16px 64px}
-  .eyebrow{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--harbour);margin:0 0 12px}
-  h1{font-size:clamp(32px,8vw,56px);line-height:1.05;letter-spacing:-.02em;margin:0 0 16px}
-  p{margin:0 0 16px;color:var(--muted)}
-  .card{background:#fff;border:1px solid #dfe5ea;border-radius:16px;padding:20px;margin-top:24px}
-  .card strong{color:var(--ink)}
-</style>
-</head>
-<body>
-<main>
-  <p class="eyebrow">PortPass × Futprep Athletics</p>
-  <h1>The Futprep look book.</h1>
-  <p>This is the first draft of the look book, made for Alex to go through. The designed pages are on their way and will appear at this same link.</p>
-  <div class="card"><p><strong>Draft 1.</strong> Nothing here is final. Tell Antonio what you'd change.</p></div>
-</main>
-</body>
-</html>`;
+export const LOOKBOOKS_BUCKET = "lookbooks";
+export const FUTPREP_LOOKBOOK_FOLDER = "futprep-draft1";
+
+const TYPES: Record<string, string> = {
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+};
+
+async function download(key: string): Promise<Buffer | null> {
+  try {
+    const { data, error } = await getSupabaseAdmin().storage.from(LOOKBOOKS_BUCKET).download(key);
+    if (error || !data) return null;
+    return Buffer.from(await data.arrayBuffer());
+  } catch (error) {
+    console.error("lookbook: storage read failed", error instanceof Error ? error.message : "");
+    return null;
+  }
+}
+
+export async function readLookbookPage(): Promise<string | null> {
+  const body = await download(`${FUTPREP_LOOKBOOK_FOLDER}/index.html`);
+  if (!body) console.error("lookbook: index.html not found in storage");
+  return body ? body.toString("utf8") : null;
+}
+
+// One file under assets/, by its path below assets/ ("img/kit/today-1.jpg").
+// Only plain names and known file types; nothing can name a file outside
+// the look book's own assets folder.
+export function lookbookAssetKey(parts: string[]): { key: string; type: string } | null {
+  if (parts.length === 0 || parts.length > 4) return null;
+  if (!parts.every((part) => /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/.test(part) && !part.includes(".."))) return null;
+  const type = TYPES[path.extname(parts[parts.length - 1]).toLowerCase()];
+  if (!type) return null;
+  return { key: `${FUTPREP_LOOKBOOK_FOLDER}/assets/${parts.join("/")}`, type };
+}
+
+export async function readLookbookAsset(parts: string[]): Promise<{ body: Buffer; type: string } | null> {
+  const asset = lookbookAssetKey(parts);
+  if (!asset) return null;
+  const body = await download(asset.key);
+  return body ? { body, type: asset.type } : null;
+}

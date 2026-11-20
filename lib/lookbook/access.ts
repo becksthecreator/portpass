@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 // Private look books (20 Nov 2026, Antonio: "a private page ... so alex can
 // go through it"). A look book opens only with the secret key in its link
@@ -41,4 +41,43 @@ export function withDraftRibbon(html: string, label = "Draft 1 · Private · not
   if (!body) return ribbon + html;
   const at = body.index + body[0].length;
   return html.slice(0, at) + ribbon + html.slice(at);
+}
+
+// After the key opens the page, its CSS, scripts and photos load from
+// /lookbook/futprep/assets/... without the key in their links: the page
+// sets a short-lived cookie that holds a keyed hash of the key, never the
+// key, scoped to the look book's own path. Changing the env var turns
+// every such cookie off at once.
+export const LOOKBOOK_COOKIE = "pp_lookbook_futprep";
+export const LOOKBOOK_COOKIE_PATH = "/lookbook/futprep";
+export const LOOKBOOK_COOKIE_MAX_AGE = 12 * 60 * 60;
+
+export function lookbookCookieValue(expected: string | null | undefined): string | null {
+  const want = (expected ?? "").trim();
+  if (want.length < MIN_KEY_LENGTH) return null;
+  return createHmac("sha256", want).update("futprep-lookbook-assets-v1").digest("hex");
+}
+
+export function lookbookCookieMatches(provided: string | null | undefined, expected: string | null | undefined): boolean {
+  const want = lookbookCookieValue(expected);
+  if (!want || typeof provided !== "string" || provided.length !== want.length) return false;
+  return timingSafeEqual(Buffer.from(provided), Buffer.from(want));
+}
+
+export function readCookie(header: string | null, name: string): string | null {
+  for (const part of (header ?? "").split(";")) {
+    const [k, ...v] = part.trim().split("=");
+    if (k === name) return v.join("=");
+  }
+  return null;
+}
+
+// The page's relative links ("assets/book.css") resolve from the look
+// book's own folder, whether or not the address ends in a slash.
+export function withBase(html: string, href: string): string {
+  const tag = `<base href="${href}">`;
+  const head = /<head[^>]*>/i.exec(html);
+  if (!head) return tag + html;
+  const at = head.index + head[0].length;
+  return html.slice(0, at) + tag + html.slice(at);
 }

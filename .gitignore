@@ -55,3 +55,8 @@ work/
 /futprep-term2-calculator.html
 /growth-playbook.html
 /tsconfig.tsbuildinfo
+
+# Look books are private and this repo is public: they live in Supabase
+# Storage (bucket "lookbooks"), never here. See lib/lookbook/futprepDraft.ts.
+/private/
+*lookbook*/index.html
