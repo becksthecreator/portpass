@@ -1,9 +1,9 @@
 // @public-route: the Futprep look book's CSS, scripts and photos. Served
-// only to a browser holding the cookie the look book page sets once its
-// key matches (or to a link carrying the key itself); anything else is a
-// plain 404. Files come from the private Supabase Storage bucket "lookbooks"
+// only to a browser holding the cookie the look book sets once its key
+// matches; the key itself never opens an asset. Anything else is a plain
+// 404. Files come from the private Supabase Storage bucket "lookbooks"
 // (lib/lookbook/futprepDraft.ts), never this public repo or public/.
-import { FUTPREP_LOOKBOOK_KEY_ENV, LOOKBOOK_COOKIE, LOOKBOOK_HEADERS, lookbookCookieMatches, lookbookKeyMatches, readCookie } from "@/lib/lookbook/access";
+import { FUTPREP_LOOKBOOK_KEY_ENV, LOOKBOOK_COOKIE, LOOKBOOK_HEADERS, lookbookCookieMatches, readCookie } from "@/lib/lookbook/access";
 import { readLookbookAsset } from "@/lib/lookbook/futprepDraft";
 
 export const dynamic = "force-dynamic";
@@ -14,10 +14,7 @@ function notFound(): Response {
 
 export async function GET(request: Request, context: { params: Promise<{ path: string[] }> }): Promise<Response> {
   const expected = process.env[FUTPREP_LOOKBOOK_KEY_ENV];
-  const allowed =
-    lookbookCookieMatches(readCookie(request.headers.get("cookie"), LOOKBOOK_COOKIE), expected) ||
-    lookbookKeyMatches(new URL(request.url).searchParams.get("k"), expected);
-  if (!allowed) return notFound();
+  if (!lookbookCookieMatches(readCookie(request.headers.get("cookie"), LOOKBOOK_COOKIE), expected)) return notFound();
   const { path } = await context.params;
   const asset = await readLookbookAsset(path ?? []);
   if (!asset) return notFound();

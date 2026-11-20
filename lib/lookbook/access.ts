@@ -47,14 +47,29 @@ export function withDraftRibbon(html: string, label = "Draft 1 · Private · not
   return html.slice(0, at) + ribbon + html.slice(at);
 }
 
-// After the key opens the page, its CSS, scripts and photos load from
-// /lookbook/futprep/assets/... without the key in their links: the page
-// sets a short-lived cookie that holds a keyed hash of the key, never the
-// key, scoped to the look book's own path. Changing the env var turns
-// every such cookie off at once.
+// The key is used once: a visit with a valid ?k= gets a short-lived cookie
+// and is sent on to the clean address (no key in the URL bar, history or
+// anything shared from the page). From then on the page and every asset
+// open on the cookie alone (Security & QA, 20 Nov). The cookie holds a keyed
+// hash of the key, never the key, scoped to the look book's own path;
+// changing the env var turns every such cookie off at once.
 export const LOOKBOOK_COOKIE = "pp_lookbook_futprep";
 export const LOOKBOOK_COOKIE_PATH = "/lookbook/futprep";
-export const LOOKBOOK_COOKIE_MAX_AGE = 12 * 60 * 60;
+export const LOOKBOOK_COOKIE_MAX_AGE = 4 * 60 * 60;
+
+export function lookbookSetCookie(value: string, secure: boolean): string {
+  return `${LOOKBOOK_COOKIE}=${value}; Path=${LOOKBOOK_COOKIE_PATH}; Max-Age=${LOOKBOOK_COOKIE_MAX_AGE}; HttpOnly; SameSite=Strict${secure ? "; Secure" : ""}`;
+}
+
+// Why a tiny page and not a 303 to the clean address: Alex opens the link
+// from WhatsApp or email, a cross-site navigation, and browsers don't send a
+// SameSite=Strict cookie on the redirect that follows one, so the clean
+// address would 404 on the first tap. A same-origin navigation from this
+// page does send it, and location.replace drops the keyed address from the
+// history. The meta refresh covers a browser with scripts off.
+export function lookbookHandoffPage(target: string): string {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex, nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="refresh" content="0;url=${target}"><title>Opening…</title></head><body><script>location.replace(${JSON.stringify(target)})</script><p><a href="${target}">Open the look book</a></p></body></html>`;
+}
 
 export function lookbookCookieValue(expected: string | null | undefined): string | null {
   const want = (expected ?? "").trim();

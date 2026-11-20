@@ -33,7 +33,8 @@ import { lookbookAssetKey, readLookbookAsset } from "@/lib/lookbook/futprepDraft
 
 // A made-up test key, never a real one.
 const KEY = "test-key-for-the-lookbook-0123456789";
-const get = (query = "") => GET(new Request(`http://localhost/lookbook/futprep${query}`));
+const get = (query = "", headers: Record<string, string> = {}) => GET(new Request(`https://portpassbahamas.com/lookbook/futprep${query}`, { headers }));
+const goodCookie = () => ({ cookie: `other=1; pp_lookbook_futprep=${lookbookCookieValue(KEY)}` });
 const asset = (parts: string[], headers: Record<string, string> = {}, query = "") =>
   ASSET(new Request(`http://localhost/lookbook/futprep/assets/${parts.join("/")}${query}`, { headers }), { params: Promise.resolve({ path: parts }) });
 
@@ -64,8 +65,8 @@ describe("GET /lookbook/futprep", () => {
   beforeEach(() => { process.env.FUTPREP_LOOKBOOK_KEY = KEY; });
   afterEach(() => { if (before === undefined) delete process.env.FUTPREP_LOOKBOOK_KEY; else process.env.FUTPREP_LOOKBOOK_KEY = before; });
 
-  it("is a plain 404 without the key, with a wrong key, and when no key is set", async () => {
-    for (const response of [await get(), await get("?k=wrong"), await get(`?k=${KEY.slice(0, -1)}`)]) {
+  it("is a plain 404 without the key or cookie, with a wrong key, and when no key is set", async () => {
+    for (const response of [await get(), await get("?k=wrong"), await get(`?k=${KEY.slice(0, -1)}`), await get("?k=")]) {
       expect(response.status).toBe(404);
       expect(await response.text()).toBe("Not found");
       expect(response.headers.get("set-cookie")).toBeNull();
@@ -74,13 +75,36 @@ describe("GET /lookbook/futprep", () => {
     expect((await get(`?k=${KEY}`)).status).toBe(404);
   });
 
-  it("opens Site Design's page with the key, marked Draft 1, out of search and caches", async () => {
+  it("the key is used once: it sets the cookie and hands on to the clean address, without showing the book", async () => {
     const response = await get(`?k=${encodeURIComponent(KEY)}`);
+    expect(response.status).toBe(200);
+    const cookie = response.headers.get("set-cookie") ?? "";
+    expect(cookie).toContain(`${LOOKBOOK_COOKIE}=${lookbookCookieValue(KEY)}`);
+    expect(cookie).toContain("Path=/lookbook/futprep");
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Strict");
+    expect(cookie).toContain("Secure");
+    const maxAge = /Max-Age=([0-9]+)/.exec(cookie)?.[1];
+    expect(maxAge).toBeDefined();
+    expect(Number(maxAge)).toBeLessThanOrEqual(4 * 60 * 60);
+    expect(cookie).not.toContain(KEY);
+    const html = await response.text();
+    expect(html).toContain('location.replace("/lookbook/futprep")');
+    expect(html).toContain('http-equiv="refresh" content="0;url=/lookbook/futprep"');
+    expect(html).not.toContain("TEST look book");
+    expect(html).not.toContain(KEY);
+    expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(response.headers.get("x-robots-tag")).toContain("noindex");
+  });
+
+  it("the clean address opens the book on the cookie, marked Draft 1, out of search and caches", async () => {
+    const response = await get("", goodCookie());
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/html");
     expect(response.headers.get("x-robots-tag")).toContain("noindex");
     expect(response.headers.get("cache-control")).toContain("no-store");
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(response.headers.get("set-cookie")).toBeNull();
     const html = await response.text();
     expect(html).toContain("Draft 1 · Private");
     expect(html).toContain('<base href="/lookbook/futprep/">');
@@ -89,13 +113,11 @@ describe("GET /lookbook/futprep", () => {
     expect(html).not.toContain(KEY);
   });
 
-  it("sets a path-scoped, HttpOnly cookie that holds a hash, never the key", async () => {
-    const cookie = (await get(`?k=${KEY}`)).headers.get("set-cookie") ?? "";
-    expect(cookie).toContain(`${LOOKBOOK_COOKIE}=${lookbookCookieValue(KEY)}`);
-    expect(cookie).toContain("Path=/lookbook/futprep");
-    expect(cookie).toContain("HttpOnly");
-    expect(cookie).toContain("SameSite=Strict");
-    expect(cookie).not.toContain(KEY);
+  it("a wrong cookie, or one from before the key changed, is a 404", async () => {
+    expect((await get("", { cookie: `${LOOKBOOK_COOKIE}=${"0".repeat(64)}` })).status).toBe(404);
+    const old = goodCookie();
+    process.env.FUTPREP_LOOKBOOK_KEY = `${KEY}-rotated`;
+    expect((await get("", old)).status).toBe(404);
   });
 
   it("every answer, 404 included, carries the private headers", async () => {
@@ -105,8 +127,8 @@ describe("GET /lookbook/futprep", () => {
   });
 
   it("HEAD answers the same way, with no body", async () => {
-    expect((await HEAD(new Request("http://localhost/lookbook/futprep"))).status).toBe(404);
-    const ok = await HEAD(new Request(`http://localhost/lookbook/futprep?k=${KEY}`));
+    expect((await HEAD(new Request("https://portpassbahamas.com/lookbook/futprep"))).status).toBe(404);
+    const ok = await HEAD(new Request("https://portpassbahamas.com/lookbook/futprep", { headers: goodCookie() }));
     expect(ok.status).toBe(200);
     expect(ok.body).toBeNull();
   });
@@ -118,8 +140,9 @@ describe("GET /lookbook/futprep/assets/...", () => {
   afterEach(() => { if (before === undefined) delete process.env.FUTPREP_LOOKBOOK_KEY; else process.env.FUTPREP_LOOKBOOK_KEY = before; });
   const withCookie = () => ({ cookie: `other=1; ${LOOKBOOK_COOKIE}=${lookbookCookieValue(KEY)}` });
 
-  it("is a 404 without the look book's cookie or key, or with a wrong cookie", async () => {
+  it("is a 404 without the look book's cookie, with a wrong cookie, and even with the key", async () => {
     expect((await asset(["book.css"])).status).toBe(404);
+    expect((await asset(["book.js"], {}, `?k=${KEY}`)).status).toBe(404);
     expect((await asset(["book.css"], { cookie: `${LOOKBOOK_COOKIE}=${"0".repeat(64)}` })).status).toBe(404);
   });
 
@@ -131,7 +154,6 @@ describe("GET /lookbook/futprep/assets/...", () => {
     const photo = await asset(["img", "kit", "today-1.jpg"], withCookie());
     expect(photo.status).toBe(200);
     expect(photo.headers.get("content-type")).toBe("image/jpeg");
-    expect((await asset(["book.js"], {}, `?k=${KEY}`)).status).toBe(200);
   });
 
   it("a cookie stops working when the key changes", async () => {
