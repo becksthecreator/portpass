@@ -48,6 +48,7 @@ export const ALLOWED_PATHS = [
   "docs/rebrand/before/", // public pages before the rebrand
   "docs/rebrand/after/", // public pages after the rebrand
   "docs/website-must-fix/", // #257: public marketing pages at 375px
+  "docs/home-new-set-of-eyes/", // #263: home and /pricing (public pages) at 375 and 1440px
 ];
 
 const LOOKBOOK_CODE = ["app/lookbook/", "lib/lookbook/"];
