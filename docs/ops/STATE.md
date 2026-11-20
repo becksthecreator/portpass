@@ -31,6 +31,7 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | --- | --- | --- | --- |
 | `feat/sports-only` | (this PR) | bahamasweddingsbythesea.com is live (Vercel domain added, GoDaddy A record to 76.76.21.21, BWS `custom_domain` set, 29 Oct); the domain now shows the full wedding page (gallery, services, reviews) without PortPass's parts | None |
 | `feat/website-must-fix` (Website & Growth, [plan](../briefs/website-growth-plan.md), [report](../briefs/website-must-fix-report.md)): one card line on every page, weddings out of /terms (Terms v3), the home steps and portpassbahamas.com's robots.txt, loading words out of the server HTML | (this PR) | Review and merge | Antonio: Terms v3 OK, and the plan's questions |
+| `chore/guard-private-files` (after the 20 Nov look book exposure) | (this PR) | `lib/repoFiles.static.test.ts` fails CI on any tracked file under `private/`, or a PDF, photo or Office document outside `public/` and the reviewed folders in `ALLOWED_FOLDERS` | Antonio's OK |
 | `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
 | `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green. Parked by the growth plan | The fifth paid invoice |
