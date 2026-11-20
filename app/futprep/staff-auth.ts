@@ -250,10 +250,12 @@ export async function changeFutprepPin(
 }
 
 // True once any account with credentials has ever been made, switched on
-// or off. The staff login page shows a "create the first admin account"
-// setup screen, which needs no sign-in, instead of the normal login form
-// until this is true. Switched-off logins count, so switching every login
-// off never opens that screen to a stranger again (audit finding 9).
+// or off. Until this is true the staff login page shows a "create the first
+// admin account" setup screen instead of the normal login form, and only to
+// a signed-in PortPass platform owner with the admin second step: anyone
+// else is sent to sign in or gets a 404, and the bootstrap route refuses
+// them (#206; audit finding 9). Switched-off logins count, so switching
+// every login off never reopens that screen.
 export async function hasAnyStaffAccount(): Promise<boolean> {
   const supabase = getSupabaseAdmin();
   const { count, error } = await supabase

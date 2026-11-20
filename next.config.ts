@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { securityHeaders } from "./lib/securityHeaders";
+import { FUTPREP_PUBLIC_PATHS, FUTPREP_SITE } from "./lib/futprepOffSite";
 
 const nextConfig: NextConfig = {
   // The HTTP security headers, on every path (Brief 21, part D):
@@ -31,6 +32,15 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // Futprep off PortPass's public pages (19 Nov 2026, Antonio): Futprep
+      // stays one card in Sports & Fitness, and its page, class pages,
+      // registration, camps, taster and booking send families to Futprep's
+      // own site. Staff screens and PIN logins (/futprep/staff), families'
+      // status lookup (/futprep/my), the owner dashboard (/business/futprep)
+      // and every /api route stay as they are (rule 9). Not permanent: the
+      // pages come back by deleting this block. First, so it wins over the
+      // older /futprep rules below.
+      ...FUTPREP_PUBLIC_PATHS.map((source) => ({ source, destination: FUTPREP_SITE, has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$" }], permanent: false })),
       // Futprep rebuilt on the shared Organization/Offering template --
       // its marketing pages now live under the sports-fitness category hub,
       // the same URL shape every future organization will use. The
