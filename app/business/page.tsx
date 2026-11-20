@@ -5,10 +5,8 @@ import Link from "next/link";
 import { ppDisplay, ppSans } from "@/app/fonts";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
-import { listPlans } from "@/db/pricing";
 import { portpassWhatsAppUrl } from "@/lib/contact";
 import { getSectionTiles } from "@/lib/navSections";
-import { dollars, percentFromBps } from "@/lib/pricingFormat";
 import { getBusinessProof } from "@/db/businessProof";
 import { proofSentence } from "@/lib/businessProof";
 import "@/app/phase1.css";
@@ -20,16 +18,18 @@ import "@/app/phase1.css";
 export const revalidate = 300;
 
 export const metadata = {
-  title: "PortPass for Business | Your bookings and payments in one place",
-  description: "One link with your prices, photos and a booking button. Send us your photos and prices on WhatsApp, we build your page, you share one link.",
+  title: "PortPass for Business | A new set of eyes for your business",
+  description: "We diagnose what's stuck in your business, fix it with the PortPass app, then run it with you. The first look is free.",
 };
 
-const WHATSAPP_HREF = portpassWhatsAppUrl("Hi PortPass — I run a business and want to get listed.");
+const WHATSAPP_HREF = portpassWhatsAppUrl("Hi PortPass, I run a business and I'd like a free first look.");
 
+// 19 Nov 2026: Business Ops' three steps, diagnose, fix, run (the business
+// plan's section 4), in plain words.
 const STEPS = [
-  ["Send us your photos and prices on WhatsApp", "A few photos, what you offer and what it costs. That's the whole form."],
-  ["We build your page", "Your listing goes up on PortPass with a booking button, built from what you sent."],
-  ["Share one link", "In your bio, your status and your replies. Bookings and payments land in one place."],
+  ["Diagnose: we look", "We sit with you and find where your time, money and customers leak, and why earlier fixes didn't stick. You get a short written plan. The first look is free."],
+  ["Fix: we set it up", "PortPass set up for your business, your website and marketing where you need them, and your staff shown how to use it."],
+  ["Run: we run it with you", "We keep it running and send you an update every week. Bookings and payments land in one place."],
 ] as const;
 
 // The product, as three real screens (brief 18, A7). Until the demo
@@ -46,29 +46,26 @@ const SHOTS = [
 const FAQS: Array<{ q: string; a: ReactNode }> = [
   { q: "How do customers pay me?", a: <>Straight to you: cash, bank transfer or a Kanoo wallet transfer. PortPass never holds your money. You send a payment request, the customer pays you the way you choose, and you mark it paid. Card payments are not available yet.</> },
   { q: "Do I need a website?", a: <>No. Your PortPass page is one link with your prices, your photos and a booking button. If you already have a website, link to your page from it.</> },
-  { q: "What does it cost?", a: <>Every plan starts with 30 days free. Plans and what each includes are on the <Link href="/pricing">pricing page</Link>.</> },
-  { q: "Who builds my page?", a: <>We do. Send us your photos and prices on WhatsApp and one of us builds it, then shows it to you before it goes live.</> },
-  { q: "Can I leave?", a: <>Yes, any time before the end of a month; an annual plan runs to the end of the year you paid for. You can always download your records. The details are on the <Link href="/pricing">pricing page</Link>.</> },
+  { q: "What does it cost?", a: <>The first look is free. After it, we quote a price for your business: the set-up, then a monthly retainer or a share of revenue to run it. How it works is on the <Link href="/pricing">pricing page</Link>.</> },
+  { q: "Who builds my page?", a: <>We do. One of us sets PortPass up for your business, then shows it to you before it goes live.</> },
+  { q: "Can I leave?", a: <>Yes. The notice is set in your agreement before we start, and you can always download your records.</> },
 ];
 
 export default async function BusinessPage() {
-  // Prices come from pricing_plans (pricing brief, 28 Sept): nothing on
-  // this page is hard-coded, and the admin's Prices screen changes it live.
-  // The proof line is counted from the database on each build of the page;
+  // No list prices (Antonio, 19 Nov): each business is quoted after the
+  // free first look, as on /pricing. The proof line is counted from the database on each build of the page;
   // if it can't be read, the page simply doesn't show one.
-  const [sections, plans, proof] = await Promise.all([getSectionTiles(), listPlans({ publicOnly: true }).catch(() => []), getBusinessProof().catch(() => null)]);
-  const subscriptions = plans.filter((p) => p.kind === "subscription");
-  const marketplace = plans.find((p) => p.kind === "commission") ?? null;
+  const [sections, proof] = await Promise.all([getSectionTiles(), getBusinessProof().catch(() => null)]);
   return (
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }]} />
 
       <section className="biz-hero">
         <span className="home-eyebrow">PortPass for business</span>
-        <h1>Your bookings and payments in one place, not lost in WhatsApp.</h1>
-        <p>One link with your prices, your photos and a booking button. We build it for you; you share it everywhere you already talk to customers.</p>
+        <h1>A new set of eyes for your business, plus the tools.</h1>
+        <p>We find what&rsquo;s been stuck, fix it with the PortPass app, and run it with you, so your bookings and payments stop living in WhatsApp. The first look is free.</p>
         <div className="biz-actions">
-          <Link className="home-button" href="/apply">Get listed →</Link>
+          <Link className="home-button" href="/apply?utm_source=business">Book a free first look →</Link>
           <a className="home-button home-button-light" href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a>
         </div>
         <p className="auth-alt">Want to see it first? <Link href="/demo">Try a demo business →</Link></p>
@@ -89,7 +86,7 @@ export default async function BusinessPage() {
       <section className="home-how" id="how-it-works">
         <div className="home-section-heading">
           <span className="home-eyebrow">How it works</span>
-          <h2>Three steps. No forms to fill.</h2>
+          <h2>Diagnose, fix, run.</h2>
         </div>
         <div className="biz-steps">
           {STEPS.map(([title, copy], index) => (
@@ -121,33 +118,13 @@ export default async function BusinessPage() {
       <section className="biz-pricing" id="pricing">
         <div className="home-section-heading">
           <span className="home-eyebrow">Pricing</span>
-          <h2>First 30 days free.</h2>
+          <h2>Priced for your business.</h2>
         </div>
-        {plans.length > 0 && (
-          <div className="biz-plans">
-            {subscriptions.map((plan) => (
-              <div className={`biz-plan${plan.badge ? " biz-plan-featured" : ""}`} key={plan.code}>
-                <h3>{plan.name}</h3>
-                <strong>{dollars(plan.monthlyCents)}</strong>
-                <span>per month</span>
-                {plan.blurb && <p>{plan.blurb}</p>}
-              </div>
-            ))}
-            {marketplace && (
-              <div className="biz-plan">
-                <h3>{marketplace.name}</h3>
-                <strong>{dollars(marketplace.monthlyCents)}</strong>
-                <span>no monthly fee</span>
-                <p>{percentFromBps(marketplace.commissionBps)} of the bookings we bring you.</p>
-              </div>
-            )}
-          </div>
-        )}
         <div className="biz-pricing-notes">
-          <span>Every plan starts with 30 days free — we&rsquo;ll confirm which one fits on your first call.</span>
+          <span>The first look is free. After it, we quote a price that fits your business: the set-up, then a monthly retainer or a share of revenue to run it.</span>
           <span>Cash, bank transfer and Kanoo wallet transfers work today, paid straight to you. Card payments are not available yet.</span>
         </div>
-        <p className="biz-pricing-more"><Link href="/pricing">See full pricing →</Link></p>
+        <p className="biz-pricing-more"><Link href="/pricing">How pricing works →</Link></p>
       </section>
 
       <section className="biz-faq" id="questions" aria-labelledby="biz-faq-title">
@@ -176,11 +153,11 @@ export default async function BusinessPage() {
       <section className="home-business">
         <div>
           <span className="home-eyebrow">Ready when you are</span>
-          <h2>Get your page built this week.</h2>
-          <p>Send the basics on WhatsApp or tell us about your business and we&rsquo;ll take it from there.</p>
+          <h2>Tell us what&rsquo;s been stuck.</h2>
+          <p>Send the basics on WhatsApp or through the form, and one of us books your free first look.</p>
         </div>
         <div className="biz-actions">
-          <Link className="home-button home-button-light" href="/apply">Get listed →</Link>
+          <Link className="home-button home-button-light" href="/apply?utm_source=business">Book a free first look →</Link>
           <a className="home-button home-button-light" href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a>
         </div>
       </section>
