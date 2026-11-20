@@ -97,7 +97,7 @@ async function main() {
     term_id: term.id,
     parent_name: `${MARK} Parent ${i + 1}`,
     parent_email: `test-delete-parent-${i + 1}@test.portpass.local`,
-    parent_phone: `+124255500${String(i + 10)}`,
+    parent_phone: `+12425550${100 + i}`, // 242-555-0100 to 0110 (rule 4)
     relationship: "Parent",
     child_name: `${MARK} Child ${String.fromCharCode(65 + i)}`,
     child_dob: "2022-03-01",
