@@ -116,6 +116,10 @@ const SHOTS = [
   ["brief31-inbox-coach-375", "test-coach", "/futprep/staff/private-sessions", ".private-request-card"],
   ["brief31-inbox-desk-375", "test-desk", "/futprep/staff/private-sessions", ".private-request-card"],
   ["brief31-my-days-375", "test-coach", "/futprep/staff/my-days", ".my-days-card"],
+  // Class feed (Nov 2026): a coach's posting screen, and the parents' page
+  // (the TEST platform owner is the parent of one TEST child).
+  ["class-feed-staff-375", "test-coach", "/futprep/staff/feed", ".class-feed-list"],
+  ["class-feed-parent-375", "admin", "/futprep/feed", ".parent-feed-list"],
   ["brief31-ops-private-rates-375", "test-desk", "/futprep/staff/ops", "#ops-pay"],
   ["brief31-pay-private-375", "test-coach", "/futprep/staff/pay", "#pay-private"],
   ["brief31-book-place-375", "anon", "/futprep/book?coach=test-delete-coach-bex", ".private-session-two"],

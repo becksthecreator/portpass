@@ -29,6 +29,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
+| `feat/class-feed` (class updates in place of the WhatsApp groups, [report](../briefs/class-feed-report.md)) | (this PR) | Migration `202610270005_class_posts.sql` to apply to the live database before merging; CI integration tests and the staff-screenshots run | Antonio's OK to apply the migration, then merge |
 | `feat/sports-only` | (this PR) | bahamasweddingsbythesea.com is live (Vercel domain added, GoDaddy A record to 76.76.21.21, BWS `custom_domain` set, 29 Oct); the domain now shows the full wedding page (gallery, services, reviews) without PortPass's parts | None |
 | `feat/website-must-fix` (Website & Growth, [plan](../briefs/website-growth-plan.md), [report](../briefs/website-must-fix-report.md)): one card line on every page, weddings out of /terms (Terms v3), the home steps and portpassbahamas.com's robots.txt, loading words out of the server HTML | (this PR) | Review and merge | Antonio: Terms v3 OK, and the plan's questions |
 | `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
@@ -62,11 +63,11 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 Briefs 28 and 32 have left no trace in this repo; their status is in the HQ project.
 
 ## Waiting on Antonio
-- **First: set `CRON_SECRET`** (Vercel → Production). Production logs show `/api/cron/daily` and `/api/cron/attendance-nudge` refused with 503 on every run since at least 9 Oct, so the 90-day health-record purge (rule 3), billing, the demo reset and export pruning are not running.
-- **Emails (16 Nov, fix/resend-send-failures):** no email has ever reached Resend; production logged `Resend send failed (400)` on 10 Nov. The domain is verified and `PORTPASS_FROM_EMAIL` / `FUTPREP_FROM_EMAIL` are well formed, so the likeliest cause is the `RESEND_API_KEY` value (Production only, not Preview). Paste the "PortPass production" key again in Vercel, with no quotes or spaces. The PR trims stray quotes and whitespace and logs Resend's reason for any refusal, so the next failure names its cause.
+- `CRON_SECRET`: set 16 Nov (Production); `/api/cron/daily` now answers 401 to a caller without it, where it answered 503 since at least 9 Oct.
+- **Emails (16 Nov):** every past send in `message_log` failed with Resend **400** (a validation error, not a bad key, which is 401/403). A new sending-only key "PortPass production 2" is in `RESEND_API_KEY` anyway, and #252 is live, so the next failure's row in Admin → Messages names Resend's reason. Read it, then fix the sender or recipient it names. Delete the old "PortPass production" key in Resend once a send succeeds.
 - **Before the first invoice (growth plan week 1), all clicks, no code:**
   - `PORTPASS_FROM_EMAIL` on a verified Resend domain (done: set, domain verified);
-  - `RESEND_WEBHOOK_SECRET`;
+  - `RESEND_WEBHOOK_SECRET` (done 16 Nov: Resend webhook to `/api/webhooks/resend` for delivered, bounced, complained and failed);
   - the four bank details in Admin → Settings (bank, account name, account number, branch). No invoice can be sent until all four are in;
   - Futprep owner access;
   - the agreement text v1.0, with its version typed on each billing account;
@@ -104,4 +105,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - The billing chain has run only in the rehearsal, never in production: no billing account, no invoice yet.
 
 ## Last updated
-29 Oct 2026, by Claude Code (feat/sports-only: sports, fitness and gyms only; BWS on its own domain). Other rows are as of 17 Oct.
+16 Nov 2026, by Claude Code (feat/class-feed). Earlier the same day: #252 (emails log Resend's reason) and #253 (Futprep Term 2) merged; `CRON_SECRET`, a new `RESEND_API_KEY` and `RESEND_WEBHOOK_SECRET` set in Vercel Production by Antonio, and production redeployed. Other rows are as of 29 Oct.

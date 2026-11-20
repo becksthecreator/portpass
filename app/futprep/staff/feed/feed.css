@@ -1,0 +1,18 @@
+/* Class updates, staff side. Phone first: one column at 375px. */
+.class-feed{display:grid;gap:18px;max-width:720px}
+.class-feed-pick{display:grid;gap:6px}
+.class-feed-pick span{color:var(--muted);font-size:.62rem;font-weight:900;text-transform:uppercase}
+.class-feed-pick select{width:100%;min-height:44px;padding:0 10px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:inherit}
+.class-feed-form{display:grid;gap:10px}
+.class-feed-form textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:inherit;font-size:1rem;line-height:1.5;resize:vertical}
+.class-feed .class-feed-warning{margin:0;padding:8px 10px;border-left:3px solid #c9a227;background:#fff8e1;color:#4a3b00;font-size:.85rem}
+.class-feed-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.class-feed-check{display:flex;align-items:center;gap:8px;font-size:.9rem}
+.class-feed-check input{width:20px;height:20px}
+.class-feed-count{color:var(--muted);font-size:.75rem}
+.class-feed-heading{font-size:1.1rem;margin:8px 0}
+.class-feed-empty{color:var(--muted)}
+.class-feed-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.class-feed-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;color:var(--muted);font-size:.72rem;font-weight:700}
+.class-feed .class-feed-body{white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0;color:var(--ink);font-size:.95rem;line-height:1.5}
+.class-feed-remove{background:none;border:0;padding:6px 0;color:var(--muted);font:inherit;font-size:.75rem;text-decoration:underline;cursor:pointer;min-height:32px}
