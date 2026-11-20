@@ -14,6 +14,7 @@ import {
   LOOKBOOK_HEADERS,
   lookbookCookieValue,
   lookbookKeyMatches,
+  RIBBON_HEIGHT_PX,
   withBase,
   withDraftRibbon,
 } from "@/lib/lookbook/access";
@@ -33,7 +34,10 @@ export async function GET(request: Request): Promise<Response> {
   const cookie = lookbookCookieValue(expected);
   if (!page || !cookie) return notFound();
   const secure = url.protocol === "https:" ? "; Secure" : "";
-  return new Response(withDraftRibbon(withBase(page, `${LOOKBOOK_COOKIE_PATH}/`)), {
+  // The book's floating nav (.nav, fixed 14px from the top) moves below the
+  // ribbon so the ribbon never covers it.
+  const navBelowRibbon = `.nav{top:calc(max(14px,env(safe-area-inset-top,0px)) + ${RIBBON_HEIGHT_PX}px)!important}`;
+  return new Response(withDraftRibbon(withBase(page, `${LOOKBOOK_COOKIE_PATH}/`), undefined, navBelowRibbon), {
     status: 200,
     headers: {
       ...LOOKBOOK_HEADERS,

@@ -34,9 +34,13 @@ export const LOOKBOOK_HEADERS: Record<string, string> = {
 
 // A clear "Draft 1 · Private" ribbon at the top of whatever page the
 // designers hand over, so nobody mistakes the draft for the finished book.
-export function withDraftRibbon(html: string, label = "Draft 1 · Private · not for sharing"): string {
+// It sits in the page's flow (32px tall); `css` lets a page move its own
+// fixed header below it (the Futprep book's floating nav is `.nav`).
+export const RIBBON_HEIGHT_PX = 32;
+export function withDraftRibbon(html: string, label = "Draft 1 · Private · not for sharing", css = ""): string {
   const ribbon =
-    `<div role="note" style="position:sticky;top:0;z-index:2147483647;background:#d7262e;color:#fff;font:700 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:8px 16px">${label}</div>`;
+    (css ? `<style>${css}</style>` : "") +
+    `<div role="note" style="position:relative;z-index:2147483647;box-sizing:border-box;height:${RIBBON_HEIGHT_PX}px;background:#d7262e;color:#fff;font:700 13px/16px system-ui,-apple-system,Segoe UI,sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:8px 16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</div>`;
   const body = /<body[^>]*>/i.exec(html);
   if (!body) return ribbon + html;
   const at = body.index + body[0].length;
