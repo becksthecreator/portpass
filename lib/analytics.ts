@@ -12,6 +12,8 @@ export type AnalyticsEvent =
   | "share_click"
   | "register_start"
   | "planner_start"
+  // The wedding planner's plan reached the Wedding Desk (the conversion).
+  | "planner_submit"
   // Installable app (round 5, §6): the appinstalled event, and an open
   // from the home screen (start_url carries ?source=pwa).
   | "pwa_installed"

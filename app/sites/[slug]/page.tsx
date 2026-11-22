@@ -25,6 +25,14 @@ export function generateStaticParams() {
   return [];
 }
 
+// A site-relative path (or a portpassbahamas.com URL) as an address on
+// the business's own domain; anything else is left alone.
+function onOwnDomain(href: string, origin: string | undefined): string {
+  if (!origin) return href;
+  if (href.startsWith("/")) return `${origin}${href}`;
+  return href.replace(/^https:\/\/(www\.)?portpassbahamas\.com(?=\/)/i, origin);
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const listing = await getOrganizationListingBySlug(slug).catch(() => null);
@@ -39,6 +47,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const title = slug === "bahamas-weddings" ? `${org.name} | Nassau Wedding Officiant & Planner` : org.name;
   const description = org.oneLiner ?? org.description ?? undefined;
   const url = org.customDomain ? `https://${org.customDomain}` : undefined;
+  const heroImage = org.heroImageUrl ? onOwnDomain(org.heroImageUrl, url) : null;
   return {
     title,
     description,
@@ -51,7 +60,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title,
       description,
       url,
-      images: org.heroImageUrl ? [{ url: org.heroImageUrl }] : undefined,
+      images: heroImage ? [{ url: heroImage }] : undefined,
     },
     twitter: { card: "summary_large_image", title, description },
   };
@@ -76,7 +85,16 @@ export default async function BusinessSitePage({ params }: { params: Promise<{ s
   // The same structured data as the business's PortPass page, at its own
   // address. No rating: PortPass doesn't collect reviews, and Google
   // doesn't accept ratings copied from another site.
-  const schema = listingJsonLd(listing, url ?? directoryHref(org.slug, org.primaryCategory));
+  // On its own domain, the photo and package links in that data point at
+  // the domain too, not at portpassbahamas.com (which only redirects here).
+  const ldListing = url
+    ? {
+        ...listing,
+        organization: { ...org, heroImageUrl: org.heroImageUrl ? onOwnDomain(org.heroImageUrl, url) : null },
+        offerings: listing.offerings.map((offering) => ({ ...offering, actionUrl: offering.actionUrl ? onOwnDomain(offering.actionUrl, url) : null })),
+      }
+    : listing;
+  const schema = listingJsonLd(ldListing, url ?? directoryHref(org.slug, org.primaryCategory));
 
   return (
     <div

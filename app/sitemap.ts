@@ -18,7 +18,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const host = (await headers()).get("host")?.replace(/^www\./, "").toLowerCase();
 
   if (host && host !== PLATFORM_HOST && !host.endsWith(".vercel.app")) {
-    return [{ url: `https://${host}/` }];
+    const own: MetadataRoute.Sitemap = [{ url: `https://${host}/` }];
+    // The wedding planner is the booking page on Bahamas Weddings By The Sea's domain.
+    if (host === "bahamasweddingsbythesea.com") own.push({ url: `https://${host}/weddings/bahamas-weddings-by-the-sea/plan` });
+    return own;
   }
 
   // lastmod is given only where it is known (brief 11, 5): a business's
