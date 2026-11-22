@@ -23,7 +23,7 @@ import { listPublishedOrganizations, liveCountsByCategory, type OrganizationDire
 import { withOneRetry } from "@/db/supabase";
 import { orderBySpotlight } from "@/lib/siteContent";
 import { programTimeRange } from "./futprep/config";
-import { closesInLabel, datedOfferLine, openCountSentence, orderOpenNow } from "@/lib/openNow";
+import { closesInLabel, datedOfferLine, orderOpenNow } from "@/lib/openNow";
 import "./phase1.css";
 import { SiteHeader } from "./_components/SiteHeader";
 import { SiteFooter } from "./_components/SiteFooter";
@@ -89,6 +89,8 @@ export const revalidate = 300;
 
 // Below this many businesses the carousel is replaced by equal cards.
 const CAROUSEL_FROM = 4;
+// The Departure Board (counts) shows from this many open businesses.
+const BOARD_FROM = 3;
 
 export default async function Home() {
   // Brief 22 (M5): the wedding desk's live numbers (years, reviews) are the
@@ -129,8 +131,10 @@ export default async function Home() {
       <a className="home-skip-link" href="#chooser">Skip to browse</a>
 
       <SiteHeader tide />
-      <HomeHero openSentence={openCountSentence(directory.length)} />
-      <DepartureBoard counts={boardCounts} />
+      <HomeHero />
+      {/* The counts read as empty with one or two businesses open (audit,
+          19 Nov), so the board waits until there are three. */}
+      {directory.length >= BOARD_FROM && <DepartureBoard counts={boardCounts} />}
 
       <Suspense fallback={openNowCount > 0 ? <OpenNowSkeleton cards={openNowCount} camps={campCards} /> : null}>
         <OpenNowSection directory={directory} availability={availability} weddingSettings={weddingSettings} carousel={carousel} />
@@ -151,14 +155,28 @@ export default async function Home() {
         <SectionGrid liveSlugs={liveSlugs} />
       </section>
 
+      {/* 19 Nov 2026: the owner's track comes first and uses Business Ops'
+          words, diagnose, fix, run; the booking track stays for parents. */}
       <section className="home-how" id="how-it-works">
         <Reveal className="home-section-heading" variant="rise">
-          <span className="home-eyebrow">How PortPass works</span>
-          <h2>Two ways to use it.</h2>
+          <span className="home-eyebrow">How it works</span>
+          <h2>Diagnose, fix, run.</h2>
         </Reveal>
         {/* Brief 22 (M3): each track is a stagger; a line down its left
             draws as it scrolls into view and each number counts in. */}
         <div className="home-how-grid">
+          <div className="home-how-track">
+            <h3>If you run a business</h3>
+            <div className="home-how-steps-wrap">
+              <Reveal as="ol" className="home-how-steps" variant="rise" stagger>
+                <li><span className="home-how-num">1</span><span><strong>We look.</strong> We find where your time, money and customers leak, and why earlier fixes didn&rsquo;t stick. You get a short written plan. The first look is free</span></li>
+                <li><span className="home-how-num">2</span><span><strong>We fix.</strong> We set PortPass up for your business, with your website and marketing where you need them, and show your staff how to use it</span></li>
+                <li><span className="home-how-num">3</span><span><strong>We run it with you.</strong> We keep it running and send you an update every week</span></li>
+              </Reveal>
+              <svg className="home-how-line" viewBox="0 0 2 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 0 V100" pathLength="100" /></svg>
+              <HowFerry />
+            </div>
+          </div>
           <div className="home-how-track">
             <h3>If you&rsquo;re booking</h3>
             <div className="home-how-steps-wrap">
@@ -171,18 +189,6 @@ export default async function Home() {
               <HowFerry />
             </div>
           </div>
-          <div className="home-how-track">
-            <h3>If you run a business</h3>
-            <div className="home-how-steps-wrap">
-              <Reveal as="ol" className="home-how-steps" variant="rise" stagger>
-                <li><span className="home-how-num">1</span><span>Your listing goes live with real availability and prices</span></li>
-                <li><span className="home-how-num">2</span><span>Customers register themselves, and you see who&rsquo;s paid</span></li>
-                <li><span className="home-how-num">3</span><span>You see who&rsquo;s coming and what&rsquo;s been collected, on one screen</span></li>
-              </Reveal>
-              <svg className="home-how-line" viewBox="0 0 2 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 0 V100" pathLength="100" /></svg>
-              <HowFerry />
-            </div>
-          </div>
         </div>
       </section>
 
@@ -190,12 +196,12 @@ export default async function Home() {
           and the words and the button arrive after it, the button last. */}
       <Reveal as="section" className="home-business" variant="rise" stagger>
         <div>
-          <span className="home-eyebrow">Run a club or a business?</span>
-          <h2>List with PortPass.</h2>
-          <p>Bring your organization onto the same system powering Futprep Athletics.</p>
+          <span className="home-eyebrow">Who we work with</span>
+          <h2>Sports first. More next.</h2>
+          <p>Futprep Athletics ran registrations, payments and parent messages through WhatsApp groups. Now it runs on PortPass, and we run it with them. Next: events and weddings, salons and wellness, schools and camps.</p>
         </div>
         <div className="home-business-action">
-          <Link className="home-button home-button-light" href="/business">Learn more →</Link>
+          <Link className="home-button home-button-light" href="/apply?utm_source=home_band">Book a free first look →</Link>
         </div>
       </Reveal>
 

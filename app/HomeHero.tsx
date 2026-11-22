@@ -9,12 +9,17 @@ import { HeroMotion } from "./_components/motion/HeroMotion";
 // (round 4, item 5). The featured businesses moved to the "Open now" cards
 // below.
 //
+// 19 Nov 2026 (Antonio): the hero speaks to business owners. PortPass is
+// "a new set of eyes plus the tools": we diagnose what is stuck, fix it
+// and run it with them (Business Ops' business plan uses the same words).
+// Parents keep a door to the classes ("Find a class").
+//
 // Brief 22 (M2): the kicker, the headline's two lines, the lede and the
 // buttons rise in 60 ms apart, and the photo drifts slowly. All of it is
 // CSS (lib/motion/public.css) on text that is in the HTML at its final
 // size, so the first screen is visible without any script; HeroMotion
 // only pauses the drift while the hero is off-screen.
-export function HomeHero({ openSentence = "" }: { openSentence?: string }) {
+export function HomeHero() {
   return (
     <section className="pp-hero" data-world="portpass" aria-label="PortPass">
       {/* The photo is a real, preloaded image (next/image, priority) rather
@@ -29,16 +34,16 @@ export function HomeHero({ openSentence = "" }: { openSentence?: string }) {
       <div className="pp-hero-sun" aria-hidden="true" />
       <div className="pp-hero-scrim" />
       <div className="pp-hero-centre">
-        <p className="pp-hero-kicker">The Bahamas, one pass at a time</p>
+        <p className="pp-hero-kicker">For Bahamian businesses</p>
         <h1>
-          <span className="pp-hero-line">Sports and fitness</span>
-          <span className="pp-hero-line">in The Bahamas.</span>
+          <span className="pp-hero-line">A new set of eyes</span>
+          <span className="pp-hero-line">for your business.</span>
         </h1>
-        <p className="pp-hero-lede">Sports clubs, coaches and gyms in The Bahamas: find a class, register and pay the club directly.{openSentence ? ` ${openSentence}` : ""}</p>
+        <p className="pp-hero-lede">We sit with you in Nassau, find what&rsquo;s been stuck for years, and fix it with tools built for cash, bank transfer and Kanoo. Then we run it with you. <strong>The first look is free.</strong></p>
         <div className="pp-hero-actions">
-          <a className="home-button" href="#open-now">Browse what&rsquo;s on</a>
+          <Link className="home-button" href="/apply?utm_source=home_hero">Book a free first look</Link>
           {/* Solid deck-white with navy text: readable on any photo (A3). */}
-          <Link className="home-button home-button-deck" href="/business">List your business</Link>
+          <a className="home-button home-button-deck" href="#open-now">Find a class</a>
         </div>
       </div>
       <HeroMotion />

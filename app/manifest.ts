@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "PortPass Bahamas",
     short_name: "PortPass",
-    description: "Sports clubs, coaches and gyms in The Bahamas: find a class, register and pay the club directly.",
+    description: "We diagnose what's stuck in your Bahamian business, fix it with the PortPass app and run it with you. The first look is free.",
     start_url: "/?source=pwa",
     scope: "/",
     display: "standalone",
