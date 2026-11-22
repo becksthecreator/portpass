@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ppDisplay, ppSans } from "./fonts";
-import { ProwMoment } from "./_components/motion/ProwMoment";
 import { HomeHero } from "./HomeHero";
 import { BusinessCarousel } from "./_components/BusinessCarousel";
 import { OpenNowCards, type OpenNowCard } from "./_components/OpenNowCards";
@@ -25,6 +24,11 @@ import { orderBySpotlight } from "@/lib/siteContent";
 import { programTimeRange } from "./futprep/config";
 import { closesInLabel, datedOfferLine, orderOpenNow } from "@/lib/openNow";
 import "./phase1.css";
+import "./_components/signal/signal.css";
+import { SignalBand } from "./_components/signal/SignalBand";
+import { MessRoute } from "./_components/signal/MessRoute";
+import { PinnedSteps } from "./_components/signal/PinnedSteps";
+import { FactStrip } from "./_components/signal/FactStrip";
 import { SiteHeader } from "./_components/SiteHeader";
 import { SiteFooter } from "./_components/SiteFooter";
 import { JsonLd } from "./_components/seo/JsonLd";
@@ -127,11 +131,18 @@ export default async function Home() {
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`} data-world="portpass">
       {/* Who PortPass is, and the site search (brief 11). */}
       <JsonLd data={homeJsonLd()} />
-      <ProwMoment />
       <a className="home-skip-link" href="#chooser">Skip to browse</a>
 
       <SiteHeader tide />
       <HomeHero />
+      {/* Signal (22 Nov 2026, the plan Bex approved): the first movement
+          on the page is the band under the still hero, then mess to
+          order, the pinned steps and the facts. The Prow moment is left
+          out so nothing moves before the band. */}
+      <SignalBand />
+      <MessRoute />
+      <PinnedSteps />
+      <FactStrip />
       {/* The counts read as empty with one or two businesses open (audit,
           19 Nov), so the board waits until there are three. */}
       {directory.length >= BOARD_FROM && <DepartureBoard counts={boardCounts} />}
@@ -155,28 +166,16 @@ export default async function Home() {
         <SectionGrid liveSlugs={liveSlugs} />
       </section>
 
-      {/* 19 Nov 2026: the owner's track comes first and uses Business Ops'
-          words, diagnose, fix, run; the booking track stays for parents. */}
+      {/* The owner's track (we look, we fix, we run it with you) is the
+          pinned steps above (Signal, 22 Nov 2026); parents keep theirs. */}
       <section className="home-how" id="how-it-works">
         <Reveal className="home-section-heading" variant="rise">
-          <span className="home-eyebrow">How it works</span>
-          <h2>Diagnose, fix, run.</h2>
+          <span className="home-eyebrow">If you&rsquo;re booking</span>
+          <h2>Find it, book it, keep it.</h2>
         </Reveal>
         {/* Brief 22 (M3): each track is a stagger; a line down its left
             draws as it scrolls into view and each number counts in. */}
-        <div className="home-how-grid">
-          <div className="home-how-track">
-            <h3>If you run a business</h3>
-            <div className="home-how-steps-wrap">
-              <Reveal as="ol" className="home-how-steps" variant="rise" stagger>
-                <li><span className="home-how-num">1</span><span><strong>We look.</strong> We find where your time, money and customers leak, and why earlier fixes didn&rsquo;t stick. You get a short written plan. The first look is free</span></li>
-                <li><span className="home-how-num">2</span><span><strong>We fix.</strong> We set PortPass up for your business, with your website and marketing where you need them, and show your staff how to use it</span></li>
-                <li><span className="home-how-num">3</span><span><strong>We run it with you.</strong> We keep it running and send you an update every week</span></li>
-              </Reveal>
-              <svg className="home-how-line" viewBox="0 0 2 100" preserveAspectRatio="none" aria-hidden="true"><path d="M1 0 V100" pathLength="100" /></svg>
-              <HowFerry />
-            </div>
-          </div>
+        <div className="home-how-grid sg-how-one">
           <div className="home-how-track">
             <h3>If you&rsquo;re booking</h3>
             <div className="home-how-steps-wrap">

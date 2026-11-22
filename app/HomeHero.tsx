@@ -21,7 +21,9 @@ import { HeroMotion } from "./_components/motion/HeroMotion";
 // only pauses the drift while the hero is off-screen.
 export function HomeHero() {
   return (
-    <section className="pp-hero" data-world="portpass" aria-label="PortPass">
+    // Signal (22 Nov 2026): palette A, and still (signal.css). Motions 01
+    // to 04 are out, so the hero's rise, drift and Sun Drift are off here.
+    <section className="pp-hero sg-hero" data-world="portpass" aria-label="PortPass">
       {/* The photo is a real, preloaded image (next/image, priority) rather
           than a CSS background, so the browser finds it in the HTML and
           fetches an AVIF sized to the screen straight away -- it is the

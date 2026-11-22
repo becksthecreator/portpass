@@ -57,6 +57,12 @@
   --dur-failsafe:2.5s;
   --dur-idle:5s;
   --dur-drift:20s;
+  /* Signal (22 Nov 2026, app/_components/signal/signal.css): the moving
+     band's two loops, and the facts strip's roll and its step. */
+  --dur-band-a:40s;
+  --dur-band-b:52s;
+  --dur-roll:1.4s;
+  --dur-roll-step:120ms;
   --ease-out:cubic-bezier(.22,1,.36,1);
   --ease-in-out:cubic-bezier(.65,0,.35,1);
   --ease-linear:linear;
