@@ -1,7 +1,7 @@
 // @public-route: the private Futprep look book (20 Nov 2026).
 //
-// 1. A visit with ?k= matching FUTPREP_LOOKBOOK_KEY gets a short-lived
-//    HttpOnly, SameSite=Strict cookie (a keyed hash of the key, never the
+// 1. A visit with ?k= matching FUTPREP_LOOKBOOK_KEY gets a 30-day
+//    HttpOnly, SameSite=Lax cookie (a keyed hash of the key, never the
 //    key) and is handed on to the clean address /lookbook/futprep, so the
 //    key leaves the URL bar and the history (Security & QA, 20 Nov).
 // 2. The clean address, and every asset under it, opens on that cookie

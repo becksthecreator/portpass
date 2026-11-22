@@ -75,18 +75,19 @@ describe("GET /lookbook/futprep", () => {
     expect((await get(`?k=${KEY}`)).status).toBe(404);
   });
 
-  it("the key is used once: it sets the cookie and hands on to the clean address, without showing the book", async () => {
+  it("a key visit sets the cookie and hands on to the clean address, without showing the book", async () => {
     const response = await get(`?k=${encodeURIComponent(KEY)}`);
     expect(response.status).toBe(200);
     const cookie = response.headers.get("set-cookie") ?? "";
     expect(cookie).toContain(`${LOOKBOOK_COOKIE}=${lookbookCookieValue(KEY)}`);
     expect(cookie).toContain("Path=/lookbook/futprep");
     expect(cookie).toContain("HttpOnly");
-    expect(cookie).toContain("SameSite=Strict");
+    // Lax, not Strict: see lib/lookbook/access.ts (tested in Chromium and Edge).
+    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).not.toContain("SameSite=Strict");
     expect(cookie).toContain("Secure");
-    const maxAge = /Max-Age=([0-9]+)/.exec(cookie)?.[1];
-    expect(maxAge).toBeDefined();
-    expect(Number(maxAge)).toBeLessThanOrEqual(4 * 60 * 60);
+    // 30 days (Antonio, 22 Nov), and no longer.
+    expect(/Max-Age=([0-9]+)/.exec(cookie)?.[1]).toBe(String(30 * 24 * 60 * 60));
     expect(cookie).not.toContain(KEY);
     const html = await response.text();
     expect(html).toContain('location.replace("/lookbook/futprep")');
@@ -95,6 +96,14 @@ describe("GET /lookbook/futprep", () => {
     expect(html).not.toContain(KEY);
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
     expect(response.headers.get("x-robots-tag")).toContain("noindex");
+  });
+
+  it("the original link keeps working on every tap, a cookie or not", async () => {
+    for (let tap = 0; tap < 3; tap += 1) {
+      const response = await get(`?k=${KEY}`, tap === 0 ? {} : goodCookie());
+      expect(response.status).toBe(200);
+      expect(response.headers.get("set-cookie")).toContain(`${LOOKBOOK_COOKIE}=${lookbookCookieValue(KEY)}`);
+    }
   });
 
   it("the clean address opens the book on the cookie, marked Draft 1, out of search and caches", async () => {
