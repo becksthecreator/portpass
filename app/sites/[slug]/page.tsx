@@ -29,7 +29,8 @@ export function generateStaticParams() {
 // the business's own domain; anything else is left alone.
 function onOwnDomain(href: string, origin: string | undefined): string {
   if (!origin) return href;
-  if (href.startsWith("/")) return `${origin}${href}`;
+  // "//host/path" is protocol-relative (another host), not site-relative.
+  if (href.startsWith("/") && !href.startsWith("//")) return `${origin}${href}`;
   return href.replace(/^https:\/\/(www\.)?portpassbahamas\.com(?=\/)/i, origin);
 }
 
