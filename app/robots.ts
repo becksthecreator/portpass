@@ -15,8 +15,10 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const host = (await headers()).get("host")?.replace(/^www\./, "").toLowerCase();
 
   if (host && host !== PLATFORM_HOST && !host.endsWith(".vercel.app")) {
-    const disallow = host === WEDDINGS_HOST ? ["/weddings/admin", "/weddings/staff", "/api"] : undefined;
-    return { rules: { userAgent: "*", allow: "/", ...(disallow ? { disallow } : {}) }, sitemap: `https://${host}/sitemap.xml` };
+    // PortPass's own admin and API answer on every business's domain too
+    // (/admin redirects to sign-in there), so they're kept out everywhere.
+    const disallow = ["/admin", "/api", ...(host === WEDDINGS_HOST ? ["/weddings/admin", "/weddings/staff"] : [])];
+    return { rules: { userAgent: "*", allow: "/", disallow }, sitemap: `https://${host}/sitemap.xml` };
   }
 
   return {

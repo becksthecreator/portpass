@@ -117,9 +117,8 @@ export function BwsListingMain({ data, ownDomain = false }: { data: Awaited<Retu
     <main className="tpl-page bws-listing-theme" style={{ "--brand": "#B0455F", "--brand-text": "#9E3A55" } as React.CSSProperties}>
       <IdentityBlock
         name="Bahamas Weddings By The Sea"
-        category="Weddings"
+        category="Wedding officiant & planner"
         location="Nassau, New Providence"
-        isOpen
         heroImageUrl="/weddings/bahamas-by-the-sea/bws-10.webp"
         layout="split"
       />
@@ -176,7 +175,7 @@ export function BwsListingMain({ data, ownDomain = false }: { data: Awaited<Retu
         <section className="tpl-reviews">
           <div className="tpl-section-heading">
             <p className="tpl-eyebrow">In their words</p>
-            <h2>One hundred five-star reviews.</h2>
+            <h2>{settings.reviewCount ? `${settings.reviewCount} five-star reviews on WeddingWire.` : "Five-star reviews on WeddingWire."}</h2>
           </div>
           <ReviewsPanel memberId={settings.weddingWire.memberId} />
           <a
@@ -190,7 +189,12 @@ export function BwsListingMain({ data, ownDomain = false }: { data: Awaited<Retu
         </section>
       )}
       <div className="tpl-whatsapp">
-        <MessageOnWhatsApp e164="+12424241262" businessName="Antonio" org="bahamas-weddings" />
+        <MessageOnWhatsApp
+          e164="+12424241262"
+          businessName="Antonio"
+          org="bahamas-weddings"
+          message={ownDomain ? "Hi Antonio, I'm planning a wedding in Nassau and I'd like to ask about your packages and dates." : undefined}
+        />
         {ownDomain ? (
           <ShareOnWhatsApp url="https://bahamasweddingsbythesea.com" text="Bahamas Weddings By The Sea:" org="bahamas-weddings" />
         ) : (

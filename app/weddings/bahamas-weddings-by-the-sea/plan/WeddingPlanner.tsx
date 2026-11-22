@@ -204,6 +204,7 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
         const body = await response.json().catch(() => ({}));
         throw new Error(body.error || "Could not send your plan. Please try again.");
       }
+      track("planner_submit", { org: "bahamas-weddings", package: form.packageSlug || "none" });
       setDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send your plan. Please try again.");

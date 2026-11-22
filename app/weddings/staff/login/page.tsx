@@ -7,6 +7,10 @@ import { hasAnyWeddingStaffAccount } from "../../staff-auth";
 import { StaffLoginForm } from "./StaffLoginForm";
 import { BootstrapAdminForm } from "./BootstrapAdminForm";
 
+// Served on bahamasweddingsbythesea.com as well; a staff screen never
+// belongs in search results there or here.
+export const metadata = { title: "Wedding Desk staff", robots: { index: false, follow: false } };
+
 export default async function WeddingStaffLoginPage({
   searchParams,
 }: {

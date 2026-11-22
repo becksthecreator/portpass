@@ -36,6 +36,9 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Plan Your Bahamas Wedding | Bahamas Weddings By The Sea",
   description: "Plan your Bahamas wedding with the Wedding Desk: choose a venue style and services, request a consultation, and send a full plan to Antonio Beckford.",
+  // One address in search: the business's own domain (the portpassbahamas.com
+  // path redirects there). ?tier= variants all point here too.
+  alternates: { canonical: "https://bahamasweddingsbythesea.com/weddings/bahamas-weddings-by-the-sea/plan" },
 };
 
 // Moved here from app/weddings/bahamas-by-the-sea/plan (redirected in
