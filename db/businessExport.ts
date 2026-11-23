@@ -34,8 +34,15 @@ const PAGE = 1000;
 // staff_note (brief 27, A): a programme's staff-only note stays on the
 // staff screen, as its migration promises.
 const STRIP = new Set(["pin_hash", "token", "token_hash", "public_token", "invite_token", "followers_token", "receipt_token", "staff_note"]);
-// Left off one table only (rule 3, above).
-const STRIP_BY_TABLE: Record<string, ReadonlySet<string>> = { private_session_requests: new Set(["session_goal", "notes"]) };
+// Left off one table only. A parent's free text on a private session or a
+// booking (goal, notes) can carry a child's health facts (rule 3, above).
+// The audit log's IP addresses belong to PortPass staff and admins, not to
+// the business.
+const STRIP_BY_TABLE: Record<string, ReadonlySet<string>> = {
+  private_session_requests: new Set(["session_goal", "notes"]),
+  booking_requests: new Set(["notes"]),
+  audit_log: new Set(["ip"]),
+};
 
 type Row = Record<string, unknown>;
 

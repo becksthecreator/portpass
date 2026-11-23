@@ -80,6 +80,14 @@ describe("the business export", () => {
     expect(fake.orders.programs).toEqual(["id"]);
   });
 
+  it("leaves a parent's booking notes and the audit log's IP addresses out", async () => {
+    fake.rows.booking_requests = [{ id: 5, organization_id: 9, reference_code: "B-TEST", child_first_name: "TEST", notes: "TEST has a nut allergy" }];
+    fake.rows.audit_log = [{ id: 6, organization_id: 9, action: "TEST", ip: "203.0.113.7" }];
+    await exportBusinessData(9, "test-user", new Date("2026-10-12T12:00:00Z"));
+    expect(fake.body).not.toMatch(/nut allergy|203\.0\.113\.7/);
+    expect(JSON.parse(fake.body).data.booking_requests[0]).toMatchObject({ reference_code: "B-TEST" });
+  });
+
   it("leaves link tokens out: a reservation's receipt and a drop's followers link", async () => {
     fake.rows.reservations = [{ id: 3, organization_id: 9, reference_code: "R-TEST", receipt_token: "TEST-receipt-secret" }];
     fake.rows.drops = [{ id: 4, organization_id: 9, title: "TEST drop", followers_token: "TEST-followers-secret" }];
