@@ -433,7 +433,7 @@ describe("Futprep's private sessions, team and classes never reach another busin
   });
 
   it("a private session payment: refused like a missing one, no money recorded", async () => {
-    const pay = (requestId: number) => recordPrivateSessionPayment({ requestId, amountCents: 100, method: "cash", reference: "", recordedBy: MARK });
+    const pay = (requestId: number) => recordPrivateSessionPayment({ requestId, amountCents: 100, method: "cash", reference: "", recordedBy: MARK, idempotencyKey: crypto.randomUUID() });
     expect(await outcome(pay(otherRequestId))).toBe(await outcome(pay(MISSING)));
     expect(await outcome(pay(otherRequestId))).toBe("refused REQUEST_NOT_FOUND");
     const { data: payments } = await db().from("payments").select("id").eq("private_session_request_id", otherRequestId);
