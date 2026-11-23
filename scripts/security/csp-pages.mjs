@@ -19,11 +19,14 @@
 import { createHmac } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { chromium } from "playwright";
+import { assertLocalSupabase } from "../../lib/localStackOnly.mjs";
 
 const BASE = process.env.CSP_BASE_URL ?? "http://localhost:3000";
 if (!["localhost", "127.0.0.1"].includes(new URL(BASE).hostname)) throw new Error("Refusing to run against anything but the app on localhost.");
+// The shared guard (lib/localStackOnly.mjs): this script signs in with the
+// local stack's own key, so it refuses any other Supabase.
+assertLocalSupabase();
 const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
-if (!/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/.test(SUPABASE_URL)) throw new Error("Refusing to sign in to anything but a local Supabase stack.");
 if (!process.env.SUPABASE_SECRET_KEY) throw new Error("SUPABASE_SECRET_KEY is not set.");
 if (!process.env.PAYMENTS_FIXTURE) throw new Error("PAYMENTS_FIXTURE is not set.");
 
