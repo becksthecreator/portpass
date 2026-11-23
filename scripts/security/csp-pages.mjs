@@ -95,14 +95,14 @@ async function context() {
   return ctx;
 }
 
-async function visit(page, name, path) {
+async function visit(page, name, path, origin = BASE) {
   const policyErrors = [];
   const onConsole = (message) => {
     const text = message.text();
     if (/content.security.policy/i.test(text)) policyErrors.push(text.slice(0, 200));
   };
   page.on("console", onConsole);
-  const response = await page.goto(`${BASE}${path}`, { waitUntil: "load" });
+  const response = await page.goto(`${origin}${path}`, { waitUntil: "load" });
   const header = response ? (response.headers()["content-security-policy"] ?? null) : null;
   const reportOnly = response ? Boolean(response.headers()["content-security-policy-report-only"]) : false;
   await page.waitForTimeout(1200);
@@ -120,13 +120,18 @@ async function visit(page, name, path) {
   const landed = new URL(page.url()).pathname;
   // A payment link's token never reaches the report.
   const mask = (value) => value.replace(/\/pay\/[0-9a-f]{12,}/g, "/pay/<TEST link>");
-  const where = landed === new URL(`${BASE}${path}`).pathname ? mask(path) : `${mask(path)}, landed on ${mask(landed)}`;
+  const shown = origin === BASE ? path : `${new URL(origin).host}${path}`;
+  const where = landed === new URL(`${origin}${path}`).pathname ? mask(shown) : `${mask(shown)}, landed on ${mask(landed)}`;
   const problems = [...violations, ...policyErrors];
   const detail = header === null ? "no content-security-policy header" : reportOnly ? "report-only header sent as well" : problems.slice(0, 4).join(" | ") || "no violations, no console errors about the policy";
   check(header !== null && !reportOnly && problems.length === 0, `${name} (${where}) is served with the enforced policy and raises no violation`, detail);
 }
 
-const browser = await chromium.launch();
+// register.futprep.com (#262) is told apart by its host name, so the browser
+// maps that name to this same local app: nothing leaves the machine.
+const FUTPREP_APP = "register.futprep.com";
+const LOCAL_PORT = new URL(BASE).port || "80";
+const browser = await chromium.launch({ args: [`--host-resolver-rules=MAP ${FUTPREP_APP} 127.0.0.1:${LOCAL_PORT}`] });
 try {
   // Pages anyone can open.
   {
@@ -139,6 +144,10 @@ try {
       ["section", "/entertainment"],
       ["business-page", "/entertainment/test-delete-motion-venue"],
       ["weddings", "/weddings"],
+      // Bahamas Weddings: the listing (WeddingWire widgets) and the planner
+      // (Google Analytics, #273), as its own domain renders them.
+      ["bws-listing", "/weddings/bahamas-weddings-by-the-sea"],
+      ["bws-planner", "/weddings/bahamas-weddings-by-the-sea/plan"],
       ["futprep-register", "/futprep/register"],
       ["apply", "/apply"],
       ["sign-in", "/login"],
@@ -147,6 +156,8 @@ try {
       ["payment-receipt", `/pay/${payments.paid.token}/receipt`],
     ];
     for (const [name, path] of open) await visit(page, name, path);
+    // Futprep registration as families reach it, on register.futprep.com.
+    await visit(page, "register-futprep", "/futprep/register", `http://${FUTPREP_APP}:${LOCAL_PORT}`);
     await ctx.close();
   }
 
@@ -186,6 +197,7 @@ const report = [
   ...lines,
   "",
   "Vercel's analytics and speed-insights scripts are served only on Vercel (under /_vercel/, from the site's own origin), so they are checked on the live site after the merge.",
+  "The FutPrep look book (/lookbook/futprep) is read from a private Storage bucket that the local stack does not have, so it is checked by hand on the live site after the merge, with its key.",
 ].join("\n");
 writeFileSync(`${OUT}/report.md`, `${report}\n`);
 console.log(report);
