@@ -4,7 +4,6 @@ import { ApplicationForm } from "./ApplicationForm";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { cheapestSubscription, getPlan, listPlans } from "@/db/pricing";
-import { getSectionOptions } from "@/lib/navSections";
 import { dollars, percentFromBps, type PricingPlan } from "@/lib/pricingFormat";
 
 const APPLY_TITLE = "Get listed on PortPass | PortPass Bahamas";
@@ -44,7 +43,7 @@ async function loadPricing(): Promise<{ plans: PricingPlan[]; cheapest: PricingP
 }
 
 export default async function ApplyPage() {
-  const [sections, pricing] = await Promise.all([getSectionOptions(), loadPricing()]);
+  const pricing = await loadPricing();
   const fromLine = pricing.cheapest ? `Then from ${dollars(pricing.cheapest.monthlyCents)}/month` : "Then a monthly plan";
   const marketplaceLine = pricing.marketplace ? `, or no monthly fee on Marketplace (${percentFromBps(pricing.marketplace.commissionBps)} of the bookings we bring you)` : "";
   return (
@@ -59,7 +58,7 @@ export default async function ApplyPage() {
       </section>
       {/* useSearchParams (for the UTM tags and ?plan=) needs a Suspense boundary on a statically rendered page. */}
       <Suspense fallback={null}>
-        <ApplicationForm sections={sections} plans={pricing.plans.map((p) => ({ code: p.code, name: p.name }))} />
+        <ApplicationForm plans={pricing.plans.map((p) => ({ code: p.code, name: p.name }))} />
       </Suspense>
       <SiteFooter />
     </main>
