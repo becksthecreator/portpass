@@ -95,7 +95,7 @@ function RealPictures() {
 
 export function FrontDoor({ variant }: { variant: Variant }) {
   return (
-    <section className={`fd fd-${variant}`} aria-labelledby="fd-title">
+    <section className={`fd fd-v-${variant}`} aria-labelledby="fd-title">
       <div className="fd-inner">
         <Words variant={variant} />
         {variant === "motion" ? <DrawnPhone /> : <RealPictures />}

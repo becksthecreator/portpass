@@ -40,19 +40,19 @@
 .fd-pass span{font-size:.75rem;font-weight:800;background:var(--signal);border-radius:999px;padding:5px 12px}
 
 @media (prefers-reduced-motion: no-preference){
-  .fd-motion .fd-phrase{animation:fd-rise .7s cubic-bezier(.2,.7,.2,1) both}
-  .fd-motion .fd-phrase:nth-child(1){animation-delay:.05s}
-  .fd-motion .fd-phrase:nth-child(2){animation-delay:.3s}
-  .fd-motion .fd-phrase:nth-child(3){animation-delay:.55s}
-  .fd-motion .fd-one{animation:fd-pop .6s cubic-bezier(.3,1.6,.5,1) .95s both}
-  .fd-motion .fd-lede,.fd-motion .fd-search,.fd-motion .fd-actions{animation:fd-rise .7s cubic-bezier(.2,.7,.2,1) 1.15s both}
-  .fd-motion .fd-phone{animation:fd-float 7s ease-in-out 1.6s infinite,fd-in .9s cubic-bezier(.2,.7,.2,1) .4s both}
-  .fd-motion .fd-chip{animation:fd-chip 7s ease-in-out infinite}
-  .fd-motion .fd-card-1{animation:fd-slide .6s cubic-bezier(.2,.7,.2,1) 1.4s both}
-  .fd-motion .fd-card-2{animation:fd-slide .6s cubic-bezier(.2,.7,.2,1) 1.7s both}
-  .fd-motion .fd-stamp{animation:fd-stamp .45s cubic-bezier(.3,1.6,.5,1) 2.4s both}
-  .fd-motion .fd-pass{animation:fd-slide .6s cubic-bezier(.2,.7,.2,1) 2s both}
-  .fd-motion .fd-pass::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.22) 50%,transparent 70%);transform:translateX(-100%);animation:fd-shine 4s ease-in-out 3s infinite}
+  .fd-v-motion .fd-phrase{animation:fd-rise .7s cubic-bezier(.2,.7,.2,1) both}
+  .fd-v-motion .fd-phrase:nth-child(1){animation-delay:.05s}
+  .fd-v-motion .fd-phrase:nth-child(2){animation-delay:.3s}
+  .fd-v-motion .fd-phrase:nth-child(3){animation-delay:.55s}
+  .fd-v-motion .fd-one{animation:fd-pop .6s cubic-bezier(.3,1.6,.5,1) .95s both}
+  .fd-v-motion .fd-lede,.fd-v-motion .fd-search,.fd-v-motion .fd-actions{animation:fd-rise .7s cubic-bezier(.2,.7,.2,1) 1.15s both}
+  .fd-v-motion .fd-phone{animation:fd-float 7s ease-in-out 1.6s infinite,fd-in .9s cubic-bezier(.2,.7,.2,1) .4s both}
+  .fd-v-motion .fd-chip{animation:fd-chip 7s ease-in-out infinite}
+  .fd-v-motion .fd-card-1{animation:fd-slide .6s cubic-bezier(.2,.7,.2,1) 1.4s both}
+  .fd-v-motion .fd-card-2{animation:fd-slide .6s cubic-bezier(.2,.7,.2,1) 1.7s both}
+  .fd-v-motion .fd-stamp{animation:fd-stamp .45s cubic-bezier(.3,1.6,.5,1) 2.4s both}
+  .fd-v-motion .fd-pass{animation:fd-slide .6s cubic-bezier(.2,.7,.2,1) 2s both}
+  .fd-v-motion .fd-pass::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.22) 50%,transparent 70%);transform:translateX(-100%);animation:fd-shine 4s ease-in-out 3s infinite}
 }
 @keyframes fd-rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @keyframes fd-pop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
@@ -73,7 +73,7 @@
 .fd-device{left:46%;top:16%;width:38%;aspect-ratio:9/18.5;border-radius:26px;border:8px solid var(--ink);background:var(--paper)}
 .fd-device img{object-position:top}
 @media (prefers-reduced-motion: no-preference){
-  .fd-real .fd-photo-a{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .1s both}
-  .fd-real .fd-photo-b{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .3s both}
-  .fd-real .fd-device{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .5s both}
+  .fd-v-real .fd-photo-a{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .1s both}
+  .fd-v-real .fd-photo-b{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .3s both}
+  .fd-v-real .fd-device{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .5s both}
 }
