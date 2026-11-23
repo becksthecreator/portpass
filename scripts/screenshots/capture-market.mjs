@@ -115,14 +115,14 @@ try {
   const anon = await visitor.newPage();
   await shoot(anon, "market-a-sell-signed-out-375", "/sell", { focus: ".sell-signin" });
   await shoot(anon, "market-a-storefront-375", `/shop/${shop.slug}`, { focus: ".shop-getting" });
-  // Part B: the Market, a category, a product page, Things to do and the
-  // homepage's "From the Market" strip.
+  // Part B: the Market, a category, a product page and Things to do. (The
+  // homepage's "From the Market" strip left the home page with the 19 Oct
+  // sports-only change, so it has no shot.)
   await shoot(anon, "market-b-market-375", "/market", { focus: ".mkt-grid" });
   await shoot(anon, "market-b-category-375", "/market/kits-apparel", { focus: ".mkt-chips" });
   await shoot(anon, "market-b-search-375", "/market?q=jersey", { focus: ".mkt-results-head" });
   await shoot(anon, "market-b-product-375", `/market/p/${shop.slug}/home-jersey`, { focus: ".mkt-sizes" });
   await shoot(anon, "market-b-things-to-do-375", "/market?tab=do", { focus: ".mkt-tabs" });
-  await shoot(anon, "market-b-home-strip-375", "/", { focus: ".home-market" });
 
   // Part C: the order form, then two TEST orders through the real route
   // (an example address: nothing is ever sent), arriving from /market so
