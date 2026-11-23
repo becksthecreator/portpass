@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 // The WeddingWire widgets as structured data (security review of PR #183),
 // against CI's local Supabase stack: what migration 202610270001 made of the
 // snippets 202609241015 stored, that the row has no HTML columns left
-// (202610280001), and the Wedding Desk's save route end to end with a TEST
+// (202610280005), and the Wedding Desk's save route end to end with a TEST
 // Desk account.
 // The PIN is drawn at random each run and never written anywhere but here.
 //
