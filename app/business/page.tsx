@@ -22,6 +22,7 @@ export const revalidate = 300;
 export const metadata = {
   title: "PortPass for Business | Your bookings and payments in one place",
   description: "One link with your prices, photos and a booking button. Send us your photos and prices on WhatsApp, we build your page, you share one link.",
+  alternates: { canonical: "/business" },
 };
 
 const WHATSAPP_HREF = portpassWhatsAppUrl("Hi PortPass — I run a business and want to get listed.");
