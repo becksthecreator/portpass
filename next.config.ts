@@ -41,6 +41,19 @@ const nextConfig: NextConfig = {
       // pages come back by deleting this block. First, so it wins over the
       // older /futprep rules below.
       ...FUTPREP_PUBLIC_PATHS.map((source) => ({ source, destination: FUTPREP_SITE, has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$" }], permanent: false })),
+      // The business card's QR code (23 Nov 2026): it prints
+      // portpassbahamas.com/card, which stays the same forever, and this
+      // decides where a scan lands. Today: the free First Look request,
+      // tagged so card scans are counted (apply_submitted, utm_source=card).
+      // Temporary (307) so it can point somewhere else later without a
+      // reprint, and so no browser or cache keeps the old target. PortPass's
+      // own hosts and previews only; a business's custom domain is left alone.
+      {
+        source: "/card",
+        destination: "/apply?utm_source=card&utm_medium=qr",
+        has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$|\\.vercel\\.app$" }],
+        permanent: false,
+      },
       // Futprep rebuilt on the shared Organization/Offering template --
       // its marketing pages now live under the sports-fitness category hub,
       // the same URL shape every future organization will use. The
