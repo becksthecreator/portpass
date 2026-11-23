@@ -13,11 +13,15 @@ import { sendApplicationReceivedEmail } from "@/lib/email";
 // `supabase start`).
 const createdNames: string[] = [];
 
+// Each request comes from its own made-up address (TEST-NET-3), so the
+// route's per-address rate limit never decides a test's outcome.
+let requestCount = 0;
 function post(payload: Record<string, unknown>) {
+  requestCount += 1;
   return POST(
     new Request("https://portpass.test/api/applications", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": `203.0.113.${requestCount}` },
       body: JSON.stringify(payload),
     }) as never,
   );
