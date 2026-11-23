@@ -1,5 +1,5 @@
 import "server-only";
-import { portpassFrom, sendEmail, type EmailOutcome } from "@/lib/email";
+import { sendEmail, type EmailOutcome, portpassSender } from "@/lib/email";
 import { viaPortpassFrom } from "@/lib/paymentRequests/email";
 import {
   bookingCancelledForBusinessEmail,
@@ -34,10 +34,10 @@ export async function sendBookingDeclined(organizationId: number, to: string, in
 
 export async function sendBookingNewToOwners(organizationId: number, owners: string[], input: OwnerBookingEmail): Promise<void> {
   const { subject, html } = bookingNewForBusinessEmail(input);
-  for (const to of owners) await sendEmail({ to, subject, html, from: portpassFrom(), log: { template: "booking_request_new_for_business", organizationId } });
+  for (const to of owners) await sendEmail({ to, subject, html, ...portpassSender(), log: { template: "booking_request_new_for_business", organizationId } });
 }
 
 export async function sendBookingCancelledToOwners(organizationId: number, owners: string[], input: OwnerBookingEmail): Promise<void> {
   const { subject, html } = bookingCancelledForBusinessEmail(input);
-  for (const to of owners) await sendEmail({ to, subject, html, from: portpassFrom(), log: { template: "booking_request_cancelled_for_business", organizationId } });
+  for (const to of owners) await sendEmail({ to, subject, html, ...portpassSender(), log: { template: "booking_request_cancelled_for_business", organizationId } });
 }

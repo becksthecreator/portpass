@@ -12,7 +12,7 @@ import { bumpListings } from "@/lib/revalidate";
 import { claimJobRun, futprepOrganization, getGrowthReport, logMessage, prunePageEvents, releaseJobRun, reportRecipients, syncCommissionEvents } from "@/db/growth";
 import { cronGate } from "@/lib/cron";
 import { runBillingStep } from "./billing";
-import { portpassFrom, sendEmail } from "@/lib/email";
+import { sendEmail, portpassSender } from "@/lib/email";
 import { monthlyReportPeriod, nassauClock } from "@/lib/growth";
 import { growthReportEmail } from "@/lib/growthEmail";
 
@@ -146,7 +146,7 @@ export async function GET(request: Request) {
         } else {
           const email = growthReportEmail(await getGrowthReport(organization, now), month);
           for (const to of recipients) {
-            const outcome = await sendEmail({ to, subject: email.subject, html: email.html, from: portpassFrom(), log: { template: "growth_report_monthly", organizationId: organization.id } });
+            const outcome = await sendEmail({ to, subject: email.subject, html: email.html, ...portpassSender(), log: { template: "growth_report_monthly", organizationId: organization.id } });
             // "skipped" means email is not connected: retrying today would not help.
             if (outcome !== "failed") delivered = true;
           }

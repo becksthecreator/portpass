@@ -99,3 +99,12 @@ describe("Futprep registration emails", () => {
     expect(logged).not.toContain("Ava Child");
   });
 });
+
+describe("portpassSender (23 Nov 2026)", () => {
+  it("PortPass's own emails reply to the company address, on its own domain", async () => {
+    const { portpassSender } = await import("./email");
+    const { PORTPASS_SUPPORT_EMAIL } = await import("./contact");
+    expect(PORTPASS_SUPPORT_EMAIL).toBe("info@portpassbahamas.com");
+    expect(portpassSender().replyTo).toBe("info@portpassbahamas.com");
+  });
+});

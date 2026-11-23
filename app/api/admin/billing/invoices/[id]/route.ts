@@ -5,7 +5,7 @@ import { getAccount, getBankDetails, invoiceAsSent, markInvoiceSent, recordRecei
 import { owedCents } from "@/lib/billing";
 import { invoiceSentEmail, invoiceWhatsappMessage } from "@/lib/billingEmail";
 import { cleanReceipt } from "@/lib/billingInput";
-import { portpassFrom, sendEmail } from "@/lib/email";
+import { sendEmail, portpassSender } from "@/lib/email";
 import { nassauToday } from "@/lib/futprepTerms";
 import { invoicePdf } from "@/lib/invoicePdf";
 
@@ -58,7 +58,7 @@ export async function POST(request: Request, ctx: Ctx) {
       const bank = await getBankDetails();
       const email = invoiceSentEmail({ businessName: invoice.organizationName, number: invoice.number, totalCents: invoice.totalCents, owedCents: owedCents(invoice), dueOn: invoice.dueOn, bank, dashboardUrl: dashboardUrl(invoice.organizationSlug) });
       const pdf = invoicePdf({ number: invoice.number, status: invoice.status, issuedOn: invoice.issuedOn, dueOn: invoice.dueOn, periodStart: invoice.periodStart, periodEnd: invoice.periodEnd, businessName: invoice.organizationName, billTo: [account.billingEmail, account.billingWhatsappE164 ?? ""], lines: invoice.lines, subtotalCents: invoice.subtotalCents, vatCents: invoice.vatCents, totalCents: invoice.totalCents, paidCents: invoice.paidCents, agreementVersion: invoice.agreementVersion, bank });
-      const outcome = await sendEmail({ to: account.billingEmail, from: portpassFrom(), subject: email.subject, html: email.html, attachments: [{ filename: `${invoice.number}.pdf`, content: Buffer.from(pdf).toString("base64") }], log: { template: "billing_invoice_sent", organizationId: invoice.organizationId } });
+      const outcome = await sendEmail({ to: account.billingEmail, ...portpassSender(), subject: email.subject, html: email.html, attachments: [{ filename: `${invoice.number}.pdf`, content: Buffer.from(pdf).toString("base64") }], log: { template: "billing_invoice_sent", organizationId: invoice.organizationId } });
       if (outcome !== "sent") {
         return NextResponse.json({ error: outcome === "skipped" ? "The email was not sent: email isn't set up here, or this is a test address. Nothing about the invoice has changed." : "The email failed to send (see Messages). Nothing about the invoice has changed." }, { status: 502 });
       }

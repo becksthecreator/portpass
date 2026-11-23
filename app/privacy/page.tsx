@@ -127,7 +127,7 @@ export default function PrivacyPage() {
           <li><strong>Vercel:</strong> website hosting. Every page you open and every form you send passes through its servers, and its logs record your internet address and the address of each page.</li>
           <li><strong>Resend:</strong> sends our emails, so it handles the address, subject and text of each one.</li>
           <li><strong>Google:</strong> only if you choose to sign in with Google.</li>
-          <li><strong>Microsoft Outlook:</strong> our own inbox, where requests to be listed and emails you send us arrive.</li>
+          <li><strong>Google Workspace (Gmail):</strong> our own inbox at info@portpassbahamas.com, where requests for a First Look and emails you send us arrive.</li>
           <li><strong>Anthropic and GitHub:</strong> tools we use to build and maintain PortPass. Anthropic’s AI also reads the public details of a business we plan to invite. They are not sent customer records in normal use.</li>
         </ul>
         <p>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { claimJobRun, futprepOrganization, logMessage, releaseJobRun, sessionsToNudge } from "@/db/growth";
 import { cronGate } from "@/lib/cron";
-import { portpassFrom, sendEmail } from "@/lib/email";
+import { sendEmail, portpassSender } from "@/lib/email";
 import { isNudgeWindow, nassauClock } from "@/lib/growth";
 import { attendanceNudgeEmail } from "@/lib/growthEmail";
 
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
             continue;
           }
           const email = attendanceNudgeEmail({ coachName: coach.name, programName: session.programName, startTime: session.startTime, sessionId: session.sessionId });
-          const outcome = await sendEmail({ to: coach.email, subject: email.subject, html: email.html, from: portpassFrom(), log: { template: "attendance_nudge", organizationId: organization.id } });
+          const outcome = await sendEmail({ to: coach.email, subject: email.subject, html: email.html, ...portpassSender(), log: { template: "attendance_nudge", organizationId: organization.id } });
           if (outcome === "failed") failed = true;
         }
       } catch (error) {

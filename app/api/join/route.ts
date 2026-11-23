@@ -5,7 +5,7 @@ import { recordEventSignup } from "@/db/leads";
 import { afterResponse } from "@/lib/afterResponse";
 import { clientIp, createRateLimiter } from "@/lib/auth/rateLimit";
 import { PORTPASS_SUPPORT_EMAIL } from "@/lib/contact";
-import { escapeHtml, portpassEmailShell, portpassFrom, sendEmail } from "@/lib/email";
+import { escapeHtml, portpassEmailShell, sendEmail, portpassSender } from "@/lib/email";
 import { eventName, parseEventSignup } from "@/lib/eventSignup";
 import { isSectionSlug, sectionName } from "@/lib/sections";
 
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       afterResponse(() =>
         sendEmail({
           to: PORTPASS_SUPPORT_EMAIL,
-          from: portpassFrom(),
+          ...portpassSender(),
           log: { template: "event_signup_received" },
           subject: `Signed up at ${eventName(signup.event)}: ${signup.businessName}`,
           html: portpassEmailShell("A business signed up", `

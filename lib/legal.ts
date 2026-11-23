@@ -21,9 +21,16 @@ export type LegalDocument = {
 };
 
 export const PRIVACY_POLICY: LegalDocument = {
-  version: 2,
-  updated: "2026-10-01",
+  version: 3,
+  updated: "2026-11-23",
   changelog: [
+    {
+      version: 3,
+      date: "2026-11-23",
+      changes: [
+        "Our contact address is now info@portpassbahamas.com, and our inbox is Google Workspace (Gmail) instead of Microsoft Outlook.",
+      ],
+    },
     {
       version: 2,
       date: "2026-10-01",

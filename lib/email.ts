@@ -144,6 +144,14 @@ export function portpassFrom(): string | undefined {
   return cleanEnvValue(process.env.PORTPASS_FROM_EMAIL) ?? cleanEnvValue(process.env.FUTPREP_FROM_EMAIL);
 }
 
+// Every email PortPass sends as itself (to business owners, staff, billing
+// contacts, the founders): its from address, and replies to the company
+// address. Emails a business sends its own customers use viaPortpassFrom()
+// and never this, so a customer's reply goes to the business.
+export function portpassSender(): { from: string | undefined; replyTo: string } {
+  return { from: portpassFrom(), replyTo: PORTPASS_SUPPORT_EMAIL };
+}
+
 export function escapeHtml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -179,7 +187,7 @@ export async function sendApplicationReceivedEmail(input: {
   const source = [input.utmSource, input.utmMedium, input.utmCampaign].filter(Boolean).map((v) => escapeHtml(v as string)).join(" / ");
   await sendEmail({
     to: PORTPASS_SUPPORT_EMAIL,
-    from: portpassFrom(),
+    ...portpassSender(),
     log: { template: "listing_request_received" },
     subject: `New listing request — ${input.organizationName}`,
     html: portpassEmailShell("New listing request", `
@@ -205,7 +213,7 @@ export async function sendBankDetailsChangedEmail(input: { to: string[]; busines
   for (const to of input.to) {
     await sendEmail({
       to,
-      from: portpassFrom(),
+      ...portpassSender(),
       log: { template: "bank_details_changed", organizationId: input.organizationId ?? null },
       subject: `Your payment details were changed — ${input.businessName}`,
       html: portpassEmailShell("Your payment details were changed", `
@@ -221,7 +229,7 @@ export async function sendBusinessSubmittedEmail(input: { organizationId?: numbe
   for (const to of input.to) {
     await sendEmail({
       to,
-      from: portpassFrom(),
+      ...portpassSender(),
       log: { template: "business_submitted_for_review", organizationId: input.organizationId ?? null },
       subject: `Review request — ${input.businessName}`,
       html: portpassEmailShell("A business is ready for review", `
