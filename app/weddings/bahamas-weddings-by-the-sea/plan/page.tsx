@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { bwsSerif, bwsSans } from "../fonts";
 import { WeddingPlanner } from "./WeddingPlanner";
+import { BwsGoogleAnalytics } from "../BwsGoogleAnalytics";
 import { getPublicWeddingPackages, type PublicWeddingPackage } from "@/db/weddingPackages";
 import { getPublicUnavailableDates } from "@/db/weddingAvailability";
 import { withOneRetry } from "@/db/supabase";
@@ -60,6 +61,7 @@ export default async function PlanPage() {
         </nav>
       </header>
       <main className="bws-planner-main" id="planner-main">
+        <BwsGoogleAnalytics />
         <section className="bws-planner-intro">
           <p className="bws-eyebrow">Plan from anywhere</p>
           <h1>Let&rsquo;s shape your<br /><em>island wedding.</em></h1>
