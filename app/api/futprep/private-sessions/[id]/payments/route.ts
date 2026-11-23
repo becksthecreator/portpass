@@ -4,7 +4,10 @@ import { privateSessionOwners, recordPrivateSessionPayment } from "@/db/coaches"
 import { bodyOf, readJson } from "@/lib/api/body";
 import { canActOnRequest, canSeeRequest } from "@/lib/privateSessionAccess";
 
-const Body = bodyOf(["amountDollars", "method", "reference"]);
+const Body = bodyOf(["amountDollars", "method", "reference", "idempotencyKey"]);
+// The form's key for one payment (a UUID): a double tap or a retry sends
+// the same one and the database records the payment once.
+const KEY = /^[A-Za-z0-9-]{16,64}$/;
 
 // Staff record money received for a private session against its reference
 // (brief 06 v2, Part B). Brief 31 (C1): a coach only on their own requests;
@@ -22,12 +25,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const amountCents = Math.round(Number(body.amountDollars) * 100);
   const method = body.method === "bank_transfer" || body.method === "online_banking" ? body.method : body.method === "cash" ? "cash" : null;
   if (!Number.isFinite(amountCents) || amountCents <= 0 || !method) return NextResponse.json({ error: "Enter the amount and how it was paid." }, { status: 400 });
+  const idempotencyKey = typeof body.idempotencyKey === "string" && KEY.test(body.idempotencyKey) ? body.idempotencyKey : null;
+  if (!idempotencyKey) return NextResponse.json({ error: "Refresh the page and try again." }, { status: 400 });
 
   const owners = await privateSessionOwners(requestId);
   if (!owners || !canSeeRequest(viewer, owners)) return NextResponse.json({ error: "Not found." }, { status: 404 });
   if (!canActOnRequest(viewer, owners)) return NextResponse.json({ error: "This request is with another coach now." }, { status: 403 });
   try {
-    const result = await recordPrivateSessionPayment({ requestId, amountCents, method, reference: String(body.reference ?? "").slice(0, 80), recordedBy: account });
+    const result = await recordPrivateSessionPayment({ requestId, amountCents, method, reference: String(body.reference ?? "").slice(0, 80), recordedBy: account, idempotencyKey });
     const { requests } = await inboxRequests(viewer);
     return NextResponse.json({ ok: true, ...result, requests }, { status: 201 });
   } catch (error) {
