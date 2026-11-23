@@ -97,6 +97,7 @@ beforeAll(async () => {
       Allergies: { from: "", to: "TEST peanut" },
       "Medical conditions": { from: "TEST old", to: "TEST asthma" },
       Notes: { from: "", to: "TEST gets wheezy when running" },
+      "Emergency contact name": { from: "", to: "TEST Auntie Contact" },
       "Emergency contact phone": { from: "+12425550198", to: "+12425550199" },
       "Authorized pickup": { from: "", to: "TEST Grandma Pickup" },
       "Parent phone": { from: "+12425550000", to: "+12425550100" },
@@ -139,6 +140,7 @@ describe("children's health details are deleted 90 days after the programme ends
     expect(JSON.stringify(edits)).not.toContain("wheezy");
     expect(JSON.stringify(edits)).not.toContain("Grandma");
     expect(JSON.stringify(edits)).not.toContain("+12425550198");
+    expect(JSON.stringify(edits)).not.toContain("Auntie");
 
     // The staff detail view can say "removed", not "none given".
     expect((await getFutprepRegistrationDetail(dueId))?.health_purged_at).not.toBeNull();
