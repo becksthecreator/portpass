@@ -47,26 +47,38 @@ export function withDraftRibbon(html: string, label = "Draft 1 · Private · not
   return html.slice(0, at) + ribbon + html.slice(at);
 }
 
-// The key is used once: a visit with a valid ?k= gets a short-lived cookie
-// and is sent on to the clean address (no key in the URL bar, history or
-// anything shared from the page). From then on the page and every asset
-// open on the cookie alone (Security & QA, 20 Nov). The cookie holds a keyed
-// hash of the key, never the key, scoped to the look book's own path;
-// changing the env var turns every such cookie off at once.
+// A visit with a valid ?k= gets a cookie and is sent on to the clean
+// address (no key in the URL bar, history or anything shared from the page).
+// From then on the page and every asset open on the cookie alone (Security
+// & QA, 20 Nov). The key in the original link keeps working on every tap,
+// so re-opening it always works. The cookie holds a keyed hash of the key,
+// never the key, scoped to the look book's own path; changing the env var
+// turns every such cookie off at once.
+//
+// 30 days (Antonio, 22 Nov: "Yes, 30 days"): with 4 hours, a refresh or a
+// bookmark of the clean address said "Not found" the next day.
+//
+// SameSite=Lax, not Strict (22 Nov). Tested in Chromium and Edge with the
+// link opened from another site, as a tap from WhatsApp or email is: Strict
+// worked for the first tap and a refresh, but the clean address opened
+// from another site (WhatsApp's or Mail's history, a forwarded link) said
+// "Not found"; Lax worked in every case. Safari has had bugs with Strict
+// cookies after a cross-site arrival; Lax is the dependable behaviour for
+// top-level links in Chrome, Safari and Edge. Lax only adds that the cookie
+// goes with a top-level GET from another site; the look book has no action
+// to forge (read-only GET pages), so nothing is lost.
 export const LOOKBOOK_COOKIE = "pp_lookbook_futprep";
 export const LOOKBOOK_COOKIE_PATH = "/lookbook/futprep";
-export const LOOKBOOK_COOKIE_MAX_AGE = 4 * 60 * 60;
+export const LOOKBOOK_COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
 export function lookbookSetCookie(value: string, secure: boolean): string {
-  return `${LOOKBOOK_COOKIE}=${value}; Path=${LOOKBOOK_COOKIE_PATH}; Max-Age=${LOOKBOOK_COOKIE_MAX_AGE}; HttpOnly; SameSite=Strict${secure ? "; Secure" : ""}`;
+  return `${LOOKBOOK_COOKIE}=${value}; Path=${LOOKBOOK_COOKIE_PATH}; Max-Age=${LOOKBOOK_COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
-// Why a tiny page and not a 303 to the clean address: Alex opens the link
-// from WhatsApp or email, a cross-site navigation, and browsers don't send a
-// SameSite=Strict cookie on the redirect that follows one, so the clean
-// address would 404 on the first tap. A same-origin navigation from this
-// page does send it, and location.replace drops the keyed address from the
-// history. The meta refresh covers a browser with scripts off.
+// A tiny page, not a 303, sends the browser on to the clean address: a
+// same-origin navigation from this page carries the cookie in every browser,
+// and location.replace drops the keyed address from the history. The meta
+// refresh covers a browser with scripts off.
 export function lookbookHandoffPage(target: string): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex, nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="refresh" content="0;url=${target}"><title>Opening…</title></head><body><script>location.replace(${JSON.stringify(target)})</script><p><a href="${target}">Open the look book</a></p></body></html>`;
 }
