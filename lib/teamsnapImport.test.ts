@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeFill, mapHeaders, nameKey, parseCsv, parseDate, planImport, toRecords, type ExistingRegistration } from "./teamsnapImport";
+import { describeFill, mapHeaders, nameKey, parseCsv, parseDate, planImport, toRecords, withoutMedicalFill, type ExistingRegistration, type PlanRow } from "./teamsnapImport";
 
 const CSV =
   "﻿First Name,Last Name,Birthdate,Gender,Contact 1 First Name,Contact 1 Last Name,Contact 1 Email,Contact 1 Mobile Phone,Emergency Contact Name,Emergency Contact Phone,Allergies,Jersey Number\r\n" +
@@ -68,5 +68,28 @@ describe("planning the import (brief 13)", () => {
     const { records } = toRecords(parseCsv(CSV));
     const plan = planImport(records, [{ ...registrations[0], status: "pending" }]);
     expect(plan[0]).toMatchObject({ status: "not_pending", fill: {} });
+  });
+});
+
+describe("medical fields need the medical permission (rule 3, Security & QA 19 Nov)", () => {
+  const row = (fill: PlanRow["fill"], status: PlanRow["status"] = "fill"): PlanRow => ({ row: 2, childName: "TEST Child", status, registrationId: 1, referenceCode: "FP-TEST", fill });
+
+  it("leaves the medical fields out and counts them, keeping the rest", () => {
+    const { plan, skippedMedical } = withoutMedicalFill([row({ parent_name: "TEST Parent", allergies: "TEST peanut", medications: "TEST inhaler" })]);
+    expect(skippedMedical).toBe(2);
+    expect(plan[0].fill).toEqual({ parent_name: "TEST Parent" });
+    expect(plan[0].status).toBe("fill");
+    expect(JSON.stringify(plan)).not.toContain("peanut");
+  });
+
+  it("turns a medical-only row into nothing new, so nothing is written to it", () => {
+    const { plan, skippedMedical } = withoutMedicalFill([row({ medical_conditions: "TEST asthma" })]);
+    expect(skippedMedical).toBe(1);
+    expect(plan[0]).toMatchObject({ status: "nothing_new", fill: {} });
+  });
+
+  it("leaves rows that aren't being filled as they are", () => {
+    const untouched = row({}, "no_match");
+    expect(withoutMedicalFill([untouched])).toEqual({ plan: [untouched], skippedMedical: 0 });
   });
 });

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { currentFutprepStaffName, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
+import { currentFutprepStaffCanViewMedical, currentFutprepStaffName, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
 import { applyTeamsnapImport, previewTeamsnapImport } from "@/db/teamsnapImport";
 
 // Import from TeamSnap (brief 13, part 5): { apply: false } previews,
@@ -13,11 +13,15 @@ export async function POST(request: Request) {
   const termId = Number(body.termId);
   const csv = typeof body.csv === "string" ? body.csv : "";
   if (!Number.isInteger(programId) || !Number.isInteger(termId) || !csv.trim()) return NextResponse.json({ error: "Choose a class and paste or upload the TeamSnap CSV." }, { status: 400 });
+  // Rule 3: medical fields are imported only by a login with the medical
+  // permission (the same switch the desk and roster use); for any other
+  // login they are left out and counted (Security & QA audit, 19 Nov).
+  const canWriteMedical = await currentFutprepStaffCanViewMedical();
   try {
     if (body.apply === true) {
-      return NextResponse.json(await applyTeamsnapImport({ programId, termId, csv, actor: (await currentFutprepStaffName()) ?? role }));
+      return NextResponse.json(await applyTeamsnapImport({ programId, termId, csv, actor: (await currentFutprepStaffName()) ?? role, canWriteMedical }));
     }
-    return NextResponse.json(await previewTeamsnapImport({ programId, termId, csv }));
+    return NextResponse.json(await previewTeamsnapImport({ programId, termId, csv, canWriteMedical }));
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "CSV_TOO_LARGE") return NextResponse.json({ error: "That file is too big for one class (up to 1,000 rows)." }, { status: 413 });

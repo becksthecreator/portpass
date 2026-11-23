@@ -276,3 +276,21 @@ export function describeFill(fill: Partial<Record<RegistrationColumn, string>>):
   const medical = columns.filter((c) => MEDICAL_COLUMNS.includes(c)).length;
   return medical ? [...plain, `medical notes (${medical})`] : plain;
 }
+
+// Rule 3 (Security & QA audit, 19 Nov): a login without the medical
+// permission imports everything but the medical fields. They are left out
+// of the plan before it is shown or saved, and counted so the screen can
+// say what was skipped and why.
+export function withoutMedicalFill(plan: PlanRow[]): { plan: PlanRow[]; skippedMedical: number } {
+  let skippedMedical = 0;
+  const kept = plan.map((row) => {
+    if (row.status !== "fill") return row;
+    const fill: Partial<Record<RegistrationColumn, string>> = {};
+    for (const [column, value] of Object.entries(row.fill) as Array<[RegistrationColumn, string]>) {
+      if (MEDICAL_COLUMNS.includes(column)) skippedMedical += 1;
+      else fill[column] = value;
+    }
+    return { ...row, fill, status: Object.keys(fill).length ? ("fill" as const) : ("nothing_new" as const) };
+  });
+  return { plan: kept, skippedMedical };
+}
