@@ -31,7 +31,11 @@ export type ApplicationRecord = {
 export type NewApplication = {
   organizationName: string;
   contactPerson: string;
-  section: string;
+  // A section slug where the kind of business has one, else null.
+  section: string | null;
+  // The kind of business in words ("Salon, barber or beauty", "Other: food
+  // truck"), from lib/businessKinds.ts.
+  activityType?: string | null;
   whatsappE164: string;
   instagramHandle: string | null;
   note: string | null;
@@ -51,6 +55,7 @@ export async function createApplication(values: NewApplication): Promise<{ id: n
       organization_name: values.organizationName,
       contact_person: values.contactPerson,
       section: values.section,
+      activity_type: values.activityType ?? null,
       whatsapp_e164: values.whatsappE164,
       // Kept in the legacy column too so the admin list and any old export
       // keep showing a number without a code change.

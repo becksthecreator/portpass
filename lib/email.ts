@@ -154,7 +154,8 @@ export async function sendApplicationReceivedEmail(input: {
   id: number;
   organizationName: string;
   contactPerson: string;
-  section: string;
+  section: string | null;
+  activityType?: string | null;
   whatsappE164: string;
   instagramHandle: string | null;
   note: string | null;
@@ -171,12 +172,13 @@ export async function sendApplicationReceivedEmail(input: {
     to: PORTPASS_SUPPORT_EMAIL,
     from: portpassFrom(),
     log: { template: "listing_request_received" },
-    subject: `New listing request — ${input.organizationName}`,
-    html: portpassEmailShell("New listing request", `
-      <p><strong>${escapeHtml(input.organizationName)}</strong> wants to be listed on PortPass.</p>
+    subject: `New First Look request — ${input.organizationName}`,
+    html: portpassEmailShell("New First Look request", `
+      <p><strong>${escapeHtml(input.organizationName)}</strong> asked for a free First Look.</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0">
         ${row("Contact", escapeHtml(input.contactPerson))}
-        ${row("Section", escapeHtml(input.section))}
+        ${row("Kind of business", escapeHtml(input.activityType ?? input.section ?? "Not given"))}
+        ${input.section ? row("Section", escapeHtml(input.section)) : ""}
         ${input.planName ? row("Plan picked", escapeHtml(input.planName)) : ""}
         ${row("WhatsApp", `<a href="${waLink}" style="color:#2463AE">${escapeHtml(input.whatsappE164)}</a>`)}
         ${input.instagramHandle ? row("Instagram", `<a href="https://instagram.com/${encodeURIComponent(input.instagramHandle)}" style="color:#2463AE">@${escapeHtml(input.instagramHandle)}</a>`) : ""}
