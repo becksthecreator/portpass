@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ppDisplay, ppSans } from "./fonts";
 import { ProwMoment } from "./_components/motion/ProwMoment";
-import { HomeHero } from "./HomeHero";
+import { FrontDoor } from "./_components/FrontDoor";
 import { BusinessCarousel } from "./_components/BusinessCarousel";
 import { OpenNowCards, type OpenNowCard } from "./_components/OpenNowCards";
 import { SectionGrid } from "./_components/SectionGrid";
@@ -23,7 +23,7 @@ import { listPublishedOrganizations, liveCountsByCategory, type OrganizationDire
 import { withOneRetry } from "@/db/supabase";
 import { orderBySpotlight } from "@/lib/siteContent";
 import { programTimeRange } from "./futprep/config";
-import { closesInLabel, datedOfferLine, openCountSentence, orderOpenNow } from "@/lib/openNow";
+import { closesInLabel, datedOfferLine, orderOpenNow } from "@/lib/openNow";
 import "./phase1.css";
 import { SiteHeader } from "./_components/SiteHeader";
 import { SiteFooter } from "./_components/SiteFooter";
@@ -133,7 +133,9 @@ export default async function Home() {
       <a className="home-skip-link" href="#chooser">Skip to browse</a>
 
       <SiteHeader tide />
-      <HomeHero openSentence={openCountSentence(directory.length)} />
+      {/* PREVIEW for Bex (23 Nov): Section 1, "The front door", the motion
+          option. The realism option is on preview/front-door-real. */}
+      <FrontDoor variant="motion" />
       <DepartureBoard counts={boardCounts} />
 
       <Suspense fallback={openNowCount > 0 ? <OpenNowSkeleton cards={openNowCount} camps={campCards} /> : null}>
