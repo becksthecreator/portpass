@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     if (message === "INVALID_SLUG") return NextResponse.json({ error: "Slug must be lowercase letters, numbers, and hyphens." }, { status: 400 });
     if (message === "NAME_REQUIRED") return NextResponse.json({ error: "Enter a name." }, { status: 400 });
     if (message === "INVALID_PRICE") return NextResponse.json({ error: "Enter a valid price." }, { status: 400 });
+    if (message === "INVALID_IMAGE") return NextResponse.json({ error: "Use a photo from /weddings/bahamas-by-the-sea/ or one uploaded for Bahamas Weddings By The Sea, or leave the image blank." }, { status: 400 });
     console.error("Wedding package save error", error);
     return NextResponse.json({ error: "Could not save the package." }, { status: 500 });
   }
