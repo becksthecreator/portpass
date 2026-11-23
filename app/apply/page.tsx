@@ -16,6 +16,7 @@ export const revalidate = 300;
 export const metadata = {
   title: APPLY_TITLE,
   description: APPLY_DESCRIPTION,
+  alternates: { canonical: "/apply" },
   openGraph: {
     type: "website",
     siteName: "PortPass Bahamas",

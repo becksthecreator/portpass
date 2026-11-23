@@ -4,7 +4,7 @@ import { PageTransition } from "@/app/_components/motion/PageTransition";
 import { PORTPASS_PHONE_DISPLAY, PORTPASS_PHONE_E164, PORTPASS_SUPPORT_EMAIL } from "@/lib/contact";
 
 const TITLE = "About | PortPass Bahamas";
-const DESCRIPTION = "PortPass is a booking platform for independent Bahamian businesses.";
+const DESCRIPTION = "PortPass gives independent Bahamian businesses a booking page and a record of every payment.";
 
 // ISR: the header now shows live counts from the database, so a static page
 // regenerates every five minutes rather than only at deploy time.
@@ -13,6 +13,7 @@ export const revalidate = 300;
 export const metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  alternates: { canonical: "/about" },
   openGraph: { type: "website", siteName: "PortPass Bahamas", title: TITLE, description: DESCRIPTION, url: "https://portpassbahamas.com/about" },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
@@ -29,7 +30,7 @@ export default function AboutPage() {
       </section>
       <article className="legal-body">
         <h2>What we do</h2>
-        <p>PortPass is a booking platform. A sports club, coach or gym lists what it offers &mdash; a term, a class, a session or a membership &mdash; with real prices. Customers book online and pay the business directly, by cash or bank transfer, and the business records every payment, instead of going back and forth over WhatsApp or a phone call. Card payments are not available yet.</p>
+        <p>PortPass is where a sports club, coach or gym lists what it offers &mdash; a term, a class, a session or a membership &mdash; with real prices, and customers book online and pay the business directly, by cash or bank transfer, and the business records every payment, instead of going back and forth over WhatsApp or a phone call. Card payments are not available yet.</p>
 
         <h2>Who&rsquo;s live today</h2>
         <p>Futprep Athletics runs its football programs through PortPass. We&rsquo;re early &mdash; real clubs, not a long list padded out for show.</p>

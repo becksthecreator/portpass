@@ -33,6 +33,10 @@ Every setting PortPass reads from its environment, by name. This table never hol
 | `ANTHROPIC_API_KEY` | Admin → Leads: the AI summary, score and first message to edit. Optional. | Antonio, in Vercel. Anthropic issues it. | Every 12 months. |
 | `SCOUT_MODEL` | Which model the Leads summary uses. Optional; there is a default in code. | Antonio, in Vercel. | Not a secret. |
 | `WEDDING_DESK_NOTIFY_EMAIL` | Where a new wedding enquiry is emailed. Optional. | Antonio, in Vercel. | When the Wedding Desk's address changes. |
+| `WEDDING_AUTOREPLY` | "on" sends a couple an instant reply after they send a wedding plan. Off when empty. | Antonio, in Vercel, once the client approves the wording. | Not a secret. |
+| `WEDDING_DESK_REPLY_TO` | The business inbox a couple's reply to that email goes to. Without it, no reply is sent. | Antonio, in Vercel. | When the client's address changes. |
+| `WEDDING_DESK_FROM_EMAIL` | The verified sender for that reply. Optional; defaults to the PortPass sender. | Antonio, in Vercel. | Not a secret. |
+| `NEXT_PUBLIC_BWS_GA4_ID` | Google Analytics 4 measurement ID (G-...) for Bahamas Weddings By The Sea's pages only, from the client's own GA property. Public by design. Empty: no GA. | Antonio, in Vercel. | Not a secret. |
 
 ## Set by the host or the runtime
 

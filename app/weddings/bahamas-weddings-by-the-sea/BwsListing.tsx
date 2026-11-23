@@ -14,6 +14,7 @@ import { MessageOnWhatsApp, ShareOnWhatsApp } from "@/app/_components/blocks/Wha
 import { MemberPerkStrip } from "@/app/_components/perks/MemberPerkStrip";
 import { RelatedInSection } from "@/app/_components/seo/RelatedInSection";
 import { InOurGuides } from "@/app/guides/InOurGuides";
+import { BwsGoogleAnalytics } from "./BwsGoogleAnalytics";
 
 // Bahamas Weddings By The Sea's page, shared by its PortPass address
 // (/weddings/bahamas-weddings-by-the-sea, with PortPass's header and
@@ -115,6 +116,7 @@ export function BwsListingMain({ data, ownDomain = false }: { data: Awaited<Retu
   // fifth named token that would only ever hold this same value.
   return (
     <main className="tpl-page bws-listing-theme" style={{ "--brand": "#B0455F", "--brand-text": "#9E3A55" } as React.CSSProperties}>
+      <BwsGoogleAnalytics />
       <IdentityBlock
         name="Bahamas Weddings By The Sea"
         category="Wedding officiant & planner"

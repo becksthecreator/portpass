@@ -73,7 +73,9 @@ export async function listAccountBookings(email: string | null): Promise<Account
     db.from("registrations").select("reference_code,organization_id,program_id,term_id,child_name,registration_status,payment_status,submitted_at").ilike("parent_email", match).order("submitted_at", { ascending: false }).limit(LIMIT),
     db.from("private_session_requests").select("reference_code,organization_id,child_name,requested_date,status,created_at").ilike("parent_email", match).order("created_at", { ascending: false }).limit(LIMIT),
     db.from("reservations").select("reference_code,receipt_token,organization_id,total_cents,status,kind,order_status,created_at").ilike("buyer_email", match).order("created_at", { ascending: false }).limit(LIMIT),
-    db.from("wedding_leads").select("public_token,status,preferred_wedding_date,created_at").ilike("email", match).order("created_at", { ascending: false }).limit(LIMIT),
+    // Not a planner the couple only started (names and email, no plan yet):
+    // that takes one step, so it isn't proof the address is theirs.
+    db.from("wedding_leads").select("public_token,status,preferred_wedding_date,created_at").ilike("email", match).or("utm->>planner_stage.is.null,utm->>planner_stage.neq.started").order("created_at", { ascending: false }).limit(LIMIT),
     // A request made for an order or a reservation shows as that order, once.
     db.from("payment_requests").select("reference_code,public_token,organization_id,total_cents,paid_cents,status,due_date,created_at").ilike("customer_email", match).is("reservation_id", null).eq("is_test", false).not("status", "in", "(draft,void)").order("created_at", { ascending: false }).limit(LIMIT),
     // Booking requests (brief 19, part A): what was asked for and where it stands.

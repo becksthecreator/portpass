@@ -12,6 +12,7 @@ export const revalidate = 300;
 export const metadata = {
   title: "Terms of Service | PortPass Bahamas",
   description: "The terms for using PortPass Bahamas: accounts, registering and booking, paying a business, and listing your business.",
+  alternates: { canonical: "/terms" },
 };
 
 // Terms of Service v3 (brief 16 D, brief 07; v3 is sports, fitness and

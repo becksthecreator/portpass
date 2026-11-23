@@ -25,6 +25,7 @@ type FormState = {
   consultationTimezone: string;
   names: string;
   email: string;
+  phone: string;
   travellingFrom: string;
   notes: string;
   contactConsent: boolean;
@@ -68,7 +69,7 @@ const CONSULTATION_CHOICES = [
   { value: "Guided text planning", label: "Guided text planning", hint: "Work through each decision in messages." },
 ];
 
-const STEP_LABELS = ["Your ceremony", "Level of service", "The day", "Venue style", "Services", "Consultation", "Your details"];
+const STEP_LABELS = ["Your ceremony", "Where to reply", "Level of service", "The day", "Venue style", "Services", "Consultation", "Review and send"];
 
 function buildWhatsAppMessage(form: FormState) {
   const lines = [
@@ -104,6 +105,7 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
     consultationTimezone: "",
     names: "",
     email: "",
+    phone: "",
     travellingFrom: "",
     notes: "",
     contactConsent: false,
@@ -129,10 +131,33 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
 
   function validate(index: number): string | null {
     if (index === 0 && !form.ceremonyChoice) return "Choose the option closest to what you have in mind.";
-    if (index === 5 && !form.consultationMethod) return "Choose how you'd like to meet the Wedding Desk.";
-    if (index === 6 && !form.names.trim()) return "Tell us your names.";
-    if (index === 6 && !form.contactConsent) return "Please confirm we can contact you about this request.";
+    // Step 2 asks where to reply, so a couple who stops partway can still be
+    // answered (Bahamas Weddings peak-season bundle, 23 Nov 2026).
+    if (index === 1 && !form.names.trim()) return "Tell us your names.";
+    if (index === 1 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return "Add an email address so we can reply.";
+    if (index === 1 && !form.contactConsent) return "Please confirm we can contact you about this request.";
+    if (index === 6 && !form.consultationMethod) return "Choose how you'd like to meet the Wedding Desk.";
     return null;
+  }
+
+  // Saves names and email to the Wedding Desk as soon as they're given.
+  // Fire and forget: the couple carries on whatever happens, and the full
+  // plan (same idempotency key) fills in this row or creates it.
+  function saveStart() {
+    fetch("/api/weddings/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({
+        stage: "started",
+        idempotencyKey,
+        names: form.names,
+        email: form.email.trim(),
+        phone: form.phone,
+        ceremonyType: form.ceremonyChoice,
+        contactConsent: form.contactConsent,
+      }),
+    }).catch(() => undefined);
   }
 
   function next() {
@@ -142,6 +167,10 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
     // Leaving the first step is the "started planning" signal (round 4,
     // item 8); the event names the business only.
     if (step === 0) track("planner_start", { org: "bahamas-weddings" });
+    if (step === 1) {
+      saveStart();
+      track("planner_contact", { org: "bahamas-weddings" });
+    }
     setStep((s) => Math.min(s + 1, STEP_LABELS.length - 1));
   }
 
@@ -171,7 +200,7 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const message = validate(6) || validate(0) || validate(5);
+    const message = validate(1) || validate(0) || validate(6);
     if (message) { setError(message); return; }
     setError(null);
     setBusy(true);
@@ -182,7 +211,8 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
         body: JSON.stringify({
           idempotencyKey,
           names: form.names,
-          email: form.email,
+          email: form.email.trim(),
+          phone: form.phone,
           ceremonyType: form.ceremonyChoice,
           packageSlug: form.packageSlug || null,
           preferredWeddingDate: form.weddingDate || null,
@@ -249,7 +279,7 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
         <div className="bws-planner-selected-package">
           <span>Selected package</span>
           <strong>{selectedPackage.name}{selectedPackage.priceFromCents !== null ? ` — ${formatPrice(selectedPackage.priceFromCents, selectedPackage.priceNote)}` : ""}</strong>
-          <button type="button" onClick={() => { setError(null); setStep(1); }}>Change package</button>
+          <button type="button" onClick={() => { setError(null); setStep(2); }}>Change package</button>
         </div>
       )}
 
@@ -271,6 +301,33 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
 
         {step === 1 && (
           <fieldset className="bws-planner-step">
+            <legend>Where should we reply?</legend>
+            <p className="bws-step-help">So the Wedding Desk can answer you, even if you finish the rest later.</p>
+            <div className="bws-form-grid">
+              <div className="bws-field bws-full">
+                <label htmlFor="plan-names">Your names <span aria-hidden="true">*</span></label>
+                <input id="plan-names" type="text" autoComplete="name" maxLength={120} placeholder="The two of you" required value={form.names} onChange={(e) => set("names", e.target.value)} />
+              </div>
+              <div className="bws-field">
+                <label htmlFor="plan-email">Email <span aria-hidden="true">*</span></label>
+                <input id="plan-email" type="email" autoComplete="email" maxLength={254} placeholder="you@example.com" required value={form.email} onChange={(e) => set("email", e.target.value)} />
+              </div>
+              <div className="bws-field">
+                <label htmlFor="plan-phone">Phone or WhatsApp <span>(optional)</span></label>
+                <input id="plan-phone" type="tel" autoComplete="tel" maxLength={40} placeholder="+1 ..." value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+              </div>
+              <div className="bws-field bws-full bws-consent-field">
+                <label>
+                  <input type="checkbox" checked={form.contactConsent} onChange={(e) => set("contactConsent", e.target.checked)} />
+                  <span>You can contact me about this request <span aria-hidden="true">*</span></span>
+                </label>
+              </div>
+            </div>
+          </fieldset>
+        )}
+
+        {step === 2 && (
+          <fieldset className="bws-planner-step">
             <legend>How much should we handle?</legend>
             <p className="bws-step-help">Choose whichever fits — this doesn&rsquo;t confirm or book anything, it just tells the Wedding Desk where to start. You can change it later.</p>
             <div className="bws-choice-grid">
@@ -288,7 +345,7 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
           </fieldset>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <fieldset className="bws-planner-step">
             <legend>Tell us about the day</legend>
             <p className="bws-step-help">Estimates are welcome. Nothing here reserves your date.</p>
@@ -318,7 +375,7 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
           </fieldset>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <fieldset className="bws-planner-step">
             <legend>Explore your venue style</legend>
             <p className="bws-step-help">Browse wedding-ready places without leaving this page. Venue listings will be supplied by PortPass Bahamas as partners are approved.</p>
@@ -346,7 +403,7 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
           </fieldset>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <fieldset className="bws-planner-step">
             <legend>What support would help?</legend>
             <p className="bws-step-help">These are requests, not automatic charges. The Wedding Desk will confirm availability and pricing before anything is booked.</p>
@@ -361,7 +418,7 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
           </fieldset>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <fieldset className="bws-planner-step">
             <legend>How should we plan together?</legend>
             <p className="bws-step-help">Request a pre-consultation with a Wedding Desk representative. Your time is not confirmed until the Wedding Desk replies.</p>
@@ -391,32 +448,18 @@ export function WeddingPlanner({ packages, unavailableDates = [] }: { packages: 
           </fieldset>
         )}
 
-        {step === 6 && (
+        {step === 7 && (
           <fieldset className="bws-planner-step">
-            <legend>Where should we reply?</legend>
-            <p className="bws-step-help">Add your details and review the request below before sending it to the Wedding Desk.</p>
+            <legend>Anything else before you send?</legend>
+            <p className="bws-step-help">Review the request below before sending it to the Wedding Desk.</p>
             <div className="bws-form-grid">
               <div className="bws-field bws-full">
-                <label htmlFor="plan-names">Your names <span aria-hidden="true">*</span></label>
-                <input id="plan-names" type="text" autoComplete="name" maxLength={120} placeholder="The two of you" required value={form.names} onChange={(e) => set("names", e.target.value)} />
-              </div>
-              <div className="bws-field">
-                <label htmlFor="plan-email">Email <span>(optional)</span></label>
-                <input id="plan-email" type="email" autoComplete="email" maxLength={254} placeholder="you@example.com" value={form.email} onChange={(e) => set("email", e.target.value)} />
-              </div>
-              <div className="bws-field">
                 <label htmlFor="plan-country">Where are you travelling from? <span>(optional)</span></label>
                 <input id="plan-country" type="text" maxLength={100} placeholder="Country or city" value={form.travellingFrom} onChange={(e) => set("travellingFrom", e.target.value)} />
               </div>
               <div className="bws-field bws-full">
                 <label htmlFor="plan-notes">Anything else we should know? <span>(optional)</span></label>
                 <textarea id="plan-notes" rows={4} maxLength={1600} placeholder="Your story, travel plans, traditions, or questions..." value={form.notes} onChange={(e) => set("notes", e.target.value)} />
-              </div>
-              <div className="bws-field bws-full bws-consent-field">
-                <label>
-                  <input type="checkbox" checked={form.contactConsent} onChange={(e) => set("contactConsent", e.target.checked)} />
-                  <span>You can contact me about this request <span aria-hidden="true">*</span></span>
-                </label>
               </div>
             </div>
             <div className="bws-request-summary">

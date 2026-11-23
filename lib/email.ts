@@ -17,6 +17,9 @@ type SendEmailInput = {
   // Defaults to the Futprep sender; PortPass's own emails pass
   // portpassFrom() so the two senders can differ once both are configured.
   from?: string;
+  // Where the recipient's reply goes, when that isn't the sender (a
+  // business's own inbox behind a PortPass sending address).
+  replyTo?: string;
   // Writes the outcome to the Messages log (Admin -> Messages): who it
   // was for, which kind of email, and whether it went. Never the text or
   // the subject, which can carry a child's name.
@@ -83,7 +86,14 @@ export async function sendEmail(input: SendEmailInput): Promise<EmailOutcome> {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(input.attachments?.length ? { from, to, subject, html, attachments: input.attachments } : { from, to, subject, html }),
+      body: JSON.stringify({
+        from,
+        to,
+        subject,
+        html,
+        ...(input.replyTo ? { reply_to: input.replyTo } : {}),
+        ...(input.attachments?.length ? { attachments: input.attachments } : {}),
+      }),
     });
     if (!response.ok) {
       const reason = await refusalReason(response);

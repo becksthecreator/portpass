@@ -87,6 +87,10 @@ async function safeLiveSections(directory: OrganizationDirectoryEntry[]): Promis
 // the header's signed-in state is hydrated client-side (HeaderAccount).
 export const revalidate = 300;
 
+// The home page's own canonical (the layout's metadata has none, and a
+// canonical there would point every page at "/").
+export const metadata = { alternates: { canonical: "/" } };
+
 // Below this many businesses the carousel is replaced by equal cards.
 const CAROUSEL_FROM = 4;
 
