@@ -56,7 +56,8 @@ export function canSeeMedical(role: FutprepRole | null | undefined, canViewMedic
 // The registration record without its health fields (lib/health.ts
 // HEALTH_COLUMNS), for a login that may not see them: the values blanked
 // and their lines taken out of the edit history, which records old and new
-// values. Emergency contacts stay: the desk phones them.
+// values. The emergency contact and pickup follow the same switch since
+// brief 34 (withoutEmergencyDetail below).
 const HEALTH_EDIT_LABELS = new Set(["Allergies", "Medical conditions", "Medications", "Special needs", "Notes"]);
 type HealthBearingDetail = {
   allergies: string | null;
@@ -80,6 +81,50 @@ export const HEALTH_SAVE_KEYS = ["allergies", "medicalConditions", "medications"
 export function withoutHealthInput<T extends Record<string, unknown>>(body: T): T {
   const copy: Record<string, unknown> = { ...body };
   for (const key of HEALTH_SAVE_KEYS) delete copy[key];
+  return copy as T;
+}
+
+// A child's emergency contact and authorised pickup (brief 34, audit
+// finding 4). Never in a list or an export (lib/rosterCsv.ts). On screen:
+//   the registration record: the medical view only (canSeeMedical);
+//   the coach roster: the medical view, and any coach login on the
+//   session's own day (Nassau time): the coaches on the field need them
+//   at handover. Each such day-of view is audit-logged by the coach page.
+// An admin without the medical view never sees them on the roster, and a
+// helper never sees them anywhere.
+export function rosterSafetyShown(input: {
+  role: FutprepRole | null | undefined;
+  canViewMedical: boolean;
+  sessionDate: string;
+  today: string;
+}): boolean {
+  if (canSeeMedical(input.role, input.canViewMedical)) return true;
+  return input.role === "coach" && input.sessionDate === input.today;
+}
+
+// The registration record without the emergency contact and pickup, for a
+// login without the medical view: blanked, and their lines taken out of
+// the edit history (which records old and new values).
+const EMERGENCY_EDIT_LABELS = new Set(["Emergency contact name", "Emergency contact phone", "Authorized pickup"]);
+type EmergencyBearingDetail = {
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  authorized_pickup: string | null;
+  edits: Array<{ changes: Record<string, unknown> }>;
+};
+export function withoutEmergencyDetail<T extends EmergencyBearingDetail>(detail: T): T {
+  const edits = detail.edits
+    .map((edit) => ({ ...edit, changes: Object.fromEntries(Object.entries(edit.changes).filter(([label]) => !EMERGENCY_EDIT_LABELS.has(label))) }))
+    .filter((edit) => Object.keys(edit.changes).length > 0);
+  return { ...detail, emergency_contact_name: null, emergency_contact_phone: null, authorized_pickup: null, edits } as T;
+}
+
+// The same fields as the registration editor saves them: a login that may
+// not see them never changes them either.
+export const EMERGENCY_SAVE_KEYS = ["emergencyContactName", "emergencyContactPhone", "authorizedPickup"] as const;
+export function withoutEmergencyInput<T extends Record<string, unknown>>(body: T): T {
+  const copy: Record<string, unknown> = { ...body };
+  for (const key of EMERGENCY_SAVE_KEYS) delete copy[key];
   return copy as T;
 }
 
