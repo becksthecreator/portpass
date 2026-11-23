@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { OrgOgCard } from "@/lib/og/OrgOgCard";
 
-export const alt = "Bahamas Weddings By The Sea | PortPass Bahamas";
+export const alt = "Bahamas Weddings By The Sea, Nassau wedding officiant and planner";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

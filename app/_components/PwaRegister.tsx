@@ -8,6 +8,12 @@ import { installBannerSnoozed, isIosSafari, isStandalone, rememberInstallEvent, 
 
 const SHOW_AFTER_MS = 4000;
 
+// PortPass's own hosts (and previews, and local dev). Anything else is a
+// business's custom domain rendered through the same layout.
+export function onPortPassHost(hostname: string): boolean {
+  return /(^|\.)portpassbahamas\.com$|\.vercel\.app$|^localhost$/.test(hostname);
+}
+
 // Pages where "Get the app" would be noise: /app explains it already, and
 // staff, admin, account and sign-in screens are not where a visitor is.
 const QUIET_PREFIXES = ["/app", "/offline", "/admin", "/organizations", "/account", "/login", "/signup", "/where-to", "/business/", "/futprep/staff", "/futprep/my", "/weddings/admin", "/weddings/staff"];
@@ -27,7 +33,7 @@ export function PwaRegister() {
     // the same layout, and its visitors should not get a PortPass-branded
     // app for that site.
     if (!("serviceWorker" in navigator)) return;
-    if (!/(^|\.)portpassbahamas\.com$|\.vercel\.app$|^localhost$/.test(window.location.hostname)) return;
+    if (!onPortPassHost(window.location.hostname)) return;
     navigator.serviceWorker.register("/sw.js").catch(() => undefined);
   }, []);
 
@@ -37,6 +43,10 @@ export function PwaRegister() {
 
   useEffect(() => {
     if (isStandalone()) return;
+    // Same rule as the service worker: on a business's own domain (Bahamas
+    // Weddings By The Sea) a visitor is that business's customer, and a
+    // "Get the PortPass app" pop-up has no place there (Bex, 23 Nov).
+    if (!onPortPassHost(window.location.hostname)) return;
     const snoozed = installBannerSnoozed();
     let timer: number | null = null;
     const onInstalled = () => {

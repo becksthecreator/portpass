@@ -120,18 +120,25 @@ const nextConfig: NextConfig = {
         source: "/sites/bahamas-weddings",
         has: [{ type: "host", value: "^(www\\.)?portpassbahamas\\.com$" }],
         destination: "https://bahamasweddingsbythesea.com/",
-        permanent: false,
+        statusCode: 301,
       },
       // Sports, fitness and gyms only (19 Oct 2026). On portpassbahamas.com
       // the wedding pages move to Bahamas Weddings By The Sea's own domain,
       // and PortPass Market, Drops and orders go back to the homepage. The
       // code stays: the wedding routes still serve that domain (middleware
-      // lets /weddings through there), and none of these is permanent, so
-      // a section can come back by deleting its lines here.
+      // lets /weddings through there), and none of the Market lines is
+      // permanent, so a section can come back by deleting its lines here.
+      // The wedding lines ARE permanent (301, 23 Nov): the pages belong to
+      // Bahamas Weddings By The Sea's own domain for good, and a temporary
+      // redirect kept Bing and Google listing the portpassbahamas.com copy
+      // next to the client's domain. Browsers cache a 301, so undoing one
+      // later takes a redirect back, not just deleting the line.
       ...[
         { source: "/weddings", destination: "https://bahamasweddingsbythesea.com/" },
         { source: "/weddings/bahamas-weddings-by-the-sea", destination: "https://bahamasweddingsbythesea.com/" },
         { source: "/weddings/:path*", destination: "https://bahamasweddingsbythesea.com/weddings/:path*" },
+      ].map((rule) => ({ ...rule, has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$" }], statusCode: 301 as const })),
+      ...[
         { source: "/market", destination: "/" },
         { source: "/market/:path*", destination: "/" },
         { source: "/shop", destination: "/" },
@@ -146,7 +153,7 @@ const nextConfig: NextConfig = {
       ...[
         { source: "/weddings", destination: "/" },
         { source: "/weddings/bahamas-weddings-by-the-sea", destination: "/" },
-      ].map((rule) => ({ ...rule, has: [{ type: "host" as const, value: "^(www\\.)?bahamasweddingsbythesea\\.com$" }], permanent: false })),
+      ].map((rule) => ({ ...rule, has: [{ type: "host" as const, value: "^(www\\.)?bahamasweddingsbythesea\\.com$" }], statusCode: 301 as const })),
       // Events became a subsection of Entertainment (decided 27 Sept, for
       // the OWN Conference build); the old top-level placeholder is gone.
       {

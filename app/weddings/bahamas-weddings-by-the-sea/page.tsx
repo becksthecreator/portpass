@@ -12,14 +12,18 @@ import { BwsListingMain, loadBwsListing } from "./BwsListing";
 // credential-less build can prerender this route; Vercel's build has the database.
 export const revalidate = 300;
 
-const TITLE = "Bahamas Weddings By The Sea: Wedding officiant & planner in Nassau | PortPass";
+const TITLE = "Bahamas Weddings By The Sea | Nassau Wedding Officiant & Planner";
 const DESCRIPTION = "Antonio Beckford's island wedding ceremonies, summarized: prices, photos, and how to start planning.";
 
 export const metadata = {
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: "https://portpassbahamas.com/weddings/bahamas-weddings-by-the-sea" },
-  openGraph: { type: "website", siteName: "PortPass Bahamas", title: TITLE, description: DESCRIPTION, url: "https://portpassbahamas.com/weddings/bahamas-weddings-by-the-sea" },
+  // The page lives at the client's own domain (both hosts 301 this path
+  // there, next.config.ts); a portpassbahamas.com canonical kept a second
+  // copy in Bing and Google (23 Nov).
+  metadataBase: new URL("https://bahamasweddingsbythesea.com"),
+  alternates: { canonical: "https://bahamasweddingsbythesea.com/" },
+  openGraph: { type: "website", siteName: "Bahamas Weddings By The Sea", title: TITLE, description: DESCRIPTION, url: "https://bahamasweddingsbythesea.com/" },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 

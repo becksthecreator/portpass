@@ -40,6 +40,21 @@ export const metadata = {
   // One address in search: the business's own domain (the portpassbahamas.com
   // path redirects there). ?tier= variants all point here too.
   alternates: { canonical: "https://bahamasweddingsbythesea.com/weddings/bahamas-weddings-by-the-sea/plan" },
+  // Without these the planner inherited PortPass's own link preview ("Sports
+  // clubs, coaches and gyms...", portpassbahamas.com) on the client's domain.
+  metadataBase: new URL("https://bahamasweddingsbythesea.com"),
+  openGraph: {
+    type: "website",
+    siteName: "Bahamas Weddings By The Sea",
+    title: "Plan Your Bahamas Wedding | Bahamas Weddings By The Sea",
+    description: "Plan your Bahamas wedding: choose a venue style and services, request a consultation, and send a full plan to Antonio Beckford.",
+    url: "https://bahamasweddingsbythesea.com/weddings/bahamas-weddings-by-the-sea/plan",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Plan Your Bahamas Wedding | Bahamas Weddings By The Sea",
+    description: "Plan your Bahamas wedding: choose a venue style and services, request a consultation, and send a full plan to Antonio Beckford.",
+  },
 };
 
 // Moved here from app/weddings/bahamas-by-the-sea/plan (redirected in
