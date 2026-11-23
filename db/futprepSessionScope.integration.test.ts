@@ -261,7 +261,7 @@ describe("Futprep's staff screens never reach another business's private-session
   });
 
   it("recording a payment: refused like a missing request, nothing written", async () => {
-    const pay = { amountCents: 1000, method: "cash" as const, reference: "", recordedBy: MARK };
+    const pay = { amountCents: 1000, method: "cash" as const, reference: "", recordedBy: MARK, idempotencyKey: crypto.randomUUID() };
     expect(await outcome(recordPrivateSessionPayment({ requestId: otherRequestId, ...pay }))).toBe(await outcome(recordPrivateSessionPayment({ requestId: MISSING, ...pay })));
     expect(await outcome(recordPrivateSessionPayment({ requestId: otherRequestId, ...pay }))).toBe("refused REQUEST_NOT_FOUND");
     const { data: payments } = await db().from("payments").select("id").eq("private_session_request_id", otherRequestId);
