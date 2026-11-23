@@ -5,7 +5,7 @@ import { createLead, noteInboundRequest } from "@/db/leads";
 import { emptyLeadDraft } from "@/lib/scout/leads";
 import { sendApplicationReceivedEmail } from "@/lib/email";
 import { normalizePhoneE164 } from "@/lib/phone";
-import { isKnownSectionSlug } from "@/db/categories";
+import { resolveBusinessKind } from "@/lib/businessKinds";
 import { getPlan } from "@/db/pricing";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -36,7 +36,7 @@ function instagramHandle(raw: string): string | null | false {
 }
 
 // The fields this route reads, and no others (lib/api/body.ts).
-const Body = bodyOf(["name", "businessName", "section", "whatsapp", "instagram", "note", "referralCode", "plan", "utm_source", "utm_medium", "utm_campaign"]);
+const Body = bodyOf(["name", "businessName", "kind", "kindOther", "section", "whatsapp", "instagram", "note", "referralCode", "plan", "utm_source", "utm_medium", "utm_campaign"]);
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
@@ -54,7 +54,10 @@ export async function POST(request: NextRequest) {
 
   const contactPerson = str(b, "name", 120);
   const organizationName = str(b, "businessName", 150);
-  const section = str(b, "section", 40);
+  // What kind of business (lib/businessKinds.ts): any kind can ask for a
+  // First Look, with "Something else" in a few words. An older page that
+  // sends only a section still works.
+  const kind = resolveBusinessKind(str(b, "kind", 40), str(b, "kindOther", 120), str(b, "section", 40));
   const whatsappRaw = str(b, "whatsapp", 40);
   const instagram = instagramHandle(str(b, "instagram", 120));
   const note = str(b, "note", 300) || null;
@@ -64,9 +67,10 @@ export async function POST(request: NextRequest) {
   if (!contactPerson || !organizationName) {
     return NextResponse.json({ error: "Tell us your name and your business name." }, { status: 400 });
   }
-  if (!(await isKnownSectionSlug(section))) {
-    return NextResponse.json({ error: "Choose which section your business belongs in." }, { status: 400 });
+  if (!kind.ok) {
+    return NextResponse.json({ error: kind.error }, { status: 400 });
   }
+  const { section, activityType } = kind;
   const whatsappE164 = normalizePhoneE164(whatsappRaw);
   if (!whatsappE164) {
     return NextResponse.json({ error: "Enter a WhatsApp number we can message, like 423-8161 or +1 242 423 8161." }, { status: 400 });
@@ -89,6 +93,7 @@ export async function POST(request: NextRequest) {
       organizationName,
       contactPerson,
       section,
+      activityType,
       whatsappE164,
       instagramHandle: instagram,
       note,
@@ -109,9 +114,9 @@ export async function POST(request: NextRequest) {
       draft.whatsappE164 = whatsappE164;
       draft.phone = whatsappE164;
       draft.referralCode = referralCode;
-      draft.notes = note;
+      draft.notes = [`Kind of business: ${activityType}`, note].filter(Boolean).join(" · ");
       draft.status = "replied";
-      draft.nextStep = "They asked to be listed: message them on WhatsApp.";
+      draft.nextStep = "They asked for a free First Look: message them on WhatsApp.";
       const made = await createLead(draft, { actorUserId: null, applicationId: id });
       // Already a lead (kept from a search, or from the tracker): it moves
       // to "Replied" and points at this request, instead of being dropped.
@@ -124,6 +129,7 @@ export async function POST(request: NextRequest) {
       organizationName,
       contactPerson,
       section,
+      activityType,
       whatsappE164,
       instagramHandle: instagram,
       note,

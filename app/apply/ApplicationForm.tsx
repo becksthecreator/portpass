@@ -8,27 +8,28 @@ import { PhoneInput } from "@/app/_components/PhoneInput";
 import { track } from "@/lib/analytics";
 import { portpassWhatsAppUrl } from "@/lib/contact";
 import { motionEnabled } from "@/lib/motion/client";
+import { BUSINESS_KINDS, kindForSection, OTHER_KIND, OTHER_MAX } from "@/lib/businessKinds";
 
-type FormState = { name: string; businessName: string; section: string; whatsapp: string; instagram: string; note: string; referralCode: string };
-type SectionOption = { slug: string; name: string };
+type FormState = { name: string; businessName: string; kind: string; kindOther: string; whatsapp: string; instagram: string; note: string; referralCode: string };
 type PlanOption = { code: string; name: string };
 
-// `sections` and `plans` come from the page (the categories and
-// pricing_plans tables) so the form never carries its own copy of either.
-export function ApplicationForm({ sections, plans }: { sections: SectionOption[]; plans: PlanOption[] }) {
+// `plans` come from the page (pricing_plans) so the form never carries its
+// own copy. Any kind of business can ask for a First Look (23 Nov 2026):
+// the kinds are in lib/businessKinds.ts, plus "Something else" in words.
+export function ApplicationForm({ plans }: { plans: PlanOption[] }) {
   const searchParams = useSearchParams();
   // A coming-soon page's "Run a venue? Get listed" link arrives with
-  // ?section=venues, so the section is already chosen.
-  const presetSection = searchParams.get("section") ?? "";
+  // ?section=venues, so the matching kind is already chosen.
+  const presetKind = kindForSection(searchParams.get("section"));
   // /pricing's "Start free" arrives with ?plan=growing: shown back, sent
   // along, never binding ("You can change it later").
   const picked = plans.find((p) => p.code === searchParams.get("plan")) ?? null;
-  const [form, setForm] = useState<FormState>({ name: "", businessName: "", section: sections.some((s) => s.slug === presetSection) ? presetSection : "", whatsapp: "", instagram: "", note: "", referralCode: (searchParams.get("ref") ?? "").slice(0, 40) });
+  const [form, setForm] = useState<FormState>({ name: "", businessName: "", kind: presetKind, kindOther: "", whatsapp: "", instagram: "", note: "", referralCode: (searchParams.get("ref") ?? "").slice(0, 40) });
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const whatsappHref = portpassWhatsAppUrl(`Hi PortPass — I'd like to get ${form.businessName.trim() || "my business"} listed.`);
+  const whatsappHref = portpassWhatsAppUrl(`Hi PortPass, I'd like a free First Look for ${form.businessName.trim() || "my business"}.`);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -36,8 +37,12 @@ export function ApplicationForm({ sections, plans }: { sections: SectionOption[]
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!form.section) {
-      setError("Choose the section your business belongs in.");
+    if (!form.kind) {
+      setError("Choose what kind of business you run.");
+      return;
+    }
+    if (form.kind === OTHER_KIND && form.kindOther.trim().length < 2) {
+      setError("Tell us what kind of business it is, in a few words.");
       return;
     }
     setBusy(true);
@@ -48,6 +53,7 @@ export function ApplicationForm({ sections, plans }: { sections: SectionOption[]
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          kindOther: form.kind === OTHER_KIND ? form.kindOther : "",
           plan: picked?.code ?? "",
           utm_source: searchParams.get("utm_source") ?? "",
           utm_medium: searchParams.get("utm_medium") ?? "",
@@ -56,7 +62,7 @@ export function ApplicationForm({ sections, plans }: { sections: SectionOption[]
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "We couldn’t send that. Please try again.");
-      track("apply_submitted", { section: form.section, plan: picked?.code ?? "", source: searchParams.get("utm_source") ?? "" });
+      track("apply_submitted", { kind: form.kind, plan: picked?.code ?? "", source: searchParams.get("utm_source") ?? "" });
       setSubmitted(true);
       // Smooth only where motion is allowed (brief 22: reduced motion and
       // the kill switch turn every scroll effect off).
@@ -94,12 +100,15 @@ export function ApplicationForm({ sections, plans }: { sections: SectionOption[]
         <label><span>Your name *</span><input name="name" autoComplete="name" required maxLength={120} value={form.name} onChange={(e) => set("name", e.target.value)} /></label>
         <label><span>Business name *</span><input name="businessName" autoComplete="organization" required maxLength={150} value={form.businessName} onChange={(e) => set("businessName", e.target.value)} /></label>
         <label>
-          <span>Section *</span>
-          <select name="section" required value={form.section} onChange={(e) => set("section", e.target.value)}>
+          <span>Kind of business *</span>
+          <select name="kind" required value={form.kind} onChange={(e) => set("kind", e.target.value)}>
             <option value="">Choose one</option>
-            {sections.map((section) => <option key={section.slug} value={section.slug}>{section.name}</option>)}
+            {BUSINESS_KINDS.map((kind) => <option key={kind.value} value={kind.value}>{kind.label}</option>)}
           </select>
         </label>
+        {form.kind === OTHER_KIND && (
+          <label><span>What kind of business? *</span><input name="kindOther" required minLength={2} maxLength={OTHER_MAX} placeholder="For example: food truck, photography studio" value={form.kindOther} onChange={(e) => set("kindOther", e.target.value)} /></label>
+        )}
         <label><span>WhatsApp number *</span><PhoneInput name="whatsapp" required value={form.whatsapp} onChange={(v) => set("whatsapp", v)} /></label>
         <label><span>Instagram (optional)</span><input name="instagram" placeholder="@yourbusiness" maxLength={60} value={form.instagram} onChange={(e) => set("instagram", e.target.value)} /></label>
         <label><span>Referral code (optional)</span><input name="referralCode" maxLength={40} placeholder="From a business already on PortPass" autoCapitalize="characters" value={form.referralCode} onChange={(e) => set("referralCode", e.target.value)} /></label>

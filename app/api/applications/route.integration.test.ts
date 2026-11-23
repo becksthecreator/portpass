@@ -13,11 +13,15 @@ import { sendApplicationReceivedEmail } from "@/lib/email";
 // `supabase start`).
 const createdNames: string[] = [];
 
+// Each request comes from its own made-up address (TEST-NET-3), so the
+// route's per-address rate limit never decides a test's outcome.
+let requestCount = 0;
 function post(payload: Record<string, unknown>) {
+  requestCount += 1;
   return POST(
     new Request("https://portpass.test/api/applications", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": `203.0.113.${requestCount}` },
       body: JSON.stringify(payload),
     }) as never,
   );
@@ -80,11 +84,44 @@ describe("POST /api/applications", () => {
     });
   });
 
-  it("rejects a section that isn't one of the five", async () => {
-    const response = await post(basePayload({ section: "crypto" }));
-    expect(response.status).toBe(400);
-    const body = (await response.json()) as { error?: string };
-    expect(body.error).toMatch(/section/i);
+  it("an older page sending only a section still works; an unknown section or kind is refused", async () => {
+    // basePayload sends section "entertainment" with no kind: the test above.
+    for (const overrides of [{ section: "crypto" }, { section: "", kind: "crypto" }, { section: "" }]) {
+      const response = await post(basePayload(overrides));
+      expect(response.status).toBe(400);
+      const body = (await response.json()) as { error?: string };
+      expect(body.error).toMatch(/kind of business/i);
+    }
+  });
+
+  // Any kind of business can ask for a First Look (23 Nov 2026).
+  it("a salon, with no section of its own, is stored with its kind in words", async () => {
+    const payload = basePayload({ section: "", kind: "salon-beauty" });
+    expect((await post(payload)).status).toBe(201);
+    const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!);
+    const { data } = await db.from("applications").select("section,activity_type").eq("organization_name", payload.businessName).single();
+    expect(data).toEqual({ section: null, activity_type: "Salon, barber or beauty" });
+    expect(vi.mocked(sendApplicationReceivedEmail).mock.calls.at(-1)?.[0]).toMatchObject({ section: null, activityType: "Salon, barber or beauty" });
+  });
+
+  it("a kind that has a section keeps the section", async () => {
+    const payload = basePayload({ section: "", kind: "sports-fitness" });
+    expect((await post(payload)).status).toBe(201);
+    const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!);
+    const { data } = await db.from("applications").select("section,activity_type").eq("organization_name", payload.businessName).single();
+    expect(data).toEqual({ section: "sports-fitness", activity_type: "Sports, fitness or a gym" });
+  });
+
+  it("'Something else' needs a few words, and keeps them", async () => {
+    const empty = await post(basePayload({ section: "", kind: "other", kindOther: " " }));
+    expect(empty.status).toBe(400);
+    expect(((await empty.json()) as { error?: string }).error).toMatch(/kind of business/i);
+
+    const payload = basePayload({ section: "", kind: "other", kindOther: "  Food   truck " });
+    expect((await post(payload)).status).toBe(201);
+    const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!);
+    const { data } = await db.from("applications").select("section,activity_type").eq("organization_name", payload.businessName).single();
+    expect(data).toEqual({ section: null, activity_type: "Other: Food truck" });
   });
 
   it("rejects a WhatsApp number it can't dial", async () => {

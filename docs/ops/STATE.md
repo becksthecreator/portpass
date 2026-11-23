@@ -5,6 +5,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 ## Live on production
 | Feature | PR | Merged |
 | --- | --- | --- |
+| /apply takes any kind of business (an everyday-words list plus "Something else"), so a salon or caterer can ask for a First Look; the kind is kept in `applications.activity_type` | #274 | 23 Nov |
 | Growth plan week 1 ([report](../briefs/growth-week1-report.md)): the plan cards list only features with a screen (migration `202610270003`, live), and /pricing carries the Marketplace attribution rule | #234 | 17 Oct |
 | Each PortPass invoice carries the agreement version it was raised under, on its PDF and the Admin invoice page (migration `202610270002`, live) | #235 | 17 Oct |
 | Billing rehearsal: `.github/workflows/billing-rehearsal.yml` plays the billing chain end to end on TEST data on every PR to `main` (about 3 minutes; draft, send refused without bank details, sent, part paid, paid, PDFs in the artifact) | #233 | 17 Oct |
