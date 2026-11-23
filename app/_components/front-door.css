@@ -4,8 +4,9 @@
    ends at its final state and is off under reduced motion. */
 
 .fd{background:var(--deck);color:var(--ink);overflow:hidden;position:relative;isolation:isolate}
-.fd-inner{max-width:1160px;margin:0 auto;padding:40px 16px 48px;display:grid;gap:36px;align-items:center}
-@media(min-width:900px){.fd-inner{grid-template-columns:1.05fr .95fr;padding:72px 5vw 80px;gap:48px}}
+.fd-inner{max-width:1160px;margin:0 auto;padding:40px 16px 48px;display:grid;grid-template-columns:minmax(0,1fr);gap:36px;align-items:center}
+.fd-words{min-width:0}
+@media(min-width:900px){.fd-inner{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);padding:72px 5vw 80px;gap:48px}}
 
 .fd-kicker{font-size:.75rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--harbour);margin:0 0 14px}
 .fd-title{font-family:var(--hp-font-display);font-size:clamp(2.35rem,7.4vw,4.4rem);line-height:1.02;letter-spacing:-.025em;font-weight:800;margin:0 0 18px;text-wrap:balance}
@@ -24,7 +25,7 @@
 .fd-owner{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px}
 
 /* ---- motion: the drawn phone ------------------------------------------ */
-.fd-phone{justify-self:center;width:min(300px,78vw);aspect-ratio:9/18.5;border-radius:38px;background:var(--ink);padding:12px;box-shadow:0 30px 60px rgba(13,27,61,.22)}
+.fd-phone{justify-self:center;width:min(300px,86%);aspect-ratio:9/18.5;border-radius:38px;background:var(--ink);padding:12px;box-shadow:0 30px 60px rgba(13,27,61,.22)}
 .fd-screen{height:100%;border-radius:28px;background:var(--deck);padding:20px 14px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
 .fd-hello{font-family:var(--hp-font-display);font-weight:800;font-size:1.15rem;margin:4px 2px 0}
 .fd-fakesearch{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:9px 14px;color:var(--muted);font-size:.85rem}
@@ -64,7 +65,7 @@
 @keyframes fd-chip{0%,14%{background:var(--signal);color:#fff}20%,100%{background:var(--tint);color:var(--ink)}}
 
 /* ---- real: photographs and a real screen ------------------------------ */
-.fd-real{position:relative;justify-self:center;width:min(460px,92vw);aspect-ratio:1/1.02}
+.fd-real{position:relative;justify-self:center;width:min(460px,100%);aspect-ratio:1/1.02}
 .fd-photo,.fd-device{position:absolute;overflow:hidden;box-shadow:0 22px 44px rgba(13,27,61,.18);background:var(--tint)}
 .fd-photo img,.fd-device img{object-fit:cover}
 .fd-photo-a{left:0;top:0;width:68%;aspect-ratio:4/5;border-radius:22px}
