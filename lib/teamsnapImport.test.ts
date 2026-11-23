@@ -88,6 +88,15 @@ describe("medical fields need the medical permission (rule 3, Security & QA 19 N
     expect(plan[0]).toMatchObject({ status: "nothing_new", fill: {} });
   });
 
+  it("leaves the emergency contact and pickup out too: the same permission guards them", () => {
+    const { plan, skippedMedical } = withoutMedicalFill([
+      row({ parent_phone: "242-555-0101", emergency_contact_name: "TEST Aunt", emergency_contact_phone: "242-555-0102", authorized_pickup: "TEST Uncle" }),
+    ]);
+    expect(skippedMedical).toBe(3);
+    expect(plan[0].fill).toEqual({ parent_phone: "242-555-0101" });
+    expect(JSON.stringify(plan)).not.toMatch(/Aunt|Uncle|0102/);
+  });
+
   it("leaves rows that aren't being filled as they are", () => {
     const untouched = row({}, "no_match");
     expect(withoutMedicalFill([untouched])).toEqual({ plan: [untouched], skippedMedical: 0 });

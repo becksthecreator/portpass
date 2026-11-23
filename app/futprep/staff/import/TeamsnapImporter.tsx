@@ -72,7 +72,7 @@ export function TeamsnapImporter({ classes }: { classes: Array<{ programId: numb
           </p>
           {preview.skippedMedical > 0 && (
             <p className="pay-note" role="note">
-              {preview.skippedMedical} medical {preview.skippedMedical === 1 ? "field was" : "fields were"} left out: your login doesn&apos;t have the medical permission. Ask the CEO to import them, or to turn the permission on for you.
+              {preview.skippedMedical} medical, emergency-contact or pickup {preview.skippedMedical === 1 ? "field was" : "fields were"} left out: your login doesn&apos;t have the medical permission. Ask the CEO to import them, or to turn the permission on for you.
             </p>
           )}
           <div className="pay-cards">

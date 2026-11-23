@@ -194,6 +194,11 @@ export type RegistrationColumn =
 // the preview (a count only).
 export const MEDICAL_COLUMNS: RegistrationColumn[] = ["allergies", "medical_conditions", "medications", "special_needs"];
 
+// What the medical permission guards (lib/futprepRoles.ts, brief 34): the
+// medical fields and the emergency contact and pickup. A login without it
+// imports none of these.
+export const PERMISSION_COLUMNS: RegistrationColumn[] = [...MEDICAL_COLUMNS, "emergency_contact_name", "emergency_contact_phone", "authorized_pickup"];
+
 export const COLUMN_LABEL: Record<RegistrationColumn, string> = {
   child_dob: "date of birth",
   gender: "gender",
@@ -278,7 +283,8 @@ export function describeFill(fill: Partial<Record<RegistrationColumn, string>>):
 }
 
 // Rule 3 (Security & QA audit, 19 Nov): a login without the medical
-// permission imports everything but the medical fields. They are left out
+// permission imports everything but the fields it guards: medical, the
+// emergency contact and the pickup (PERMISSION_COLUMNS). They are left out
 // of the plan before it is shown or saved, and counted so the screen can
 // say what was skipped and why.
 export function withoutMedicalFill(plan: PlanRow[]): { plan: PlanRow[]; skippedMedical: number } {
@@ -287,7 +293,7 @@ export function withoutMedicalFill(plan: PlanRow[]): { plan: PlanRow[]; skippedM
     if (row.status !== "fill") return row;
     const fill: Partial<Record<RegistrationColumn, string>> = {};
     for (const [column, value] of Object.entries(row.fill) as Array<[RegistrationColumn, string]>) {
-      if (MEDICAL_COLUMNS.includes(column)) skippedMedical += 1;
+      if (PERMISSION_COLUMNS.includes(column)) skippedMedical += 1;
       else fill[column] = value;
     }
     return { ...row, fill, status: Object.keys(fill).length ? ("fill" as const) : ("nothing_new" as const) };
