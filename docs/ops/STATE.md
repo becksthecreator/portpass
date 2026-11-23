@@ -40,7 +40,7 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | `fix/apply-any-business` | (this PR) | /apply takes any kind of business (a list in everyday words, plus "Something else"), so a salon or caterer can ask for a First Look; the kind is kept in `applications.activity_type`, the section only where one fits; no migration | Security & QA, then Bex |
 | `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
 | `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
-| `fix/promotions-under-lock` (waitlist promotions and "Confirm the place" under the class's lock) | #220 | Its fix and migration | Claude Code |
+| `fix/promotions-under-lock-v2` (waitlist promotions and "Confirm the place" under the class's lock; rebuilt on #217, 23 Nov) | (this PR, replaces #220) | Apply migration `202610280007_registration_status_within_cap.sql` (renumbered from 0002, after #270's 0003) with Bex's OK, then the Phase 1 run, then merge after #217 | Bex's OK |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green. Parked by the growth plan | The fifth paid invoice |
 | `chore/csp-enforce` (brief 26) | #183 | #185 is in; rebase on `main`. Parked by the growth plan | The fifth paid invoice |
 | `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct). Parked by the growth plan | The fifth paid invoice |
