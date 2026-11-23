@@ -29,6 +29,10 @@ export type WeddingLead = {
   id: number;
   publicToken: string;
   names: string;
+  // True only when this call created the row or completed a started one;
+  // false when an earlier call already had (a retry or a replay). Emails go
+  // out only when it's true, so a double tap never sends them twice.
+  changed: boolean;
 };
 
 const UNIQUE_VIOLATION = "23505";
@@ -64,21 +68,40 @@ function leadRow(input: WeddingLeadInput) {
 // (utm.planner_stage "started"), so an enquiry that stops partway still
 // reaches the Wedding Desk. Sending the full plan later with the same
 // idempotency key fills in that same row. Only a row still marked
-// "started" and under 14 days old is filled; otherwise this returns null
-// and the caller inserts as usual.
+// "started" is filled (a submitted one is never touched); otherwise this
+// returns null and the caller inserts as usual. No age limit: the key is
+// made fresh in the couple's browser on each page load and never leaves
+// it, and an age cut-off would drop a late plan on the floor (the insert
+// would hit the started row's key and return it unfilled).
 export async function completeStartedWeddingLead(input: WeddingLeadInput): Promise<WeddingLead | null> {
   const supabase = getSupabaseAdmin();
-  const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("wedding_leads")
     .update({ ...leadRow(input), updated_at: new Date().toISOString() })
     .eq("idempotency_key", input.idempotencyKey)
     .eq("utm->>planner_stage", "started")
-    .gte("created_at", since)
     .select("id, public_token, names");
   throwIfSupabaseError(error, "Could not complete wedding lead");
   const row = data?.[0];
-  return row ? { id: row.id, publicToken: row.public_token, names: row.names } : null;
+  return row ? { id: row.id, publicToken: row.public_token, names: row.names, changed: true } : null;
+}
+
+// Whether this address already had an enquiry sent in the last 24 hours,
+// other than the one just saved: the couple's instant reply goes out at
+// most once a day per address, so the form can't be used to mail a
+// stranger over and over.
+export async function hadRecentSubmittedWeddingLead(email: string, exceptId: number): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count, error } = await supabase
+    .from("wedding_leads")
+    .select("id", { count: "exact", head: true })
+    .ilike("email", email.replace(/[\\%_]/g, (c) => `\\${c}`))
+    .eq("utm->>planner_stage", "submitted")
+    .gte("updated_at", since)
+    .neq("id", exceptId);
+  throwIfSupabaseError(error, "Could not check recent wedding enquiries");
+  return Number(count ?? 0) > 0;
 }
 
 // Idempotent by design: a retried/double submit with the same idempotencyKey
@@ -100,10 +123,10 @@ export async function createWeddingLead(input: WeddingLeadInput): Promise<Weddin
       .single();
     throwIfSupabaseError(existing.error, "Could not load existing wedding lead");
     if (!existing.data) throw new Error("Could not load existing wedding lead");
-    return { id: existing.data.id, publicToken: existing.data.public_token, names: existing.data.names };
+    return { id: existing.data.id, publicToken: existing.data.public_token, names: existing.data.names, changed: false };
   }
 
   throwIfSupabaseError(error, "Could not save wedding lead");
   if (!data) throw new Error("Could not save wedding lead");
-  return { id: data.id, publicToken: data.public_token, names: data.names };
+  return { id: data.id, publicToken: data.public_token, names: data.names, changed: true };
 }

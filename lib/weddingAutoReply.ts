@@ -8,6 +8,15 @@ import { cleanEnvValue, escapeHtml, portpassFrom } from "./email";
 // The email carries no plan details: names and the package name only.
 export type WeddingAutoReply = { from: string | undefined; replyTo: string | undefined; subject: string; html: string };
 
+export function greetingName(raw: string): string {
+  return raw
+    .replace(/[^\p{L}\p{M} &'-]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 60)
+    .trim();
+}
+
 function settings(): Record<string, string | undefined> {
   return {
     WEDDING_AUTOREPLY: process.env.WEDDING_AUTOREPLY,
@@ -23,7 +32,11 @@ export function weddingAutoReply(input: { names: string; packageName: string | n
   // address, so the email isn't sent at all.
   if (!replyTo) return null;
 
-  const names = escapeHtml(input.names.trim() || "there");
+  // Only letters, spaces and & ' - (60 at most) reach the greeting, so
+  // whatever someone types as "names" can't carry a link or a message to
+  // the inbox it's sent to. No dots: "word.tld" is turned into a link by
+  // most mail apps.
+  const names = escapeHtml(greetingName(input.names) || "there");
   const pkg = input.packageName ? `<p style="margin:0 0 14px">You chose the <strong>${escapeHtml(input.packageName)}</strong> package as a starting point. We can adjust it together.</p>` : "";
 
   return {
