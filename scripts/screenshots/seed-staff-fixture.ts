@@ -416,9 +416,10 @@ async function main() {
 
   // Class feed (Nov 2026): two updates on the TEST class, and the TEST
   // platform owner as the parent of its eleventh child, so the "admin"
-  // login also shows the parents' page /futprep/feed.
+  // login also shows the parents' page /futprep/feed (confirmed: the feed
+  // shows confirmed places only).
   const lastChild = seededRegistrations[seededRegistrations.length - 1].id;
-  const { error: parentError } = await db.from("registrations").update({ parent_email: adminEmail }).eq("id", lastChild);
+  const { error: parentError } = await db.from("registrations").update({ parent_email: adminEmail, registration_status: "confirmed" }).eq("id", lastChild);
   if (parentError) throw new Error(`Could not link the TEST parent: ${parentError.message}`);
   const { error: postError } = await db.from("class_posts").insert([
     { organization_id: org.id, program_id: program.id, term_id: term.id, author_account: "test-coach", author_name: `${MARK} Coach`, emailed_count: 11, created_at: new Date(Date.now() - 86_400_000).toISOString(), body: "Welcome to the term!\n\nBring water and shin pads. We start at 10:00 sharp on the field by the gate." },

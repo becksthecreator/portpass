@@ -1,4 +1,4 @@
-import { classLabel, FEED_STATUSES } from "@/lib/classFeed";
+import { canRemovePost, classLabel, FEED_STATUSES } from "@/lib/classFeed";
 import { nassauToday } from "@/lib/futprepTerms";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
@@ -27,6 +27,7 @@ export type ClassPost = {
   programId: number;
   termId: number;
   body: string;
+  authorAccount: string;
   authorName: string;
   emailedCount: number;
   createdAt: string;
@@ -58,13 +59,14 @@ function toPost(row: Row): ClassPost {
     programId: Number(row.program_id),
     termId: Number(row.term_id),
     body: text(row.body),
+    authorAccount: text(row.author_account),
     authorName: text(row.author_name),
     emailedCount: Number(row.emailed_count ?? 0),
     createdAt: text(row.created_at),
   };
 }
 
-const POST_COLUMNS = "id,program_id,term_id,body,author_name,emailed_count,created_at";
+const POST_COLUMNS = "id,program_id,term_id,body,author_account,author_name,emailed_count,created_at";
 
 // Every Futprep class staff can post to: active programmes, and their
 // active terms that haven't been over for more than two weeks (the last
@@ -152,7 +154,7 @@ export async function listClassPosts(programId: number, termId: number, limit = 
   return ((data ?? []) as Row[]).map(toPost);
 }
 
-export async function createClassPost(input: { programId: number; termId: number; body: string; authorAccount: string; authorName: string }): Promise<ClassPost> {
+export async function createClassPost(input: { programId: number; termId: number; body: string; authorAccount: string; authorName: string; notify?: boolean }): Promise<ClassPost> {
   const found = await findFeedClass(input.programId, input.termId);
   if (!found) throw new Error("CLASS_NOT_FOUND");
   const { data, error } = await getSupabaseAdmin()
@@ -164,6 +166,7 @@ export async function createClassPost(input: { programId: number; termId: number
       body: input.body,
       author_account: input.authorAccount,
       author_name: input.authorName.slice(0, 120),
+      notify: input.notify !== false,
     })
     .select(POST_COLUMNS)
     .single();
@@ -196,19 +199,42 @@ export async function recordEmailed(postId: number, count: number): Promise<void
   throwIfSupabaseError(error, "Could not record the emails");
 }
 
-// Hides a post from the feed. Returns false when there was nothing to hide.
-export async function removeClassPost(postId: number, by: string): Promise<boolean> {
-  if (!Number.isInteger(postId)) return false;
+// How many updates were emailed to this class in the last hour, removed
+// ones included, so removing and posting again doesn't get round the cap.
+export async function emailedPostsLastHour(programId: number, termId: number, now: Date = new Date()): Promise<number> {
   const org = await futprepOrganizationId();
-  const { data, error } = await getSupabaseAdmin()
+  const since = new Date(now.getTime() - 60 * 60_000).toISOString();
+  const { count, error } = await getSupabaseAdmin()
     .from("class_posts")
-    .update({ deleted_at: new Date().toISOString(), deleted_by: by })
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", org)
+    .eq("program_id", programId)
+    .eq("term_id", termId)
+    .eq("notify", true)
+    .gte("created_at", since);
+  throwIfSupabaseError(error, "Could not count the class's updates");
+  return Number(count ?? 0);
+}
+
+// Hides a post from the feed. A coach hides only their own; an admin or the
+// CEO any (lib/classFeed.ts canRemovePost).
+export async function removeClassPost(postId: number, by: { account: string; role: string }): Promise<"removed" | "missing" | "not_yours"> {
+  if (!Number.isInteger(postId)) return "missing";
+  const org = await futprepOrganizationId();
+  const db = getSupabaseAdmin();
+  const { data: post, error: readError } = await db.from("class_posts").select("author_account").eq("id", postId).eq("organization_id", org).is("deleted_at", null).maybeSingle();
+  throwIfSupabaseError(readError, "Could not load the update");
+  if (!post) return "missing";
+  if (!canRemovePost(by.role, by.account, text((post as Row).author_account))) return "not_yours";
+  const { data, error } = await db
+    .from("class_posts")
+    .update({ deleted_at: new Date().toISOString(), deleted_by: by.account })
     .eq("id", postId)
     .eq("organization_id", org)
     .is("deleted_at", null)
     .select("id");
   throwIfSupabaseError(error, "Could not remove the update");
-  return ((data ?? []) as Row[]).length > 0;
+  return ((data ?? []) as Row[]).length > 0 ? "removed" : "missing";
 }
 
 // What a signed-in parent sees on /futprep/feed: each class a child of

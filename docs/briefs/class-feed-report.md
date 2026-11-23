@@ -9,10 +9,9 @@ A coach, admin or the CEO picks one class (a programme in a term) on `/futprep/s
   - Sign in to PortPass with the email they registered with (a code, or Google).
   - `/futprep/feed` shows every class their children are in, by first name, with the updates newest first.
   - `/account` links to it when they have a Futprep registration.
-- **Who is "in the class":**
-  - In: pending details, pending, confirmed, and a taster child.
-  - Out: waitlisted and cancelled families.
-- **Removing an update:** hides it from both pages. Emails already sent stay sent, and the screen says so before removing.
+- **Who is "in the class":** confirmed places and taster children only (Security & QA, 23 Nov). A pending registration can be made up with any email, so it never sees the feed or gets its emails; waitlisted and cancelled families don't either.
+- **Removing an update:** hides it from both pages. A coach removes only their own; an admin or the CEO any. Emails already sent stay sent, and the screen says so before removing.
+- **Email cap:** at most 3 emailed updates per class per hour, removed ones counted, so removing and reposting doesn't get round it. Past the cap the coach can still post without email.
 - **Helper logins:** can't post.
 - **Coach workspace:** gets a "Class updates" link.
 
@@ -22,7 +21,7 @@ A coach, admin or the CEO picks one class (a programme in a term) on `/futprep/s
 - **Rule 5:** no WhatsApp automation. This is the business's own email to its own registered families, one to one.
 
 ## Files
-- `supabase/migrations/202610270005_class_posts.sql` (new table `class_posts`, RLS on, service role only)
+- `supabase/migrations/202610280008_class_posts.sql` (new table `class_posts`, RLS on, service role only)
 - `lib/classFeed.ts`, `lib/classFeed.test.ts` (rules and the email)
 - `db/classFeed.ts`, `db/classFeed.integration.test.ts`
 - `app/api/futprep/staff/class-posts/route.ts` (GET list, POST post and email, DELETE remove)
@@ -33,7 +32,7 @@ A coach, admin or the CEO picks one class (a programme in a term) on `/futprep/s
 - `docs/ops/STATE.md`
 
 ## Migrations
-`202610270005_class_posts.sql`. It is additive (one new table). It must be applied to the live database before this merges, because previews and production share it.
+`202610280008_class_posts.sql`. It is additive (one new table). It must be applied to the live database before this merges, because previews and production share it.
 
 ## Env var names
 None new. Uses `RESEND_API_KEY` and `FUTPREP_FROM_EMAIL`.

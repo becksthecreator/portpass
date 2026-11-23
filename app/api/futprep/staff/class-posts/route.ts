@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { currentFutprepStaffAccount, currentFutprepStaffName, currentFutprepStaffRole } from "@/app/futprep/staff-auth";
-import { classRecipients, createClassPost, findFeedClass, listClassPosts, recordEmailed, removeClassPost } from "@/db/classFeed";
+import { classRecipients, createClassPost, emailedPostsLastHour, findFeedClass, listClassPosts, recordEmailed, removeClassPost } from "@/db/classFeed";
 import { afterResponse } from "@/lib/afterResponse";
 import { bodyOf, readJson } from "@/lib/api/body";
-import { checkPostBody, classPostEmail } from "@/lib/classFeed";
+import { checkPostBody, classPostEmail, EMAILED_POSTS_PER_CLASS_PER_HOUR } from "@/lib/classFeed";
 import { sendEmail } from "@/lib/email";
 import { absoluteUrl } from "@/lib/seo/jsonLd";
 
@@ -15,7 +15,7 @@ async function poster() {
   if (!role || role === "helper") return null;
   const account = await currentFutprepStaffAccount();
   if (!account) return null;
-  return { account, name: (await currentFutprepStaffName()) ?? "" };
+  return { account, role, name: (await currentFutprepStaffName()) ?? "" };
 }
 
 const denied = () => NextResponse.json({ error: "Staff access required." }, { status: 403 });
@@ -47,15 +47,22 @@ export async function POST(request: Request) {
   const found = await findFeedClass(id(programId), id(termId));
   if (!found) return NextResponse.json({ error: "Pick a class." }, { status: 400 });
 
+  // At most EMAILED_POSTS_PER_CLASS_PER_HOUR emailed updates per class an
+  // hour (Security & QA): the families' inboxes are not a channel to flood.
+  const emailing = notify !== false;
+  if (emailing && (await emailedPostsLastHour(id(programId), id(termId))) >= EMAILED_POSTS_PER_CLASS_PER_HOUR) {
+    return NextResponse.json({ error: `This class has had ${EMAILED_POSTS_PER_CLASS_PER_HOUR} emailed updates in the last hour. Post it without email, or try again later.` }, { status: 429 });
+  }
+
   let post;
   try {
-    post = await createClassPost({ programId: id(programId), termId: id(termId), body: checked.body, authorAccount: who.account, authorName: who.name });
+    post = await createClassPost({ programId: id(programId), termId: id(termId), body: checked.body, authorAccount: who.account, authorName: who.name, notify: emailing });
   } catch (error) {
     console.error("class post error", error instanceof Error ? error.message : "");
     return NextResponse.json({ error: "Could not post the update. Try again." }, { status: 500 });
   }
 
-  const recipients = notify === false ? [] : await classRecipients(post.programId, post.termId);
+  const recipients = emailing ? await classRecipients(post.programId, post.termId) : [];
   if (recipients.length) {
     const { subject, html } = classPostEmail({
       programName: found.programName,
@@ -83,7 +90,8 @@ export async function DELETE(request: Request) {
   if (!who) return denied();
   const read = await readJson(request, bodyOf(["postId"]));
   if (!read.ok) return read.response;
-  const removed = await removeClassPost(id(read.value.postId), who.account);
-  if (!removed) return NextResponse.json({ error: "That update was already removed." }, { status: 404 });
+  const outcome = await removeClassPost(id(read.value.postId), { account: who.account, role: who.role });
+  if (outcome === "not_yours") return NextResponse.json({ error: "Only the coach who posted it, an admin or the CEO can remove this update." }, { status: 403 });
+  if (outcome === "missing") return NextResponse.json({ error: "That update was already removed." }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

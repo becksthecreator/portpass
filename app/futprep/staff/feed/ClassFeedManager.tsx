@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { canRemovePost } from "@/lib/classFeed";
 
 type FeedClass = { programId: number; termId: number; programName: string; termName: string; families: number };
-type Post = { id: number; body: string; authorName: string; emailedCount: number; createdAt: string };
+type Post = { id: number; body: string; authorAccount: string; authorName: string; emailedCount: number; createdAt: string };
 
 const MAX = 2000;
 const keyOf = (c: { programId: number; termId: number }) => `${c.programId}:${c.termId}`;
@@ -12,7 +13,7 @@ const when = (iso: string) =>
 
 // Pick a class, write, post. The server checks the class is Futprep's and
 // takes the author from the login.
-export function ClassFeedManager({ classes, initialKey, initialPosts }: { classes: FeedClass[]; initialKey: string; initialPosts: Post[] }) {
+export function ClassFeedManager({ classes, initialKey, initialPosts, viewer }: { classes: FeedClass[]; initialKey: string; initialPosts: Post[]; viewer: { role: string; account: string } }) {
   const [key, setKey] = useState(initialKey);
   const [posts, setPosts] = useState(initialPosts);
   const [body, setBody] = useState("");
@@ -103,7 +104,7 @@ export function ClassFeedManager({ classes, initialKey, initialPosts }: { classe
                   <span>{p.emailedCount ? `Emailed to ${p.emailedCount}` : "Not emailed"}</span>
                 </div>
                 <p className="class-feed-body">{p.body}</p>
-                <button type="button" className="class-feed-remove" onClick={() => remove(p.id)}>Remove</button>
+                {canRemovePost(viewer.role, viewer.account, p.authorAccount) && <button type="button" className="class-feed-remove" onClick={() => remove(p.id)}>Remove</button>}
               </li>
             ))}
           </ol>

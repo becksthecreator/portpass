@@ -1,5 +1,5 @@
--- Class feed (Nov 2026): a coach or admin posts an update to one class in
--- one term ("Bring water, we start at 9:15 this Saturday"), and the parents
+-- Class feed (Nov 2026; numbered 202610280008, after #270's 0003 and
+-- #277's 0007): a coach or admin posts an update to one class in one term ("Bring water, we start at 9:15 this Saturday"), and the parents
 -- of the children in that class read it on /futprep/feed and get it by
 -- email. It replaces the per-class WhatsApp groups.
 --
@@ -18,6 +18,9 @@ create table if not exists public.class_posts (
   body text not null check (char_length(btrim(body)) between 1 and 2000),
   author_account text not null,
   author_name text not null default '',
+  -- Whether the families were emailed; the hourly cap counts these,
+  -- removed ones included (lib/classFeed.ts EMAILED_POSTS_PER_CLASS_PER_HOUR).
+  notify boolean not null default true,
   emailed_count integer not null default 0 check (emailed_count >= 0),
   created_at timestamptz not null default now(),
   deleted_at timestamptz,
@@ -27,6 +30,10 @@ create table if not exists public.class_posts (
 create index if not exists class_posts_class_idx
   on public.class_posts (program_id, term_id, created_at desc)
   where deleted_at is null;
+
+create index if not exists class_posts_emailed_idx
+  on public.class_posts (program_id, term_id, created_at desc)
+  where notify;
 
 -- The server reads and writes it with the service role; nobody else.
 alter table public.class_posts enable row level security;

@@ -1,7 +1,7 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { listClassPosts, listFeedClasses } from "@/db/classFeed";
-import { requireFutprepStaff } from "../../staff-auth";
+import { currentFutprepStaffAccount, requireFutprepStaff } from "../../staff-auth";
 import { StaffLogoutButton } from "../StaffLogoutButton";
 import { ClassFeedManager } from "./ClassFeedManager";
 import "../coaches.css";
@@ -18,7 +18,8 @@ export const metadata = {
 // its parents read it on /futprep/feed and get it by email. It replaces
 // the per-class WhatsApp groups.
 export default async function ClassFeedStaffPage() {
-  await requireFutprepStaff(["coach", "admin", "ceo"], "/futprep/staff/feed");
+  const role = await requireFutprepStaff(["coach", "admin", "ceo"], "/futprep/staff/feed");
+  const account = (await currentFutprepStaffAccount()) ?? "";
   const classes = await listFeedClasses();
   const first = classes.find((c) => c.families > 0) ?? classes[0] ?? null;
   const posts = first ? await listClassPosts(first.programId, first.termId) : [];
@@ -39,7 +40,7 @@ export default async function ClassFeedStaffPage() {
           <p>Write to one class at a time. Every family with a child in that class gets it by email, one email each, and can read all the updates on their Futprep page.</p>
         </div>
         {first ? (
-          <ClassFeedManager classes={classes} initialKey={`${first.programId}:${first.termId}`} initialPosts={posts} />
+          <ClassFeedManager classes={classes} initialKey={`${first.programId}:${first.termId}`} initialPosts={posts} viewer={{ role, account }} />
         ) : (
           <div className="dashboard-empty">
             <h3>No class is running right now.</h3>

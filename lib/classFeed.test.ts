@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkPostBody, classLabel, classPostEmail, POST_MAX, postPreview } from "./classFeed";
+import { canRemovePost, checkPostBody, classLabel, classPostEmail, EMAILED_POSTS_PER_CLASS_PER_HOUR, FEED_STATUSES, POST_MAX, postPreview } from "./classFeed";
 
 describe("checkPostBody", () => {
   it("trims, keeps line breaks and squeezes long runs of blank lines", () => {
@@ -51,5 +51,22 @@ describe("classPostEmail", () => {
 
   it("never claims card payments work", () => {
     expect(classPostEmail({ ...base, body: "Hi" }).html.toLowerCase()).not.toMatch(/card payment|pay by card/);
+  });
+});
+
+describe("who is in the class, who removes, how often (Security & QA, 23 Nov)", () => {
+  it("counts confirmed places and tasters only, never a pending registration", () => {
+    expect([...FEED_STATUSES]).toEqual(["confirmed", "trial"]);
+  });
+
+  it("lets a coach remove only their own update; an admin or the CEO any", () => {
+    expect(canRemovePost("coach", "bex", "bex")).toBe(true);
+    expect(canRemovePost("coach", "bex", "dre")).toBe(false);
+    expect(canRemovePost("admin", "desk", "dre")).toBe(true);
+    expect(canRemovePost("ceo", "alex", "dre")).toBe(true);
+  });
+
+  it("caps emailed updates per class per hour", () => {
+    expect(EMAILED_POSTS_PER_CLASS_PER_HOUR).toBe(3);
   });
 });

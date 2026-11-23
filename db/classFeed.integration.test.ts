@@ -9,7 +9,7 @@ vi.mock("next/headers", () => ({
 import { DELETE as routeDELETE, GET as routeGET, POST as routePOST } from "@/app/api/futprep/staff/class-posts/route";
 import { nassauToday } from "@/lib/futprepTerms";
 import { assertLocalSupabase } from "@/lib/localStackOnly.mjs";
-import { classRecipients, createClassPost, findFeedClass, listClassPosts, listFeedClasses, listParentFeed, removeClassPost } from "./classFeed";
+import { classRecipients, createClassPost, emailedPostsLastHour, findFeedClass, listClassPosts, listFeedClasses, listParentFeed, removeClassPost } from "./classFeed";
 import { createFutprepProgram } from "./programs";
 
 // The class feed against the local Supabase stack: two TEST classes in
@@ -77,10 +77,11 @@ afterAll(async () => {
 });
 
 describe("class feed (Nov 2026)", () => {
-  it("lists the class with one count per family, not per child", async () => {
+  it("lists the class with one count per family, not per child, confirmed places only", async () => {
     const classes = await listFeedClasses();
     const a = classes.find((c) => c.programId === cls.a.programId && c.termId === cls.a.termId);
-    expect(a?.families).toBe(2);
+    // one (Ana and Ben, confirmed); not two (Cal, pending) or three (waitlist).
+    expect(a?.families).toBe(1);
   });
 
   it("only takes a term that belongs to the class", async () => {
@@ -89,8 +90,8 @@ describe("class feed (Nov 2026)", () => {
     await expect(createClassPost({ programId: cls.a.programId, termId: cls.b.termId, body: "x", authorAccount: "test", authorName: "" })).rejects.toThrow("CLASS_NOT_FOUND");
   });
 
-  it("emails each family in the class once, and not the waitlist", async () => {
-    expect(await classRecipients(cls.a.programId, cls.a.termId)).toEqual([email("one"), email("two")].sort());
+  it("emails each confirmed family once; never a pending registration or the waitlist (Security & QA)", async () => {
+    expect(await classRecipients(cls.a.programId, cls.a.termId)).toEqual([email("one")]);
   });
 
   it("shows a parent only their own classes' updates, with first names and no health detail", async () => {
@@ -103,9 +104,10 @@ describe("class feed (Nov 2026)", () => {
     expect(one.posts.map((p) => p.id)).toEqual([pa.id]);
     expect(JSON.stringify(one)).not.toContain(HEALTH);
 
+    // Cal is pending in class a, so two sees only class b (Eve, confirmed).
     const two = await listParentFeed(email("two"));
-    expect(two.classes).toHaveLength(2);
-    expect(two.posts).toHaveLength(2);
+    expect(two.classes).toHaveLength(1);
+    expect(two.posts.map((p) => p.body)).toEqual([`${MARK} class b only`]);
 
     expect((await listParentFeed(email("three"))).classes).toHaveLength(0);
     expect((await listParentFeed("nobody-" + email("x"))).posts).toHaveLength(0);
@@ -113,10 +115,27 @@ describe("class feed (Nov 2026)", () => {
 
   it("hides a removed update everywhere, once", async () => {
     const post = await createClassPost({ programId: cls.a.programId, termId: cls.a.termId, body: `${MARK} to remove`, authorAccount: "test", authorName: "" });
-    expect(await removeClassPost(post.id, "test")).toBe(true);
-    expect(await removeClassPost(post.id, "test")).toBe(false);
+    expect(await removeClassPost(post.id, { account: "test", role: "coach" })).toBe("removed");
+    expect(await removeClassPost(post.id, { account: "test", role: "coach" })).toBe("missing");
     expect((await listClassPosts(cls.a.programId, cls.a.termId)).some((p) => p.id === post.id)).toBe(false);
     expect((await listParentFeed(email("one"))).posts.some((p) => p.id === post.id)).toBe(false);
+  });
+
+  it("lets a coach remove only their own update; an admin or the CEO any", async () => {
+    const post = await createClassPost({ programId: cls.a.programId, termId: cls.a.termId, body: `${MARK} by coach a`, authorAccount: "test-coach-a", authorName: "" });
+    expect(await removeClassPost(post.id, { account: "test-coach-b", role: "coach" })).toBe("not_yours");
+    expect((await listClassPosts(cls.a.programId, cls.a.termId)).some((p) => p.id === post.id)).toBe(true);
+    expect(await removeClassPost(post.id, { account: "test-desk", role: "admin" })).toBe("removed");
+  });
+
+  it("counts emailed updates in the last hour, removed ones included, and not ones posted without email", async () => {
+    const before = await emailedPostsLastHour(cls.b.programId, cls.b.termId);
+    const emailed = await createClassPost({ programId: cls.b.programId, termId: cls.b.termId, body: `${MARK} emailed`, authorAccount: "test", authorName: "" });
+    await createClassPost({ programId: cls.b.programId, termId: cls.b.termId, body: `${MARK} quiet`, authorAccount: "test", authorName: "", notify: false });
+    expect(await emailedPostsLastHour(cls.b.programId, cls.b.termId)).toBe(before + 1);
+    await removeClassPost(emailed.id, { account: "test", role: "coach" });
+    expect(await emailedPostsLastHour(cls.b.programId, cls.b.termId)).toBe(before + 1);
+    expect(await emailedPostsLastHour(cls.b.programId, cls.b.termId, new Date(Date.now() + 2 * 60 * 60_000))).toBe(0);
   });
 
   it("refuses the staff routes without a staff login", async () => {

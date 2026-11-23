@@ -6,10 +6,21 @@ import { futprepEmailButton, futprepEmailShell } from "@/lib/futprepEmail";
 
 export const POST_MAX = 2000;
 
-// Who is "in the class" for the feed: the same statuses the roster counts
-// (db/staff.ts rosterForSession), plus a taster child, whose parent wants
-// to hear about the Saturday too. Waitlisted and cancelled families don't.
-export const FEED_STATUSES = ["pending_details", "pending", "confirmed", "trial"] as const;
+// Who is "in the class" for the feed (Security & QA, 23 Nov): a confirmed
+// place, or a taster child, whose parent wants to hear about the Saturday
+// too. Not pending ones: a registration can be made up, with any email, and
+// pending would let a stranger read the class and get its emails.
+// Waitlisted and cancelled families don't either.
+export const FEED_STATUSES = ["confirmed", "trial"] as const;
+
+// At most this many updates are emailed to one class in an hour, so a
+// mistaken or misused login can't flood the families (Security & QA).
+export const EMAILED_POSTS_PER_CLASS_PER_HOUR = 3;
+
+// A coach removes only their own update; an admin or the CEO any.
+export function canRemovePost(role: string, account: string, authorAccount: string): boolean {
+  return role === "admin" || role === "ceo" || account === authorAccount;
+}
 
 export type PostCheck = { ok: true; body: string } | { ok: false; error: string };
 
