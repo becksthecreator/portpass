@@ -68,11 +68,14 @@ afterAll(async () => {
 });
 
 describe("Import from TeamSnap (brief 13)", () => {
-  it("without the medical permission, previews and saves no medical field, and says how many it left out", async () => {
+  it("without the medical permission, previews and saves no medical, emergency-contact or pickup field, and says how many it left out", async () => {
     const preview = await previewTeamsnapImport({ programId, termId, csv: CSV, canWriteMedical: false });
-    expect(preview.skippedMedical).toBe(1);
+    // Ava's allergy, plus her emergency contact's name and phone: the same
+    // permission guards all three (brief 34).
+    expect(preview.skippedMedical).toBe(3);
     const ava = preview.rows.find((r) => r.childName.endsWith("Ava Rolle"))!;
-    expect(ava.fields).not.toEqual(expect.arrayContaining([expect.stringMatching(/medical/)]));
+    expect(ava.fields).not.toEqual(expect.arrayContaining([expect.stringMatching(/medical|emergency|pickup/)]));
+    expect(ava.fields).toEqual(expect.arrayContaining(["parent name", "parent email"]));
     // Nothing is written by a preview; the medical check is shown, then the
     // apply below (with the permission) fills Ava as before.
     const { data } = await db().from("registrations").select("allergies,parent_email").eq("id", ids["Ava Rolle"]).single();
