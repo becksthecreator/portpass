@@ -5,10 +5,8 @@ import Link from "next/link";
 import { ppDisplay, ppSans } from "@/app/fonts";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
-import { listPlans } from "@/db/pricing";
 import { portpassWhatsAppUrl } from "@/lib/contact";
 import { getSectionTiles } from "@/lib/navSections";
-import { dollars, percentFromBps } from "@/lib/pricingFormat";
 import { getBusinessProof } from "@/db/businessProof";
 import { proofSentence } from "@/lib/businessProof";
 import "@/app/phase1.css";
@@ -47,19 +45,16 @@ const SHOTS = [
 const FAQS: Array<{ q: string; a: ReactNode }> = [
   { q: "How do customers pay me?", a: <>Straight to you: cash, bank transfer or a Kanoo wallet transfer. PortPass never holds your money. You send a payment request, the customer pays you the way you choose, and you mark it paid. Card payments are not available yet.</> },
   { q: "Do I need a website?", a: <>No. Your PortPass page is one link with your prices, your photos and a booking button. If you already have a website, link to your page from it.</> },
-  { q: "What does it cost?", a: <>Every plan starts with 30 days free. Plans and what each includes are on the <Link href="/pricing">pricing page</Link>.</> },
+  { q: "What does it cost?", a: <>The first look is free. After it, we quote a price that fits your business. How it works is on the <Link href="/pricing">pricing page</Link>.</> },
   { q: "Who builds my page?", a: <>We do. Send us your photos and prices on WhatsApp and one of us builds it, then shows it to you before it goes live.</> },
-  { q: "Can I leave?", a: <>Yes, any time before the end of a month; an annual plan runs to the end of the year you paid for. You can always download your records. The details are on the <Link href="/pricing">pricing page</Link>.</> },
+  { q: "Can I leave?", a: <>Yes. The notice is set in your agreement before we start, and you can always download your records.</> },
 ];
 
 export default async function BusinessPage() {
-  // Prices come from pricing_plans (pricing brief, 28 Sept): nothing on
-  // this page is hard-coded, and the admin's Prices screen changes it live.
-  // The proof line is counted from the database on each build of the page;
+  // No list prices (Bex, 23 Nov: "hide the old prices"): each business is
+  // quoted after the free first look, as on /pricing. The proof line is counted from the database on each build of the page;
   // if it can't be read, the page simply doesn't show one.
-  const [sections, plans, proof] = await Promise.all([getSectionTiles(), listPlans({ publicOnly: true }).catch(() => []), getBusinessProof().catch(() => null)]);
-  const subscriptions = plans.filter((p) => p.kind === "subscription");
-  const marketplace = plans.find((p) => p.kind === "commission") ?? null;
+  const [sections, proof] = await Promise.all([getSectionTiles(), getBusinessProof().catch(() => null)]);
   return (
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }]} />
@@ -122,33 +117,13 @@ export default async function BusinessPage() {
       <section className="biz-pricing" id="pricing">
         <div className="home-section-heading">
           <span className="home-eyebrow">Pricing</span>
-          <h2>First 30 days free.</h2>
+          <h2>Priced for your business.</h2>
         </div>
-        {plans.length > 0 && (
-          <div className="biz-plans">
-            {subscriptions.map((plan) => (
-              <div className={`biz-plan${plan.badge ? " biz-plan-featured" : ""}`} key={plan.code}>
-                <h3>{plan.name}</h3>
-                <strong>{dollars(plan.monthlyCents)}</strong>
-                <span>per month</span>
-                {plan.blurb && <p>{plan.blurb}</p>}
-              </div>
-            ))}
-            {marketplace && (
-              <div className="biz-plan">
-                <h3>{marketplace.name}</h3>
-                <strong>{dollars(marketplace.monthlyCents)}</strong>
-                <span>no monthly fee</span>
-                <p>{percentFromBps(marketplace.commissionBps)} of the bookings we bring you.</p>
-              </div>
-            )}
-          </div>
-        )}
         <div className="biz-pricing-notes">
-          <span>Every plan starts with 30 days free — we&rsquo;ll confirm which one fits on your first call.</span>
+          <span>The first look is free. After it, we quote a price that fits your business.</span>
           <span>Cash, bank transfer and Kanoo wallet transfers work today, paid straight to you. Card payments are not available yet.</span>
         </div>
-        <p className="biz-pricing-more"><Link href="/pricing">See full pricing →</Link></p>
+        <p className="biz-pricing-more"><Link href="/pricing">How pricing works →</Link></p>
       </section>
 
       <section className="biz-faq" id="questions" aria-labelledby="biz-faq-title">
