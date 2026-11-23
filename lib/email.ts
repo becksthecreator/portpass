@@ -17,6 +17,9 @@ type SendEmailInput = {
   // Defaults to the Futprep sender; PortPass's own emails pass
   // portpassFrom() so the two senders can differ once both are configured.
   from?: string;
+  // Where the recipient's reply goes, when that isn't the sender (a
+  // business's own inbox behind a PortPass sending address).
+  replyTo?: string;
   // Writes the outcome to the Messages log (Admin -> Messages): who it
   // was for, which kind of email, and whether it went. Never the text or
   // the subject, which can carry a child's name.
@@ -59,8 +62,14 @@ export async function sendEmail(input: SendEmailInput): Promise<EmailOutcome> {
     return "skipped";
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = fromOverride ?? process.env.FUTPREP_FROM_EMAIL;
+  const apiKey = cleanEnvValue(process.env.RESEND_API_KEY);
+  const from = cleanEnvValue(fromOverride ?? process.env.FUTPREP_FROM_EMAIL);
+
+  if (apiKey && !apiKey.startsWith("re_")) {
+    // Never the value: only that it isn't shaped like a Resend key, which
+    // is what a key pasted with extra text around it looks like.
+    console.error("[email] RESEND_API_KEY does not start with re_: paste the key again in Vercel.");
+  }
 
   if (!apiKey || !from) {
     // Never the address or the subject: a subject can carry a child's name,
@@ -77,11 +86,19 @@ export async function sendEmail(input: SendEmailInput): Promise<EmailOutcome> {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(input.attachments?.length ? { from, to, subject, html, attachments: input.attachments } : { from, to, subject, html }),
+      body: JSON.stringify({
+        from,
+        to,
+        subject,
+        html,
+        ...(input.replyTo ? { reply_to: input.replyTo } : {}),
+        ...(input.attachments?.length ? { attachments: input.attachments } : {}),
+      }),
     });
     if (!response.ok) {
-      console.error(`[email] Resend send failed (${response.status}).`);
-      await record(input, "failed", `The email service refused it (${response.status}).`);
+      const reason = await refusalReason(response);
+      console.error(`[email] Resend send failed (${response.status})${reason ? `: ${reason}` : "."}`);
+      await record(input, "failed", `The email service refused it (${response.status})${reason ? `: ${reason}` : "."}`);
       return "failed";
     }
     // The service's id for this email: its webhook reports delivery and
@@ -96,13 +113,35 @@ export async function sendEmail(input: SendEmailInput): Promise<EmailOutcome> {
   }
 }
 
+// A value pasted into Vercel can arrive with a trailing newline or wrapped
+// in quotes ("re_..."), and Resend refuses such a key with a 400. Trims
+// both; a sender like `"X via PortPass" <a@b>` is left alone because it
+// doesn't end in a quote.
+export function cleanEnvValue(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  let v = value.trim();
+  const q = v[0];
+  if ((q === '"' || q === "'") && v.length > 1 && v.endsWith(q) && !v.slice(1, -1).includes(q)) v = v.slice(1, -1).trim();
+  return v || undefined;
+}
+
+// Resend's own words for a refusal ("API key is invalid", "Invalid `from`
+// field ..."), with any email address blanked out: the log must never hold
+// who an email was for. Capped so a strange body can't flood the log.
+async function refusalReason(response: Response): Promise<string | null> {
+  const body = (await response.json().catch(() => null)) as { name?: unknown; message?: unknown } | null;
+  const parts = [body?.name, body?.message].filter((p): p is string => typeof p === "string" && p.length > 0);
+  if (!parts.length) return null;
+  return parts.join(" - ").replace(/[^\s<>"'`,;:()]+@[^\s<>"'`,;:()]+/g, "[address]").slice(0, 200);
+}
+
 // Futprep's emails wear Flamingo Night (brief 27, D): lib/futprepEmail.ts.
 function emailShell(title: string, bodyHtml: string) {
   return futprepEmailShell(title, bodyHtml);
 }
 
 export function portpassFrom(): string | undefined {
-  return process.env.PORTPASS_FROM_EMAIL ?? process.env.FUTPREP_FROM_EMAIL;
+  return cleanEnvValue(process.env.PORTPASS_FROM_EMAIL) ?? cleanEnvValue(process.env.FUTPREP_FROM_EMAIL);
 }
 
 export function escapeHtml(value: string): string {

@@ -1,11 +1,10 @@
 import { headers } from "next/headers";
 import type { MetadataRoute } from "next";
 import { listSections } from "@/db/categories";
-import { getOrganizationListingBySlug, listSectionBusinesses, liveCountsByCategory } from "@/db/organizations";
+import { listSectionBusinesses, liveCountsByCategory } from "@/db/organizations";
 import { directoryHref } from "@/app/_components/blocks/directoryHref";
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/lib/legal";
 import { listPublishedGuides } from "@/db/guides";
-import { listMarketProductPaths } from "@/db/market";
 
 const PLATFORM_HOST = "portpassbahamas.com";
 
@@ -19,7 +18,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const host = (await headers()).get("host")?.replace(/^www\./, "").toLowerCase();
 
   if (host && host !== PLATFORM_HOST && !host.endsWith(".vercel.app")) {
-    return [{ url: `https://${host}/` }];
+    const own: MetadataRoute.Sitemap = [{ url: `https://${host}/` }];
+    // The wedding planner is the booking page on Bahamas Weddings By The Sea's domain.
+    if (host === "bahamasweddingsbythesea.com") own.push({ url: `https://${host}/weddings/bahamas-weddings-by-the-sea/plan` });
+    return own;
   }
 
   // lastmod is given only where it is known (brief 11, 5): a business's
@@ -31,15 +33,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `https://${PLATFORM_HOST}/business` },
     { url: `https://${PLATFORM_HOST}/pricing` },
     { url: `https://${PLATFORM_HOST}/apply` },
-    { url: `https://${PLATFORM_HOST}/sell` },
-    { url: `https://${PLATFORM_HOST}/market` },
     { url: `https://${PLATFORM_HOST}/about` },
     { url: `https://${PLATFORM_HOST}/contact` },
     { url: `https://${PLATFORM_HOST}/app` },
     { url: `https://${PLATFORM_HOST}/perks` },
-    { url: `https://${PLATFORM_HOST}/futprep/coaches` },
-    { url: `https://${PLATFORM_HOST}/futprep/camps` },
-    { url: `https://${PLATFORM_HOST}/weddings/bahamas-weddings-by-the-sea/plan` },
     { url: `https://${PLATFORM_HOST}/privacy`, lastModified: new Date(`${PRIVACY_POLICY.updated}T12:00:00Z`) },
     { url: `https://${PLATFORM_HOST}/terms`, lastModified: new Date(`${TERMS_OF_SERVICE.updated}T12:00:00Z`) },
   ];
@@ -55,20 +52,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const guide of guides) entries.push({ url: `https://${PLATFORM_HOST}/guides/${guide.slug}`, lastModified: new Date(guide.updatedAt) });
   }
 
-  // PortPass Market (brief 25, B4): every product page and every category
-  // with something in it. The market_products view lists only verified
-  // sellers' published products and never the demo business.
-  try {
-    const products = await listMarketProductPaths();
-    const categories = new Map<string, string[]>();
-    for (const product of products) {
-      entries.push({ url: `https://${PLATFORM_HOST}/market/p/${product.sellerSlug}/${product.slug}`, lastModified: newest([product.createdAt]) });
-      if (product.marketCategory) categories.set(product.marketCategory, [...(categories.get(product.marketCategory) ?? []), product.createdAt]);
-    }
-    for (const [category, dates] of categories) entries.push({ url: `https://${PLATFORM_HOST}/market/${category}`, lastModified: newest(dates) });
-  } catch {
-    // The rest of the sitemap stands without the Market's pages.
-  }
+  // PortPass Market's pages are off the site since 19 Oct 2026 (sports,
+  // fitness and gyms only; /market redirects home), so none is listed.
 
   try {
     const [sections, live] = await Promise.all([listSections(), liveCountsByCategory()]);
@@ -90,25 +75,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         entries.push({ url: `https://${PLATFORM_HOST}/${section.slug}/${sub.slug}`, lastModified: newest(inSub.map((b) => b.updatedAt)) });
       }
       for (const business of businesses) {
-        if (seen.has(business.slug)) continue;
+        // Futprep's page sends families to its own site (lib/futprepOffSite.ts).
+        if (seen.has(business.slug) || business.slug === "futprep") continue;
         seen.add(business.slug);
         entries.push({ url: `https://${PLATFORM_HOST}${directoryHref(business.slug, business.primaryCategory)}`, lastModified: newest([business.updatedAt]) });
       }
     }
-    // Futprep's programme pages (published offerings only).
-    const futprep = await getOrganizationListingBySlug("futprep").catch(() => null);
-    for (const offering of futprep?.offerings ?? []) {
-      if (offering.slug) entries.push({ url: `https://${PLATFORM_HOST}/sports-fitness/futprep-athletics/${offering.slug}` });
-    }
+    // Futprep's programme pages are off PortPass for now (they redirect to
+    // Futprep's own site, lib/futprepOffSite.ts), so none is listed.
   } catch {
-    // No database (or a hiccup): the fixed pages plus the two known live
-    // businesses are still better than an empty sitemap.
-    entries.push(
-      { url: `https://${PLATFORM_HOST}/sports-fitness` },
-      { url: `https://${PLATFORM_HOST}/sports-fitness/futprep-athletics` },
-      { url: `https://${PLATFORM_HOST}/weddings` },
-      { url: `https://${PLATFORM_HOST}/weddings/bahamas-weddings-by-the-sea` },
-    );
+    // No database (or a hiccup): the fixed pages are still better than an
+    // empty sitemap.
+    entries.push({ url: `https://${PLATFORM_HOST}/sports-fitness` });
   }
 
   return entries;

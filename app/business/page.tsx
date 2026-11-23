@@ -22,6 +22,7 @@ export const revalidate = 300;
 export const metadata = {
   title: "PortPass for Business | Your bookings and payments in one place",
   description: "One link with your prices, photos and a booking button. Send us your photos and prices on WhatsApp, we build your page, you share one link.",
+  alternates: { canonical: "/business" },
 };
 
 const WHATSAPP_HREF = portpassWhatsAppUrl("Hi PortPass — I run a business and want to get listed.");
@@ -44,7 +45,7 @@ const SHOTS = [
 // Plain answers to what a business asks first. Nothing here says card
 // payments work: they don't yet.
 const FAQS: Array<{ q: string; a: ReactNode }> = [
-  { q: "How do customers pay me?", a: <>Straight to you: cash, bank transfer or a Kanoo wallet transfer. PortPass never holds your money. You send a payment request, the customer pays you the way you choose, and you mark it paid. Card payments are coming with a licensed partner; they are not available yet.</> },
+  { q: "How do customers pay me?", a: <>Straight to you: cash, bank transfer or a Kanoo wallet transfer. PortPass never holds your money. You send a payment request, the customer pays you the way you choose, and you mark it paid. Card payments are not available yet.</> },
   { q: "Do I need a website?", a: <>No. Your PortPass page is one link with your prices, your photos and a booking button. If you already have a website, link to your page from it.</> },
   { q: "What does it cost?", a: <>Every plan starts with 30 days free. Plans and what each includes are on the <Link href="/pricing">pricing page</Link>.</> },
   { q: "Who builds my page?", a: <>We do. Send us your photos and prices on WhatsApp and one of us builds it, then shows it to you before it goes live.</> },
@@ -145,7 +146,7 @@ export default async function BusinessPage() {
         )}
         <div className="biz-pricing-notes">
           <span>Every plan starts with 30 days free — we&rsquo;ll confirm which one fits on your first call.</span>
-          <span>Card payments: coming soon with a licensed partner. Cash, bank transfer and Kanoo wallet transfers work today, paid straight to you.</span>
+          <span>Cash, bank transfer and Kanoo wallet transfers work today, paid straight to you. Card payments are not available yet.</span>
         </div>
         <p className="biz-pricing-more"><Link href="/pricing">See full pricing →</Link></p>
       </section>

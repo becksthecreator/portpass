@@ -2,12 +2,12 @@ import { notFound } from "next/navigation";
 import { getOrganizationListingBySlug } from "@/db/organizations";
 import { OrganizationTemplate } from "@/app/_components/blocks/OrganizationTemplate";
 import { BusinessHeader, BusinessFooter } from "@/app/_components/BusinessShell";
-import { BusinessArrivalPlate } from "@/app/_components/BusinessArrivalPlate";
 import { computeBrandTokens } from "@/app/_components/blocks/brand";
 import { bizDisplay, ppSans } from "@/app/fonts";
 import { JsonLd } from "@/app/_components/seo/JsonLd";
 import { directoryHref } from "@/app/_components/blocks/directoryHref";
 import { listingJsonLd } from "@/lib/seo/fromListing";
+import { BwsListingMain, loadBwsListing } from "@/app/weddings/bahamas-weddings-by-the-sea/BwsListing";
 
 // The paid-tier shell: a business's own domain, its own header/footer (no
 // PortPass chrome, no breadcrumb), its own accent -- and the exact same
@@ -25,6 +25,15 @@ export function generateStaticParams() {
   return [];
 }
 
+// A site-relative path (or a portpassbahamas.com URL) as an address on
+// the business's own domain; anything else is left alone.
+function onOwnDomain(href: string, origin: string | undefined): string {
+  if (!origin) return href;
+  // "//host/path" is protocol-relative (another host), not site-relative.
+  if (href.startsWith("/") && !href.startsWith("//")) return `${origin}${href}`;
+  return href.replace(/^https:\/\/(www\.)?portpassbahamas\.com(?=\/)/i, origin);
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const listing = await getOrganizationListingBySlug(slug).catch(() => null);
@@ -39,16 +48,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const title = slug === "bahamas-weddings" ? `${org.name} | Nassau Wedding Officiant & Planner` : org.name;
   const description = org.oneLiner ?? org.description ?? undefined;
   const url = org.customDomain ? `https://${org.customDomain}` : undefined;
+  const heroImage = org.heroImageUrl ? onOwnDomain(org.heroImageUrl, url) : null;
   return {
     title,
     description,
+    // The business's own domain is the page's one address in search
+    // results; without it the domain and portpassbahamas.com compete.
+    ...(url ? { alternates: { canonical: url } } : {}),
     openGraph: {
       type: "website",
       siteName: org.name,
       title,
       description,
       url,
-      images: org.heroImageUrl ? [{ url: org.heroImageUrl }] : undefined,
+      images: heroImage ? [{ url: heroImage }] : undefined,
     },
     twitter: { card: "summary_large_image", title, description },
   };
@@ -73,14 +86,22 @@ export default async function BusinessSitePage({ params }: { params: Promise<{ s
   // The same structured data as the business's PortPass page, at its own
   // address. No rating: PortPass doesn't collect reviews, and Google
   // doesn't accept ratings copied from another site.
-  const schema = listingJsonLd(listing, url ?? directoryHref(org.slug, org.primaryCategory));
+  // On its own domain, the photo and package links in that data point at
+  // the domain too, not at portpassbahamas.com (which only redirects here).
+  const ldListing = url
+    ? {
+        ...listing,
+        organization: { ...org, heroImageUrl: org.heroImageUrl ? onOwnDomain(org.heroImageUrl, url) : null },
+        offerings: listing.offerings.map((offering) => ({ ...offering, actionUrl: offering.actionUrl ? onOwnDomain(offering.actionUrl, url) : null })),
+      }
+    : listing;
+  const schema = listingJsonLd(ldListing, url ?? directoryHref(org.slug, org.primaryCategory));
 
   return (
     <div
       className={`site-shell-business ${bizDisplay.variable} ${ppSans.variable}`}
       style={{ "--brand": brand, "--brand-text": brandText } as React.CSSProperties}
     >
-      {slug === "bahamas-weddings" && <BusinessArrivalPlate mark="🌴" word="Bahamas" sub="Weddings by the sea" />}
       <JsonLd data={schema} />
       <BusinessHeader
         name={org.name}
@@ -88,7 +109,10 @@ export default async function BusinessSitePage({ params }: { params: Promise<{ s
         brand={brand}
         wordmarkMark={slug === "bahamas-weddings" ? "🌴" : undefined}
       />
-      <OrganizationTemplate listing={listing} />
+      {/* Bahamas Weddings By The Sea's own domain shows the same page as
+          its PortPass address (gallery, services, reviews), without
+          PortPass's parts (29 Oct 2026). */}
+      {slug === "bahamas-weddings" ? <BwsListingMain data={await loadBwsListing()} ownDomain /> : <OrganizationTemplate listing={listing} />}
       <BusinessFooter name={org.name} />
     </div>
   );

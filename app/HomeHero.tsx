@@ -22,7 +22,7 @@ export function HomeHero({ openSentence = "" }: { openSentence?: string }) {
           fetches an AVIF sized to the screen straight away -- it is the
           page's largest paint. The gradient blend lives in CSS (::after). */}
       <div className="pp-hero-frame pp-hero-frame-on" data-frame-world="portpass" aria-hidden="true">
-        <Image src="/weddings/bahamas-by-the-sea/hero.jpg" alt="" fill priority sizes="100vw" quality={70} />
+        <Image src="/futprep/lil-kickers/lil-kickers-training.jpg" alt="" fill priority sizes="100vw" quality={70} />
       </div>
       {/* Sun Drift (brief 22, M2 step 4): a glow that rises behind the
           words once, in CSS (lib/motion/public.css). Decorative. */}
@@ -31,10 +31,10 @@ export function HomeHero({ openSentence = "" }: { openSentence?: string }) {
       <div className="pp-hero-centre">
         <p className="pp-hero-kicker">The Bahamas, one pass at a time</p>
         <h1>
-          <span className="pp-hero-line">Everything worth booking</span>
+          <span className="pp-hero-line">Sports and fitness</span>
           <span className="pp-hero-line">in The Bahamas.</span>
         </h1>
-        <p className="pp-hero-lede">Sports sessions, weddings, venues and events — found and booked in one place.{openSentence ? ` ${openSentence}` : ""}</p>
+        <p className="pp-hero-lede">Sports clubs, coaches and gyms in The Bahamas: find a class, register and pay the club directly.{openSentence ? ` ${openSentence}` : ""}</p>
         <div className="pp-hero-actions">
           <a className="home-button" href="#open-now">Browse what&rsquo;s on</a>
           {/* Solid deck-white with navy text: readable on any photo (A3). */}

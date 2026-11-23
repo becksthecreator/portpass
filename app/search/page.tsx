@@ -31,11 +31,17 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const { q } = await searchParams;
   const query = typeof q === "string" ? q.slice(0, 80) : "";
   const terms = searchTerms(query);
-  const [businesses, tree, guides] = await Promise.all([
+  const [published, tree, guides] = await Promise.all([
     withOneRetry(() => listPublishedOrganizations()).catch((): OrganizationDirectoryEntry[] => []),
     getNavTree().catch(() => []),
     listPublishedGuides(),
   ]);
+  // A business whose section is hidden (Admin -> Sections) is not on
+  // PortPass's search either: since 19 Oct 2026 only sports, fitness and
+  // gyms are shown, and Bahamas Weddings By The Sea stays published only so
+  // its own domain can render it.
+  const shownSections = new Set(tree.map((section) => section.slug));
+  const businesses = published.filter((business) => !business.primaryCategory || shownSections.has(business.primaryCategory));
   const subsectionName = new Map(tree.flatMap((section) => section.subsections.map((sub) => [sub.slug, sub.name] as const)));
   const places = (business: OrganizationDirectoryEntry) => [business.area, business.island, !business.island || /new providence/i.test(business.island) ? "Nassau New Providence" : null];
   const ranked = rankMatches(terms, businesses, (business) => [business.name, business.oneLiner, categoryLabel(business.primaryCategory), business.subcategory ? (subsectionName.get(business.subcategory) ?? null) : null, ...places(business)]);
@@ -55,7 +61,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         <form className="search-form" action="/search" method="get" role="search">
           <label htmlFor="search-q" className="search-label">What are you looking for?</label>
           <div className="search-row">
-            <input id="search-q" name="q" type="search" defaultValue={query} maxLength={80} placeholder="Kids football, wedding officiant, photo booth…" autoComplete="off" />
+            <input id="search-q" name="q" type="search" defaultValue={query} maxLength={80} placeholder="Kids football, swim lessons, personal trainer…" autoComplete="off" />
             <button className="home-button" type="submit">Search</button>
           </div>
         </form>

@@ -9,7 +9,7 @@ import { InstallButton } from "./InstallButton";
 export const revalidate = 300;
 
 const TITLE = "Get the PortPass app | PortPass Bahamas";
-const DESCRIPTION = "Add PortPass to your home screen on iPhone or Android: sports sessions, weddings, venues and events, one tap away.";
+const DESCRIPTION = "Add PortPass to your home screen on iPhone or Android: sports clubs, classes and gyms, one tap away.";
 
 export const metadata = {
   title: TITLE,
@@ -31,7 +31,7 @@ export default function AppPage() {
         <div>
           <span className="home-eyebrow">PortPass on your phone</span>
           <h1>Put PortPass on your home screen.</h1>
-          <p>The same PortPass, opened like an app: sessions, weddings, venues and events, one tap away and quick to come back to. Nothing to download from a store.</p>
+          <p>The same PortPass, opened like an app: clubs, classes and gyms, one tap away and quick to come back to. Nothing to download from a store.</p>
           <InstallButton />
         </div>
         <div className="app-qr">

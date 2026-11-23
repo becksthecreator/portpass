@@ -2,7 +2,9 @@
 // data. Each is built from the loaded card's own elements and classes,
 // with neutral words of a typical length made invisible (.sk-text in
 // lib/motion/public.css): every box is the size its real text will take,
-// so the cards drop into the same places. A description longer or shorter
+// so the cards drop into the same places. The words live in data-sk and
+// CSS draws them (::before), so they are never page text: the server HTML
+// and crawlers don't read "Loading". A description longer or shorter
 // than the typical one can still change a card's height by a line. The
 // soft shimmer is a sweep by transform, off under reduced motion and the
 // kill switch (a still grey box then). Decorative: hidden from readers,
@@ -21,13 +23,13 @@ export function OpenNowCardSkeleton({ by = false }: { by?: boolean }) {
       <div className="open-now-head">
         <SkeletonBlock className="sk-logo" />
         <div>
-          <span className="open-now-chip sk-text">Loading</span>
-          <h3 className="sk-text">A business on PortPass</h3>
-          {by && <span className="open-now-by sk-text">By a business on PortPass</span>}
+          <span className="open-now-chip sk-text" data-sk="Loading" />
+          <h3 className="sk-text" data-sk="A business on PortPass" />
+          {by && <span className="open-now-by sk-text" data-sk="By a business on PortPass" />}
         </div>
       </div>
-      <p className="open-now-line sk-text">A line about what is on and when it runs</p>
-      <span className="home-button sk-text" data-still="">Explore →</span>
+      <p className="open-now-line sk-text" data-sk="A line about what is on and when it runs" />
+      <span className="home-button sk-text" data-still="" data-sk="Explore →" />
     </div>
   );
 }
@@ -39,7 +41,8 @@ export function OpenNowSkeleton({ cards = 2, camps = 0 }: { cards?: number; camp
   return (
     <section className="open-now" id="open-now" aria-busy="true" aria-label="Open now on PortPass, loading">
       <div className="carousel-header">
-        <h2>Open now on PortPass.</h2>
+        {/* A box, not a second "Open now" heading in the server HTML. */}
+        <h2 className="sk-text" aria-hidden="true" data-sk="Open now on PortPass." />
       </div>
       <div className="open-now-grid">
         {Array.from({ length: cards }, (_, i) => (
@@ -58,14 +61,14 @@ export function FeatureCardSkeleton({ wide = false }: { wide?: boolean }) {
     <div className={`feature-card${wide ? " feature-card-wide" : ""} sk-card`} data-still="" aria-hidden="true">
       <SkeletonBlock className="feature-card-photo sk-photo" />
       <div className="feature-card-body">
-        <span className="feature-card-label sk-text">Loading</span>
+        <span className="feature-card-label sk-text" data-sk="Loading" />
         <div className="feature-card-heading">
           <SkeletonBlock className="sk-logo sk-logo-sm" />
-          <h2 className="sk-text">A business on PortPass</h2>
+          <h2 className="sk-text" data-sk="A business on PortPass" />
         </div>
-        <p className="feature-card-description sk-text">A line or two about the business and what it offers.</p>
-        <p className="feature-card-price sk-text">Prices</p>
-        <span className="feature-card-button sk-text" data-still="">Explore →</span>
+        <p className="feature-card-description sk-text" data-sk="A line or two about the business and what it offers." />
+        <p className="feature-card-price sk-text" data-sk="Prices" />
+        <span className="feature-card-button sk-text" data-still="" data-sk="Explore →" />
       </div>
     </div>
   );

@@ -33,11 +33,11 @@ export const CSP_REPORT_PATH = "/api/security/csp-report";
 //    /demo included (also X-Frame-Options: DENY, for older browsers).
 const CSP_DIRECTIVES: Array<[string, string[]]> = [
   ["default-src", ["'self'"]],
-  ["script-src", ["'self'", "'unsafe-inline'", "https://www.weddingwire.com"]],
+  ["script-src", ["'self'", "'unsafe-inline'", "https://www.weddingwire.com", "https://www.googletagmanager.com"]],
   ["style-src", ["'self'", "'unsafe-inline'"]],
   ["img-src", ["'self'", "data:", "blob:", "https:"]],
   ["font-src", ["'self'", "data:"]],
-  ["connect-src", ["'self'", "https://vitals.vercel-insights.com"]],
+  ["connect-src", ["'self'", "https://vitals.vercel-insights.com", "https://www.google-analytics.com", "https://region1.google-analytics.com"]],
   ["frame-src", ["https://www.weddingwire.com", "https://www.google.com"]],
   ["frame-ancestors", ["'none'"]],
   ["base-uri", ["'self'"]],

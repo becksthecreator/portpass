@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { bwsSerif, bwsSans } from "../fonts";
 import { WeddingPlanner } from "./WeddingPlanner";
+import { BwsGoogleAnalytics } from "../BwsGoogleAnalytics";
 import { getPublicWeddingPackages, type PublicWeddingPackage } from "@/db/weddingPackages";
 import { getPublicUnavailableDates } from "@/db/weddingAvailability";
 import { withOneRetry } from "@/db/supabase";
@@ -36,6 +37,9 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Plan Your Bahamas Wedding | Bahamas Weddings By The Sea",
   description: "Plan your Bahamas wedding with the Wedding Desk: choose a venue style and services, request a consultation, and send a full plan to Antonio Beckford.",
+  // One address in search: the business's own domain (the portpassbahamas.com
+  // path redirects there). ?tier= variants all point here too.
+  alternates: { canonical: "https://bahamasweddingsbythesea.com/weddings/bahamas-weddings-by-the-sea/plan" },
 };
 
 // Moved here from app/weddings/bahamas-by-the-sea/plan (redirected in
@@ -57,6 +61,7 @@ export default async function PlanPage() {
         </nav>
       </header>
       <main className="bws-planner-main" id="planner-main">
+        <BwsGoogleAnalytics />
         <section className="bws-planner-intro">
           <p className="bws-eyebrow">Plan from anywhere</p>
           <h1>Let&rsquo;s shape your<br /><em>island wedding.</em></h1>

@@ -38,7 +38,7 @@ describe("/privacy and /terms say what brief 16 requires", () => {
       expect(page).toContain("<LegalChangelog");
     }
     expect(PRIVACY_POLICY.version).toBe(2);
-    expect(TERMS_OF_SERVICE.version).toBe(2);
+    expect(TERMS_OF_SERVICE.version).toBe(3);
   });
 
   it("the privacy policy names the Act and has the Google sign-in paragraph", () => {

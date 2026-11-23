@@ -1,8 +1,15 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { requireAdmin } from "@/lib/auth/admin";
+import { hasPlatformRole } from "@/lib/auth/guards";
 import { hasAnyWeddingStaffAccount } from "../../staff-auth";
 import { StaffLoginForm } from "./StaffLoginForm";
 import { BootstrapAdminForm } from "./BootstrapAdminForm";
+
+// Served on bahamasweddingsbythesea.com as well; a staff screen never
+// belongs in search results there or here.
+export const metadata = { title: "Wedding Desk staff", robots: { index: false, follow: false } };
 
 export default async function WeddingStaffLoginPage({
   searchParams,
@@ -16,6 +23,13 @@ export default async function WeddingStaffLoginPage({
       : "/weddings/admin";
 
   const hasAccount = await hasAnyWeddingStaffAccount();
+  // No login yet: the setup form is for a signed-in PortPass platform owner
+  // only; anyone else is sent to sign in or gets a 404, never the form
+  // (audit finding 9).
+  if (!hasAccount) {
+    const session = await requireAdmin("/weddings/staff/login");
+    if (!hasPlatformRole(session, "platform_owner")) notFound();
+  }
 
   return (
     <main className="theme-night staff-login-page">

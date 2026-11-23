@@ -8,7 +8,7 @@ export const contentType = "image/png";
 
 export default async function Image() {
   return new ImageResponse(
-    <OgCard title="Everything worth booking in The Bahamas." subtitle="Sports sessions, weddings, venues and events — found and booked in one place." />,
+    <OgCard title="Sports and fitness in The Bahamas." subtitle="Sports clubs, coaches and gyms in The Bahamas: find a class, register and pay the club directly." />,
     { ...size, fonts: await ogFonts() },
   );
 }

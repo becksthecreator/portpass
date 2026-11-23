@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { securityHeaders } from "./lib/securityHeaders";
+import { FUTPREP_PUBLIC_PATHS, FUTPREP_SITE } from "./lib/futprepOffSite";
 
 const nextConfig: NextConfig = {
   // The HTTP security headers, on every path (Brief 21, part D):
@@ -31,6 +32,15 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // Futprep off PortPass's public pages (19 Nov 2026, Antonio): Futprep
+      // stays one card in Sports & Fitness, and its page, class pages,
+      // registration, camps, taster and booking send families to Futprep's
+      // own site. Staff screens and PIN logins (/futprep/staff), families'
+      // status lookup (/futprep/my), the owner dashboard (/business/futprep)
+      // and every /api route stay as they are (rule 9). Not permanent: the
+      // pages come back by deleting this block. First, so it wins over the
+      // older /futprep rules below.
+      ...FUTPREP_PUBLIC_PATHS.map((source) => ({ source, destination: FUTPREP_SITE, has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$" }], permanent: false })),
       // Futprep rebuilt on the shared Organization/Offering template --
       // its marketing pages now live under the sports-fitness category hub,
       // the same URL shape every future organization will use. The
@@ -109,9 +119,34 @@ const nextConfig: NextConfig = {
       {
         source: "/sites/bahamas-weddings",
         has: [{ type: "host", value: "^(www\\.)?portpassbahamas\\.com$" }],
-        destination: "/weddings/bahamas-weddings-by-the-sea",
-        permanent: true,
+        destination: "https://bahamasweddingsbythesea.com/",
+        permanent: false,
       },
+      // Sports, fitness and gyms only (19 Oct 2026). On portpassbahamas.com
+      // the wedding pages move to Bahamas Weddings By The Sea's own domain,
+      // and PortPass Market, Drops and orders go back to the homepage. The
+      // code stays: the wedding routes still serve that domain (middleware
+      // lets /weddings through there), and none of these is permanent, so
+      // a section can come back by deleting its lines here.
+      ...[
+        { source: "/weddings", destination: "https://bahamasweddingsbythesea.com/" },
+        { source: "/weddings/bahamas-weddings-by-the-sea", destination: "https://bahamasweddingsbythesea.com/" },
+        { source: "/weddings/:path*", destination: "https://bahamasweddingsbythesea.com/weddings/:path*" },
+        { source: "/market", destination: "/" },
+        { source: "/market/:path*", destination: "/" },
+        { source: "/shop", destination: "/" },
+        { source: "/shop/:path*", destination: "/" },
+        { source: "/sell", destination: "/" },
+        { source: "/sell/:path*", destination: "/" },
+        { source: "/order/:path*", destination: "/" },
+      ].map((rule) => ({ ...rule, has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$" }], permanent: false })),
+      // On Bahamas Weddings By The Sea's own domain, its home is the page
+      // at "/" (app/sites/[slug]); the PortPass-chrome copy of the same page
+      // sends couples there. The planner, staff desk and admin stay put.
+      ...[
+        { source: "/weddings", destination: "/" },
+        { source: "/weddings/bahamas-weddings-by-the-sea", destination: "/" },
+      ].map((rule) => ({ ...rule, has: [{ type: "host" as const, value: "^(www\\.)?bahamasweddingsbythesea\\.com$" }], permanent: false })),
       // Events became a subsection of Entertainment (decided 27 Sept, for
       // the OWN Conference build); the old top-level placeholder is gone.
       {

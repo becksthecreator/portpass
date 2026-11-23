@@ -12,6 +12,7 @@ export const revalidate = 300;
 export const metadata = {
   title: "Privacy Policy | PortPass Bahamas",
   description: "What PortPass Bahamas collects, why, who can see it, how long we keep it and what you can ask us to do with it.",
+  alternates: { canonical: "/privacy" },
 };
 
 // Privacy Policy v2 (brief 16 D, brief 07). Written for PortPass accounts,

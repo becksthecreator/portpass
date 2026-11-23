@@ -383,6 +383,7 @@ html[data-motion="off"] .route-progress{display:none}
    neutral words invisible (in forced colours too), so the box is the size
    the real text will be. */
 .sk-text{position:relative;overflow:hidden;color:transparent!important;background:var(--tint)!important;border-color:transparent!important;border-radius:8px;box-shadow:none!important;forced-color-adjust:none}
+.sk-text[data-sk]::before{content:attr(data-sk)}
 .sk::after,.sk-text::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent 0%,color-mix(in srgb,var(--paper) 55%,transparent) 50%,transparent 100%)}
 /* The sweep runs only where script runs: without it React cannot swap the
    loaded cards in, so the boxes stay, and stay still. */

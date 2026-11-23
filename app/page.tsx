@@ -12,7 +12,6 @@ import { OpenNowSkeleton } from "./_components/motion/Skeleton";
 import { Suspense } from "react";
 import { getSectionTiles } from "@/lib/navSections";
 import { HomePerksRow } from "./_components/perks/HomePerksRow";
-import { FromTheMarket } from "./_components/market/FromTheMarket";
 import { MARKET_TAGLINE } from "@/lib/market/copy";
 import { DEFAULT_BRAND } from "./_components/blocks/brand";
 import { categoryLabel } from "./_components/blocks/categoryLabel";
@@ -88,6 +87,10 @@ async function safeLiveSections(directory: OrganizationDirectoryEntry[]): Promis
 // the header's signed-in state is hydrated client-side (HeaderAccount).
 export const revalidate = 300;
 
+// The home page's own canonical (the layout's metadata has none, and a
+// canonical there would point every page at "/").
+export const metadata = { alternates: { canonical: "/" } };
+
 // Below this many businesses the carousel is replaced by equal cards.
 const CAROUSEL_FROM = 4;
 
@@ -138,8 +141,6 @@ export default async function Home() {
       </Suspense>
       {carousel && <BusinessCarousel businesses={directory} />}
 
-      {/* PortPass Market (brief 25, B3): the newest products, under Open now. */}
-      <FromTheMarket />
 
       {/* Member perks (brief 10): hidden until three are live. */}
       <HomePerksRow />
@@ -166,7 +167,7 @@ export default async function Home() {
             <h3>If you&rsquo;re booking</h3>
             <div className="home-how-steps-wrap">
               <Reveal as="ol" className="home-how-steps" variant="rise" stagger>
-                <li><span className="home-how-num">1</span><span>Find what you&rsquo;re looking for — sessions, ceremonies, venues</span></li>
+                <li><span className="home-how-num">1</span><span>Find what you&rsquo;re looking for — classes, camps, sessions</span></li>
                 <li><span className="home-how-num">2</span><span>Book online, no phone tag. Pay the way the business accepts, and keep one record of it</span></li>
                 <li><span className="home-how-num">3</span><span>Your confirmation and details live in one place</span></li>
               </Reveal>
@@ -195,7 +196,7 @@ export default async function Home() {
         <div>
           <span className="home-eyebrow">Run a club or a business?</span>
           <h2>List with PortPass.</h2>
-          <p>Bring your organization onto the same system powering Futprep and Bahamas Weddings By The Sea.</p>
+          <p>Bring your organization onto the same system powering Futprep Athletics.</p>
         </div>
         <div className="home-business-action">
           <Link className="home-button home-button-light" href="/business">Learn more →</Link>

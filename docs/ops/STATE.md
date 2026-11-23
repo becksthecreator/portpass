@@ -31,10 +31,20 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
+| `fix/bws-site-fixes` (Bahamas Weddings team; the 19 Nov site fixes moved off `feat/class-feed`, 22 Nov) | (this PR) | On bahamasweddingsbythesea.com: no "Open now" badge, category "Wedding officiant & planner"; review heading from `reviewCount`; WhatsApp opening line without "found you on PortPass"; JSON-LD and og:image on the domain; planner canonical on the domain and in the domain sitemap; staff login noindex; `planner_submit` analytics event. Migration `202610280003_bws_faq_price_answer.sql` (data only) rewrites the "How much does a ceremony cost?" answer | Security & QA review; Antonio's OK to merge; a separate OK to apply `202610280003` |
+| `feat/bws-enquiry-capture` (Bahamas Weddings team, B$450 bundle jobs 2 and 3, 23 Nov) | (this PR) | Planner step 2 asks names, email (required), phone and consent and saves a "started" lead (utm.planner_stage) so an unfinished enquiry still reaches the Wedding Desk; the full plan fills in that same row. Instant reply to the couple, off until `WEDDING_AUTOREPLY=on` and `WEDDING_DESK_REPLY_TO` are set. GA4 on the two BWS pages only, from `NEXT_PUBLIC_BWS_GA4_ID`, storage consent denied (cookieless). CSP allows googletagmanager and google-analytics. No migration | Security & QA review; Antonio's OK to merge; the client's GA4 ID and reply inbox; Antonio turns the reply on after the client approves the wording |
+| `feat/sports-only` | (this PR) | bahamasweddingsbythesea.com is live (Vercel domain added, GoDaddy A record to 76.76.21.21, BWS `custom_domain` set, 29 Oct); the domain now shows the full wedding page (gallery, services, reviews) without PortPass's parts | None |
+| `feat/website-must-fix` (Website & Growth, [plan](../briefs/website-growth-plan.md), [report](../briefs/website-must-fix-report.md)): one card line on every page, weddings out of /terms (Terms v3), the home steps and portpassbahamas.com's robots.txt, loading words out of the server HTML | (this PR) | Review and merge | Antonio: Terms v3 OK, and the plan's questions |
+| `chore/guard-private-files` (after the 20 Nov look book exposure) | (this PR) | `lib/repoFiles.static.test.ts` fails CI on a `private/` folder (any case, any depth), a stray look book, a PDF, photo, video, CSV/TSV export, document, archive, mail or contact file outside the reviewed `ALLOWED_PATHS` (public/ narrowed to brand/, weddings/, futprep/ and named logos), or a renamed one caught by its first bytes | Antonio's OK |
+| `feat/futprep-lookbook` (private Futprep look book for Alex, Draft 1) | (this PR) | `/lookbook/futprep`, opens only with the secret key in the link (`?k=`), held in env var `FUTPREP_LOOKBOOK_KEY` (fails closed when unset); noindex, no-store, no links from the site. The book itself is never in this public repo: it is read from a private Supabase Storage bucket `lookbooks` (folder `futprep-draft1/`); its assets load behind the same key via a path-scoped cookie | Antonio: create the bucket and upload Site Design's folder, set the env var; Security & QA review; Antonio approves |
+| `feat/market-b` (brief 25 B, the public Market) | #196 | CI green; then C (`feat/market-c`, WIP) and D | Claude Code (brief 25 session) |
+| `feat/coaches-a` (brief 31 A, one staff login and one role per person) | #197 | `build` and `screenshots` failing; four questions in the PR before rows are switched | Antonio's answers; then Claude Code |
 | `fix/promotions-under-lock` (waitlist promotions and "Confirm the place" under the class's lock) | #220 | Its fix and migration | Claude Code |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green. Parked by the growth plan | The fifth paid invoice |
 | `chore/csp-enforce` (brief 26) | #183 | #185 is in; rebase on `main`. Parked by the growth plan | The fifth paid invoice |
 | `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct). Parked by the growth plan | The fifth paid invoice |
+
+**19 Oct 2026: PortPass is sports, fitness and gyms only.** Weddings, Venues, Tours, Entertainment, Food & Drink, Services and Shop are hidden in Admin → Sections; PortPass Market, Drops and orders redirect home on portpassbahamas.com; the wedding pages redirect to Bahamas Weddings By The Sea's own domain, which renders it through `/sites` (the business stays published for that, unlisted from the directory and filtered out of search). No code was deleted: each section comes back by un-hiding it and deleting its redirect lines in `next.config.ts`. This PR is the one exception to the no-PRs rule below.
 
 **The growth plan of 16 Oct ("cash first, in the wedge") says no new PRs until the fifth paid invoice.** Week 1's builds are merged (#185, #233, #235, #234). Also parked by it: brief 35 (#232), the Hermes link (#226), the BWS domain plan.
 
@@ -61,21 +71,29 @@ Briefs 28 and 32 have left no trace in this repo; their status is in the HQ proj
 
 ## Waiting on Antonio
 - **First: set `CRON_SECRET`** (Vercel → Production). Production logs show `/api/cron/daily` and `/api/cron/attendance-nudge` refused with 503 on every run since at least 9 Oct, so the 90-day health-record purge (rule 3), billing, the demo reset and export pruning are not running.
+- **Emails (16 Nov, fix/resend-send-failures):** no email has ever reached Resend; production logged `Resend send failed (400)` on 10 Nov. The domain is verified and `PORTPASS_FROM_EMAIL` / `FUTPREP_FROM_EMAIL` are well formed, so the likeliest cause is the `RESEND_API_KEY` value (Production only, not Preview). Paste the "PortPass production" key again in Vercel, with no quotes or spaces. The PR trims stray quotes and whitespace and logs Resend's reason for any refusal, so the next failure names its cause.
 - **Before the first invoice (growth plan week 1), all clicks, no code:**
-  - `PORTPASS_FROM_EMAIL` on a verified Resend domain;
+  - `PORTPASS_FROM_EMAIL` on a verified Resend domain (done: set, domain verified);
   - `RESEND_WEBHOOK_SECRET`;
   - the four bank details in Admin → Settings (bank, account name, account number, branch). No invoice can be sent until all four are in;
   - Futprep owner access;
   - the agreement text v1.0, with its version typed on each billing account;
   - confirm the attribution wording on /pricing. The reviewer noted "came through your PortPass page" also covers customers a business sends to its own page;
   - say whether quotes and /pricing should read "no VAT charged". PortPass is not VAT-registered (Antonio, 17 Oct); /pricing still says "Prices are in BSD."
-- **Also now: create the Wedding Desk's first staff account** at `/weddings/staff/login`. None has ever been made, so the page offers "Create the first account" to anyone, and whoever fills it in becomes its admin. The PIN-hardening session is adding a platform-owner sign-in to that screen on both desks.
+- **First-admin doors (#206, 19 Nov):** on both desks, "Create the first account" now opens only for a signed-in PortPass owner with the admin second step; anyone else gets a 404. The Wedding Desk's one login (12 Oct) is Antonio's. Antonio asked on 19 Nov to wipe every staff and admin login and start over; that waits on his OK to the exact list.
 - #197 (brief 31 A): answer its four questions; nothing is switched until then.
 - Futprep: make an owner (Admin → People); until then nobody can open `/business/futprep`.
-- Futprep data: clear or keep Term 2's 12 Dec taster date before 19 Nov; offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
+- Futprep data: offerings 1 and 2 still show Term 1 dates; staff logins have no emails.
+- **Futprep Term 2 (16 Nov, feat/futprep-term2):** migration `202610270004_futprep_term2_schedule.sql` was applied to the live database on 16 Nov with Antonio's OK (before it, Term 2 ended 20 Mar, charged $300/$420, had a 12 Dec taster and opened on 19 Nov). It sets 9 Jan–13 Mar, $340/$420, taster = free Kickoff Day 19 Dec, opening 7 Dec, and adds Juniors and three Fundamentals classes unlisted (Juniors proposed, Fundamentals field not confirmed). Weekly fees are set to a tenth of the term price; confirm or switch weekly payment off.
 - The other brief 21 dashboard switches in `docs/security/README.md` (all unticked on `main`): `RESEND_WEBHOOK_SECRET`, `BACKUP_HEARTBEAT_SECRET`, Supabase OTP and session limits, the two firewall rules, bot protection, the restore drill.
 
+- **Futprep off PortPass's public pages (19 Nov, feat/futprep-links-out, not merged):** Antonio asked to keep Futprep as one card that sends families to futprep.com. Its page, class pages, registration, camps, taster and booking redirect there; staff PINs, /futprep/my, /business/futprep and the APIs stay. The Christmas camp has no registrations.
+
+- **register.futprep.com (19 Nov, feat/register-futprep-domain, stacked on #258, not merged):** futprep.com's Register and Book buttons go to register.futprep.com, which serves Futprep registration, the taster, booking, camps, /futprep/my, /futprep/feed and sign-in; anything else goes to futprep.com, staff back to PortPass. Needs, after 23 Nov: the DNS record, the domain in Vercel, and the address in Supabase Auth's redirect URLs.
+
 ## Known issues
+- **Public repo, private files (19 Nov):** client documents (`.docx`, `.pdf`), a WhatsApp export and two local HTML calculators sat untracked in the repo root of one PC. None was ever committed (checked across every branch). `.gitignore` now keeps root-level `.docx`, `.pdf`, `whatsapp-export/` and those files out. Antonio: move them to a private folder outside the repo.
+- **Look book briefly public (20 Nov), accepted:** an early commit on #265's branch briefly held Site Design's FutPrep Look Book Draft 1 (no children's data, no photos of children) in this public repo, for about 15 minutes; it was removed and Antonio accepted it. Since then look books live only in the private Storage bucket `lookbooks`, `.gitignore` keeps `/private/` out, the guard test (#266) fails any such file, and screenshots of private pages go to the shared notes folder, never GitHub.
 Ponytail audit, 11 Oct (15 findings, in the brief 33 PR). The top five are fixed: 1, 3 and 4 by #205; 2 by #200 (migration `202610220001`, applied live 12 Oct); 5 by #203; brief 34 (#217) closed what they left of 1, 4 and 5 (who sees what: `docs/briefs/brief34-child-data-lock-report.md`). Findings 6, 7 and 9 (sign-in) have their own PRs; 8 and 10–15 are not fixed.
 
 Left open by the reviews of #200, #203, #216, #217 and #222 (not fixed):
@@ -96,4 +114,4 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - The billing chain has run only in the rehearsal, never in production: no billing account, no invoice yet.
 
 ## Last updated
-17 Oct 2026, `main` at `ba1465a`, by Claude Code (PR #217, brief 34). The growth plan's week-1 rows are as of #234; other rows as of 12 Oct.
+23 Nov 2026, by Claude Code (PR #217, brief 34, merged with main). Other rows as of their own dates.
