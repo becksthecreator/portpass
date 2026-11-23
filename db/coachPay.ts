@@ -25,6 +25,7 @@ import {
 } from "@/lib/coachPay";
 import { nassauToday } from "@/lib/futprepTerms";
 import { logAudit } from "./audit";
+import { FUTPREP_ORG_ID } from "./futprepOwner";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
@@ -440,8 +441,11 @@ export async function setCoachPayDefaults(input: { coachId: number; leadCents: n
   const { data: before } = await db.from("coach_profiles").select(COACH_COLUMNS).eq("id", input.coachId).eq("organization_id", organizationId).maybeSingle();
   if (!before) throw new Error("COACH_NOT_FOUND");
   // Rule 3 (brief 34): a coach is linked only to one of Futprep's own logins.
+  // Futprep's logins are stored and offered under FUTPREP_ORG_ID
+  // (app/futprep/staff-auth.ts, listStaffLogins below), so the check reads
+  // the same org; the slug's id can differ on a fresh database (#225).
   if (input.staffMemberId !== null) {
-    const { data: login, error: loginError } = await db.from("staff_members").select("id").eq("id", input.staffMemberId).eq("organization_id", organizationId).maybeSingle();
+    const { data: login, error: loginError } = await db.from("staff_members").select("id").eq("id", input.staffMemberId).eq("organization_id", FUTPREP_ORG_ID).maybeSingle();
     throwIfSupabaseError(loginError, "Could not load the staff login");
     if (!login) throw new Error("STAFF_NOT_FOUND");
   }

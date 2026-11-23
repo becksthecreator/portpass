@@ -571,6 +571,13 @@ export async function actOnPrivateSessionRequest(input:{
     const {data:target,error:targetError}=await db.from("coach_profiles").select("id").eq("id",input.targetCoachId).eq("organization_id",existing.organization_id).eq("active",true).eq("member_type","coach").maybeSingle();
     throwIfSupabaseError(targetError,"Could not check the coach");
     if(!target) throw new Error("COACH_NOT_AVAILABLE");
+    // The coach recorded as where it came from is one of this business's
+    // own too, never another business's (#225, from #205's review).
+    if(existing.assigned_coach_id==null && input.coachId){
+      const {data:from,error:fromError}=await db.from("coach_profiles").select("id").eq("id",input.coachId).eq("organization_id",existing.organization_id).maybeSingle();
+      throwIfSupabaseError(fromError,"Could not check the coach");
+      if(!from) throw new Error("COACH_NOT_AVAILABLE");
+    }
     patch={...patch,status:"referred",referred_from_coach_id:existing.assigned_coach_id??input.coachId??null,assigned_coach_id:input.targetCoachId,referral_note:input.reason?.trim()??"",parent_notified_at:null};
     note=input.reason?.trim() || `Referred to coach #${input.targetCoachId}`;
   }else if(input.action==="parent_notified"){
