@@ -1,6 +1,6 @@
 import { logAudit } from "./audit";
 import { createFutprepProgram, listFutprepPrograms, type FutprepProgramSummary } from "./programs";
-import type { ProgramAudience } from "./registrations";
+import { setRegistrationStatusWithinCap, type ProgramAudience } from "./registrations";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // A business's own Registrations screen (brief 18, D4): the same
@@ -157,15 +157,17 @@ export async function getBusinessRegistration(organizationId: number, id: number
 export const REGISTRATION_STATUS_CHANGES = ["confirmed", "pending", "cancelled"] as const;
 export type RegistrationStatusChange = (typeof REGISTRATION_STATUS_CHANGES)[number];
 
-// Confirm a place, put it back to pending, or cancel it. Logged.
+// Confirm a place, put it back to pending, or cancel it. Logged. Confirming
+// or re-opening a waitlisted child takes a place, so it goes through the
+// class's lock and is refused (PROGRAM_FULL) when the class is full, as the
+// Futprep desk's promotion is (audit finding 10).
 export async function setBusinessRegistrationStatus(organizationId: number, id: number, status: RegistrationStatusChange, actorUserId: string | null): Promise<BusinessRegistration> {
   const db = getSupabaseAdmin();
-  const { data: before, error: beforeError } = await db.from("registrations").select("id,registration_status").eq("organization_id", organizationId).eq("id", id).maybeSingle();
-  throwIfSupabaseError(beforeError, "Could not load the registration");
-  if (!before) throw new Error("NOT_FOUND");
-  const { data, error } = await db.from("registrations").update({ registration_status: status }).eq("organization_id", organizationId).eq("id", id).select(LIST_COLUMNS).single();
-  throwIfSupabaseError(error, "Could not change the registration");
-  await logAudit({ actorUserId, organizationId, action: "registration.status_changed", targetTable: "registrations", targetId: id, before: { status: before.registration_status }, after: { status } });
+  const changed = await setRegistrationStatusWithinCap(db, { registrationId: id, organizationId, status });
+  if (!changed) throw new Error("NOT_FOUND");
+  const { data, error } = await db.from("registrations").select(LIST_COLUMNS).eq("organization_id", organizationId).eq("id", id).single();
+  throwIfSupabaseError(error, "Could not load the registration");
+  await logAudit({ actorUserId, organizationId, action: "registration.status_changed", targetTable: "registrations", targetId: id, before: { status: changed.previousStatus }, after: { status } });
   const row = data as Row;
   return toRegistration(row, await names([Number(row.program_id)], row.term_id ? [Number(row.term_id)] : []));
 }
