@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PORTPASS_PHONE_DISPLAY, PORTPASS_PHONE_E164, PORTPASS_SUPPORT_EMAIL } from "@/lib/contact";
 import { getNavSections } from "@/lib/navSections";
+import { SECTIONS } from "@/lib/sections";
 import { listPublishedGuides } from "@/db/guides";
 import { PRICE_CURRENCY_LINE } from "./blocks/format";
 
@@ -15,6 +16,11 @@ export async function SiteFooter({ orgLine, tide = false }: { orgLine?: string; 
   // "Guides" appears only once a guide is published (brief 18, A5); a
   // failed read shows none.
   const [categoryLinks, guides] = await Promise.all([getNavSections(), listPublishedGuides()]);
+  // Every other kind of business, named as plain text (pre-ads audit, 24
+  // Nov): a hidden section's page is a 404 or a redirect, so these are not
+  // links. Each becomes a link above as soon as it is un-hidden in Admin.
+  const live = new Set(categoryLinks.map((link) => link.href));
+  const soon = SECTIONS.filter((s) => !live.has(s.href)).map((s) => s.name);
   return (
     <footer className="site-shell-footer">
       {orgLine && <p className="site-shell-footer-org">{orgLine}</p>}
@@ -27,6 +33,9 @@ export async function SiteFooter({ orgLine, tide = false }: { orgLine?: string; 
         </div>
         <nav className="site-shell-footer-categories" aria-label="Sections">
           {categoryLinks.map((link) => <Link key={link.href} href={link.href} transitionTypes={types}>{link.label}</Link>)}
+          {soon.length > 0 && (
+            <p className="site-shell-footer-soon">Opening to every kind of business: {soon.join(" · ")}. <Link href="/apply">List yours →</Link></p>
+          )}
         </nav>
       </div>
       <p className="site-shell-footer-prices">{PRICE_CURRENCY_LINE}</p>
