@@ -3,7 +3,7 @@
 // them (pending_details), matched by child name. Medical fields only when
 // TeamSnap has them. Consent stays unset: the parent still confirms through
 // their completion link. Nothing is ever sent to a parent from here.
-import { describeFill, parseCsv, planImport, toRecords, type ExistingRegistration, type PlanRow, type RegistrationColumn } from "@/lib/teamsnapImport";
+import { describeFill, parseCsv, planImport, toRecords, withoutMedicalFill, type ExistingRegistration, type PlanRow, type RegistrationColumn } from "@/lib/teamsnapImport";
 import { logAudit } from "./audit";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
@@ -34,12 +34,15 @@ async function loadRegistrations(programId: number, termId: number): Promise<Exi
   });
 }
 
-function planFor(csv: string, registrations: ExistingRegistration[]) {
+function planFor(csv: string, registrations: ExistingRegistration[], canWriteMedical: boolean) {
   if (csv.length > MAX_CSV_CHARS) throw new Error("CSV_TOO_LARGE");
   const { records, mapped, unmapped } = toRecords(parseCsv(csv));
   if (records.length > MAX_ROWS) throw new Error("CSV_TOO_LARGE");
   if (!mapped.includes("childName") && !(mapped.includes("childFirst") && mapped.includes("childLast"))) throw new Error("NO_CHILD_NAME_COLUMN");
-  return { plan: planImport(records, registrations), mapped, unmapped };
+  const planned = planImport(records, registrations);
+  // Without the medical permission, the medical fields never enter the plan.
+  const { plan, skippedMedical } = canWriteMedical ? { plan: planned, skippedMedical: 0 } : withoutMedicalFill(planned);
+  return { plan, mapped, unmapped, skippedMedical };
 }
 
 export type ImportPreviewRow = {
@@ -56,6 +59,8 @@ export type ImportPreview = {
   unmapped: string[];
   rows: ImportPreviewRow[];
   counts: Record<PlanRow["status"], number>;
+  // Medical fields left out because the login lacks the medical permission.
+  skippedMedical: number;
 };
 
 function summarize(plan: PlanRow[]): ImportPreview["counts"] {
@@ -64,20 +69,21 @@ function summarize(plan: PlanRow[]): ImportPreview["counts"] {
   return counts;
 }
 
-export async function previewTeamsnapImport(input: { programId: number; termId: number; csv: string }): Promise<ImportPreview> {
-  const { plan, mapped, unmapped } = planFor(input.csv, await loadRegistrations(input.programId, input.termId));
+export async function previewTeamsnapImport(input: { programId: number; termId: number; csv: string; canWriteMedical: boolean }): Promise<ImportPreview> {
+  const { plan, mapped, unmapped, skippedMedical } = planFor(input.csv, await loadRegistrations(input.programId, input.termId), input.canWriteMedical);
   return {
     mapped,
     unmapped,
     rows: plan.map((row) => ({ row: row.row, childName: row.childName, status: row.status, referenceCode: row.referenceCode, fields: describeFill(row.fill) })),
     counts: summarize(plan),
+    skippedMedical,
   };
 }
 
 // Writes only the planned fields, only to registrations still waiting on
 // details, and logs the import (counts and ids; no personal data).
-export async function applyTeamsnapImport(input: { programId: number; termId: number; csv: string; actor: string }): Promise<{ updated: number; counts: ImportPreview["counts"] }> {
-  const { plan } = planFor(input.csv, await loadRegistrations(input.programId, input.termId));
+export async function applyTeamsnapImport(input: { programId: number; termId: number; csv: string; actor: string; canWriteMedical: boolean }): Promise<{ updated: number; counts: ImportPreview["counts"]; skippedMedical: number }> {
+  const { plan, skippedMedical } = planFor(input.csv, await loadRegistrations(input.programId, input.termId), input.canWriteMedical);
   const db = getSupabaseAdmin();
   const updatedIds: number[] = [];
   for (const row of plan) {
@@ -97,7 +103,7 @@ export async function applyTeamsnapImport(input: { programId: number; termId: nu
     action: "futprep.teamsnap_import",
     targetTable: "registrations",
     targetId: `${input.programId}:${input.termId}`,
-    after: { programId: input.programId, termId: input.termId, rows: plan.length, counts, updated: updatedIds.length, registrationIds: updatedIds, by: input.actor },
+    after: { programId: input.programId, termId: input.termId, rows: plan.length, counts, updated: updatedIds.length, registrationIds: updatedIds, skippedMedical, by: input.actor },
   });
-  return { updated: updatedIds.length, counts };
+  return { updated: updatedIds.length, counts, skippedMedical };
 }
