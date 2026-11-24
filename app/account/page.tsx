@@ -4,7 +4,11 @@ import { InstallPrompt } from "@/app/_components/InstallPrompt";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { formatPriceCents } from "@/app/_components/blocks/format";
 import { listAccountBookings, type AccountBookings, type AccountRegistration } from "@/db/accountBookings";
+import { listThisWeek } from "@/db/parentHome";
+import type { ThisWeekCard } from "@/lib/parentHome";
+import { mapsUrl } from "@/lib/quickRegistration";
 import { getMemberCard, listMemberRedemptions, type MemberRedemption } from "@/db/memberPerks";
 import { getMyPoints, type MyPoints } from "@/db/points";
 import { formatPointsDelta, howPointsAreEarned, pointsEventLabel, POINTS_RULES } from "@/lib/points";
@@ -22,6 +26,9 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
+// "Sat 28 Nov", from a calendar day (no time zone shift).
+const classDay = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+
 const day = (iso: string) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Nassau" }) : "");
 
 const REGISTRATION_STATUS: Record<AccountRegistration["status"], string> = { confirmed: "Confirmed", pending: "Received", waitlist: "Waitlist", trial: "Free taster", cancelled: "Cancelled" };
@@ -36,7 +43,7 @@ export default async function AccountPage() {
   const session = await requireSignedIn("/account");
   const places = destinationsFor(session).filter((d) => d.kind !== "account");
   // Decoration on the page: a failed read shows an empty list, never an error.
-  const [perksUsed, booked, card, points] = await Promise.all([
+  const [perksUsed, booked, card, points, thisWeek] = await Promise.all([
     listMemberRedemptions(session.userId).catch((): MemberRedemption[] => []),
     listAccountBookings(session.email).catch((error): AccountBookings => {
       console.error("account: bookings not loaded", (error as { code?: string } | null)?.code ?? "");
@@ -46,6 +53,10 @@ export default async function AccountPage() {
     getMyPoints(session.userId).catch((error): MyPoints | null => {
       console.error("account: points not loaded", (error as { code?: string } | null)?.code ?? "");
       return null;
+    }),
+    listThisWeek(session.email).catch((error): ThisWeekCard[] => {
+      console.error("account: this week not loaded", (error as { code?: string } | null)?.code ?? "");
+      return [];
     }),
   ]);
   // A name made from the email address is only a stand-in ("Member" to a
@@ -60,6 +71,40 @@ export default async function AccountPage() {
         <div className="eyebrow"><span className="eyebrow-dot" />My account</div>
         <h1>{greeting}.</h1>
         {needsName && <NameForm />}
+
+        {/* Parent home (PR 2, 24 Nov): each child's next session, what's
+            owed, the coaches' latest update and the way back to the
+            business's site, before the full lists below. */}
+        {thisWeek.length > 0 && (
+          <section className="account-section account-week" aria-labelledby="account-week">
+            <h2 id="account-week">Coming up</h2>
+            <ul className="week-list">
+              {thisWeek.map((c) => (
+                <li key={c.reference} className="week-card">
+                  <div className="week-head">
+                    <strong>{c.childFirstName ? `${c.childFirstName}: ` : ""}{c.className}</strong>
+                    <span>{c.business}{c.status === "trial" ? " · Free taster" : c.status === "pending" ? " · Received" : ""}</span>
+                  </div>
+                  {c.next && (
+                    <dl className="week-facts">
+                      <div><dt>Next</dt><dd><b>{classDay(c.next.date)}</b>{c.next.time ? ` · ${c.next.time}` : ""}</dd></div>
+                      {c.next.place && <div><dt>Where</dt><dd>{c.next.place}{c.next.placeNote ? ` (${c.next.placeNote})` : ""} <a href={mapsUrl(c.next.place, c.next.placeNote)} target="_blank" rel="noopener noreferrer">Map ↗</a></dd></div>}
+                      {c.owed && <div><dt>{c.owed.label}</dt><dd>{c.owed.amountCents ? <b>{formatPriceCents(c.owed.amountCents)}</b> : null}{c.owed.amountCents ? " · " : ""}ref {c.reference}{c.statusHref ? <> · <Link href={c.statusHref}>How to pay →</Link></> : null}</dd></div>}
+                    </dl>
+                  )}
+                  {c.latest && (
+                    <blockquote className="week-update">
+                      <p>{c.latest.body}</p>
+                      <footer>{c.latest.author}{c.statusHref?.startsWith("/futprep/") ? <> · <Link href="/futprep/feed">All updates →</Link></> : null}</footer>
+                    </blockquote>
+                  )}
+                  {c.businessHref && <a className="week-back" href={c.businessHref} {...(c.businessHref.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}>{c.business ? `${c.business}` : "The business"}&rsquo;s site{c.businessHref.startsWith("http") ? " ↗" : " →"}</a>}
+                </li>
+              ))}
+            </ul>
+            <p className="account-pass-links"><Link className="primary-button" href="/pass">Open my Member Pass</Link></p>
+          </section>
+        )}
 
         <section className="account-section" aria-labelledby="account-registrations">
           <h2 id="account-registrations">Your registrations</h2>
