@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 import { securityHeaders } from "./lib/securityHeaders";
-import { FUTPREP_PUBLIC_PATHS, FUTPREP_SITE } from "./lib/futprepOffSite";
+import { FUTPREP_REDIRECTS } from "./lib/futprepOffSite";
 
 const nextConfig: NextConfig = {
   // The HTTP security headers, on every path (Brief 21, part D):
@@ -40,7 +40,22 @@ const nextConfig: NextConfig = {
       // and every /api route stay as they are (rule 9). Not permanent: the
       // pages come back by deleting this block. First, so it wins over the
       // older /futprep rules below.
-      ...FUTPREP_PUBLIC_PATHS.map((source) => ({ source, destination: FUTPREP_SITE, has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$" }], permanent: false })),
+      // While FUTPREP_FORMS_ON_PORTPASS is on, the four form pages (register,
+      // taster, camps, booking) stay here instead (23 Nov, Bex).
+      ...FUTPREP_REDIRECTS.map(({ source, destination }) => ({ source, destination, has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$" }], permanent: false })),
+      // The business card's QR code (23 Nov 2026): it prints
+      // portpassbahamas.com/card, which stays the same forever, and this
+      // decides where a scan lands. Today (Bex, 23 Nov): the home page,
+      // tagged so card scans are counted (Vercel Analytics keeps utm_source).
+      // Temporary (307) so it can point somewhere else later without a
+      // reprint, and so no browser or cache keeps the old target. PortPass's
+      // own hosts and previews only; a business's custom domain is left alone.
+      {
+        source: "/card",
+        destination: "/?utm_source=card&utm_medium=qr",
+        has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$|\\.vercel\\.app$" }],
+        permanent: false,
+      },
       // Futprep rebuilt on the shared Organization/Offering template --
       // its marketing pages now live under the sports-fitness category hub,
       // the same URL shape every future organization will use. The
@@ -120,18 +135,25 @@ const nextConfig: NextConfig = {
         source: "/sites/bahamas-weddings",
         has: [{ type: "host", value: "^(www\\.)?portpassbahamas\\.com$" }],
         destination: "https://bahamasweddingsbythesea.com/",
-        permanent: false,
+        statusCode: 301,
       },
       // Sports, fitness and gyms only (19 Oct 2026). On portpassbahamas.com
       // the wedding pages move to Bahamas Weddings By The Sea's own domain,
       // and PortPass Market, Drops and orders go back to the homepage. The
       // code stays: the wedding routes still serve that domain (middleware
-      // lets /weddings through there), and none of these is permanent, so
-      // a section can come back by deleting its lines here.
+      // lets /weddings through there), and none of the Market lines is
+      // permanent, so a section can come back by deleting its lines here.
+      // The wedding lines ARE permanent (301, 23 Nov): the pages belong to
+      // Bahamas Weddings By The Sea's own domain for good, and a temporary
+      // redirect kept Bing and Google listing the portpassbahamas.com copy
+      // next to the client's domain. Browsers cache a 301, so undoing one
+      // later takes a redirect back, not just deleting the line.
       ...[
         { source: "/weddings", destination: "https://bahamasweddingsbythesea.com/" },
         { source: "/weddings/bahamas-weddings-by-the-sea", destination: "https://bahamasweddingsbythesea.com/" },
         { source: "/weddings/:path*", destination: "https://bahamasweddingsbythesea.com/weddings/:path*" },
+      ].map((rule) => ({ ...rule, has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$" }], statusCode: 301 as const })),
+      ...[
         { source: "/market", destination: "/" },
         { source: "/market/:path*", destination: "/" },
         { source: "/shop", destination: "/" },
@@ -146,7 +168,7 @@ const nextConfig: NextConfig = {
       ...[
         { source: "/weddings", destination: "/" },
         { source: "/weddings/bahamas-weddings-by-the-sea", destination: "/" },
-      ].map((rule) => ({ ...rule, has: [{ type: "host" as const, value: "^(www\\.)?bahamasweddingsbythesea\\.com$" }], permanent: false })),
+      ].map((rule) => ({ ...rule, has: [{ type: "host" as const, value: "^(www\\.)?bahamasweddingsbythesea\\.com$" }], statusCode: 301 as const })),
       // Events became a subsection of Entertainment (decided 27 Sept, for
       // the OWN Conference build); the old top-level placeholder is gone.
       {

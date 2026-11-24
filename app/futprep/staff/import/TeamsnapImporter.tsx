@@ -70,6 +70,11 @@ export function TeamsnapImporter({ classes }: { classes: Array<{ programId: numb
             {preview.rows.length} rows · {toFill} to fill · {preview.counts.nothing_new} nothing new · {preview.counts.no_match} not found · {preview.counts.ambiguous} unclear · {preview.counts.not_pending} already completed.
             {preview.unmapped.length > 0 && ` Ignored columns: ${preview.unmapped.join(", ")}.`}
           </p>
+          {preview.skippedMedical > 0 && (
+            <p className="pay-note" role="note">
+              {preview.skippedMedical} medical, emergency-contact or pickup {preview.skippedMedical === 1 ? "field was" : "fields were"} left out: your login doesn&apos;t have the medical permission. Ask the CEO to import them, or to turn the permission on for you.
+            </p>
+          )}
           <div className="pay-cards">
             {preview.rows.map((row) => (
               <article className="pay-card" key={row.row}>

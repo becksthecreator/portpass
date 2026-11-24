@@ -14,8 +14,11 @@ import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 //  - children's health, allergy, medication, emergency and pickup fields
 //    (CLAUDE.md rule 3: never in an export; lib/health.ts), and the
 //    registration edit history, which can hold earlier versions of them;
+//  - a parent's free text on a private-session request (its goal and
+//    notes), where parents write health facts (lib/privateSessionEmails.ts);
 //  - staff PIN hashes, invitation and claim tokens, a customer's booking
-//    link token: none is the business's data, each is a key;
+//    link token, a reservation's receipt link and a drop's followers
+//    link: none is the business's data, each is a key;
 //  - PortPass's own books about the business (billing, invoices, receipts,
 //    commission plans): those are PortPass's records, sent as invoices.
 //
@@ -30,7 +33,16 @@ export const EXPORT_KEPT_DAYS = 7;
 const PAGE = 1000;
 // staff_note (brief 27, A): a programme's staff-only note stays on the
 // staff screen, as its migration promises.
-const STRIP = new Set(["pin_hash", "token", "token_hash", "public_token", "invite_token", "staff_note"]);
+const STRIP = new Set(["pin_hash", "token", "token_hash", "public_token", "invite_token", "followers_token", "receipt_token", "staff_note"]);
+// Left off one table only. A parent's free text on a private session or a
+// booking (goal, notes) can carry a child's health facts (rule 3, above).
+// The audit log's IP addresses belong to PortPass staff and admins, not to
+// the business.
+const STRIP_BY_TABLE: Record<string, ReadonlySet<string>> = {
+  private_session_requests: new Set(["session_goal", "notes"]),
+  booking_requests: new Set(["notes"]),
+  audit_log: new Set(["ip"]),
+};
 
 type Row = Record<string, unknown>;
 
@@ -39,17 +51,30 @@ type Filter = (q: any) => any;
 
 // Every row, a page at a time (PostgREST answers at most 1,000 per call).
 // Typed loosely on purpose: supabase-js query builders are hard to name.
+// Pages are ordered by the primary key, so none is read twice or skipped.
+// Most tables have an `id`; these four are keyed by other columns, and
+// ordering them by `id` made the whole export fail.
+export const ORDER_BY: Record<string, readonly string[]> = {
+  drop_items: ["drop_id", "product_id"],
+  organization_categories: ["organization_id", "category_id"],
+  organization_payment_settings: ["organization_id"],
+  shops: ["organization_id"],
+};
+
 async function fetchAll(table: string, apply: Filter): Promise<Row[]> {
   const rows: Row[] = [];
   for (let from = 0; ; from += PAGE) {
-    const query = apply(getSupabaseAdmin().from(table).select("*").order("id", { ascending: true }).range(from, from + PAGE - 1));
+    let query = getSupabaseAdmin().from(table).select("*");
+    for (const column of ORDER_BY[table] ?? ["id"]) query = query.order(column, { ascending: true });
+    query = apply(query.range(from, from + PAGE - 1));
     const { data, error } = await query;
     throwIfSupabaseError(error, `Could not read ${table} for the export`);
     const page = (data ?? []) as Row[];
     rows.push(...page);
     if (page.length < PAGE) break;
   }
-  return rows.map((row) => Object.fromEntries(Object.entries(row).filter(([key]) => !STRIP.has(key))));
+  const stripHere = STRIP_BY_TABLE[table];
+  return rows.map((row) => Object.fromEntries(Object.entries(row).filter(([key]) => !STRIP.has(key) && !stripHere?.has(key))));
 }
 
 const byOrg = (orgId: number): Filter => (q) => q.eq("organization_id", orgId);
@@ -82,7 +107,7 @@ export async function exportBusinessData(orgId: number, actorUserId: string, now
   const file = {
     exported_at: now.toISOString(),
     business: { id: orgId, name: (organization as Row).name, slug: (organization as Row).slug },
-    note: "Everything PortPass holds for this business, except children's health, allergy, medication, emergency-contact and pickup details (never exported), staff PIN hashes and link tokens (keys, not data), and PortPass's own billing records (sent as invoices).",
+    note: "Everything PortPass holds for this business, except children's health, allergy, medication, emergency-contact and pickup details and parents' goals and notes on private sessions (never exported), staff PIN hashes and link tokens (keys, not data), and PortPass's own billing records (sent as invoices).",
     tables,
     data: sections,
   };

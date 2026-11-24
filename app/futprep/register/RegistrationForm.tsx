@@ -330,7 +330,7 @@ export function RegistrationForm({
             one tap, email and name already filled in; the registration is
             attached to the account when the code is verified. */}
         <div className="confirmation-save">
-          <p><strong>Save this to a free PortPass account</strong>Keep {form.childName.split(" ")[0]}&rsquo;s registration, payments and next term in one place.</p>
+          <p><strong>Save this to a free PortPass account</strong>Get class updates from the coaches, and keep {form.childName.split(" ")[0]}&rsquo;s registration, payments and next term in one place.</p>
           <a className="secondary-button" href={`/signup?as=customer&email=${encodeURIComponent(form.parentEmail.trim())}&name=${encodeURIComponent(form.parentName.trim())}&next=${encodeURIComponent("/account")}`}>Save to an account →</a>
         </div>
         <InstallPrompt heading="Keep PortPass on your phone" lead="Add it to your home screen to check this registration and its payment in one tap. Nothing to download from a store." />

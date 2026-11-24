@@ -2,7 +2,7 @@ import { derivePaymentStatus } from "@/lib/payments";
 import { ageOnDate } from "@/lib/scheduling";
 import { effectiveCap } from "@/lib/futprepClasses";
 import { missingRegistrationFields } from "@/lib/futprepRegistrations";
-import { effectiveCapForTerm, ensureFutprepPilotData, type PaymentFrequency, type PaymentMethod } from "./registrations";
+import { ensureFutprepPilotData, setRegistrationStatusWithinCap, type PaymentFrequency, type PaymentMethod } from "./registrations";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, pageAll, throwIfSupabaseError } from "./supabase";
 
@@ -364,6 +364,26 @@ async function isFutprepRegistration(registrationId: number, organizationId: num
   return Boolean(data);
 }
 
+// Everything received for one registration (audit finding 5, brief 34):
+// read in pages, past the API's 1,000 rows a call, so a child's own record
+// and the total after a payment, a void or a change of fee agree with the
+// desk list.
+async function receivedCentsFor(registrationId: number): Promise<number> {
+  const db = getSupabaseAdmin();
+  const payments = await pageAll<{ amount_cents: number }>(
+    (from, to) =>
+      db
+        .from("payments")
+        .select("amount_cents")
+        .eq("registration_id", registrationId)
+        .eq("status", "received")
+        .order("id", { ascending: true })
+        .range(from, to),
+    "Could not total payments",
+  );
+  return payments.reduce((sum, payment) => sum + Number(payment.amount_cents), 0);
+}
+
 export async function recordFutprepPayment(input: {
   registrationId: number;
   amountCents: number;
@@ -412,18 +432,7 @@ export async function recordFutprepPayment(input: {
   });
   throwIfSupabaseError(insertError, "Could not record payment");
 
-  const { data: payments, error: paymentError } = await db
-    .from("payments")
-    .select("amount_cents")
-    .eq("registration_id", input.registrationId)
-    .eq("status", "received");
-  throwIfSupabaseError(paymentError, "Could not total payments");
-
-  const paid = (payments ?? []).reduce(
-    (sum: number, payment: { amount_cents: number }) =>
-      sum + Number(payment.amount_cents),
-    0,
-  );
+  const paid = await receivedCentsFor(input.registrationId);
 
   const nextStatus = derivePaymentStatus({
     paymentFrequency: registration.payment_frequency,
@@ -457,34 +466,21 @@ export async function updateFutprepRegistration(input: {
   const db = getSupabaseAdmin();
   const organizationId = await futprepOrganizationId();
 
-  const updates: Record<string, string> = {};
-  if (input.registrationStatus) {
-    // Promoting from the waitlist (brief 06 v2, Part C) takes a class
-    // spot, so it needs one free.
-    if (input.registrationStatus !== "cancelled") {
-      const { data: current, error: currentError } = await db.from("registrations").select("registration_status,program_id,term_id").eq("id", input.registrationId).eq("organization_id", organizationId).maybeSingle();
-      throwIfSupabaseError(currentError, "Could not load registration");
-      if (current?.registration_status === "waitlist") {
-        const [{ count }, cap] = await Promise.all([
-          db.from("registrations").select("id", { count: "exact", head: true }).eq("program_id", current.program_id).eq("term_id", current.term_id).in("registration_status", ["pending_details", "pending", "confirmed"]),
-          // Brief 12: the cap the coaches on duty allow at the next session.
-          effectiveCapForTerm(Number(current.program_id), Number(current.term_id)),
-        ]);
-        if (Number(count ?? 0) >= cap) throw new Error("PROGRAM_FULL");
-      }
-    }
-    updates.registration_status = input.registrationStatus;
-  }
-  if (input.paymentStatus) updates.payment_status = input.paymentStatus;
-  if (!Object.keys(updates).length) return;
+  if (!input.registrationStatus && !input.paymentStatus) return;
 
-  const { data, error } = await db
-    .from("registrations")
-    .update(updates)
-    .eq("id", input.registrationId)
-    .eq("organization_id", organizationId)
-    .select("id,program_id,parent_name,parent_email,child_name")
-    .maybeSingle();
+  if (input.registrationStatus) {
+    // Promoting from the waitlist (brief 06 v2, Part C), or bringing a
+    // cancelled child back, takes a class spot: the database checks the
+    // cap and writes the status under the class's lock, so two promotions
+    // at the same moment can't both take the last one (PROGRAM_FULL).
+    const changed = await setRegistrationStatusWithinCap(db, { registrationId: input.registrationId, organizationId, status: input.registrationStatus });
+    if (!changed) throw new Error("REGISTRATION_NOT_FOUND");
+  }
+
+  const columns = "id,program_id,parent_name,parent_email,child_name";
+  const { data, error } = input.paymentStatus
+    ? await db.from("registrations").update({ payment_status: input.paymentStatus }).eq("id", input.registrationId).eq("organization_id", organizationId).select(columns).maybeSingle()
+    : await db.from("registrations").select(columns).eq("id", input.registrationId).eq("organization_id", organizationId).maybeSingle();
   throwIfSupabaseError(error, "Could not update registration");
   if (!data) throw new Error("REGISTRATION_NOT_FOUND");
 
@@ -524,7 +520,9 @@ type RosterRegistrationRow = {
   health_purged_at?: string | null;
 };
 
-// `includeSafety: false` is for the read-only helper login: the emergency
+// `includeSafety: false` is for the read-only helper login, and for a coach
+// login without the medical view on any day but the session's own (brief
+// 34, lib/futprepRoles.ts rosterSafetyShown): the emergency
 // contact, pickup and health columns are then never selected, so they
 // cannot reach that person's browser (privacy policy v2, brief 16 D).
 // `includeHealth` (brief 31, A1) adds the allergy, medical, medication and
@@ -637,6 +635,9 @@ export async function rosterForSession(
 // program's default. Returns the session's cap with that many coaches.
 export async function setSessionCoaches(sessionId: number, coaches: number | null): Promise<{ coaches: number; effectiveCap: number }> {
   if (coaches !== null && (!Number.isInteger(coaches) || coaches < 0 || coaches > 20)) throw new Error("INVALID_COACHES");
+  // Rule 3 (brief 34): another business's session is refused like a
+  // missing one, before anything is written (its class's cap follows this).
+  await assertFutprepSession(sessionId);
   const db = getSupabaseAdmin();
   const { data: session, error } = await db.from("sessions").update({ coaches_on_duty: coaches }).eq("id", sessionId).select("program_id").maybeSingle();
   throwIfSupabaseError(error, "Could not save the coaches on duty");
@@ -1026,15 +1027,23 @@ export async function getFutprepRegistrationDetail(
 
   const [
     { data: program, error: programError },
-    { data: payments, error: paymentError },
+    payments,
     { data: edits, error: editError },
   ] = await Promise.all([
     db.from("programs").select("name,slug").eq("id", registration.program_id).maybeSingle(),
-    db
-      .from("payments")
-      .select("id,amount_cents,method,status,recorded_by,note,reference,received_at,created_at")
-      .eq("registration_id", registrationId)
-      .order("received_at", { ascending: false }),
+    // Audit finding 5 (brief 34): every payment, read in pages past the
+    // API's 1,000 rows a call, so the record's total matches the desk's.
+    pageAll<Record<string, unknown>>(
+      (from, to) =>
+        db
+          .from("payments")
+          .select("id,amount_cents,method,status,recorded_by,note,reference,received_at,created_at")
+          .eq("registration_id", registrationId)
+          .order("received_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to),
+      "Could not load registration payments",
+    ),
     db
       .from("registration_edits")
       .select("id,changed_by,changes,created_at")
@@ -1042,10 +1051,9 @@ export async function getFutprepRegistrationDetail(
       .order("created_at", { ascending: false }),
   ]);
   throwIfSupabaseError(programError, "Could not load registration program");
-  throwIfSupabaseError(paymentError, "Could not load registration payments");
   throwIfSupabaseError(editError, "Could not load registration edit history");
 
-  const paymentRows = (payments ?? []) as Array<Record<string, unknown>>;
+  const paymentRows = payments;
   const paidCents = paymentRows
     .filter((row) => row.status === "received")
     .reduce((sum, row) => sum + Number(row.amount_cents), 0);
@@ -1310,13 +1318,7 @@ export async function updateFutprepRegistrationDetail(
   // to "term" now needs their $210 re-evaluated against the real term fee,
   // not silently left "paid".
   if (updates.amount_due_cents !== undefined || updates.payment_frequency !== undefined) {
-    const { data: payments, error: paymentError } = await db
-      .from("payments")
-      .select("amount_cents")
-      .eq("registration_id", registrationId)
-      .eq("status", "received");
-    throwIfSupabaseError(paymentError, "Could not total payments");
-    const paid = (payments ?? []).reduce((sum: number, row: { amount_cents: number }) => sum + Number(row.amount_cents), 0);
+    const paid = await receivedCentsFor(registrationId);
     const nextStatus = derivePaymentStatus({
       paymentFrequency: (updates.payment_frequency as PaymentFrequency | undefined) ?? (current.payment_frequency as PaymentFrequency),
       paidCents: paid,
@@ -1374,13 +1376,7 @@ export async function voidFutprepPayment(input: {
     .maybeSingle();
   throwIfSupabaseError(registrationError, "Could not load registration for payment void");
 
-  const { data: remaining, error: remainingError } = await db
-    .from("payments")
-    .select("amount_cents")
-    .eq("registration_id", payment.registration_id)
-    .eq("status", "received");
-  throwIfSupabaseError(remainingError, "Could not total remaining payments");
-  const paidCents = (remaining ?? []).reduce((sum: number, row: { amount_cents: number }) => sum + Number(row.amount_cents), 0);
+  const paidCents = await receivedCentsFor(Number(payment.registration_id));
 
   const paymentStatus = registration
     ? derivePaymentStatus({

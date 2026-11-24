@@ -74,6 +74,7 @@ export function CoachRoster({
   readOnly = false,
   healthHidden = false,
   safetyHidden = false,
+  safetyAtDesk = false,
   coachOptions = [],
   initialStaff = [],
   suggestedLead = null,
@@ -84,9 +85,12 @@ export function CoachRoster({
   readOnly?: boolean;
   // Brief 31 (A1): the health columns were never loaded for this login.
   healthHidden?: boolean;
-  // Brief 31 (D review): an admin's roster is loaded without the emergency
-  // and pickup columns; it points to the desk instead of saying none.
+  // The emergency and pickup columns were never loaded either: brief 31 (D
+  // review) for an admin, whose roster points to the desk (safetyAtDesk);
+  // brief 34 for a coach without the medical view on any day but the
+  // session's own.
   safetyHidden?: boolean;
+  safetyAtDesk?: boolean;
   // Brief 13: who coached this session, for coach pay. Names only.
   coachOptions?: Array<{ id: number; name: string }>;
   initialStaff?: SessionStaffEntry[];
@@ -412,7 +416,7 @@ export function CoachRoster({
               {/* Helpers are read-only and never receive children's health or
                   emergency details: for a helper the page's roster query
                   doesn't select those columns at all (db/staff.ts). */}
-              {!readOnly && !isContract && <details><summary>Safety notes</summary>{safetyHidden ? <p><b>Emergency contact and pickup:</b> on the child&apos;s registration at the desk.</p> : <><p><b>Emergency:</b> {row.emergency_contact_name ? `${row.emergency_contact_name} · ${row.emergency_contact_phone ?? ""}` : "No information on file yet"}</p><p><b>Authorized pickup:</b> {row.authorized_pickup ?? "No information on file yet"}</p></>}{healthHidden ? <p><b>Health notes:</b> shown to the coaches Alex has allowed. Ask the desk before the session.</p> : <><p><b>Allergies:</b> {row.allergies === null ? "No information on file yet" : row.allergies || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Medical:</b> {row.medical_conditions === null ? "No information on file yet" : row.medical_conditions || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Medications:</b> {row.medications === null ? "No information on file yet" : row.medications || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Special needs:</b> {row.special_needs === null ? "No information on file yet" : row.special_needs || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p></>}</details>}
+              {!readOnly && !isContract && <details><summary>Safety notes</summary>{safetyHidden ? <p><b>Emergency contact and pickup:</b> {safetyAtDesk ? <>on the child&apos;s registration at the desk.</> : "shown to coaches on the day of the session, and to the logins Alex has allowed."}</p> : <><p><b>Emergency:</b> {row.emergency_contact_name ? `${row.emergency_contact_name} · ${row.emergency_contact_phone ?? ""}` : "No information on file yet"}</p><p><b>Authorized pickup:</b> {row.authorized_pickup ?? "No information on file yet"}</p></>}{healthHidden ? <p><b>Health notes:</b> shown to the coaches Alex has allowed. Ask the desk before the session.</p> : <><p><b>Allergies:</b> {row.allergies === null ? "No information on file yet" : row.allergies || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Medical:</b> {row.medical_conditions === null ? "No information on file yet" : row.medical_conditions || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Medications:</b> {row.medications === null ? "No information on file yet" : row.medications || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p><p><b>Special needs:</b> {row.special_needs === null ? "No information on file yet" : row.special_needs || (row.health_removed ? "Removed 90 days after the programme ended" : "None provided")}</p></>}</details>}
               {/* Brief 31 (D): the child's Progress Passport, opened on tap. */}
               {!readOnly && !isContract && row.registration_status !== "trial" && <PassportPanel registrationId={row.registration_id} childName={row.child_name} />}
               {readOnly ? (

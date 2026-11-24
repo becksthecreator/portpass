@@ -35,8 +35,9 @@ function formatWhen(iso: string | null) {
 }
 
 // healthHidden (brief 31, A1): this login may not see the child's medical
-// details or internal notes (an admin without the medical switch). The page
-// has already blanked them; the editor neither shows nor saves them.
+// details or internal notes (an admin without the medical switch), nor,
+// since brief 34, the emergency contact and pickup. The page has already
+// blanked them; the editor neither shows nor saves them.
 export function RegistrationDetailEditor({ detail, programs, healthHidden = false }: { detail: FutprepRegistrationDetail; programs: ProgramOption[]; healthHidden?: boolean }) {
   const router = useRouter();
 
@@ -107,10 +108,12 @@ export function RegistrationDetailEditor({ detail, programs, healthHidden = fals
       parentName: parentName || null,
       parentEmail: parentEmail || null,
       parentPhone: parentPhone || null,
-      emergencyContactName: emergencyContactName || null,
-      emergencyContactPhone: emergencyContactPhone || null,
-      authorizedPickup: authorizedPickup || null,
-      ...(healthHidden ? {} : { allergies, medicalConditions, medications, specialNeeds, additionalNotes }),
+      ...(healthHidden ? {} : {
+        emergencyContactName: emergencyContactName || null,
+        emergencyContactPhone: emergencyContactPhone || null,
+        authorizedPickup: authorizedPickup || null,
+        allergies, medicalConditions, medications, specialNeeds, additionalNotes,
+      }),
       photoConsent: photoConsent || null,
       paymentFrequency,
       paymentMethod: paymentMethod || null,
@@ -239,10 +242,14 @@ export function RegistrationDetailEditor({ detail, programs, healthHidden = fals
 
         <section className="detail-panel">
           <h2>Emergency contact</h2>
-          <p className="detail-hint">Shown exactly as on file — never assumed to be the parent above.</p>
-          <label><span>Name</span><input value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} placeholder="Not on file yet" /></label>
-          <label><span>Phone</span><input value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} placeholder="Not on file yet" /></label>
-          <label><span>Authorized pickup</span><input value={authorizedPickup} onChange={(e) => setAuthorizedPickup(e.target.value)} placeholder="Not on file yet" /></label>
+          {healthHidden ? (
+            <p className="detail-hint"><strong>The emergency contact and authorized pickup are hidden for your login.</strong> They go with the medical view, which the CEO can switch on in Staff accounts.</p>
+          ) : <>
+            <p className="detail-hint">Shown exactly as on file — never assumed to be the parent above.</p>
+            <label><span>Name</span><input value={emergencyContactName} onChange={(e) => setEmergencyContactName(e.target.value)} placeholder="Not on file yet" /></label>
+            <label><span>Phone</span><input value={emergencyContactPhone} onChange={(e) => setEmergencyContactPhone(e.target.value)} placeholder="Not on file yet" /></label>
+            <label><span>Authorized pickup</span><input value={authorizedPickup} onChange={(e) => setAuthorizedPickup(e.target.value)} placeholder="Not on file yet" /></label>
+          </>}
         </section>
 
         <section className="detail-panel">

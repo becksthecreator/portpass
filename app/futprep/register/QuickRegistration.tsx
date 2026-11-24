@@ -8,6 +8,7 @@ import { PrivacyNote } from "@/app/_components/PrivacyNote";
 import type { FutprepAvailability } from "@/db/registrations";
 import { track } from "@/lib/analytics";
 import { EMPTY_ATTRIBUTION, type Attribution } from "@/lib/attribution";
+import { classDaysLine } from "@/lib/classDays";
 import { formatDateRange } from "@/lib/futprepTerms";
 import { ageProblem, asksMonths, howToPayLines, mapsUrl, nextSessionDate, type QuickHowToPay } from "@/lib/quickRegistration";
 import { programTimeRange } from "../config";
@@ -176,7 +177,18 @@ export function QuickRegistration({ offers, attribution = EMPTY_ATTRIBUTION, ini
         </dl>
         <p className="tap-note">{form.parentEmail.trim() ? `A copy is on its way to ${form.parentEmail.trim()}.` : "You didn't give an email, so there's no copy to send: screenshot this page or write the reference down."}</p>
         <p className="tap-note">Need to add an emergency contact, who may collect {first}, or change the health notes? Message Futprep on WhatsApp with the reference and a coach will add it.</p>
-        {form.parentEmail.trim() && <p className="tap-note">Want your bookings in one place? <a href="/login">Create a free PortPass account</a> with the same email; it&rsquo;s optional.</p>}
+        {/* Parent home, PR 1 (24 Nov): class updates and the next session
+            live on the parent's PortPass account, which is matched by the
+            registration's email. With an email, one tap to sign in; without
+            one, how to add it. Works whether or not the form asks for email. */}
+        {form.parentEmail.trim() ? (
+          <div className="tap-account" role="note">
+            <p><strong>Get class updates from the coaches.</strong> Sign in with {form.parentEmail.trim()} to see {first}&rsquo;s next session, what&rsquo;s owed and every update from the coaches in one place. It&rsquo;s free; no password.</p>
+            <a className="tap-button" href={`/signup?as=customer&email=${encodeURIComponent(form.parentEmail.trim())}&name=${encodeURIComponent(form.parentName.trim())}&next=${encodeURIComponent("/account")}`}>Sign in for class updates</a>
+          </div>
+        ) : (
+          <p className="tap-note" role="note"><strong>Want class updates from the coaches?</strong> They go to the email on the registration. Message Futprep on WhatsApp with the reference and your email, then sign in to PortPass with that email.</p>
+        )}
         <div className="tap-actions">
           <a className="tap-button" href="/sports-fitness/futprep-athletics">Back to Futprep</a>
           <button type="button" className="tap-back" onClick={() => { setResult(null); setForm({ ...EMPTY, parentName: form.parentName, parentPhone: form.parentPhone, parentEmail: form.parentEmail }); setStep(1); window.scrollTo(0, 0); }}>Register another child</button>
@@ -201,7 +213,7 @@ export function QuickRegistration({ offers, attribution = EMPTY_ATTRIBUTION, ini
           <label><span>Your name *</span><input value={form.parentName} autoComplete="name" onChange={(e) => set("parentName", e.target.value)} /></label>
           <div className="tap-two">
             <label><span>Phone *</span><PhoneInput value={form.parentPhone} onChange={(v) => set("parentPhone", v)} required /></label>
-            <label><span>Email <small>(optional, for a copy)</small></span><input type="email" value={form.parentEmail} autoComplete="email" inputMode="email" onChange={(e) => set("parentEmail", e.target.value)} /></label>
+            <label><span>Email <small>(optional: for a copy and class updates)</small></span><input type="email" value={form.parentEmail} autoComplete="email" inputMode="email" onChange={(e) => set("parentEmail", e.target.value)} /></label>
           </div>
 
           <h2 className="tap-step"><span>Kid</span>Your child</h2>
@@ -265,7 +277,7 @@ export function QuickRegistration({ offers, attribution = EMPTY_ATTRIBUTION, ini
     <section className="tap-screen">
       <TapProgress step={1} />
       <h1>Pick a class.</h1>
-      <p>Saturdays at Lyford Cay. Three taps and your child is registered; you pay Futprep directly, by bank transfer or cash at the field.</p>
+      <p>{classDaysLine(offers) && `${classDaysLine(offers)} `}Three taps and your child is registered; you pay Futprep directly, by bank transfer or cash at the field.</p>
       {offers.length === 0 ? (
         <p className="tap-closed">{closedNotice ?? "Nothing is open for registration right now."} Private sessions run all year: <a href="/futprep/book">book one with a coach</a>.</p>
       ) : (

@@ -221,8 +221,11 @@ export async function listFutprepPrograms(forOrganizationId?: number): Promise<F
 
 export async function setFutprepProgramActive(id: number, active: boolean) {
   const db = getSupabaseAdmin();
-  const { error } = await db.from("programs").update({ active }).eq("id", id);
+  // Futprep's own classes only (rule 3, brief 34): another business's is
+  // refused like a missing one.
+  const { data, error } = await db.from("programs").update({ active }).eq("id", id).eq("organization_id", await futprepOrganizationId()).select("id");
   throwIfSupabaseError(error, "Could not update the program.");
+  if (!data?.length) throw new Error("PROGRAM_NOT_FOUND");
 }
 
 // `scope` (brief 18, D4): the business the programme is for and who it is

@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createFutprepPendingRegistration, ensureFutprepPilotData } from "./registrations";
-import { getFutprepMoneySummary, listFutprepStaffRegistrations } from "./staff";
+import { getFutprepMoneySummary, getFutprepRegistrationDetail, listFutprepStaffRegistrations, recordFutprepPayment } from "./staff";
 
 // Audit finding 5 (brief 33): the desk's "Recorded" and "Balance", the
 // money strip and the CEO overview read the payments and registrations
@@ -111,5 +111,22 @@ describe("desk balances read every payment (audit finding 5)", () => {
     const desk = await listFutprepStaffRegistrations();
     expect(desk.filter((r) => r.program_slug === target.slug)).toHaveLength(1001);
     expect(desk.find((r) => r.id === Number(last!.id))?.paid_cents).toBe(1700);
+  });
+});
+
+// Brief 34 (found by the tdd-guide): the child's own record and the total
+// after a new payment read that child's payments the same way.
+describe("one child's balance reads every payment (brief 34, finding 5)", () => {
+  it("the child's record and a new payment count every payment past the first 1,000", async () => {
+    const target = await newClass();
+    const a = await createFutprepPendingRegistration({ childName: `${MARK} child record`, programSlug: target.slug, termId: target.termId, enteredByStaff: MARK });
+    const now = new Date().toISOString();
+    const { error } = await db().from("payments").insert(
+      Array.from({ length: 1001 }, () => ({ registration_id: a.registrationId, amount_cents: 100, method: "cash", status: "received", note: MARK, received_at: now })),
+    );
+    expect(error).toBeNull();
+
+    expect((await getFutprepRegistrationDetail(a.registrationId))?.paid_cents).toBe(100100);
+    expect((await recordFutprepPayment({ registrationId: a.registrationId, amountCents: 100, method: "cash", recordedBy: MARK })).paidCents).toBe(100200);
   });
 });
