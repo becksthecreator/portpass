@@ -12,7 +12,8 @@
 // What a parent wrote about the child's health. Blanked by the purge.
 export const HEALTH_COLUMNS = ["allergies", "medical_conditions", "medications", "special_needs", "additional_notes", "medical_info_source"] as const;
 // Who to call and who may collect the child. Kept while the registration
-// is live; never in a list or an export either.
+// is live, never in a list or an export, and blanked by the same 90-day
+// purge (202610280009).
 export const EMERGENCY_COLUMNS = ["emergency_contact_name", "emergency_contact_phone", "authorized_pickup"] as const;
 export const PROTECTED_CHILD_COLUMNS = [...HEALTH_COLUMNS, ...EMERGENCY_COLUMNS] as const;
 

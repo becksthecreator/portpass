@@ -78,6 +78,21 @@ async function quickDone(page) {
   await page.locator(".tap-done").waitFor({ timeout: 30_000 });
 }
 
+// Parent home, PR 1: the same, with the TEST parent's @example.com email,
+// so the done screen offers sign-in for class updates (never emailed: lib/email.ts).
+async function quickDoneWithEmail(page) {
+  await quickWho(page);
+  await field(page, "Email").fill(TEST_PARENT.email);
+  await field(page, "Your name *").fill(TEST_PARENT.name);
+  await field(page, "Phone *").fill(TEST_PARENT.phone);
+  await field(page, "Child’s name *").fill("TEST Child (delete)");
+  await field(page, "Age *").selectOption("4");
+  for (const legend of ["Pay *", "How *", "Photos and video"]) await page.locator("fieldset").filter({ hasText: legend }).locator("label").last().click();
+  await page.locator(".tap-consent input").check();
+  await page.locator(".tap-submit").click();
+  await page.locator(".tap-done").waitFor({ timeout: 30_000 });
+}
+
 // [file name, account, path, element to also capture on its own, link to press first]
 // account "admin" is the TEST platform owner; "anon" is a visitor; "demo"
 // is a visitor who pressed "Open the demo"; anything else is a staff PIN
@@ -116,6 +131,10 @@ const SHOTS = [
   ["brief31-inbox-coach-375", "test-coach", "/futprep/staff/private-sessions", ".private-request-card"],
   ["brief31-inbox-desk-375", "test-desk", "/futprep/staff/private-sessions", ".private-request-card"],
   ["brief31-my-days-375", "test-coach", "/futprep/staff/my-days", ".my-days-card"],
+  // Class feed (Nov 2026): a coach's posting screen, and the parents' page
+  // (the TEST platform owner is the parent of one TEST child).
+  ["class-feed-staff-375", "test-coach", "/futprep/staff/feed", ".class-feed-list"],
+  ["class-feed-parent-375", "admin", "/futprep/feed", ".parent-feed-list"],
   ["brief31-ops-private-rates-375", "test-desk", "/futprep/staff/ops", "#ops-pay"],
   ["brief31-pay-private-375", "test-coach", "/futprep/staff/pay", "#pay-private"],
   ["brief31-book-place-375", "anon", "/futprep/book?coach=test-delete-coach-bex", ".private-session-two"],
@@ -187,6 +206,7 @@ const SHOTS = [
   ["brief18-header-signed-out-375", "anon", "/", null],
   ["brief18-signup-375", "anon", "/signup?as=customer", ".auth-doors"],
   ["brief18-account-375", "admin", "/account", null],
+  ["parent-home-2-coming-up-375", "admin", "/account", ".account-week"],
   // Brief 18, part G: a lime brand colour with no photo and no WhatsApp
   // number (as Carv is): the brand header, navy on lime, the Enquire form.
   ["brief18-lime-preview-375", "admin", "/business/test-delete-lime-gym/preview", ".tpl-enquire"],
@@ -345,6 +365,7 @@ try {
     ["brief27-after-1-pick-375", "anon", "/futprep/register", ".tap-cards"],
     ["brief27-after-2-who-375", "anon", "/futprep/register", ".tap-form", null, quickWho],
     ["brief27-after-3-done-375", "anon", "/futprep/register", ".tap-done", null, quickDone],
+    ["parent-home-1-done-email-375", "anon", "/futprep/register", ".tap-account", null, quickDoneWithEmail],
     ["brief27-after-book-private-375", "anon", "/futprep/book?coach=test-delete-coach-bex", ".tap-step"],
     // Brief 27 (D): Flamingo Night on the Futprep pages the brief names.
     // The throwaway stack has no published Futprep listing, so the home and

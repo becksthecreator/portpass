@@ -37,10 +37,13 @@ export function formatPointsDelta(delta: number): string {
   return delta < 0 ? `−${Math.abs(delta).toLocaleString("en-US")}` : `+${delta.toLocaleString("en-US")}`;
 }
 
-// How points are earned, in words, from the current rules.
-export function howPointsAreEarned(rules: { perDollar: number; perAttendance: number }): string {
+// How points are earned, in words, from the current rules. The Market is
+// hidden (next.config.ts sends /market home, 19 Oct), so its rule is left
+// out unless a caller says the Market is open: a parent shouldn't read
+// about a shop they can't reach.
+export function howPointsAreEarned(rules: { perDollar: number; perAttendance: number }, options: { marketOpen?: boolean } = {}): string {
   const parts: string[] = [];
-  if (rules.perDollar > 0) parts.push(`${rules.perDollar === 1 ? "1 point" : `${rules.perDollar} points`} for each dollar of a PortPass Market order, once the business marks it paid`);
+  if (options.marketOpen && rules.perDollar > 0) parts.push(`${rules.perDollar === 1 ? "1 point" : `${rules.perDollar} points`} for each dollar of a PortPass Market order, once the business marks it paid`);
   if (rules.perAttendance > 0) parts.push(`${rules.perAttendance} points the first time you, or a child you registered, attend a class or programme you signed up for`);
   return parts.length ? `You earn ${parts.join(", and ")}.` : "Earning is paused for now.";
 }

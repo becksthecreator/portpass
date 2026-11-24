@@ -414,6 +414,19 @@ async function main() {
   const { data: guide, error: guideError } = await db.from("guides").select("id").eq("slug", "things-to-do-in-nassau-with-kids").single();
   if (guideError || !guide) throw new Error(`Could not find the seeded guide: ${guideError?.message ?? "none"}`);
 
+  // Class feed (Nov 2026): two updates on the TEST class, and the TEST
+  // platform owner as the parent of its eleventh child, so the "admin"
+  // login also shows the parents' page /futprep/feed (confirmed: the feed
+  // shows confirmed places only).
+  const lastChild = seededRegistrations[seededRegistrations.length - 1].id;
+  const { error: parentError } = await db.from("registrations").update({ parent_email: adminEmail, registration_status: "confirmed" }).eq("id", lastChild);
+  if (parentError) throw new Error(`Could not link the TEST parent: ${parentError.message}`);
+  const { error: postError } = await db.from("class_posts").insert([
+    { organization_id: org.id, program_id: program.id, term_id: term.id, author_account: "test-coach", author_name: `${MARK} Coach`, emailed_count: 11, created_at: new Date(Date.now() - 86_400_000).toISOString(), body: "Welcome to the term!\n\nBring water and shin pads. We start at 10:00 sharp on the field by the gate." },
+    { organization_id: org.id, program_id: program.id, term_id: term.id, author_account: "test-coach", author_name: `${MARK} Coach`, emailed_count: 11, created_at: new Date().toISOString(), body: "No class this Saturday because of the rain. See you next week." },
+  ]);
+  if (postError) throw new Error(`Could not seed the class updates: ${postError.message}`);
+
   writeFileSync(out, JSON.stringify({ guideId: guide.id, billingOrgId: org.id, billingDraftId: Number(draft.data),  programId: program.id, termId: term.id, sessionId: session.id, sessionDate: session.session_date, adminEmail, leadId, registrationId, businessRegistrationId: businessRegistration.id }, null, 2));
   console.log(`Seeded TEST staff fixture: program ${program.id}, term ${term.id}, session ${session.id} on ${session.session_date}.`);
 }

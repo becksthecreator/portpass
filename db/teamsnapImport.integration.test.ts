@@ -68,8 +68,23 @@ afterAll(async () => {
 });
 
 describe("Import from TeamSnap (brief 13)", () => {
+  it("without the medical permission, previews and saves no medical, emergency-contact or pickup field, and says how many it left out", async () => {
+    const preview = await previewTeamsnapImport({ programId, termId, csv: CSV, canWriteMedical: false });
+    // Ava's allergy, plus her emergency contact's name and phone: the same
+    // permission guards all three (brief 34).
+    expect(preview.skippedMedical).toBe(3);
+    const ava = preview.rows.find((r) => r.childName.endsWith("Ava Rolle"))!;
+    expect(ava.fields).not.toEqual(expect.arrayContaining([expect.stringMatching(/medical|emergency|pick-up/)]));
+    expect(ava.fields).toEqual(expect.arrayContaining(["parent name", "parent email"]));
+    // Nothing is written by a preview; the medical check is shown, then the
+    // apply below (with the permission) fills Ava as before.
+    const { data } = await db().from("registrations").select("allergies,parent_email").eq("id", ids["Ava Rolle"]).single();
+    expect(data).toEqual({ allergies: null, parent_email: null });
+  });
+
   it("previews matches by child name without showing any medical note", async () => {
-    const preview = await previewTeamsnapImport({ programId, termId, csv: CSV });
+    const preview = await previewTeamsnapImport({ programId, termId, csv: CSV, canWriteMedical: true });
+    expect(preview.skippedMedical).toBe(0);
     expect(preview.counts).toEqual({ fill: 2, nothing_new: 0, no_match: 1, ambiguous: 1, not_pending: 1 });
     expect(preview.unmapped).toEqual(["Jersey Number"]);
     const ava = preview.rows.find((r) => r.childName.endsWith("Ava Rolle"))!;
@@ -82,7 +97,7 @@ describe("Import from TeamSnap (brief 13)", () => {
   });
 
   it("fills only what's missing, medical only when present, leaves consent unset, and logs it", async () => {
-    const result = await applyTeamsnapImport({ programId, termId, csv: CSV, actor: MARK });
+    const result = await applyTeamsnapImport({ programId, termId, csv: CSV, actor: MARK, canWriteMedical: true });
     expect(result.updated).toBe(2);
 
     const { data: ava } = await db().from("registrations").select("parent_name,parent_email,parent_phone,child_dob,emergency_contact_name,emergency_contact_phone,allergies,medications,consent_accepted,registration_status").eq("id", ids["Ava Rolle"]).single();
@@ -102,7 +117,7 @@ describe("Import from TeamSnap (brief 13)", () => {
   });
 
   it("does nothing more on a second run", async () => {
-    const again = await applyTeamsnapImport({ programId, termId, csv: CSV, actor: MARK });
+    const again = await applyTeamsnapImport({ programId, termId, csv: CSV, actor: MARK, canWriteMedical: true });
     expect(again.updated).toBe(0);
     await db().from("audit_log").delete().eq("action", "futprep.teamsnap_import").eq("target_id", `${programId}:${termId}`);
   });

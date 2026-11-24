@@ -99,3 +99,17 @@ export function howToPayLines(method: "bank_transfer" | "cash", howToPay: QuickH
   lines.push(`Use ${referenceCode} as the transfer reference.`);
   return lines;
 }
+
+// The exact birthday the new register (V4) sends: a real calendar day, not
+// in the future and no more than 18 years ago. Anything else is null, and
+// the route falls back to the age in months (or asks again).
+export function quickChildDob(value: string, today: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null;
+  if (value > today) return null;
+  const oldest = new Date(`${today}T12:00:00Z`);
+  oldest.setUTCFullYear(oldest.getUTCFullYear() - 18);
+  if (value < oldest.toISOString().slice(0, 10)) return null;
+  return value;
+}

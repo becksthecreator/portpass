@@ -21,7 +21,10 @@ describe("PortPass Points words", () => {
   });
 
   it("explains how points are earned from the rules in force", () => {
-    expect(howPointsAreEarned({ perDollar: 1, perAttendance: 10 })).toBe("You earn 1 point for each dollar of a PortPass Market order, once the business marks it paid, and 10 points the first time you, or a child you registered, attend a class or programme you signed up for.");
+    expect(howPointsAreEarned({ perDollar: 1, perAttendance: 10 }, { marketOpen: true })).toBe("You earn 1 point for each dollar of a PortPass Market order, once the business marks it paid, and 10 points the first time you, or a child you registered, attend a class or programme you signed up for.");
+    // The Market is hidden: its rule isn't mentioned unless it's open.
+    expect(howPointsAreEarned({ perDollar: 1, perAttendance: 10 })).toBe("You earn 10 points the first time you, or a child you registered, attend a class or programme you signed up for.");
+    expect(howPointsAreEarned({ perDollar: 1, perAttendance: 0 })).toBe("Earning is paused for now.");
     expect(howPointsAreEarned({ perDollar: 0, perAttendance: 0 })).toBe("Earning is paused for now.");
   });
 
