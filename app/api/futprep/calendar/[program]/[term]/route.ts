@@ -10,7 +10,7 @@ export async function GET(_request: Request, context: { params: Promise<{ progra
   const termId = Number(String(term).replace(/\.ics$/i, ""));
   try {
     const calendar = await futprepClassCalendar(String(program), termId);
-    if (!calendar || calendar.sessions.length === 0) return NextResponse.json({ error: "No calendar for that class." }, { status: 404 });
+    if (!calendar || calendar.sessions.length === 0) return NextResponse.json({ error: "No calendar for that class." }, { status: 404, headers: { "Cache-Control": "public, s-maxage=60" } });
     return new NextResponse(buildIcs(calendar), {
       headers: {
         "Content-Type": "text/calendar; charset=utf-8",

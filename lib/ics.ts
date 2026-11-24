@@ -45,7 +45,7 @@ export function nassauToUtc(date: string, hours: number, minutes: number): Date 
 const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 
 // Text values escaped as RFC 5545 asks: backslash, semicolon, comma, newline.
-const text = (value: string) => value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+const text = (value: string) => value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r\n|\r|\n/g, "\\n");
 
 const bytes = (value: string) => new TextEncoder().encode(value).length;
 

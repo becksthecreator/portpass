@@ -23,6 +23,8 @@ describe("the class calendar file (register V4)", () => {
   it("escapes text and folds long lines", () => {
     const ics = buildIcs({ ...base, location: "Field, by the gate; bring water", description: "A".repeat(200), sessions: [{ date: "2027-01-09", start: "10:00 AM", end: "10:45 AM" }] });
     expect(ics).toContain("LOCATION:Field\\, by the gate\\; bring water");
+    // A lone carriage return can't break a line of the file either.
+    expect(buildIcs({ ...base, location: "Field\rGate", sessions: [{ date: "2027-01-09", start: "10:00 AM", end: "10:45 AM" }] })).toContain("LOCATION:Field\\nGate");
     for (const line of ics.split("\r\n")) expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75);
   });
 
