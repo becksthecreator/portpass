@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 // generateMetadata finds nothing before calling notFound(): an empty object
 // there would fall back to the home page's title and description.
 const TITLE = "Page not found | PortPass Bahamas";
-const DESCRIPTION = "That page doesn't exist. PortPass is bookings for businesses across The Bahamas: classes, tours, tables, appointments and events, paid to the business directly.";
+const DESCRIPTION = "That page doesn't exist. PortPass is bookings for Bahamian businesses, paid to the business directly. Search for what you need, or tell us about your business.";
 
 export const NOT_FOUND_METADATA: Metadata = {
   title: TITLE,
