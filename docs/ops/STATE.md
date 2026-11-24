@@ -31,6 +31,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
+| `fix/futprep-forms-on-portpass` (parents can register again: 23 Nov, Bex) | (this PR) | Futprep's four form pages (register, taster, camps, booking) work on portpassbahamas.com until register.futprep.com has a DNS record. One switch, `FUTPREP_FORMS_ON_PORTPASS` in `lib/futprepOffSite.ts`: set it to false when register.futprep.com answers, and the form pages redirect to the same page there. futprep.com's Register button: `https://portpassbahamas.com/futprep/register?utm_source=futprep_site` | Security & QA review; Bex's OK |
 | `feat/class-feed-v2` (class updates in place of the WhatsApp groups, [report](../briefs/class-feed-report.md); replaces #254; rebased on main 23 Nov) | #279 | Apply `202610280008_class_posts.sql` with Bex's OK, then merge; close #254 | Bex's OK |
 | `fix/private-payment-once` (a private session's payment recorded once; replaces #224) | #278 | Nothing to apply: `202610230003_private_session_payment_once` has been live since 12 Oct. Merge after #275 and #277 | Bex's OK |
 | `claude/keen-volta-6u6jdp` (drop the read-only WeddingWire HTML columns; rebased 23 Nov) | #236 | Merge the code, then apply `202610280005_drop_weddingwire_html_columns.sql` (renumbered from 0001, after #270's 0003) with Bex's OK. No code on `main` reads the columns | Bex's OK |
