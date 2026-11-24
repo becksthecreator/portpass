@@ -10,11 +10,14 @@ import { cleanEnvValue } from "./email";
 // changes this deliberately, in its own reviewed PR.
 const ALLOWED_VERCEL_ENVS = new Set(["", "development"]);
 
-export function paymentsLedgerEnabled(env: Record<string, string | undefined> = process.env): boolean {
+// Read by name, so lib/env.test.ts sees which settings the server uses.
+const fromProcess = () => ({ PAYMENTS_LEDGER: process.env.PAYMENTS_LEDGER, VERCEL_ENV: process.env.VERCEL_ENV });
+
+export function paymentsLedgerEnabled(env: Record<string, string | undefined> = fromProcess()): boolean {
   if (cleanEnvValue(env.PAYMENTS_LEDGER)?.toLowerCase() !== "on") return false;
   return ALLOWED_VERCEL_ENVS.has((cleanEnvValue(env.VERCEL_ENV) ?? "").toLowerCase());
 }
 
-export function assertPaymentsLedger(env: Record<string, string | undefined> = process.env): void {
+export function assertPaymentsLedger(env: Record<string, string | undefined> = fromProcess()): void {
   if (!paymentsLedgerEnabled(env)) throw new Error("PAYMENTS_LEDGER_OFF");
 }

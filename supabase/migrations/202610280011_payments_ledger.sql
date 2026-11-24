@@ -164,9 +164,12 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = public, pg_temp
-as $$
+set lock_timeout = '10s'
+as $
 declare
   v_source text := p_request->>'source';
+  v_tx_org bigint := nullif(p_request->>'organization_id', '')::bigint;
+  v_payables bigint[];
   v_key text := p_request->>'idempotency_key';
   v_entries jsonb := p_request->'entries';
   v_hash text;
@@ -194,6 +197,125 @@ begin
       raise exception 'LEDGER_IDEMPOTENCY_CONFLICT' using errcode = 'P0409';
     end if;
     return jsonb_build_object('id', v_existing.id, 'replayed', true);
+  end if;
+
+  -- A transaction belongs to at most one business, and every payable line
+  -- in it is that business's (Security & QA, #302): a charge labelled for
+  -- one business can't credit another. Charges, refunds and payouts must
+  -- name their business.
+  select coalesce(array_agg(distinct split_part(e->>'account', ':', 2)::bigint), '{}')
+    into v_payables
+    from jsonb_array_elements(v_entries) e
+   where split_part(e->>'account', ':', 1) = 'business_payable'
+     and split_part(e->>'account', ':', 2) ~ '^[1-9][0-9]{0,17}
+  for v_org in
+    select distinct split_part(e->>'account', ':', 2)::bigint
+      from jsonb_array_elements(v_entries) e
+     where split_part(e->>'account', ':', 1) = 'business_payable'
+       and split_part(e->>'account', ':', 2) ~ '^[1-9][0-9]{0,17}$'
+     order by 1
+  loop
+    perform pg_advisory_xact_lock(hashtext('ledger_payable'), hashtext(v_org::text));
+  end loop;
+
+  begin
+    insert into public.ledger_transactions (source, idempotency_key, request_hash, kind, organization_id, description, created_by, is_test, reverses_id)
+    values (
+      v_source, v_key, v_hash, p_request->>'kind', v_tx_org,
+      coalesce(p_request->>'description', ''), p_request->>'created_by',
+      coalesce((p_request->>'is_test')::boolean, false), nullif(p_request->>'reverses_id', '')::bigint
+    )
+    returning id into v_tx;
+  exception when unique_violation then
+    -- Another call with the same (source, key) got there first: answer as
+    -- a replay (or a conflict), not as an error.
+    select id, request_hash into v_existing from public.ledger_transactions where source = v_source and idempotency_key = v_key;
+    if not found then
+      raise;
+    end if;
+    if v_existing.request_hash <> v_hash then
+      raise exception 'LEDGER_IDEMPOTENCY_CONFLICT' using errcode = 'P0409';
+    end if;
+    return jsonb_build_object('id', v_existing.id, 'replayed', true);
+  end;
+
+  for v_entry in select * from jsonb_array_elements(v_entries) loop
+    v_account_key := v_entry->>'account';
+    if v_account_key is null or jsonb_typeof(v_entry->'amount_cents') <> 'number' then
+      raise exception 'post_ledger_transaction: each entry needs an account and an amount';
+    end if;
+    v_amount := (v_entry->>'amount_cents')::bigint;
+    if v_amount = 0 then
+      raise exception 'post_ledger_transaction: amounts must be non-zero';
+    end if;
+    v_kind := split_part(v_account_key, ':', 1);
+    v_org := case when v_kind = 'business_payable' then split_part(v_account_key, ':', 2)::bigint else null end;
+    insert into public.ledger_accounts (key, kind, organization_id)
+    values (v_account_key, v_kind, v_org)
+    on conflict (key) do nothing;
+    select id into v_account from public.ledger_accounts where key = v_account_key;
+    insert into public.ledger_entries (transaction_id, account_id, amount_cents) values (v_tx, v_account, v_amount);
+    v_sum := v_sum + v_amount;
+    v_lines := v_lines + 1;
+  end loop;
+
+  -- The deferred trigger checks this at commit too; saying it here gives a
+  -- clear answer before anything is committed.
+  if v_lines < 2 or v_sum <> 0 then
+    raise exception 'post_ledger_transaction: entries must be two or more lines summing to zero (% lines, sum %)', v_lines, v_sum;
+  end if;
+
+  -- A reversal must undo its original exactly: same business, same TEST
+  -- flag, and per account the negative of the original's amounts.
+  if p_request->>'kind' = 'reversal' then
+    if not exists (
+      select 1 from public.ledger_transactions o
+       where o.id = nullif(p_request->>'reverses_id', '')::bigint
+         and o.organization_id is not distinct from nullif(p_request->>'organization_id', '')::bigint
+         and o.is_test = coalesce((p_request->>'is_test')::boolean, false)
+         and o.kind <> 'reversal'
+    ) then
+      raise exception 'post_ledger_transaction: a reversal must match its original';
+    end if;
+    if exists (
+      select 1 from (
+        select account_id, sum(amount_cents) as total from public.ledger_entries
+         where transaction_id in (v_tx, nullif(p_request->>'reverses_id', '')::bigint)
+         group by account_id
+      ) t where t.total <> 0
+    ) then
+      raise exception 'post_ledger_transaction: a reversal must negate its original exactly';
+    end if;
+  end if;
+  return jsonb_build_object('id', v_tx, 'replayed', false);
+end;
+$$;
+
+-- Row-level security: browser roles see and write nothing.
+alter table public.ledger_accounts enable row level security;
+alter table public.ledger_transactions enable row level security;
+alter table public.ledger_entries enable row level security;
+create policy ledger_accounts_browser_roles_denied on public.ledger_accounts as restrictive for all to anon, authenticated using (false) with check (false);
+create policy ledger_transactions_browser_roles_denied on public.ledger_transactions as restrictive for all to anon, authenticated using (false) with check (false);
+create policy ledger_entries_browser_roles_denied on public.ledger_entries as restrictive for all to anon, authenticated using (false) with check (false);
+
+-- Privileges: nobody writes the tables directly, service_role included;
+-- the server reads (select) and posts only through the function.
+revoke all on public.ledger_accounts, public.ledger_transactions, public.ledger_entries, public.ledger_balances from public, anon, authenticated;
+revoke insert, update, delete, truncate on public.ledger_accounts, public.ledger_transactions, public.ledger_entries from service_role;
+grant select on public.ledger_accounts, public.ledger_transactions, public.ledger_entries, public.ledger_balances to service_role;
+revoke all on function public.post_ledger_transaction(jsonb) from public, anon, authenticated;
+grant execute on function public.post_ledger_transaction(jsonb) to service_role;
+revoke all on function public.ledger_append_only(), public.ledger_check_balanced(), public.ledger_check_has_entries() from public, anon, authenticated;
+
+comment on table public.ledger_entries is 'Double-entry lines (debit +, credit -), append-only; each transaction sums to zero (checked at commit). PortPass Payments, behind PAYMENTS_LEDGER.';
+comment on function public.post_ledger_transaction(jsonb) is 'The only way to write the ledger: one balanced, idempotent transaction per (source, key). Called by db/ledger.ts only.';
+;
+  if p_request->>'kind' in ('charge', 'refund', 'payout', 'payout_settled') and v_tx_org is null then
+    raise exception 'post_ledger_transaction: a % must name its business', p_request->>'kind';
+  end if;
+  if cardinality(v_payables) > 1 or (cardinality(v_payables) = 1 and v_payables[1] is distinct from v_tx_org) then
+    raise exception 'post_ledger_transaction: payable lines must all be the transaction''s own business';
   end if;
 
   -- One business at a time for every payable this post touches.

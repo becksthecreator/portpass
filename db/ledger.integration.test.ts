@@ -89,6 +89,16 @@ describe("the payments ledger (PR 1)", () => {
     expect(wrongOrg.error).not.toBeNull();
   });
 
+  it("a transaction's payable lines are its own business's, and a charge must name one", async () => {
+    const lines = [{ account: "customer_clearing", amount_cents: -1000 }, { account: `business_payable:${orgId}`, amount_cents: 1000 }];
+    // Labelled for another business (or none) but crediting this one.
+    expect((await rawPost({ source: "app", idempotency_key: key("wrong-org"), kind: "charge", organization_id: orgId + 1000000, description: "TEST", created_by: "TEST", is_test: true, entries: lines })).error).not.toBeNull();
+    expect((await rawPost({ source: "app", idempotency_key: key("no-org"), kind: "charge", organization_id: null, description: "TEST", created_by: "TEST", is_test: true, entries: lines })).error).not.toBeNull();
+    // Two businesses in one transaction.
+    expect((await rawPost({ source: "app", idempotency_key: key("two-orgs"), kind: "adjustment", organization_id: orgId, description: "TEST", created_by: "TEST", is_test: true,
+      entries: [{ account: `business_payable:${orgId}`, amount_cents: -500 }, { account: `business_payable:${orgId + 1000000}`, amount_cents: 500 }] })).error).not.toBeNull();
+  });
+
   it("a browser can't read the ledger or post to it", async () => {
     const browser = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? "", { auth: { persistSession: false, autoRefreshToken: false } });
     const read = await browser.from("ledger_entries").select("id").limit(1);
