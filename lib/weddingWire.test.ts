@@ -9,7 +9,9 @@ const WIDGETS: WeddingWireWidget[] = ["rating", "award", "reviews"];
 // embed codes as 202609241015 stored them (the live row held the same bytes
 // on 6 Oct 2026). One SQL string literal per column, '' for each quote.
 function storedSnippets(): Record<WeddingWireWidget, string> {
-  const sql = readFileSync(join(process.cwd(), "supabase/migrations/202609241015_wedding_site_weddingwire_widgets.sql"), "utf8");
+  // \r\n read as \n: a Windows checkout (core.autocrlf) turns the file's
+  // line endings into CRLF, which the live row and the code never had.
+  const sql = readFileSync(join(process.cwd(), "supabase/migrations/202609241015_wedding_site_weddingwire_widgets.sql"), "utf8").replace(/\r\n/g, "\n");
   const column = (name: string) => {
     const match = sql.match(new RegExp(`${name} = '((?:[^']|'')*)'`));
     if (!match) throw new Error(`${name} is not in 202609241015`);
