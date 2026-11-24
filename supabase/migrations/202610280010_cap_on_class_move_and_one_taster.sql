@@ -19,14 +19,19 @@
 -- set_registration_status_within_cap read the child's class before taking
 -- its lock and never again, so a status change racing a move could count
 -- the class the child was leaving. Now both the move and the status change
--- lock the registration's row first (select ... for update), so its class
--- can't change under them, and then take their class lock(s).
+-- lock the registration's row first (select ... for no key update), so its
+-- class can't change under them, and then take their class lock(s). "No key"
+-- matters: a new registration that joins from a taster points at the
+-- taster's row (joined_from_registration_id), and its insert takes a key-share
+-- lock on that row while holding a class lock. Plain "for update" would block
+-- that and could deadlock; "for no key update" doesn't (Security & QA, #293).
 --
 -- Lock order, so nothing can deadlock: a taster takes the business lock,
 -- then one class lock. A status change takes the row, then its one class
 -- lock. A move takes the row, then its two class locks in ascending key
--- order. Nothing that holds a class lock waits for a registration row
--- another request holds (inserts and counts lock no existing row).
+-- order. Nothing that holds a class lock waits for a registration row another
+-- request holds: counts lock no row, and an insert's key-share lock on the
+-- taster it joins from doesn't conflict with "for no key update".
 --
 -- Refusals are answers, not errors, and nothing is written:
 --   move: another business's row, programme or term, or no row -> {"refused": "NOT_FOUND"}
@@ -68,7 +73,7 @@ begin
   select r.registration_status, r.program_id, r.term_id into v_status, v_program_id, v_term_id
     from public.registrations r
    where r.id = p_registration_id and r.organization_id = p_organization_id
-     for update;
+     for no key update;
   if not found then
     return jsonb_build_object('refused', 'NOT_FOUND');
   end if;
@@ -136,7 +141,7 @@ begin
   select r.registration_status, r.program_id, r.term_id into v_current, v_program_id, v_term_id
     from public.registrations r
    where r.id = p_registration_id and r.organization_id = p_organization_id
-     for update;
+     for no key update;
   if not found then
     return jsonb_build_object('refused', 'NOT_FOUND');
   end if;
