@@ -30,15 +30,25 @@ export async function listThisWeek(email: string | null, today: string = nassauT
   if (rows.length === 0) return [];
 
   const programIds = [...new Set(rows.map((r) => num(r.program_id)))];
-  const termIds = [...new Set(rows.map((r) => num(r.term_id)))];
   const orgIds = [...new Set(rows.map((r) => num(r.organization_id)))];
-  const [programs, sessions, posts, orgs] = await Promise.all([
+  // One small read per class (program and term), so a parent with several
+  // classes never loses one class's next session or latest update to a
+  // shared limit (Security & QA, #292). At most LIMIT classes.
+  const pairs = [...new Map(rows.map((r) => [`${num(r.program_id)}:${num(r.term_id)}`, { programId: num(r.program_id), termId: num(r.term_id) }])).values()];
+  const trialIds = rows.map((r) => r.trial_session_id).filter((id) => id != null).map(num);
+  const SESSION_COLUMNS = "id,program_id,term_id,session_date,start_time,location,status";
+  const [programs, orgs, trials, ...perClass] = await Promise.all([
     db.from("programs").select("id,name,location,location_note,end_time").in("id", programIds),
-    db.from("sessions").select("id,program_id,term_id,session_date,start_time,location,status").in("program_id", programIds).in("term_id", termIds).gte("session_date", today).order("session_date", { ascending: true }).limit(200),
-    db.from("class_posts").select("program_id,term_id,body,author_name,created_at").in("program_id", programIds).in("term_id", termIds).is("deleted_at", null).order("created_at", { ascending: false }).limit(50),
     db.from("organizations").select("id,name,slug,primary_category,website_url").in("id", orgIds),
+    trialIds.length ? db.from("sessions").select(SESSION_COLUMNS).in("id", trialIds).gte("session_date", today) : Promise.resolve({ data: [] as Row[], error: null }),
+    ...pairs.flatMap(({ programId, termId }) => [
+      db.from("sessions").select(SESSION_COLUMNS).eq("program_id", programId).eq("term_id", termId).eq("status", "scheduled").gte("session_date", today).order("session_date", { ascending: true }).order("start_time", { ascending: true }).limit(1),
+      db.from("class_posts").select("program_id,term_id,body,author_name,created_at").eq("program_id", programId).eq("term_id", termId).is("deleted_at", null).order("created_at", { ascending: false }).limit(1),
+    ]),
   ]);
-  for (const read of [programs, sessions, posts, orgs]) throwIfSupabaseError(read.error, "Could not read this week's classes");
+  for (const read of [programs, orgs, trials, ...perClass]) throwIfSupabaseError(read.error, "Could not read this week's classes");
+  const sessions = { data: [...((trials.data ?? []) as Row[]), ...perClass.filter((_, i) => i % 2 === 0).flatMap((read) => (read.data ?? []) as Row[])] };
+  const posts = { data: perClass.filter((_, i) => i % 2 === 1).flatMap((read) => (read.data ?? []) as Row[]) };
 
   const businesses: HomeBusinessRow[] = ((orgs.data ?? []) as Row[]).map((o) => ({ id: num(o.id), name: str(o.name), slug: str(o.slug) || null, category: str(o.primary_category) || null, websiteUrl: str(o.website_url) || null }));
   return buildThisWeek({
