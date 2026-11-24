@@ -6,11 +6,9 @@ import { BusinessCarousel } from "./_components/BusinessCarousel";
 import { OpenNowCards, type OpenNowCard } from "./_components/OpenNowCards";
 import { SectionGrid } from "./_components/SectionGrid";
 import { Reveal } from "./_components/motion/Reveal";
-import { DepartureBoard, type BoardCount } from "./_components/motion/DepartureBoard";
 import { PageTransition } from "./_components/motion/PageTransition";
 import { OpenNowSkeleton } from "./_components/motion/Skeleton";
 import { Suspense } from "react";
-import { getSectionTiles } from "@/lib/navSections";
 import { HomePerksRow } from "./_components/perks/HomePerksRow";
 import { MARKET_TAGLINE } from "@/lib/market/copy";
 import { DEFAULT_BRAND } from "./_components/blocks/brand";
@@ -112,17 +110,6 @@ export default async function Home() {
   // One card per dated offer, and one per business unless the carousel shows them.
   const openNowCount = campCards + (carousel ? 0 : directory.length);
 
-  // The Departure Board (brief 22, M3): counts this page already reads, and
-  // only those. Businesses open is the directory (the demo business can
-  // never be listed); categories open are the top-level sections with a
-  // live business; camps open are the camp offers taking sign-ups, the
-  // same ones that get their own card above.
-  const sectionsOpen = (await getSectionTiles()).filter((tile) => liveSlugs.has(tile.slug)).length;
-  const boardCounts: BoardCount[] = [
-    { value: directory.length, label: ["Business open", "Businesses open"] },
-    { value: sectionsOpen, label: ["Category open", "Categories open"] },
-    { value: campCards, label: ["Camp open", "Camps open"] },
-  ];
 
   return (
     <PageTransition>
@@ -134,7 +121,6 @@ export default async function Home() {
 
       <SiteHeader tide />
       <FrontDoor />
-      <DepartureBoard counts={boardCounts} />
 
       <Suspense fallback={openNowCount > 0 ? <OpenNowSkeleton cards={openNowCount} camps={campCards} /> : null}>
         <OpenNowSection directory={directory} availability={availability} weddingSettings={weddingSettings} carousel={carousel} />
