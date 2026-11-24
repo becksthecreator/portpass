@@ -55,4 +55,11 @@ describe("the PAYMENTS_LEDGER flag", () => {
     expect(paymentsLedgerEnabled({ PAYMENTS_LEDGER: "true" })).toBe(false);
     expect(paymentsLedgerEnabled({})).toBe(false);
   });
+
+  it("stays off on a Vercel preview or production until go-live: previews share the live database (Security & QA, G2)", () => {
+    expect(paymentsLedgerEnabled({ PAYMENTS_LEDGER: "on", VERCEL_ENV: "preview" })).toBe(false);
+    expect(paymentsLedgerEnabled({ PAYMENTS_LEDGER: "on", VERCEL_ENV: "production" })).toBe(false);
+    expect(paymentsLedgerEnabled({ PAYMENTS_LEDGER: "on", VERCEL_ENV: "development" })).toBe(true);
+    expect(paymentsLedgerEnabled({ PAYMENTS_LEDGER: "on", VERCEL_ENV: "" })).toBe(true);
+  });
 });

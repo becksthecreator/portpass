@@ -4,13 +4,19 @@ import { assertPaymentsLedger } from "@/lib/paymentsFlag";
 import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 
 // PortPass Payments, PR 1: posting to and reading the ledger (migration
-// 202610280011). Behind PAYMENTS_LEDGER: with the flag off every call here
-// throws PAYMENTS_LEDGER_OFF before touching the database. No real money
-// moves anywhere in this module; it records.
+// 202610280011). Behind PAYMENTS_LEDGER (local stack only until go-live):
+// with the flag off every call here throws PAYMENTS_LEDGER_OFF before
+// touching the database. No real money moves anywhere in this module; it
+// records. The only write is post_ledger_transaction (security definer):
+// the tables themselves refuse direct writes from every role.
 
 export type LedgerKind = "charge" | "refund" | "payout" | "payout_settled" | "adjustment" | "reversal";
+// app: PortPass's own bookkeeping; sandbox: the stand-in provider;
+// provider:<name>: a connected provider (later PRs).
+export type LedgerSource = "app" | "sandbox" | `provider:${string}`;
 
 export type PostInput = {
+  source: LedgerSource;
   idempotencyKey: string;
   kind: Exclude<LedgerKind, "reversal">;
   organizationId: number | null;
@@ -20,38 +26,52 @@ export type PostInput = {
   isTest?: boolean;
 };
 
-// One balanced, idempotent transaction. A replayed key returns the first
-// transaction's id and writes nothing.
+// One balanced, idempotent transaction. The same (source, key) with the
+// same request returns the first transaction's id and writes nothing; with
+// a different request it throws LEDGER_IDEMPOTENCY_CONFLICT.
 export async function postLedgerTransaction(input: PostInput): Promise<{ id: number; replayed: boolean }> {
   assertPaymentsLedger();
   const problem = ledgerProblem(input.lines);
   if (problem) throw new Error(`LEDGER_UNBALANCED: ${problem}`);
-  return post(input.idempotencyKey, input.kind, input.organizationId, input.description, input.createdBy, input.lines, input.isTest ?? false, null);
+  return post({ ...input, isTest: input.isTest ?? false, reversesId: null });
 }
 
 // Undo a posted transaction exactly, once: a second reversal of the same
 // transaction is refused by the database (reverses_id is unique).
-export async function reverseLedgerTransaction(input: { transactionId: number; idempotencyKey: string; reason: string; createdBy: string }): Promise<{ id: number; replayed: boolean }> {
+export async function reverseLedgerTransaction(input: { transactionId: number; source: LedgerSource; idempotencyKey: string; reason: string; createdBy: string }): Promise<{ id: number; replayed: boolean }> {
   assertPaymentsLedger();
-  const db = getSupabaseAdmin();
-  const { data: tx, error } = await db.from("ledger_transactions").select("id,organization_id,is_test").eq("id", input.transactionId).maybeSingle();
+  const { data: tx, error } = await getSupabaseAdmin().from("ledger_transactions").select("id,organization_id,is_test").eq("id", input.transactionId).maybeSingle();
   throwIfSupabaseError(error, "Could not read the ledger transaction");
   if (!tx) throw new Error("LEDGER_NOT_FOUND");
   const lines = await linesOf(input.transactionId);
-  return post(input.idempotencyKey, "reversal", tx.organization_id === null ? null : Number(tx.organization_id), `Reverses #${input.transactionId}: ${input.reason}`.slice(0, 300), input.createdBy, reversalLines(lines), Boolean(tx.is_test), input.transactionId);
+  return post({
+    source: input.source,
+    idempotencyKey: input.idempotencyKey,
+    kind: "reversal",
+    organizationId: tx.organization_id === null ? null : Number(tx.organization_id),
+    description: `Reverses #${input.transactionId}: ${input.reason}`.slice(0, 300),
+    createdBy: input.createdBy,
+    lines: reversalLines(lines),
+    isTest: Boolean(tx.is_test),
+    reversesId: input.transactionId,
+  });
 }
 
-async function post(key: string, kind: LedgerKind, organizationId: number | null, description: string, createdBy: string, lines: LedgerLine[], isTest: boolean, reversesId: number | null) {
+async function post(input: Omit<PostInput, "kind" | "isTest"> & { kind: LedgerKind; isTest: boolean; reversesId: number | null }) {
   const { data, error } = await getSupabaseAdmin().rpc("post_ledger_transaction", {
-    p_idempotency_key: key,
-    p_kind: kind,
-    p_organization_id: organizationId,
-    p_description: description,
-    p_created_by: createdBy,
-    p_entries: lines,
-    p_is_test: isTest,
-    p_reverses_id: reversesId,
+    p_request: {
+      source: input.source,
+      idempotency_key: input.idempotencyKey,
+      kind: input.kind,
+      organization_id: input.organizationId,
+      description: input.description,
+      created_by: input.createdBy,
+      is_test: input.isTest,
+      reverses_id: input.reversesId,
+      entries: input.lines,
+    },
   });
+  if (error && (error.code === "P0409" || /LEDGER_IDEMPOTENCY_CONFLICT/.test(error.message ?? ""))) throw new Error("LEDGER_IDEMPOTENCY_CONFLICT");
   throwIfSupabaseError(error, "Could not post the ledger transaction");
   const result = data as { id: number; replayed: boolean };
   return { id: Number(result.id), replayed: Boolean(result.replayed) };
