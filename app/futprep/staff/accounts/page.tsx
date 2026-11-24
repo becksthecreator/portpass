@@ -6,6 +6,7 @@ import { requireFutprepStaff, currentFutprepStaffAccount, listStaffAccounts, lis
 import { AccountsManager } from "./AccountsManager";
 import { StaffLogoutButton } from "../StaffLogoutButton";
 import "../coaches.css";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function FutprepStaffAccountsPage() {
         <nav>
           <Link href="/futprep/staff/team">Team profiles</Link>
           {role === "ceo" && <Link href="/futprep/staff/ceo">CEO overview</Link>}
-          <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
+          <a href={FUTPREP_SITE}>Parent view ↗</a>
           <StaffLogoutButton />
         </nav>
       </header>

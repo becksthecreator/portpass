@@ -13,6 +13,7 @@ import { formatDateRange } from "@/lib/futprepTerms";
 import { ageProblem, asksMonths, howToPayLines, mapsUrl, nextSessionDate, type QuickHowToPay } from "@/lib/quickRegistration";
 import { programTimeRange } from "../config";
 import { TapProgress } from "../TapProgress";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 // Booking in three taps (brief 27, C). Pick: one card per open class. Who:
 // the parent, the child, one health-notes box, how they will pay, one
@@ -190,7 +191,7 @@ export function QuickRegistration({ offers, attribution = EMPTY_ATTRIBUTION, ini
           <p className="tap-note" role="note"><strong>Want class updates from the coaches?</strong> They go to the email on the registration. Message Futprep on WhatsApp with the reference and your email, then sign in to PortPass with that email.</p>
         )}
         <div className="tap-actions">
-          <a className="tap-button" href="/sports-fitness/futprep-athletics">Back to Futprep</a>
+          <a className="tap-button" href={FUTPREP_SITE}>Back to Futprep</a>
           <button type="button" className="tap-back" onClick={() => { setResult(null); setForm({ ...EMPTY, parentName: form.parentName, parentPhone: form.parentPhone, parentEmail: form.parentEmail }); setStep(1); window.scrollTo(0, 0); }}>Register another child</button>
         </div>
       </section>
