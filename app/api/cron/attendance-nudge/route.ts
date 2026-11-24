@@ -7,7 +7,8 @@ import { attendanceNudgeEmail } from "@/lib/growthEmail";
 
 export const dynamic = "force-dynamic";
 
-// @public-route: called by Vercel Cron on Saturday morning; lib/cron.ts
+// @public-route: called by Vercel Cron every morning (any day can have a
+// class; a day with none sends nothing); lib/cron.ts
 // refuses anything that does not carry the project's cron secret, and
 // everything while CRON_SECRET is unset (503). It is
 // scheduled at 12:45 and 13:45 UTC because the clocks change in November
