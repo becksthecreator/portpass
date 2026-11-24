@@ -97,6 +97,9 @@ beforeAll(async () => {
       Allergies: { from: "", to: "TEST peanut" },
       "Medical conditions": { from: "TEST old", to: "TEST asthma" },
       Notes: { from: "", to: "TEST gets wheezy when running" },
+      "Emergency contact name": { from: "", to: "TEST Auntie Contact" },
+      "Emergency contact phone": { from: "+12425550198", to: "+12425550199" },
+      "Authorized pickup": { from: "", to: "TEST Grandma Pickup" },
       "Parent phone": { from: "+12425550000", to: "+12425550100" },
     },
   });
@@ -112,8 +115,8 @@ afterAll(async () => {
   }
 });
 
-const HEALTH = "allergies,medical_conditions,medications,special_needs,additional_notes,health_purged_at";
-const KEPT = "child_name,child_dob,parent_name,parent_phone,emergency_contact_name,emergency_contact_phone,authorized_pickup,photo_consent,payment_status,signature_name";
+const HEALTH = "allergies,medical_conditions,medications,special_needs,additional_notes,emergency_contact_name,emergency_contact_phone,authorized_pickup,health_purged_at";
+const KEPT = "child_name,child_dob,parent_name,parent_phone,photo_consent,payment_status,signature_name";
 
 describe("children's health details are deleted 90 days after the programme ends", () => {
   it("clears the health fields and their edit history at 91 days, and nothing else", async () => {
@@ -123,9 +126,11 @@ describe("children's health details are deleted 90 days after the programme ends
     expect(Number(cleared)).toBeGreaterThanOrEqual(1);
 
     const { data: due } = await db().from("registrations").select(HEALTH).eq("id", dueId).single();
-    expect(due).toMatchObject({ allergies: "", medical_conditions: "", medications: "", special_needs: "", additional_notes: "" });
+    // Rule 3 covers emergency details too (Security & QA, 19 Nov): the
+    // emergency contact and who may collect the child go with the rest.
+    expect(due).toMatchObject({ allergies: "", medical_conditions: "", medications: "", special_needs: "", additional_notes: "", emergency_contact_name: "", emergency_contact_phone: "", authorized_pickup: "" });
     expect(due!.health_purged_at).not.toBeNull();
-    // Names, contact, emergency contact, pickup, consent and payment stay.
+    // Names, the parent's own contact, consent and payment stay.
     expect((await db().from("registrations").select(KEPT).eq("id", dueId).single()).data).toEqual(before);
 
     const { data: edits } = await db().from("registration_edits").select("changes").eq("registration_id", dueId);
@@ -133,6 +138,9 @@ describe("children's health details are deleted 90 days after the programme ends
     expect(Object.keys(edits![0].changes)).toEqual(["Parent phone"]);
     expect(JSON.stringify(edits)).not.toContain("peanut");
     expect(JSON.stringify(edits)).not.toContain("wheezy");
+    expect(JSON.stringify(edits)).not.toContain("Grandma");
+    expect(JSON.stringify(edits)).not.toContain("+12425550198");
+    expect(JSON.stringify(edits)).not.toContain("Auntie");
 
     // The staff detail view can say "removed", not "none given".
     expect((await getFutprepRegistrationDetail(dueId))?.health_purged_at).not.toBeNull();
@@ -140,7 +148,7 @@ describe("children's health details are deleted 90 days after the programme ends
 
   it("leaves a registration alone until its programme has been over for more than 90 days", async () => {
     const { data: recent } = await db().from("registrations").select(HEALTH).eq("id", recentId).single();
-    expect(recent).toMatchObject({ allergies: "TEST peanut", medical_conditions: "TEST asthma", medications: "TEST inhaler", special_needs: "TEST note", additional_notes: "TEST gets wheezy when running", health_purged_at: null });
+    expect(recent).toMatchObject({ allergies: "TEST peanut", medical_conditions: "TEST asthma", medications: "TEST inhaler", special_needs: "TEST note", additional_notes: "TEST gets wheezy when running", emergency_contact_name: `${MARK} Emergency`, emergency_contact_phone: "+12425550199", authorized_pickup: `${MARK} Pickup`, health_purged_at: null });
     expect((await getFutprepRegistrationDetail(recentId))?.health_purged_at).toBeNull();
   });
 
@@ -157,6 +165,14 @@ describe("children's health details are deleted 90 days after the programme ends
     const { data: due } = await db().from("registrations").select(HEALTH).eq("id", dueId).single();
     expect(due).toMatchObject({ allergies: null, medical_conditions: null, medications: null, special_needs: null });
     expect(due!.health_purged_at).not.toBeNull();
+  });
+
+  it("clears an emergency contact or pickup written again after the first purge", async () => {
+    await db().from("registrations").update({ emergency_contact_name: "TEST Uncle", emergency_contact_phone: "+12425550197", authorized_pickup: "TEST Uncle" }).eq("id", dueId);
+    const { error } = await db().rpc("purge_expired_health_details", { p_today: today });
+    expect(error).toBeNull();
+    const { data: due } = await db().from("registrations").select(HEALTH).eq("id", dueId).single();
+    expect(due).toMatchObject({ emergency_contact_name: "", emergency_contact_phone: "", authorized_pickup: "" });
   });
 
   it("clears health details written again after the first purge (a late staff correction or import)", async () => {
