@@ -51,8 +51,15 @@ const AGREEMENT_VERSION = "TEST v1.0";
 const PRICE_CENTS = 6500;
 const BANK = { bank: "TEST Bank of Nassau", accountName: "PortPass Bahamas Technologies (TEST)", accountNumber: "000-TEST-0042", branch: "TEST Bay Street" };
 const PHONE = { viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
-const day = (offset) => new Date(Date.now() + offset * 86_400_000).toLocaleDateString("en-CA", { timeZone: "America/Nassau" });
-const TODAY = day(0);
+// Today in Nassau, then whole calendar days from it. Subtracting 24-hour
+// steps from now crossed the 1 Nov clock change: between 23:00 and midnight
+// in Nassau, "31 days ago" landed a day late and step 2 failed (24 Nov).
+const TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/Nassau" });
+const day = (offset) => {
+  const date = new Date(`${TODAY}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + offset);
+  return date.toISOString().slice(0, 10);
+};
 
 const results = [];
 let failed = false;
