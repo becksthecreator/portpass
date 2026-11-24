@@ -12,8 +12,8 @@ export type NavSection = { slug: string; name: string; href: string; live: numbe
 //  - ≥1024px: one "Browse" trigger (pre-ads audit, 24 Nov: it read
 //    "Sports & Fitness" while that was the only live section); hover or
 //    click opens a dropdown of every live section, each with "All
-//    <section> →" and its subsections (live count or "Soon"), then the
-//    kinds of business opening soon, as text, with a link to /apply. Enter
+//    <section> →" and its subsections (live count or "Soon"), then an
+//    "Opening next" row, as text, with a link to /apply. Enter
 //    opens, Esc closes, Tab cycles inside the open panel, aria-expanded
 //    tracks it. The panels are in the DOM (hidden) so crawlers still see
 //    every section and subsection link in the header.
@@ -35,13 +35,14 @@ export function SiteNav({ sections, soon = [], tide = false }: { sections: NavSe
   );
 }
 
-// The kinds of business not open yet: text, not links, and the way in.
+// The last row of Browse (Site Design, 24 Nov): what opens next, as text
+// rather than links to hidden sections, and the way in for a business.
 function OpeningSoon({ soon, className, tabIndex }: { soon: string[]; className: string; tabIndex?: number }) {
   if (!soon.length) return null;
   return (
     <div className={className}>
-      <p><strong>Opening soon</strong> {soon.join(" · ")}</p>
-      <Link href="/apply" tabIndex={tabIndex}>List your business <span aria-hidden="true">→</span></Link>
+      <p><strong>Opening next</strong> Every kind of business, from salons to tours</p>
+      <Link href="/apply" tabIndex={tabIndex}>Book a free First Look <span aria-hidden="true">→</span></Link>
     </div>
   );
 }
