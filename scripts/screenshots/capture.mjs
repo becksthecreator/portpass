@@ -78,6 +78,21 @@ async function quickDone(page) {
   await page.locator(".tap-done").waitFor({ timeout: 30_000 });
 }
 
+// Parent home, PR 1: the same, with the TEST parent's @example.com email,
+// so the done screen offers sign-in for class updates (never emailed: lib/email.ts).
+async function quickDoneWithEmail(page) {
+  await quickWho(page);
+  await field(page, "Email").fill(TEST_PARENT.email);
+  await field(page, "Your name *").fill(TEST_PARENT.name);
+  await field(page, "Phone *").fill(TEST_PARENT.phone);
+  await field(page, "Child’s name *").fill("TEST Child (delete)");
+  await field(page, "Age *").selectOption("4");
+  for (const legend of ["Pay *", "How *", "Photos and video"]) await page.locator("fieldset").filter({ hasText: legend }).locator("label").last().click();
+  await page.locator(".tap-consent input").check();
+  await page.locator(".tap-submit").click();
+  await page.locator(".tap-done").waitFor({ timeout: 30_000 });
+}
+
 // [file name, account, path, element to also capture on its own, link to press first]
 // account "admin" is the TEST platform owner; "anon" is a visitor; "demo"
 // is a visitor who pressed "Open the demo"; anything else is a staff PIN
@@ -350,6 +365,7 @@ try {
     ["brief27-after-1-pick-375", "anon", "/futprep/register", ".tap-cards"],
     ["brief27-after-2-who-375", "anon", "/futprep/register", ".tap-form", null, quickWho],
     ["brief27-after-3-done-375", "anon", "/futprep/register", ".tap-done", null, quickDone],
+    ["parent-home-1-done-email-375", "anon", "/futprep/register", ".tap-account", null, quickDoneWithEmail],
     ["brief27-after-book-private-375", "anon", "/futprep/book?coach=test-delete-coach-bex", ".tap-step"],
     // Brief 27 (D): Flamingo Night on the Futprep pages the brief names.
     // The throwaway stack has no published Futprep listing, so the home and
