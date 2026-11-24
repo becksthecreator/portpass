@@ -2,7 +2,7 @@ import { derivePaymentStatus } from "@/lib/payments";
 import { ageOnDate } from "@/lib/scheduling";
 import { effectiveCap } from "@/lib/futprepClasses";
 import { missingRegistrationFields } from "@/lib/futprepRegistrations";
-import { ensureFutprepPilotData, setRegistrationStatusWithinCap, type PaymentFrequency, type PaymentMethod } from "./registrations";
+import { ensureFutprepPilotData, moveRegistrationWithinCap, setRegistrationStatusWithinCap, type PaymentFrequency, type PaymentMethod } from "./registrations";
 import { futprepOrganizationId } from "./programs";
 import { getSupabaseAdmin, pageAll, throwIfSupabaseError } from "./supabase";
 
@@ -1301,8 +1301,20 @@ export async function updateFutprepRegistrationDetail(
   }
   if (programNameChange) changes.Programme = programNameChange;
 
-  const { error: updateError } = await db.from("registrations").update(updates).eq("id", registrationId).eq("organization_id", organizationId);
-  throwIfSupabaseError(updateError, "Could not update registration");
+  // A move to another class goes first, under that class's lock, so a full
+  // class refuses it (PROGRAM_FULL) before anything else is written
+  // (migration 202610280010). The rest of the edit follows.
+  if (programChanged) {
+    const moved = await moveRegistrationWithinCap(db, { registrationId, organizationId, programId: Number(updates.program_id), termId: Number(updates.term_id) });
+    if (!moved) throw new Error("PROGRAM_NOT_AVAILABLE");
+    delete updates.program_id;
+    delete updates.term_id;
+  }
+
+  if (Object.keys(updates).length) {
+    const { error: updateError } = await db.from("registrations").update(updates).eq("id", registrationId).eq("organization_id", organizationId);
+    throwIfSupabaseError(updateError, "Could not update registration");
+  }
 
   if (Object.keys(changes).length) {
     const { error: auditError } = await db.from("registration_edits").insert({

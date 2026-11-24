@@ -24,6 +24,11 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     await updateFutprepRegistrationDetail(registrationId, body, staffName);
     return NextResponse.json({ ok: true });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not save changes." }, { status: 400 });
+    const message = error instanceof Error ? error.message : "";
+    // A move into a full class is refused under that class's lock
+    // (migration 202610280010): nothing was saved.
+    if (message === "PROGRAM_FULL") return NextResponse.json({ error: "That class is full, so the child wasn't moved and nothing was saved. Choose another class, or free a place first." }, { status: 409 });
+    if (message === "INVALID_PROGRAM" || message === "PROGRAM_NOT_AVAILABLE") return NextResponse.json({ error: "Choose a class with an open term." }, { status: 400 });
+    return NextResponse.json({ error: message || "Could not save changes." }, { status: 400 });
   }
 }
