@@ -1,6 +1,7 @@
 import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { LookupForm } from "../LookupForm";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 export const metadata = {
   title: "Check registration status | Futprep",
@@ -21,8 +22,8 @@ export default async function FutprepMyRegistrationCodePage({
       <header className="site-header form-header registration-header">
         <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
-          <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>
-          <Link className="header-link" href="/sports-fitness/futprep-athletics/lil-kickers">Program details</Link>
+          <a className="header-link" href={FUTPREP_SITE}>Futprep home</a>
+          <a className="header-link" href={FUTPREP_SITE}>Program details</a>
         </div>
       </header>
       <section className="my-status-intro">

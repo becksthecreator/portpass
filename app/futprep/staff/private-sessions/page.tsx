@@ -6,6 +6,7 @@ import { seesEveryRequest } from "@/lib/privateSessionAccess";
 import { PrivateSessionManager } from "./PrivateSessionManager";
 import { currentInboxViewer, inboxRequests } from "./viewer";
 import { StaffLogoutButton } from "../StaffLogoutButton";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 export const dynamic="force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function PrivateSessionsPage({ searchParams }: { searchPara
   ]);
   const unpublished=services.filter((s)=>!s.isPublished);
   return <main className="staff-workspace theme-night">
-    <header className="staff-workspace-header"><div><Link className="brand" href="/"><BrandLogo /></Link><span className="staff-workspace-label">Futprep · Private sessions</span></div><nav>{viewer.coachId!==null&&<Link href="/futprep/staff/my-days">My days</Link>}{canManageFutprepTeam(role)&&<Link href="/futprep/staff/team">Team</Link>}<Link href="/futprep/coaches">Parent view ↗</Link><StaffLogoutButton /></nav></header>
+    <header className="staff-workspace-header"><div><Link className="brand" href="/"><BrandLogo /></Link><span className="staff-workspace-label">Futprep · Private sessions</span></div><nav>{viewer.coachId!==null&&<Link href="/futprep/staff/my-days">My days</Link>}{canManageFutprepTeam(role)&&<Link href="/futprep/staff/team">Team</Link>}<a href={FUTPREP_SITE}>Parent view ↗</a><StaffLogoutButton /></nav></header>
     <section className="staff-workspace-content">
       <div className="staff-page-intro"><div><span className="section-kicker">{seesAll?"Lessons · parties · payments":"Your requests"}</span><h1>Private sessions.</h1></div><p>{seesAll?"Post open times, accept or decline requests (accepting books the time and emails the parent), refer to another coach, and record payments against the reference.":"Requests that name you, or that the desk has given you. Accept or decline, refer to another coach, mark a session completed, and post your open times. Set your working days and days away on My days."}</p></div>
       {stats&&<div className="staff-summary staff-summary-4">

@@ -8,6 +8,7 @@ import {
   listFutprepWorkLogs,
 } from "@/db/staff";
 import { StaffLogoutButton } from "../StaffLogoutButton";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ export default async function FutprepCeoPage() {
           {/* Brief 27 (B): money and attendance live on the owner's
               dashboard, behind the PortPass account sign-in. */}
           <Link href="/business/futprep">Money &amp; attendance ↗</Link>
-          <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
+          <a href={FUTPREP_SITE}>Parent view ↗</a>
           <StaffLogoutButton />
         </nav>
       </header>

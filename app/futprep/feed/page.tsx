@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { listParentFeed } from "@/db/classFeed";
 import { getSession } from "@/lib/auth/session";
 import "./feed.css";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export default async function FutprepFeedPage() {
       <header className="site-header form-header registration-header">
         <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
-          <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>
+          <a className="header-link" href={FUTPREP_SITE}>Futprep home</a>
           <Link className="header-link" href="/account">Your account</Link>
         </div>
       </header>

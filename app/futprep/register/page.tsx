@@ -18,6 +18,7 @@ import { ATTRIBUTION_COOKIE, attributionFromRequest, EMPTY_ATTRIBUTION, mergeAtt
 import { shortDate, upcomingTaster } from "@/lib/futprepClasses";
 import { nassauToday, offerHeadline } from "@/lib/futprepTerms";
 import { normalizeProgramSlug } from "../config";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 // force-dynamic: spots left, the open terms and the attribution cookie are
 // all per-request.
@@ -139,7 +140,7 @@ export default async function FutprepRegisterPage({ searchParams }: { searchPara
   const pay = classic ? null : await loadHowToPay();
   // Brief 12: the free taster Saturday, when one is coming up.
   const taster = upcomingTaster(offers, nassauToday());
-  const programDetailsHref = requested?.programType === "camp" ? "/futprep/camps" : requested ? `/sports-fitness/futprep-athletics/${requested.slug}` : "/sports-fitness/futprep-athletics";
+  const programDetailsHref = requested?.programType === "camp" ? "/futprep/camps" : FUTPREP_SITE;
 
   return (
     <main className="registration-page futprep-theme" style={(await futprepTokenStyle()) as CSSProperties}>
@@ -147,9 +148,9 @@ export default async function FutprepRegisterPage({ searchParams }: { searchPara
         <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
           <div className="futprep-program-brand compact"><img src="/futprep-logo.png" alt="Futprep Athletics" /><span><b>{requested ? requested.name.toUpperCase() : "FUTPREP ATHLETICS"}</b><small>by Futprep Athletics</small></span></div>
-          <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>
+          <a className="header-link" href={FUTPREP_SITE}>Futprep home</a>
           <Link className="header-link" href="/futprep/camps">Holiday camps</Link>
-          <Link className="header-link" href={programDetailsHref}>{requested?.programType === "camp" ? "Camp details" : "Program details"}</Link>
+          <a className="header-link" href={programDetailsHref}>{requested?.programType === "camp" ? "Camp details" : "Program details"}</a>
         </div>
       </header>
       {!classic && pay && (
