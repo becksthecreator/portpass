@@ -52,7 +52,7 @@ describe("Use my details (register V4)", () => {
     const out = await futprepFamilyFor(EMAIL.toUpperCase());
     expect(out.parent).toMatchObject({ name: `${MARK} parent`, phone: "+12425550140", relationship: "Mother" });
     expect(out.children.map((c) => c.name).sort()).toEqual([`${MARK} Ava`, `${MARK} Ben`]);
-    expect(out.children.every((c) => c.lastClass === slug)).toBe(true);
+    expect(out.children.every((c) => Object.keys(c).sort().join() === "dob,firstName,gender,name")).toBe(true);
   });
 
   it("never returns health, emergency, pickup or notes (rule 3)", async () => {

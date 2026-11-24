@@ -1,8 +1,8 @@
 // "Use my details" on the FutPrep register (V4, PR 2). A parent who has
 // proved their email (signed in to PortPass) gets back what Privacy v3
 // says the form may fill in: their name, phone and relationship, and each
-// child's name, date of birth and gender, from earlier registrations, plus
-// the class the child was last in so the page can suggest the next one.
+// child's name, date of birth and gender, from earlier registrations, and
+// nothing more (the class is picked from the birthday, not looked up).
 // Never a health, allergy, medication, emergency-contact or pickup field
 // (rule 3): those columns are not read at all (db/futprepFamily.ts).
 
@@ -13,13 +13,12 @@ export type FamilyRegistrationRow = {
   childName: string;
   childDob: string | null;
   gender: string;
-  programSlug: string | null;
   submittedAt: string;
 };
 
 export type FamilyDetails = {
   parent: { name: string; phone: string; relationship: string } | null;
-  children: Array<{ name: string; firstName: string; dob: string | null; gender: string | null; lastClass: string | null }>;
+  children: Array<{ name: string; firstName: string; dob: string | null; gender: string | null }>;
 };
 
 const MAX_CHILDREN = 6;
@@ -42,7 +41,7 @@ export function familyDetails(rows: readonly FamilyRegistrationRow[]): FamilyDet
     // One child per name and date of birth; the newest registration wins.
     const key = `${name.toLowerCase()}|${row.childDob ?? ""}`;
     if (children.has(key)) continue;
-    children.set(key, { name, firstName: name.split(" ")[0], dob: row.childDob, gender: realGender(row.gender), lastClass: row.programSlug });
+    children.set(key, { name, firstName: name.split(" ")[0], dob: row.childDob, gender: realGender(row.gender) });
     if (children.size >= MAX_CHILDREN) break;
   }
   return {

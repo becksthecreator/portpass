@@ -8,7 +8,7 @@ import { getSupabaseAdmin, throwIfSupabaseError } from "./supabase";
 // account page matches them (db/accountBookings.ts exactEmail). Only the
 // columns Privacy v3 names are read; no health, allergy, medication,
 // emergency-contact, pickup, notes or payment column is selected (rule 3).
-const COLUMNS = "parent_name,parent_phone,relationship,child_name,child_dob,gender,program_id,submitted_at";
+const COLUMNS = "parent_name,parent_phone,relationship,child_name,child_dob,gender,submitted_at";
 
 export async function futprepFamilyFor(email: string | null): Promise<FamilyDetails> {
   if (!email || !email.includes("@") || /[*\s]/.test(email)) return { parent: null, children: [] };
@@ -26,11 +26,6 @@ export async function futprepFamilyFor(email: string | null): Promise<FamilyDeta
   const rows = (data ?? []) as Array<Record<string, unknown>>;
   if (rows.length === 0) return { parent: null, children: [] };
 
-  const programIds = [...new Set(rows.map((r) => Number(r.program_id)).filter(Number.isFinite))];
-  const { data: programs, error: programError } = await db.from("programs").select("id,slug").in("id", programIds).eq("organization_id", organizationId);
-  throwIfSupabaseError(programError, "Could not read the family's classes");
-  const slugOf = new Map(((programs ?? []) as Array<{ id: number; slug: string }>).map((p) => [Number(p.id), p.slug]));
-
   const str = (v: unknown) => (typeof v === "string" ? v : "");
   return familyDetails(
     rows.map((r) => ({
@@ -40,7 +35,6 @@ export async function futprepFamilyFor(email: string | null): Promise<FamilyDeta
       childName: str(r.child_name),
       childDob: str(r.child_dob) || null,
       gender: str(r.gender),
-      programSlug: slugOf.get(Number(r.program_id)) ?? null,
       submittedAt: str(r.submitted_at),
     })),
   );
