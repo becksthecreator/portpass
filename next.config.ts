@@ -43,14 +43,14 @@ const nextConfig: NextConfig = {
       ...FUTPREP_PUBLIC_PATHS.map((source) => ({ source, destination: FUTPREP_SITE, has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$" }], permanent: false })),
       // The business card's QR code (23 Nov 2026): it prints
       // portpassbahamas.com/card, which stays the same forever, and this
-      // decides where a scan lands. Today: the free First Look request,
-      // tagged so card scans are counted (apply_submitted, utm_source=card).
+      // decides where a scan lands. Today (Bex, 23 Nov): the home page,
+      // tagged so card scans are counted (Vercel Analytics keeps utm_source).
       // Temporary (307) so it can point somewhere else later without a
       // reprint, and so no browser or cache keeps the old target. PortPass's
       // own hosts and previews only; a business's custom domain is left alone.
       {
         source: "/card",
-        destination: "/apply?utm_source=card&utm_medium=qr",
+        destination: "/?utm_source=card&utm_medium=qr",
         has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$|\\.vercel\\.app$" }],
         permanent: false,
       },

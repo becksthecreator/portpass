@@ -4,11 +4,11 @@ import nextConfig from "../next.config";
 // The business card's QR code prints portpassbahamas.com/card (23 Nov 2026).
 // The printed address never changes; this redirect decides where it lands.
 describe("/card, the business card's QR code", () => {
-  it("is a temporary redirect to the free First Look request, tagged as a card scan", async () => {
+  it("is a temporary redirect to the home page, tagged as a card scan (Bex, 23 Nov)", async () => {
     const rules = (await nextConfig.redirects?.()) ?? [];
     const card = rules.find((rule) => rule.source === "/card");
     expect(card).toBeDefined();
-    expect(card?.destination).toBe("/apply?utm_source=card&utm_medium=qr");
+    expect(card?.destination).toBe("/?utm_source=card&utm_medium=qr");
     // Temporary, so the target can change later without a reprint and no
     // browser or cache keeps the old one.
     expect(card && "permanent" in card ? card.permanent : undefined).toBe(false);
