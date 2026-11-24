@@ -76,7 +76,7 @@ async function v4Done(page) {
   const fourYearsAgo = new Date(Date.now() - (4 * 365 + 120) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   await field(page, "Your name *").fill(TEST_PARENT.name);
   await field(page, "WhatsApp *").fill(TEST_PARENT.phone);
-  await page.locator(".v4-kid label").filter({ hasText: /^Name \*/ }).locator("input").fill("TEST Child (delete)");
+  await page.locator(".v4-kid label").filter({ hasText: /^Name \*/ }).locator("input").fill(`TEST Child (delete) ${Math.random().toString(36).slice(2, 6)}`);
   await page.locator(".v4-kid input[type=date]").fill(fourYearsAgo);
   await page.locator(".v4-seg").last().locator("label").first().click();
   await page.locator(".v4-pills label").filter({ hasText: "No photos" }).click();
