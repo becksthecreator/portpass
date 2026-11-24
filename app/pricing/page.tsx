@@ -64,8 +64,7 @@ export default function PricingPage() {
       <section className="pricing-cards pricing-tickets" aria-label="Diagnose, fix, run">
         {STEPS.map((s, i) => (
           <article key={s.step}>
-            <h2 className="sr-only">{`Step ${i + 1}, ${s.step}: ${s.name}, ${s.price}`}</h2>
-            <Ticket top={`Step ${i + 1}`} topRight={s.step} title={s.name} line={s.text} stubLabel="Step" stubValue={String(i + 1).padStart(2, "0")} stubFoot={s.price} stamp={s.price} stampTone={i === 0 ? "signal" : "ink"} stripe={i === 0 ? "signal" : "ink"}>
+            <Ticket titleAs="h2" top={`Step ${i + 1}`} topRight={s.step} title={s.name} line={s.text} stubLabel="Step" stubValue={String(i + 1).padStart(2, "0")} stubFoot={s.price} stamp={s.price} stampTone={i === 0 ? "signal" : "ink"} stripe={i === 0 ? "signal" : "ink"}>
               {i === 0 && <Link className="home-button pricing-ticket-cta" href={APPLY_HREF} data-still="">Book a free First Look</Link>}
             </Ticket>
           </article>

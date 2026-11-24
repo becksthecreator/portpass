@@ -24,6 +24,7 @@ export function Ticket({
   stamp,
   stampTone,
   stripe = "signal",
+  titleAs: TitleTag = "p",
   children,
 }: {
   top: string;
@@ -36,13 +37,14 @@ export function Ticket({
   stamp?: string;
   stampTone?: StampTone;
   stripe?: "signal" | "ink";
+  titleAs?: "p" | "h2" | "h3";
   children?: ReactNode;
 }) {
   return (
     <div className={`tk${stamp ? " tk-has-stamp" : ""}`}>
       <div className={`tk-main tk-stripe-${stripe}`}>
         <p className="tk-top"><span>{top}</span>{topRight && <span>{topRight}</span>}</p>
-        <p className="tk-title">{title}</p>
+        <TitleTag className="tk-title">{title}</TitleTag>
         {line && <p className="tk-line">{line}</p>}
         {children}
       </div>
