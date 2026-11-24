@@ -2,19 +2,9 @@ import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { ppDisplay, ppSans } from "@/app/fonts";
 import { SECTIONS } from "@/lib/sections";
+import { NOT_FOUND_METADATA } from "@/lib/notFoundMetadata";
 
-const NOT_FOUND_TITLE = "Page not found | PortPass Bahamas";
-const NOT_FOUND_DESCRIPTION = "That page doesn't exist on PortPass. Search for what you need, or tell us about your business.";
-
-// Its own title, description and share text, so a 404 never shows the
-// home page's (pre-ads audit, 24 Nov), and never indexed.
-export const metadata = {
-  title: NOT_FOUND_TITLE,
-  description: NOT_FOUND_DESCRIPTION,
-  robots: { index: false },
-  openGraph: { title: NOT_FOUND_TITLE, description: NOT_FOUND_DESCRIPTION },
-  twitter: { title: NOT_FOUND_TITLE, description: NOT_FOUND_DESCRIPTION },
-};
+export const metadata = NOT_FOUND_METADATA;
 
 // Static on purpose: reading sections from the database made this page
 // dynamic, and a dynamic not-found streams in after an empty shell, so

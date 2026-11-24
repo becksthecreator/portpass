@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NOT_FOUND_METADATA } from "@/lib/notFoundMetadata";
 import { notFound } from "next/navigation";
 import { CategoryPage, liveBusinessNames } from "@/app/_components/CategoryPage";
 import { OrganizationTemplate } from "@/app/_components/blocks/OrganizationTemplate";
@@ -53,7 +54,7 @@ async function resolve(category: string, slug: string) {
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { category, slug } = await params;
   const resolved = await resolve(category, slug);
-  if (!resolved) return {};
+  if (!resolved) return NOT_FOUND_METADATA;
   if (resolved.subcategory) {
     const names = await liveBusinessNames(category, slug);
     const title = sectionTitle(resolved.section.name, resolved.subcategory.name);
