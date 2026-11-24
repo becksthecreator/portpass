@@ -33,8 +33,6 @@ Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behin
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
 | `fix/business-export-order` (the business export failed for every business; two link tokens left out) | #287 | Four exported tables have no `id` column, so ordering by `id` failed the export; they now order by their own key. `drops.followers_token`, `reservations.receipt_token`, a parent's `booking_requests.notes` (rule 3) and `audit_log.ip` are left out. STATE's In flight table cleared of merged PRs | Bex's OK (given) |
-| `feat/parent-home-signin` (parent home, PR 1 of 2: the walkthrough of 23 Nov) | #290 | Futprep's quick registration done screen offers "Sign in for class updates" (with an email), or says how to add one (without); the email label says it's for class updates; the class list's opening line names the real days (`lib/classDays.ts`) instead of "Saturdays" for every class; the account page's Points text leaves out the hidden Market | Bex's OK (given). Bex to decide whether Futprep's email becomes required |
-| `fix/card-qr-redirect` | (this PR) | The business card QR prints portpassbahamas.com/card; a temporary redirect sends it to the home page, /?utm_source=card&utm_medium=qr (PortPass hosts and previews only). Must be live before the cards print | Security & QA, then Bex |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green. Parked by the growth plan | The fifth paid invoice |
 | `chore/csp-enforce` (brief 26) | #183 | #185 is in; rebase on `main`. Parked by the growth plan | The fifth paid invoice |
 | `claude/epic-pascal-exee2o` (lint in CI) | #176 | Rebase on `main`, re-run CI (green on 6 Oct). Parked by the growth plan | The fifth paid invoice |
