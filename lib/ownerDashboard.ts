@@ -7,7 +7,8 @@ import { balanceCents, isOverdue, methodLabel, nassauDate, nassauMonth, requestT
 // lib/ownerDashboard.test.ts.
 //
 // Money is payment requests (brief 17): collected is what was marked paid,
-// owed is what sent requests still have to bring in. PortPass never holds
+// plus what the desk recorded against registrations and private sessions
+// this month; owed is what sent requests still have to bring in. PortPass never holds
 // any of it. Attendance is names and marks only: no health, allergy,
 // medication, emergency or pickup field has a place in these types, so none
 // can reach the screen or the CSV.
@@ -211,9 +212,21 @@ export function nextSessionDay(sessions: Pick<DashboardSession, "kind" | "date" 
   return { date, booked: day.reduce((sum, s) => sum + s.booked, 0), sessions: day.length };
 }
 
+// A payment recorded at the desk against a registration or a private
+// session, not through a payment request: Futprep's term fees (23 Nov audit:
+// "Collected" left them out). Request payments are counted from the request,
+// so these never include one (db/ownerDashboard.ts loadDeskPayments).
+export type DeskPayment = { amountCents: number; status: string; receivedAt: string };
+
+export function deskCollectedThisMonthCents(payments: DeskPayment[], today: string): number {
+  const month = nassauMonth(`${today}T12:00:00Z`);
+  return payments.filter((p) => p.status === "received" && p.receivedAt && nassauMonth(p.receivedAt) === month).reduce((sum, p) => sum + p.amountCents, 0);
+}
+
 export function dashboardTiles(input: {
   requests: ListedRequest[];
   payments: DashboardPayment[];
+  deskPayments?: DeskPayment[];
   sessions: Pick<DashboardSession, "kind" | "date" | "booked">[];
   privateRequests: { date: string; status: string }[];
   today: string;
@@ -224,7 +237,7 @@ export function dashboardTiles(input: {
   const week = weekRange(input.today);
   const thisWeek = input.privateRequests.filter((r) => r.date >= week.from && r.date <= week.to);
   return {
-    collectedThisMonthCents: totals.collectedThisMonthCents,
+    collectedThisMonthCents: totals.collectedThisMonthCents + deskCollectedThisMonthCents(input.deskPayments ?? [], input.today),
     owedCents: totals.outstandingCents,
     owedCount: totals.outstandingCount,
     nextSessionDay: nextSessionDay(input.sessions, input.today),
