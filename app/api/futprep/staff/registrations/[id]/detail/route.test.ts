@@ -57,6 +57,14 @@ describe("saving a registration (brief 31, A1)", () => {
     expect(saved.bodies[0]).toMatchObject({ allergies: "TEST overwrite", additionalNotes: "" });
   });
 
+  it("answers a move into a full class in plain words, as a conflict", async () => {
+    const { updateFutprepRegistrationDetail } = await import("@/db/staff");
+    vi.mocked(updateFutprepRegistrationDetail).mockRejectedValueOnce(new Error("PROGRAM_FULL"));
+    const response = await put();
+    expect(response.status).toBe(409);
+    expect((await response.json()).error).toMatch(/class is full/);
+  });
+
   it("still refuses a coach outright", async () => {
     auth.role = "coach";
     expect((await put()).status).toBe(403);

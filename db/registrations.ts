@@ -687,6 +687,32 @@ export async function setRegistrationStatusWithinCap(
   return { previousStatus: result.previous_status as RegistrationStatus };
 }
 
+// Moving a child to another class from the staff desk goes through the new
+// class's lock (move_registration_within_cap, migration 202610280010): a
+// child who holds a place can't be moved into a full class, and two moves
+// or a move and a registration at the same moment can't both take its last
+// place. A waitlisted or cancelled child moves freely. Returns null when
+// the row, programme or term is not this business's; throws PROGRAM_FULL.
+export async function moveRegistrationWithinCap(
+  db: ReturnType<typeof getSupabaseAdmin>,
+  input: { registrationId: number; organizationId: number; programId: number; termId: number },
+): Promise<{ previousProgramId: number; previousTermId: number } | null> {
+  const cap = await effectiveCapForTerm(input.programId, input.termId);
+  const { data, error } = await db.rpc("move_registration_within_cap", {
+    p_registration_id: input.registrationId,
+    p_organization_id: input.organizationId,
+    p_program_id: input.programId,
+    p_term_id: input.termId,
+    p_cap: cap,
+    p_active_statuses: ACTIVE_REGISTRATION_STATUSES,
+  });
+  throwIfSupabaseError(error, "Could not move the registration");
+  const result = data as { refused?: string; previous_program_id?: number; previous_term_id?: number };
+  if (result.refused === "NOT_FOUND") return null;
+  if (result.refused) throw new Error(result.refused);
+  return { previousProgramId: Number(result.previous_program_id), previousTermId: Number(result.previous_term_id) };
+}
+
 export async function createFutprepRegistration(
   input: FutprepRegistrationInput,
   scope?: RegistrationScope,

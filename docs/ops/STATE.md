@@ -32,6 +32,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
+| `fix/futprep-cap-gaps` (the two capacity gaps left open by the reviews of #200-#222) | #293 | Migration `202610280010_cap_on_class_move_and_one_taster.sql`: a desk move to another class goes through `move_registration_within_cap` under both classes' locks and is refused when the new class is full (nothing else in the edit is saved); a status change re-checks the child's class under its lock; a taster takes a per-business lock first, so one child can't get tasters in two classes at once. Apply the migration with Bex's OK before merging | Bex's OK to apply 0010 and merge |
 | `fix/business-export-order` (the business export failed for every business; two link tokens left out) | #287 | Four exported tables have no `id` column, so ordering by `id` failed the export; they now order by their own key. `drops.followers_token`, `reservations.receipt_token`, a parent's `booking_requests.notes` (rule 3) and `audit_log.ip` are left out. STATE's In flight table cleared of merged PRs | Bex's OK (given) |
 | `chore/graphify` (brief 30) | #190 | Nothing; CI green. Parked by the growth plan | The fifth paid invoice |
 | `chore/csp-enforce` (brief 26) | #183 | #185 is in; rebase on `main`. Parked by the growth plan | The fifth paid invoice |
@@ -91,8 +92,6 @@ Ponytail audit, 11 Oct (15 findings, in the brief 33 PR). The top five are fixed
 
 Left open by the reviews of #200, #203, #216, #217 and #222 (not fixed):
 - Promoting a child from the waitlist (`db/staff.ts` `updateFutprepRegistration`) and the business "Confirm the place" button (audit 10) count and then write without the class lock; moving a cancelled row back to pending has no cap check. Being fixed in #220.
-- Moving a child to another class from the desk record (`updateFutprepRegistrationDetail`) doesn't check that class's cap.
-- A child can get free tasters in two classes at the same moment (`TRIAL_ALREADY_USED` covers the business, the lock one class).
 - `db/coaches.ts` keeps `if (!organizationId)` guards that are dead now `futprepOrganizationId()` throws instead (#222). Its rows by id alone are Futprep-only since #217.
 - Still unpaged: `listProgramPnl`'s payments (`db/coachPay.ts`) and the private sessions inbox's payments (`listPrivateSessionRequests`, every business's). The rest of the desk's reads are paged since #223.
 
