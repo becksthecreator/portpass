@@ -116,6 +116,10 @@ const SHOTS = [
   ["brief31-inbox-coach-375", "test-coach", "/futprep/staff/private-sessions", ".private-request-card"],
   ["brief31-inbox-desk-375", "test-desk", "/futprep/staff/private-sessions", ".private-request-card"],
   ["brief31-my-days-375", "test-coach", "/futprep/staff/my-days", ".my-days-card"],
+  // Class feed (Nov 2026): a coach's posting screen, and the parents' page
+  // (the TEST platform owner is the parent of one TEST child).
+  ["class-feed-staff-375", "test-coach", "/futprep/staff/feed", ".class-feed-list"],
+  ["class-feed-parent-375", "admin", "/futprep/feed", ".parent-feed-list"],
   ["brief31-ops-private-rates-375", "test-desk", "/futprep/staff/ops", "#ops-pay"],
   ["brief31-pay-private-375", "test-coach", "/futprep/staff/pay", "#pay-private"],
   ["brief31-book-place-375", "anon", "/futprep/book?coach=test-delete-coach-bex", ".private-session-two"],
@@ -187,6 +191,7 @@ const SHOTS = [
   ["brief18-header-signed-out-375", "anon", "/", null],
   ["brief18-signup-375", "anon", "/signup?as=customer", ".auth-doors"],
   ["brief18-account-375", "admin", "/account", null],
+  ["parent-home-2-coming-up-375", "admin", "/account", ".account-week"],
   // Brief 18, part G: a lime brand colour with no photo and no WhatsApp
   // number (as Carv is): the brand header, navy on lime, the Enquire form.
   ["brief18-lime-preview-375", "admin", "/business/test-delete-lime-gym/preview", ".tpl-enquire"],

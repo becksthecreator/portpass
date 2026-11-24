@@ -100,6 +100,7 @@ export default async function FutprepCoachPage({
         <div><Link className="brand" href="/"><BrandLogo /></Link><span className="staff-workspace-label">Futprep · Coaching workspace</span></div>
         <nav>
           {role==="ceo" && <Link href="/futprep/staff/ceo">CEO overview</Link>}
+          {!readOnly && <Link href="/futprep/staff/feed">Class updates</Link>}
           {!readOnly && <Link href="/futprep/staff/private-sessions">Private sessions</Link>}
           {!readOnly && <Link href="/futprep/staff/my-days">My days</Link>}
           {!readOnly && <Link href="/futprep/staff/programs">Programs</Link>}
