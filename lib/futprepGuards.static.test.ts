@@ -15,6 +15,8 @@ const OPEN = new Map<string, string>([
   ["app/api/futprep/staff/session/route.ts", "the PIN sign-in itself (rate-limited and locked after five wrong PINs)"],
   ["app/api/futprep/staff/bootstrap-admin/route.ts", "the first-admin door, shut once any login exists (brief 21 and #204)"],
   ["app/api/futprep/availability/route.ts", "the public class list: programmes, ages, days, times, places left and fees; no child data"],
+  ["app/api/futprep/places/route.ts", "places left per open class, counts only (register V4); no child data"],
+  ["app/api/futprep/calendar/[program]/[term]/route.ts", "a listed class's sessions as a calendar file (register V4); no child or parent data"],
   ["app/api/futprep/private-sessions/route.ts", "the parents' request form (rate-limited, checked by zod)"],
   ["app/api/futprep/registrations/route.ts", "the public registration form (rate-limited)"],
   ["app/api/futprep/registrations/lookup/route.ts", "the families' lookup by reference and date of birth (rate-limited)"],

@@ -14,7 +14,7 @@ import { getSession } from "@/lib/auth/session";
 import { sendFutprepRegistrationReceivedEmail } from "@/lib/email";
 import { nassauToday } from "@/lib/futprepTerms";
 import { normalizePhoneE164 } from "@/lib/phone";
-import { ageWords, dobFromAgeMonths } from "@/lib/quickRegistration";
+import { ageWords, dobFromAgeMonths, quickChildDob } from "@/lib/quickRegistration";
 
 // The consent wording of the three-tap form (brief 27, C), recorded on the
 // registration so staff can tell which words a parent agreed to.
@@ -96,13 +96,17 @@ export async function POST(request: Request) {
   // month, "turned it this month") and the notes say so; the health notes
   // go in medical_conditions.
   if (mode === "quick") {
-    const ageMonths = Number(body.childAgeMonths);
-    if (!Number.isInteger(ageMonths) || ageMonths < 0 || ageMonths > 18 * 12) {
-      return NextResponse.json({ error: "Enter the child's age." }, { status: 400 });
-    }
     const today = nassauToday();
+    // The new register (V4) sends the exact birthday; older pages send the
+    // age in months, from which an approximate date of birth is made. The
+    // class's age rule is checked against it either way (AGE_MISMATCH).
+    const exactDob = quickChildDob(clean(body, "childDob"), today);
+    const ageMonths = Number(body.childAgeMonths);
+    if (!exactDob && (!Number.isInteger(ageMonths) || ageMonths < 0 || ageMonths > 18 * 12)) {
+      return NextResponse.json({ error: body.childAgeMonths === undefined ? "Enter the child's birthday." : "Enter the child's age." }, { status: 400 });
+    }
     const parentName = clean(body, "parentName");
-    body.childDob = dobFromAgeMonths(ageMonths, today);
+    body.childDob = exactDob ?? dobFromAgeMonths(ageMonths, today);
     body.relationship = clean(body, "relationship") || "Parent/guardian";
     body.gender = "Not given";
     body.emergencyContactName = parentName;
@@ -113,7 +117,9 @@ export async function POST(request: Request) {
     body.medications = "";
     body.specialNeeds = "";
     body.medicalConditions = clean(body, "healthNotes");
-    body.additionalNotes = `Quick form: age given as ${ageWords(ageMonths)} on ${today}, so the date of birth is approximate. Emergency contact and pickup default to the parent.`;
+    body.additionalNotes = exactDob
+      ? "Quick form: emergency contact and pickup default to the parent."
+      : `Quick form: age given as ${ageWords(ageMonths)} on ${today}, so the date of birth is approximate. Emergency contact and pickup default to the parent.`;
   }
 
   const required = [

@@ -146,6 +146,31 @@ describe("POST /api/futprep/registrations, mode quick (brief 27, C)", () => {
     expect((await post(quickPayload({ childAgeMonths: "soon" }))).status).toBe(400);
   });
 
+  // Register V4 sends the exact birthday instead of the age in months.
+  const yearsAgo = (years: number) => {
+    const date = new Date();
+    date.setUTCFullYear(date.getUTCFullYear() - years);
+    return date.toISOString().slice(0, 10);
+  };
+
+  it("takes an exact birthday instead of the age (register V4), and still checks the class's ages", async () => {
+    const { childAgeMonths: _months, ...withoutAge } = quickPayload();
+    expect((await post({ ...withoutAge, childDob: yearsAgo(5) })).status).toBe(201);
+    const tooOld = await post({ ...withoutAge, childDob: yearsAgo(10) });
+    expect(tooOld.status).toBe(400);
+    expect(((await tooOld.json()) as { error?: string }).error).toMatch(/age/i);
+  });
+
+  it("asks again for a birthday that can't be right, rather than guessing", async () => {
+    const { childAgeMonths: _months, ...withoutAge } = quickPayload();
+    const future = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    for (const childDob of [future, "2021-02-30", "14/08/2021", ""]) {
+      const response = await post({ ...withoutAge, childDob });
+      expect(response.status).toBe(400);
+      expect(((await response.json()) as { error?: string }).error).toMatch(/birthday/i);
+    }
+  });
+
   it("still needs the consent, the photo answer, a phone and a way to pay", async () => {
     expect((await post(quickPayload({ consentAccepted: false }))).status).toBe(400);
     expect((await post(quickPayload({ photoConsent: "" }))).status).toBe(400);
