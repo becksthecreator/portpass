@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 import { securityHeaders } from "./lib/securityHeaders";
-import { FUTPREP_PUBLIC_PATHS, FUTPREP_SITE } from "./lib/futprepOffSite";
+import { FUTPREP_REDIRECTS } from "./lib/futprepOffSite";
 
 const nextConfig: NextConfig = {
   // The HTTP security headers, on every path (Brief 21, part D):
@@ -40,7 +40,9 @@ const nextConfig: NextConfig = {
       // and every /api route stay as they are (rule 9). Not permanent: the
       // pages come back by deleting this block. First, so it wins over the
       // older /futprep rules below.
-      ...FUTPREP_PUBLIC_PATHS.map((source) => ({ source, destination: FUTPREP_SITE, has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$" }], permanent: false })),
+      // While FUTPREP_FORMS_ON_PORTPASS is on, the four form pages (register,
+      // taster, camps, booking) stay here instead (23 Nov, Bex).
+      ...FUTPREP_REDIRECTS.map(({ source, destination }) => ({ source, destination, has: [{ type: "host" as const, value: "^(www\\.)?portpassbahamas\\.com$" }], permanent: false })),
       // The business card's QR code (23 Nov 2026): it prints
       // portpassbahamas.com/card, which stays the same forever, and this
       // decides where a scan lands. Today (Bex, 23 Nov): the home page,
