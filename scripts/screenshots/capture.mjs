@@ -66,6 +66,24 @@ async function quickWho(page) {
   await page.locator(".tap-card").first().click();
   await page.locator(".tap-form").waitFor();
 }
+// Register V4 (24 Nov): pick, who, done, with a TEST family (rule 4).
+async function v4Who(page) {
+  await page.locator("button.v4-go").first().click();
+  await page.locator(".v4-who").waitFor();
+}
+async function v4Done(page) {
+  await v4Who(page);
+  const fourYearsAgo = new Date(Date.now() - (4 * 365 + 120) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await field(page, "Your name *").fill(TEST_PARENT.name);
+  await field(page, "WhatsApp *").fill(TEST_PARENT.phone);
+  await page.locator(".v4-kid label").filter({ hasText: /^Name \*/ }).locator("input").fill(`TEST Child (delete) ${Math.random().toString(36).slice(2, 6)}`);
+  await page.locator(".v4-kid input[type=date]").fill(fourYearsAgo);
+  await page.locator(".v4-seg").last().locator("label").first().click();
+  await page.locator(".v4-pills label").filter({ hasText: "No photos" }).click();
+  await page.locator(".v4-consent input").check();
+  await page.locator("button.v4-cta[type=submit]").click();
+  await page.locator(".v4-done").waitFor({ timeout: 30_000 });
+}
 async function quickDone(page) {
   await quickWho(page);
   await field(page, "Your name *").fill(TEST_PARENT.name);
@@ -362,10 +380,16 @@ try {
     ["brief27-before-3-health-375", "anon", classicPath, ".registration-form", null, classicTo(3)],
     ["brief27-before-4-class-payment-375", "anon", classicPath, ".registration-form", null, classicTo(4)],
     ["brief27-before-5-consent-375", "anon", classicPath, ".registration-form", null, classicTo(5)],
-    ["brief27-after-1-pick-375", "anon", "/futprep/register", ".tap-cards"],
-    ["brief27-after-2-who-375", "anon", "/futprep/register", ".tap-form", null, quickWho],
-    ["brief27-after-3-done-375", "anon", "/futprep/register", ".tap-done", null, quickDone],
-    ["parent-home-1-done-email-375", "anon", "/futprep/register", ".tap-account", null, quickDoneWithEmail],
+    ["brief27-after-1-pick-375", "anon", "/futprep/register?flow=quick", ".tap-cards"],
+    ["brief27-after-2-who-375", "anon", "/futprep/register?flow=quick", ".tap-form", null, quickWho],
+    ["brief27-after-3-done-375", "anon", "/futprep/register?flow=quick", ".tap-done", null, quickDone],
+    ["parent-home-1-done-email-375", "anon", "/futprep/register?flow=quick", ".tap-account", null, quickDoneWithEmail],
+    ["register-v4-1-pick-375", "anon", "/futprep/register", ".v4-cards"],
+    ["register-v4-2-who-375", "anon", "/futprep/register", ".v4-who", null, v4Who],
+    ["register-v4-3-done-375", "anon", "/futprep/register", ".v4-done", null, v4Done],
+    ["register-v4-1-pick-1440", "anon", "/futprep/register", ".v4-cards"],
+    ["register-v4-2-who-1440", "anon", "/futprep/register", ".v4-who", null, v4Who],
+    ["register-v4-3-done-1440", "anon", "/futprep/register", ".v4-done", null, v4Done],
     ["brief27-after-book-private-375", "anon", "/futprep/book?coach=test-delete-coach-bex", ".tap-step"],
     // Brief 27 (D): Flamingo Night on the Futprep pages the brief names.
     // The throwaway stack has no published Futprep listing, so the home and

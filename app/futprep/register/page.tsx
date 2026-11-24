@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { Suspense } from "react";
 import { RegistrationForm, type JoinQuote } from "./RegistrationForm";
 import { QuickRegistration, type QuickPaymentMethod } from "./QuickRegistration";
+import { RegisterV4 } from "./RegisterV4";
 import "./contrast.css";
 import "../tap-steps.css";
 import { futprepOrganization } from "@/db/growth";
@@ -131,7 +132,8 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
 export default async function FutprepRegisterPage({ searchParams }: { searchParams: SearchParams }) {
   const [{ offers, requested }, attribution] = await Promise.all([loadOffers(searchParams), readAttribution(searchParams)]);
   const [joinQuote, closed, params] = await Promise.all([loadJoinQuote(searchParams, offers), closedNotice(offers), searchParams]);
-  // Booking in three taps (brief 27, C) is the Saturday registration now.
+  // The FutPrep register V4 (24 Nov) is the Saturday registration now; the
+  // three-tap form (brief 27, C) stays at ?flow=quick.
   // The classic five-step form stays for "join the rest of the term" after
   // a taster, for anyone who asks for it (?flow=classic), and for the
   // waitlist when a class is full.
@@ -154,7 +156,9 @@ export default async function FutprepRegisterPage({ searchParams }: { searchPara
       </header>
       {!classic && pay && (
         <div className="registration-shell">
-          <QuickRegistration offers={offers} attribution={attribution} initialOfferKey={requested ? `${requested.programId}:${requested.termId}` : null} howToPay={pay.howToPay} methods={pay.methods} closedNotice={closed} today={nassauToday()} />
+          {params.flow === "quick"
+            ? <QuickRegistration offers={offers} attribution={attribution} initialOfferKey={requested ? `${requested.programId}:${requested.termId}` : null} howToPay={pay.howToPay} methods={pay.methods} closedNotice={closed} today={nassauToday()} />
+            : <RegisterV4 offers={offers} attribution={attribution} initialOfferKey={requested ? `${requested.programId}:${requested.termId}` : null} howToPay={pay.howToPay} methods={pay.methods} closedNotice={closed} today={nassauToday()} />}
         </div>
       )}
       {classic && <Suspense fallback={null}>
