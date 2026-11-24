@@ -387,6 +387,9 @@ try {
     ["register-v4-1-pick-375", "anon", "/futprep/register", ".v4-cards"],
     ["register-v4-2-who-375", "anon", "/futprep/register", ".v4-who", null, v4Who],
     ["register-v4-3-done-375", "anon", "/futprep/register", ".v4-done", null, v4Done],
+    ["register-v4-1-pick-1440", "anon", "/futprep/register", ".v4-cards"],
+    ["register-v4-2-who-1440", "anon", "/futprep/register", ".v4-who", null, v4Who],
+    ["register-v4-3-done-1440", "anon", "/futprep/register", ".v4-done", null, v4Done],
     ["brief27-after-book-private-375", "anon", "/futprep/book?coach=test-delete-coach-bex", ".tap-step"],
     // Brief 27 (D): Flamingo Night on the Futprep pages the brief names.
     // The throwaway stack has no published Futprep listing, so the home and
