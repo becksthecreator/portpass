@@ -74,7 +74,7 @@ describe("Import from TeamSnap (brief 13)", () => {
     // permission guards all three (brief 34).
     expect(preview.skippedMedical).toBe(3);
     const ava = preview.rows.find((r) => r.childName.endsWith("Ava Rolle"))!;
-    expect(ava.fields).not.toEqual(expect.arrayContaining([expect.stringMatching(/medical|emergency|pickup/)]));
+    expect(ava.fields).not.toEqual(expect.arrayContaining([expect.stringMatching(/medical|emergency|pick-up/)]));
     expect(ava.fields).toEqual(expect.arrayContaining(["parent name", "parent email"]));
     // Nothing is written by a preview; the medical check is shown, then the
     // apply below (with the permission) fills Ava as before.
