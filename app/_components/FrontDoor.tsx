@@ -8,8 +8,9 @@ import "./front-door.css";
 //
 // The line under the headline must be true on launch day, so it names no
 // category that isn't live. The pictures are both Futprep (approved set):
-// a training session and the whole squad at a distance, so no child's face
-// is prominent. The Bahamas Weddings couple photo waits for the client's OK.
+// the training photo the old hero already used, and the whole squad at a
+// distance in place of the Bahamas Weddings couple photo, which waits for
+// the client's OK.
 // The screen is the demo business's payment request page, which carries its
 // own "Demo business: example data" banner.
 
