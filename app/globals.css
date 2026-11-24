@@ -5005,6 +5005,11 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .nav-panel::before{content:"";position:absolute;left:0;right:0;top:-10px;height:10px}
 .nav-panel-all{display:flex;justify-content:space-between;align-items:center;gap:12px;border-radius:8px;color:var(--ink);font-weight:800;font-size:.9rem;padding:10px 12px;text-decoration:none}
 .nav-panel-all:hover,.nav-panel-all:focus-visible{background:var(--deck)}
+.nav-panel-soon,.sheet-soon{display:grid;gap:6px;border-top:1px solid var(--line);margin-top:6px;padding:12px 12px 6px;font-size:.85rem;color:var(--muted);max-width:320px}
+.nav-panel-soon p,.sheet-soon p{margin:0;line-height:1.45}
+.nav-panel-soon strong,.sheet-soon strong{display:block;color:var(--ink);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
+.nav-panel-soon a,.sheet-soon a{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.sheet-soon{max-width:none;margin:0 18px;padding:12px 4px 14px;flex:0 0 auto}
 .nav-panel-list{list-style:none;margin:6px 0 0;padding:6px 0 0;border-top:1px solid var(--line);display:grid}
 .nav-panel-list a{display:flex;justify-content:space-between;align-items:center;gap:16px;border-radius:8px;color:var(--ink);font-size:.9rem;font-weight:600;padding:9px 12px;text-decoration:none}
 .nav-panel-list a:hover,.nav-panel-list a:focus-visible{background:var(--deck)}

@@ -2,15 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent } from "react";
 
 export type NavSubsection = { slug: string; name: string; href: string; live: number | null };
 export type NavSection = { slug: string; name: string; href: string; live: number | null; subsections: NavSubsection[] };
 
 // The header's section navigation (round 5, §2 and §3). Both halves read
 // the same tree the server built from the categories table:
-//  - ≥1024px: one trigger per section; hover or click opens a dropdown of
-//    its subsections (live count or "Soon") plus "All <section> →". Enter
+//  - ≥1024px: one "Browse" trigger (pre-ads audit, 24 Nov: it read
+//    "Sports & Fitness" while that was the only live section); hover or
+//    click opens a dropdown of every live section, each with "All
+//    <section> →" and its subsections (live count or "Soon"), then the
+//    kinds of business opening soon, as text, with a link to /apply. Enter
 //    opens, Esc closes, Tab cycles inside the open panel, aria-expanded
 //    tracks it. The panels are in the DOM (hidden) so crawlers still see
 //    every section and subsection link in the header.
@@ -22,13 +25,24 @@ export type NavSection = { slug: string; name: string; href: string; live: numbe
 // Pricing and About carry the "tide" transition type (the Tide Wipe).
 const TIDE_TYPES = ["tide"];
 
-export function SiteNav({ sections, tide = false }: { sections: NavSection[]; tide?: boolean }) {
+export function SiteNav({ sections, soon = [], tide = false }: { sections: NavSection[]; soon?: string[]; tide?: boolean }) {
   const types = tide ? TIDE_TYPES : undefined;
   return (
     <>
-      <DesktopNav sections={sections} types={types} />
-      <BrowseSheet sections={sections} types={types} />
+      <DesktopNav sections={sections} soon={soon} types={types} />
+      <BrowseSheet sections={sections} soon={soon} types={types} />
     </>
+  );
+}
+
+// The kinds of business not open yet: text, not links, and the way in.
+function OpeningSoon({ soon, className, tabIndex }: { soon: string[]; className: string; tabIndex?: number }) {
+  if (!soon.length) return null;
+  return (
+    <div className={className}>
+      <p><strong>Opening soon</strong> {soon.join(" · ")}</p>
+      <Link href="/apply" tabIndex={tabIndex}>List your business <span aria-hidden="true">→</span></Link>
+    </div>
   );
 }
 
@@ -46,7 +60,7 @@ function liveTag(live: number | null): string | null {
 // panel stays until a click elsewhere, Esc, another trigger or navigation.
 type OpenPanel = { slug: string; by: "hover" | "click" } | null;
 
-function DesktopNav({ sections, types }: { sections: NavSection[]; types?: string[] }) {
+function DesktopNav({ sections, soon, types }: { sections: NavSection[]; soon: string[]; types?: string[] }) {
   const [open, setOpen] = useState<OpenPanel>(null);
   const closeTimer = useRef<number | null>(null);
   const rootRef = useRef<HTMLElement>(null);
@@ -88,37 +102,54 @@ function DesktopNav({ sections, types }: { sections: NavSection[]; types?: strin
     closeTimer.current = window.setTimeout(() => setOpen((current) => (current?.by === "hover" ? null : current)), 160);
   };
 
+  const isOpen = open !== null;
   return (
     <nav className="site-shell-nav" aria-label="Categories" ref={rootRef}>
-      {sections.map((section) => (
-        <NavItem
-          key={section.slug}
-          section={section}
-          types={types}
-          isOpen={open?.slug === section.slug}
-          onHoverOpen={() => {
-            cancelClose();
-            setOpen((current) => (current?.slug === section.slug ? current : { slug: section.slug, by: "hover" }));
-          }}
-          onHoverLeave={scheduleClose}
-          onToggle={() => {
-            cancelClose();
-            setOpen((current) => {
-              if (current?.slug !== section.slug) return { slug: section.slug, by: "click" };
-              if (current.by === "hover") return { slug: section.slug, by: "click" };
-              return null;
-            });
-          }}
-        />
-      ))}
+      <NavItem
+        isOpen={isOpen}
+        onHoverOpen={() => {
+          cancelClose();
+          setOpen((current) => current ?? { slug: "browse", by: "hover" });
+        }}
+        onHoverLeave={scheduleClose}
+        onToggle={() => {
+          cancelClose();
+          setOpen((current) => {
+            if (!current) return { slug: "browse", by: "click" };
+            if (current.by === "hover") return { slug: "browse", by: "click" };
+            return null;
+          });
+        }}
+      >
+        {sections.map((section) => (
+          <div className="nav-panel-section" key={section.slug}>
+            <Link className="nav-panel-all" href={section.href} tabIndex={isOpen ? 0 : -1} transitionTypes={types}>
+              All {section.name} <span aria-hidden="true">→</span>
+            </Link>
+            {section.subsections.length > 0 && (
+              <ul className="nav-panel-list">
+                {section.subsections.map((sub) => (
+                  <li key={sub.slug}>
+                    <Link href={sub.href} tabIndex={isOpen ? 0 : -1} transitionTypes={types}>
+                      {sub.name}
+                      {liveTag(sub.live) && <small>{liveTag(sub.live)}</small>}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+        <OpeningSoon soon={soon} className="nav-panel-soon" tabIndex={isOpen ? 0 : -1} />
+      </NavItem>
     </nav>
   );
 }
 
-function NavItem({ section, isOpen, onHoverOpen, onHoverLeave, onToggle, types }: { section: NavSection; isOpen: boolean; onHoverOpen: () => void; onHoverLeave: () => void; onToggle: () => void; types?: string[] }) {
+function NavItem({ isOpen, onHoverOpen, onHoverLeave, onToggle, children }: { isOpen: boolean; onHoverOpen: () => void; onHoverLeave: () => void; onToggle: () => void; children: ReactNode }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const panelId = `nav-panel-${section.slug}`;
+  const panelId = "nav-panel-browse";
 
   // Tab and the arrows stay inside the open panel; Esc is handled once,
   // at document level, by DesktopNav.
@@ -155,24 +186,10 @@ function NavItem({ section, isOpen, onHoverOpen, onHoverLeave, onToggle, types }
   return (
     <div className={`nav-item${isOpen ? " is-open" : ""}`} onMouseEnter={onHoverOpen} onMouseLeave={onHoverLeave} onKeyDown={onKeyDown}>
       <button ref={triggerRef} type="button" className="nav-trigger" aria-expanded={isOpen} aria-controls={panelId} aria-haspopup="true" onClick={onToggle}>
-        {section.name} <span className="nav-caret" aria-hidden="true">▾</span>
+        Browse <span className="nav-caret" aria-hidden="true">▾</span>
       </button>
       <div className="nav-panel" id={panelId} ref={panelRef} hidden={!isOpen}>
-        <Link className="nav-panel-all" href={section.href} tabIndex={isOpen ? 0 : -1} transitionTypes={types}>
-          All {section.name} <span aria-hidden="true">→</span>
-        </Link>
-        {section.subsections.length > 0 && (
-          <ul className="nav-panel-list">
-            {section.subsections.map((sub) => (
-              <li key={sub.slug}>
-                <Link href={sub.href} tabIndex={isOpen ? 0 : -1} transitionTypes={types}>
-                  {sub.name}
-                  {liveTag(sub.live) && <small>{liveTag(sub.live)}</small>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+        {children}
       </div>
     </div>
   );
@@ -187,7 +204,7 @@ function sheetInHistory(): boolean {
   return Boolean(state && state[SHEET_STATE_KEY]);
 }
 
-function BrowseSheet({ sections, types }: { sections: NavSection[]; types?: string[] }) {
+function BrowseSheet({ sections, soon, types }: { sections: NavSection[]; soon: string[]; types?: string[] }) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [dragY, setDragY] = useState(0);
@@ -319,6 +336,7 @@ function BrowseSheet({ sections, types }: { sections: NavSection[]; types?: stri
                 );
               })}
             </ul>
+            <OpeningSoon soon={soon} className="sheet-soon" />
             <div className="sheet-foot">
               <Link href="/login">Sign in</Link>
               <Link href="/signup">Sign up</Link>
