@@ -12,7 +12,7 @@ import { analyticsRedactionScript } from "@/lib/analyticsRedact";
 import { ppDisplay, ppSans } from "./fonts";
 
 const TITLE = "PortPass Bahamas | Bookings and payments for Bahamian businesses";
-const DESCRIPTION = "Book Bahamian businesses on PortPass and pay them directly, by cash or bank transfer. Starting with sports and fitness, opening to every business.";
+const DESCRIPTION = "Classes, tours, tables, appointments and events from businesses across The Bahamas. Book in a few taps and pay the business directly, by cash or bank transfer.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://portpassbahamas.com"),

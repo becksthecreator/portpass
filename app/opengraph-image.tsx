@@ -8,7 +8,7 @@ export const contentType = "image/png";
 
 export default async function Image() {
   return new ImageResponse(
-    <OgCard title="Bookings and payments for Bahamian businesses." subtitle="Book Bahamian businesses on PortPass and pay them directly, by cash or bank transfer. Starting with sports and fitness, opening to every business." />,
+    <OgCard title="Bookings and payments for Bahamian businesses." subtitle="Classes, tours, tables, appointments and events from businesses across The Bahamas. Book in a few taps and pay the business directly, by cash or bank transfer." />,
     { ...size, fonts: await ogFonts() },
   );
 }

@@ -6,11 +6,10 @@ import "./front-door.css";
 // website is the doorway to the app"). Bex picked option B, "more realism"
 // (24 Nov): the words beside real photographs and a real PortPass screen.
 //
-// The line under the headline must be true on launch day, so it names no
-// category that isn't live. The pictures are both Futprep (approved set):
-// the training photo the old hero already used, and the whole squad at a
-// distance in place of the Bahamas Weddings couple photo, which waits for
-// the client's OK.
+// The pictures: Futprep training (the photo the old hero used) and a
+// Bahamas Weddings By The Sea ceremony (Bex approved, 24 Nov: we
+// advertise that client's site too). The line under the headline is
+// option B's every-business line, which Bex accepts as true.
 // The screen is the demo business's payment request page, which carries its
 // own "Demo business: example data" banner.
 
@@ -22,7 +21,7 @@ function Words() {
         <span className="fd-phrase">Find it,</span> <span className="fd-phrase">book it,</span> <span className="fd-phrase">pay it.</span>{" "}
         <span className="fd-phrase fd-one">One app.</span>
       </h1>
-      <p className="fd-lede">Bookings and payments for Bahamian businesses. Starting with sports and fitness, opening to every business. You pay the business directly, by cash or bank transfer.</p>
+      <p className="fd-lede">Classes, tours, tables, appointments and events from businesses across The Bahamas. Book in a few taps, pay the way you already do, and keep it all on your phone.</p>
       <form className="fd-search" action="/search" method="get" role="search">
         <label className="fd-search-label" htmlFor="fd-q">What are you looking for?</label>
         <div className="fd-search-row">
@@ -45,7 +44,7 @@ function RealPictures() {
         <Image src="/futprep/lil-kickers/lil-kickers-training.jpg" alt="" fill priority sizes="(max-width: 900px) 60vw, 360px" quality={72} />
       </div>
       <div className="fd-photo fd-photo-b">
-        <Image src="/futprep/lil-kickers/lil-kickers-coach.jpg" alt="" fill sizes="(max-width: 900px) 50vw, 300px" quality={72} />
+        <Image src="/weddings/bahamas-by-the-sea/bws-12.webp" alt="" fill sizes="(max-width: 900px) 50vw, 300px" quality={72} />
       </div>
       <div className="fd-device">
         <Image src="/brand/product/shot-pay.png" alt="" fill sizes="(max-width: 900px) 45vw, 240px" />
