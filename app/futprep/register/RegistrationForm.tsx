@@ -306,7 +306,7 @@ export function RegistrationForm({
           <div><dt>Amount</dt><dd>{formatPriceCents(result.amountDueCents)}{result.paymentFrequency === "weekly" && result.program.programType !== "camp" ? " per class" : ""}</dd></div>
           <div><dt>Status</dt><dd><span className="status status-submitted">Payment pending</span></dd></div>
         </dl>
-        <p className="confirmation-share"><ShareOnWhatsApp url="https://portpassbahamas.com/sports-fitness/futprep-athletics" text={`${form.childName} is registered with Futprep Athletics on PortPass:`} /></p>
+        <p className="confirmation-share"><ShareOnWhatsApp url={FUTPREP_SITE} text={`${form.childName} is registered with Futprep Athletics on PortPass:`} /></p>
         <div className="payment-instruction">
           <strong>{form.paymentMethod === "cash" ? "Cash payment" : paymentMethodLabel(form.paymentMethod)}</strong>
           {form.paymentMethod === "cash" ? (

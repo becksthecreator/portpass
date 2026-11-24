@@ -20,14 +20,21 @@ function walk(dir: string): string[] {
 
 describe("Futprep pages on PortPass link out directly (24 Nov)", () => {
   it("no page links to an address that redirects to futprep.com", () => {
-    const fixed = FUTPREP_REDIRECTED_PATHS.filter((p) => !p.includes(":")).map((p) => p.replace(/\/$/, ""));
+    const exact = FUTPREP_REDIRECTED_PATHS.filter((p) => !p.includes(":"));
+    // "/x/:path*" redirects everything under /x too.
+    const under = FUTPREP_REDIRECTED_PATHS.filter((p) => p.endsWith("/:path*")).map((p) => p.slice(0, -"/:path*".length));
+    const esc = (path: string) => path.replace(/[/-]/g, (c) => `\\${c}`);
+    // A quoted address, relative or on portpassbahamas.com, or the start of one built in a template.
+    const start = `["'\`](?:https?:\\/\\/(?:www\\.)?portpassbahamas\\.com)?`;
+    const patterns = [
+      ...exact.map((path) => ({ path, re: new RegExp(`${start}${esc(path)}(["'\`?#]|\\/\\$\\{)`) })),
+      ...under.map((path) => ({ path: `${path}/…`, re: new RegExp(`${start}${esc(path)}\\/[a-z0-9$]`) })),
+    ];
     const offenders: string[] = [];
     for (const file of walk("app/futprep")) {
       const code = readFileSync(file, "utf8");
-      for (const path of fixed) {
-        // A quoted address, or the start of one built in a template.
-        const quoted = new RegExp(`["'\`]${path.replace(/[/-]/g, (c) => `\\${c}`)}(["'\`?#]|/\\$\\{)`);
-        if (quoted.test(code)) offenders.push(`${file.replace(/\\/g, "/")}: ${path}`);
+      for (const { path, re } of patterns) {
+        if (re.test(code)) offenders.push(`${file.replace(/\\/g, "/")}: ${path}`);
       }
     }
     expect(offenders).toEqual([]);
