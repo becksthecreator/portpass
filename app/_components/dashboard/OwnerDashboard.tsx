@@ -43,7 +43,7 @@ export async function OwnerDashboard({ orgId, basePath, showMoney, query }: { or
   return (
     <div className="dash">
       <dl className="dash-tiles" aria-label="This month at a glance">
-        {data.money && <div><dt>Collected this month</dt><dd>{money(tiles.collectedThisMonthCents)}<small>Payment requests marked paid in {monthLabel(today.slice(0, 7))}</small></dd></div>}
+        {data.money && <div><dt>Collected this month</dt><dd>{money(tiles.collectedThisMonthCents)}<small>Paid by request or at the desk in {monthLabel(today.slice(0, 7))}</small></dd></div>}
         {data.money && <div><dt>Still owed</dt><dd>{money(tiles.owedCents)}<small>{tiles.owedCount === 0 ? "Nothing pending or overdue" : `${tiles.owedCount} ${tiles.owedCount === 1 ? "request" : "requests"} pending or overdue`}</small></dd></div>}
         <div>
           <dt>{tiles.nextSessionDay && tiles.nextSessionDay.date === today ? "Booked today" : tiles.nextSessionDay && day(tiles.nextSessionDay.date).startsWith("Sat") ? "Booked this Saturday" : "Booked next session day"}</dt>
