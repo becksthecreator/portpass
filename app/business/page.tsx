@@ -9,6 +9,11 @@ import { portpassWhatsAppUrl } from "@/lib/contact";
 import { getSectionTiles } from "@/lib/navSections";
 import { getBusinessProof } from "@/db/businessProof";
 import { proofSentence } from "@/lib/businessProof";
+import { Board, Ticket } from "@/app/_components/ticket/Ticket";
+
+// The kinds of business on the board (Site Design, 24 Nov). "Boarding"
+// means we are taking that kind of business now, not that one is live.
+const BOARD = ["Salons", "Barbers", "Gyms", "Restaurants", "Tours", "Events"].map((name) => ({ name, status: "Boarding" }));
 import "@/app/phase1.css";
 
 // No openGraph here on purpose: the root file-based image is inherited
@@ -59,16 +64,24 @@ export default async function BusinessPage() {
     <main className={`home-theme ${ppDisplay.variable} ${ppSans.variable}`}>
       <SiteHeader breadcrumb={[{ label: "For business", href: "/business" }]} />
 
-      <section className="biz-hero">
-        <span className="home-eyebrow">PortPass for business</span>
-        <h1>Your bookings and payments in one place, not lost in WhatsApp.</h1>
-        <p>One link with your prices, your photos and a booking button. We build it for you; you share it everywhere you already talk to customers.</p>
-        <div className="biz-actions">
-          <Link className="home-button" href="/apply">Get listed →</Link>
-          <a className="home-button home-button-light" href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a>
+      <section className="biz-hero biz-hero-ticket">
+        <div className="biz-hero-words">
+          <span className="home-eyebrow">PortPass for business</span>
+          <h1>Your bookings and payments in one place, <span>not lost in WhatsApp.</span></h1>
+          <p>One link with your prices, your photos and a booking button. We build it for you; you share it everywhere you already talk to customers.</p>
+          <div className="biz-actions">
+            <Link className="home-button" href="/apply">Book a free First Look</Link>
+            <a className="home-button home-button-light" href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a>
+          </div>
+          <p className="auth-alt">Want to see it first? <Link href="/demo">Try a demo business →</Link></p>
+          <p className="auth-alt">Already on PortPass? <Link href="/login?next=%2Fbusiness%2Fsetup">Sign in to manage your listing.</Link></p>
         </div>
-        <p className="auth-alt">Want to see it first? <Link href="/demo">Try a demo business →</Link></p>
-        <p className="auth-alt">Already on PortPass? <Link href="/login?next=%2Fbusiness%2Fsetup">Sign in to manage your listing.</Link></p>
+        {/* The ad's first ticket and the board (Site Design, 24 Nov). Decorative:
+            the words beside them say it all. */}
+        <div className="biz-hero-stack" aria-hidden="true">
+          <Ticket top="Your business" topRight="Nassau" title="Saturday, 10:30" line="Found on PortPass · Booked in a minute" stubLabel="Ticket" stubValue="0001" stubFoot="Admit one" stamp="Booked" />
+          <Board rows={BOARD} label="Kinds of business we're taking now" />
+        </div>
       </section>
 
       {proof && <p className="biz-proof">{proofSentence(proof)}<small>Counted from PortPass just now.</small></p>}
@@ -156,7 +169,7 @@ export default async function BusinessPage() {
           <p>Send the basics on WhatsApp or tell us about your business and we&rsquo;ll take it from there.</p>
         </div>
         <div className="biz-actions">
-          <Link className="home-button home-button-light" href="/apply">Get listed →</Link>
+          <Link className="home-button home-button-light" href="/apply">Book a free First Look</Link>
           <a className="home-button home-button-light" href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a>
         </div>
       </section>

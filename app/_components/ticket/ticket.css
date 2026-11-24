@@ -1,0 +1,53 @@
+/* The ticket-office kit (app/_components/ticket/Ticket.tsx), after Site
+   Design's "First Look pages" mockup, 24 Nov. Harbour Signal tokens only. */
+
+.tk{--stub:116px;position:relative;display:grid;grid-template-columns:minmax(0,1fr) var(--stub);background:var(--paper);border-radius:14px;color:var(--ink);
+  filter:drop-shadow(0 12px 18px rgba(13,27,61,.16)) drop-shadow(0 1px 2px rgba(13,27,61,.12));
+  -webkit-mask:radial-gradient(circle at calc(100% - var(--stub)) 0,#0000 11px,#000 11.5px) top/100% 51% no-repeat,radial-gradient(circle at calc(100% - var(--stub)) 100%,#0000 11px,#000 11.5px) bottom/100% 51% no-repeat;
+  mask:radial-gradient(circle at calc(100% - var(--stub)) 0,#0000 11px,#000 11.5px) top/100% 51% no-repeat,radial-gradient(circle at calc(100% - var(--stub)) 100%,#0000 11px,#000 11.5px) bottom/100% 51% no-repeat}
+.tk-main{padding:16px 18px 16px 20px;border-left:8px solid var(--signal);border-radius:14px 0 0 14px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.tk-stripe-ink{border-left-color:var(--ink)}
+.tk-has-stamp .tk-main{padding-bottom:48px}
+.tk-top{margin:0;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.tk-title{margin:0;font-family:var(--font-pp-display),Archivo,sans-serif;font-stretch:104%;font-weight:900;font-size:1.6rem;line-height:1;letter-spacing:-.015em}
+.tk-line{margin:0;font-size:.85rem;line-height:1.5;color:var(--muted)}
+.tk-stub{border-left:2px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;padding:10px 6px}
+.tk-stub small{font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tk-stub b{font-family:var(--font-pp-display),Archivo,sans-serif;font-weight:900;font-size:1.85rem;line-height:1;letter-spacing:.01em}
+
+.tk-stamp{display:inline-flex;align-items:center;font-family:var(--font-pp-display),Archivo,sans-serif;font-weight:900;font-size:.8rem;line-height:1;letter-spacing:.14em;text-transform:uppercase;color:var(--signal);padding:6px 10px 5px;border:2.5px solid currentColor;border-radius:5px;box-shadow:inset 0 0 0 2px #fff,inset 0 0 0 3.5px currentColor;transform:rotate(-6deg);background:rgba(255,255,255,.6);white-space:nowrap}
+.tk-stamp-ink{color:var(--ink)}
+.tk-stamp-ok{color:#8A6A12}     /* the mockup's #B48A1E, darkened for AA on white */
+.tk-stamp-strong{color:#1E7A4C}
+.tk>.tk-stamp{position:absolute;right:calc(var(--stub) + 14px);bottom:12px}
+@media (prefers-reduced-motion:no-preference){
+  .tk>.tk-stamp{animation:tk-thud .45s cubic-bezier(.3,1.6,.5,1) .5s both}
+}
+@keyframes tk-thud{from{opacity:0;transform:scale(1.6) rotate(-6deg)}to{opacity:1;transform:rotate(-6deg)}}
+
+.tk-score{background:var(--paper);border-radius:16px;padding:18px 20px;box-shadow:0 18px 40px -26px rgba(13,27,61,.35);color:var(--ink)}
+.tk-score h2{margin:0;font-family:var(--font-pp-display),Archivo,sans-serif;font-stretch:104%;font-weight:900;font-size:1.5rem;line-height:1}
+.tk-score h2 span{color:var(--signal)}
+.tk-score ol{list-style:none;margin:12px 0 0;padding:0}
+.tk-score li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.tk-score li i{font-family:var(--font-pp-display),Archivo,sans-serif;font-weight:900;font-size:1.1rem;color:var(--signal);font-style:normal}
+.tk-score li b{display:block;font-size:.95rem}
+.tk-score li span span{display:block;font-size:.8rem;color:var(--muted)}
+.tk-score li .tk-stamp{font-size:.66rem;padding:4px 7px 3px;border-width:2px;box-shadow:inset 0 0 0 1.5px #fff,inset 0 0 0 2.5px currentColor}
+.tk-score-foot{margin:8px 0 0;font-size:.78rem;color:var(--muted)}
+
+.tk-board{background:var(--ink);border-radius:14px;padding:14px 16px;color:#fff}
+.tk-board-head{display:flex;justify-content:space-between;font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8DB8F2;padding-bottom:8px}
+.tk-board ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.tk-board li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-radius:5px;background:linear-gradient(#16264D 0 calc(50% - .5px),#0A1430 calc(50% - .5px) calc(50% + .5px),#1A2C58 calc(50% + .5px))}
+.tk-board li b{font-family:var(--font-pp-display),Archivo,sans-serif;font-weight:800;font-size:.95rem;letter-spacing:.3em;text-transform:uppercase;min-width:0;overflow-wrap:anywhere}
+.tk-board li small{font-family:var(--font-pp-display),Archivo,sans-serif;font-weight:800;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#8DB8F2}
+
+@media (max-width:700px){
+  .tk{--stub:86px}
+  .tk-main{padding:12px 12px 12px 14px}
+  .tk-title{font-size:1.25rem}
+  .tk-stub b{font-size:1.4rem}
+  .tk>.tk-stamp{display:none}
+  .tk-has-stamp .tk-main{padding-bottom:12px}
+}

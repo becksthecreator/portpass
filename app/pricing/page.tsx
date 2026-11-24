@@ -14,6 +14,7 @@ import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { PageTransition } from "@/app/_components/motion/PageTransition";
 import { portpassWhatsAppUrl } from "@/lib/contact";
+import { Ticket } from "@/app/_components/ticket/Ticket";
 import { jsonLdString } from "@/lib/seo/jsonLd";
 
 const SITE_URL = "https://portpassbahamas.com";
@@ -57,14 +58,16 @@ export default function PricingPage() {
         <p>{SUB}</p>
       </section>
 
-      <section className="pricing-cards" aria-label="Diagnose, fix, run">
+      {/* The three steps as stamped tickets (Site Design's First Look pages,
+          24 Nov). The words are unchanged; the stamp is each step's price
+          status, never a price. */}
+      <section className="pricing-cards pricing-tickets" aria-label="Diagnose, fix, run">
         {STEPS.map((s, i) => (
-          <article className={`pricing-card${i === 0 ? " pricing-card-featured" : ""}`} key={s.step}>
-            <span className="pricing-badge">{`${i + 1}. ${s.step}`}</span>
-            <h2>{s.name}</h2>
-            <div className="pricing-price"><strong>{s.price}</strong></div>
-            <p className="pricing-card-blurb">{s.text}</p>
-            {i === 0 && <Link className="home-button" href={APPLY_HREF} data-still="">Book a free first look</Link>}
+          <article key={s.step}>
+            <h2 className="sr-only">{`Step ${i + 1}, ${s.step}: ${s.name}, ${s.price}`}</h2>
+            <Ticket top={`Step ${i + 1}`} topRight={s.step} title={s.name} line={s.text} stubLabel="Step" stubValue={String(i + 1).padStart(2, "0")} stubFoot={s.price} stamp={s.price} stampTone={i === 0 ? "signal" : "ink"} stripe={i === 0 ? "signal" : "ink"}>
+              {i === 0 && <Link className="home-button pricing-ticket-cta" href={APPLY_HREF} data-still="">Book a free First Look</Link>}
+            </Ticket>
           </article>
         ))}
       </section>
