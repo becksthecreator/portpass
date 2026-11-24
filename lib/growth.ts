@@ -457,13 +457,13 @@ export function shortDate(iso: string): string {
 
 // ---- When the scheduled jobs may act ------------------------------------------------
 
-// The Saturday attendance nudge goes out at about 8:45 in the morning in
-// Nassau. The job is scheduled at 12:45 and 13:45 UTC (the clocks change in
+// The attendance nudge goes out at about 8:45 in the morning in Nassau, on
+// any day with a session: a weekday class's coach gets the same reminder
+// as Saturday's (24 Nov, weekday classes). The job is scheduled at 12:45 and 13:45 UTC (the clocks change in
 // November and March): in summer the first run is 8:45 and the second finds
 // the session already nudged; in winter the first run is 7:45, too early
 // for this window, and the second is 8:45.
 export function isNudgeWindow(clock: NassauClock): boolean {
-  if (clock.weekday !== 6) return false;
   const minutes = clock.hour * 60 + clock.minute;
   return minutes >= 8 * 60 && minutes <= 11 * 60;
 }

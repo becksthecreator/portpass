@@ -3,7 +3,7 @@
   "regions": ["pdx1"],
   "crons": [
     { "path": "/api/cron/daily", "schedule": "0 11 * * *" },
-    { "path": "/api/cron/attendance-nudge", "schedule": "45 12 * * 6" },
-    { "path": "/api/cron/attendance-nudge", "schedule": "45 13 * * 6" }
+    { "path": "/api/cron/attendance-nudge", "schedule": "45 12 * * *" },
+    { "path": "/api/cron/attendance-nudge", "schedule": "45 13 * * *" }
   ]
 }
