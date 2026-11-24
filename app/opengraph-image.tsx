@@ -8,7 +8,7 @@ export const contentType = "image/png";
 
 export default async function Image() {
   return new ImageResponse(
-    <OgCard title="Sports and fitness in The Bahamas." subtitle="Sports clubs, coaches and gyms in The Bahamas: find a class, register and pay the club directly." />,
+    <OgCard title="Bookings and payments for Bahamian businesses." subtitle="Book Bahamian businesses on PortPass and pay them directly, by cash or bank transfer. Starting with sports and fitness, opening to every business." />,
     { ...size, fonts: await ogFonts() },
   );
 }

@@ -133,9 +133,7 @@ export default async function Home() {
       <a className="home-skip-link" href="#chooser">Skip to browse</a>
 
       <SiteHeader tide />
-      {/* PREVIEW for Bex (23 Nov): Section 1, "The front door", the realism
-          option. The motion option is on preview/front-door-motion. */}
-      <FrontDoor variant="real" />
+      <FrontDoor />
       <DepartureBoard counts={boardCounts} />
 
       <Suspense fallback={openNowCount > 0 ? <OpenNowSkeleton cards={openNowCount} camps={campCards} /> : null}>
