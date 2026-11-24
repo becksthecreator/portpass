@@ -32,6 +32,7 @@ The page both sides read first: Claude Code in this repo, and the Beckford HQ pr
 Previews are `https://portpass-git-<branch, / as ->-port-pass.vercel.app`, behind the Vercel sign-in.
 | Branch | PR | What's left | Waiting on |
 | --- | --- | --- | --- |
+| `fix/dashboard-collected-desk` (audit item: owner dashboard "Collected") | (this PR) | "Collected this month" adds what the desk recorded against the business's registrations and private sessions (not through a payment request, so nothing is counted twice), received this Nassau month. Live: 24 desk payments ($5,600) were missing | Security & QA review; Bex's OK |
 | `feat/register-v4-data` (FutPrep register V4, PR 1 of 3: data and routes) | #295 | `GET /api/futprep/places` (places left per open class, counts only, cached 30 s); `GET /api/futprep/calendar/<class>/<term>` (the term's scheduled sessions as a calendar file, no personal data); the quick form takes an exact `childDob` (the class's age rule still checked). No migration, no screen change | Bex's OK |
 | `fix/futprep-cap-gaps` (the two capacity gaps left open by the reviews of #200-#222) | #293 | Migration `202610280010_cap_on_class_move_and_one_taster.sql`: a desk move to another class goes through `move_registration_within_cap` under both classes' locks and is refused when the new class is full (nothing else in the edit is saved); a status change re-checks the child's class under its lock; a taster takes a per-business lock first, so one child can't get tasters in two classes at once. Apply the migration with Bex's OK before merging | Bex's OK to apply 0010 and merge |
 | `fix/business-export-order` (the business export failed for every business; two link tokens left out) | #287 | Four exported tables have no `id` column, so ordering by `id` failed the export; they now order by their own key. `drops.followers_token`, `reservations.receipt_token`, a parent's `booking_requests.notes` (rule 3) and `audit_log.ip` are left out. STATE's In flight table cleared of merged PRs | Bex's OK (given) |
@@ -101,7 +102,6 @@ Launch checklist for 19 Nov: `docs/ops/launch-checklist-19nov.md` (12 fail, 6 un
 - The CSP keeps `'unsafe-inline'` and is report-only until #183.
 - 91 signed-in API routes still take bodies without zod; `lib/api/body.static.test.ts` lists them and can only shrink.
 - Lint is not in CI (#176); 35 warnings remain.
-- The owner dashboard's "Collected" counts payment requests only; Term 1's desk payments are not in it.
 - A coach accepting a private session on production is untested (it needs a staff PIN sign-in).
 - `wedding_site_settings` keeps three read-only generated `*_html` columns (from `202610270001`) until a follow-up migration drops them; nothing reads them now #185 is deployed.
 - The plan cache key in `db/pricing.ts` carries `202610270003`: the next migration that changes `pricing_plans` must bump it, or /pricing keeps the old plans until someone saves a price.

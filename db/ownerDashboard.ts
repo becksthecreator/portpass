@@ -9,6 +9,7 @@ import {
   type ChildRate,
   type DashboardSession,
   type MarkStatus,
+  type DeskPayment,
   type MoneyRow,
   type Tiles,
 } from "@/lib/ownerDashboard";
@@ -146,18 +147,41 @@ export async function loadAttendance(orgId: number, today: string = nassauToday(
   };
 }
 
+// Payments the desk recorded against this business's registrations or
+// private sessions, not through a payment request (those are counted from
+// the request). The last 40 days are enough for "this month"; the tile picks
+// the month (lib/ownerDashboard.ts deskCollectedThisMonthCents).
+export async function loadDeskPayments(orgId: number, today: string = nassauToday()): Promise<DeskPayment[]> {
+  const db = getSupabaseAdmin();
+  const since = new Date(`${today}T12:00:00Z`);
+  since.setUTCDate(since.getUTCDate() - 40);
+  const fromIso = since.toISOString();
+  const [registrations, privates] = await Promise.all([
+    db.from("payments").select("amount_cents,status,received_at,registrations!inner(organization_id)").eq("registrations.organization_id", orgId).is("payment_request_id", null).gte("received_at", fromIso).limit(5000),
+    db.from("payments").select("amount_cents,status,received_at,private_session_requests!inner(organization_id)").eq("private_session_requests.organization_id", orgId).is("payment_request_id", null).is("registration_id", null).gte("received_at", fromIso).limit(5000),
+  ]);
+  throwIfSupabaseError(registrations.error, "Could not load the desk's payments");
+  throwIfSupabaseError(privates.error, "Could not load the desk's payments");
+  return [...(registrations.data ?? []), ...(privates.data ?? [])].map((row) => ({
+    amountCents: Number((row as { amount_cents: number }).amount_cents),
+    status: String((row as { status: string }).status),
+    receivedAt: String((row as { received_at: string | null }).received_at ?? ""),
+  }));
+}
+
 export async function loadOwnerDashboard(orgId: number, options: { money: boolean; today?: string }): Promise<OwnerDashboardData> {
   const today = options.today ?? nassauToday();
-  const [attendance, requests, payments] = await Promise.all([
+  const [attendance, requests, payments, deskPayments] = await Promise.all([
     loadAttendance(orgId, today),
     options.money ? listPaymentRequests(orgId) : Promise.resolve([]),
     options.money ? listOrgRequestPayments(orgId) : Promise.resolve([]),
+    options.money ? loadDeskPayments(orgId, today) : Promise.resolve([]),
   ]);
   const dashboardPayments = payments.map((p) => ({ requestId: p.requestId, amountCents: p.amountCents, status: p.status, receivedAt: p.receivedAt, method: p.method }));
   const rows = options.money ? moneyRows(requests, dashboardPayments, today) : [];
   return {
     today,
-    tiles: dashboardTiles({ requests, payments: dashboardPayments, sessions: attendance.sessions, privateRequests: attendance.privateRequests, today }),
+    tiles: dashboardTiles({ requests, payments: dashboardPayments, deskPayments, sessions: attendance.sessions, privateRequests: attendance.privateRequests, today }),
     money: options.money ? { rows, months: moneyMonths(rows, today) } : null,
     sessions: attendance.sessions,
     rates: attendance.rates,

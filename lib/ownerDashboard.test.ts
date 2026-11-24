@@ -6,6 +6,7 @@ import {
   childRates,
   countMarks,
   dashboardTiles,
+  deskCollectedThisMonthCents,
   filterMoney,
   moneyMonths,
   moneyRows,
@@ -177,5 +178,29 @@ describe("the four tiles", () => {
     expect(tiles.owedCount).toBe(2);
     expect(tiles.nextSessionDay?.date).toBe("2026-10-17");
     expect(tiles.privateThisWeek).toEqual({ accepted: 1, pending: 1 });
+  });
+});
+
+// 23 Nov audit: "Collected" left out what the desk records against a
+// registration (Futprep's term fees), not through a payment request.
+describe("desk payments count as collected", () => {
+  const desk = [
+    { amountCents: 34000, status: "received", receivedAt: "2026-10-03T14:00:00Z" },
+    { amountCents: 3400, status: "received", receivedAt: "2026-10-14T02:30:00Z" },
+    // 9:30 pm on 30 Sept in Nassau is still September.
+    { amountCents: 9900, status: "received", receivedAt: "2026-10-01T01:30:00Z" },
+    { amountCents: 5000, status: "refunded", receivedAt: "2026-10-05T14:00:00Z" },
+    { amountCents: 7000, status: "received", receivedAt: "" },
+  ];
+
+  it("adds this Nassau month's received desk payments", () => {
+    expect(deskCollectedThisMonthCents(desk, today)).toBe(37400);
+    expect(deskCollectedThisMonthCents([], today)).toBe(0);
+  });
+
+  it("puts them in the Collected tile with the request payments", () => {
+    const base = { requests: [], payments: [], sessions: [], privateRequests: [], today };
+    expect(dashboardTiles({ ...base, deskPayments: desk }).collectedThisMonthCents).toBe(37400);
+    expect(dashboardTiles(base).collectedThisMonthCents).toBe(0);
   });
 });

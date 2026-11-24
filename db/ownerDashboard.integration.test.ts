@@ -91,6 +91,16 @@ beforeAll(async () => {
   expect(privError).toBeNull();
   privateId = Number(priv!.id);
 
+  // Paid at the desk, not through a payment request (23 Nov audit: the
+  // "Collected" tile left these out): a term fee against Bodie's
+  // registration and the private session's fee.
+  const bodie = Number(regs!.find((r) => String(r.child_name).startsWith("Bodie"))!.id);
+  const { error: deskError } = await admin.from("payments").insert([
+    { registration_id: bodie, amount_cents: 4500, method: "cash", status: "received", recorded_by: MARK, received_at: new Date().toISOString() },
+    { private_session_request_id: privateId, amount_cents: 3000, method: "cash", status: "received", recorded_by: MARK, received_at: new Date().toISOString() },
+  ]);
+  expect(deskError).toBeNull();
+
   await savePaymentSettings(orgId, { referencePrefix: "TDB", bankName: "TEST Bank", accountName: MARK, accountNumberLast4: "0000", transferInstructions: "TEST", kanooHandleOrPhone: "", cashNote: "TEST desk", defaultDueDays: 7, acceptedMethods: ["bank_transfer", "cash"] }, actor());
   const request = (over: Record<string, unknown> = {}) => ({
     // Stored as E.164, as the route normalises it (payment_requests_customer_phone_check).
@@ -114,6 +124,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (requestIds.length) await admin.from("payments").delete().in("payment_request_id", requestIds);
+  if (registrationIds.length) await admin.from("payments").delete().in("registration_id", registrationIds);
+  if (privateId) await admin.from("payments").delete().eq("private_session_request_id", privateId);
   if (sessionIds.length) await admin.from("attendance").delete().in("session_id", sessionIds);
   if (sessionIds.length) await admin.from("sessions").delete().in("id", sessionIds);
   if (registrationIds.length) await admin.from("registrations").delete().in("id", registrationIds);
@@ -132,7 +144,8 @@ afterAll(async () => {
 describe("the owner's dashboard (brief 27, B)", () => {
   it("adds up the four tiles from the business's own rows", async () => {
     const data = await loadOwnerDashboard(orgId, { money: true });
-    expect(data.tiles.collectedThisMonthCents).toBe(42000);
+    // The paid request's $420, plus $45 and $30 recorded at the desk.
+    expect(data.tiles.collectedThisMonthCents).toBe(49500);
     expect(data.tiles.owedCents).toBe(4500);
     expect(data.tiles.owedCount).toBe(1);
     expect(data.tiles.nextSessionDay).toEqual({ date: nextDay, booked: 2, sessions: 1 });
