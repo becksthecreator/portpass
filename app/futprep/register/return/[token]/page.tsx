@@ -4,6 +4,7 @@ import { Suspense, type ReactNode } from "react";
 import { RegistrationForm } from "../../RegistrationForm";
 import { openReturnLink } from "@/db/registrations";
 import { EMPTY_ATTRIBUTION } from "@/lib/attribution";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 // A returning family's early-access link (brief 06 v2, Part C). Staff send
 // it by hand on WhatsApp, one family at a time. It fills in the parent,
@@ -27,7 +28,7 @@ function Shell({ children }: { children: ReactNode }) {
         <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
           <div className="futprep-program-brand compact"><img src="/futprep-logo.png" alt="Futprep Athletics" /><span><b>FUTPREP ATHLETICS</b><small>Early access for Futprep families</small></span></div>
-          <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>
+          <a className="header-link" href={FUTPREP_SITE}>Futprep home</a>
         </div>
       </header>
       {children}

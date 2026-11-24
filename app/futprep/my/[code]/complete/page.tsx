@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFutprepPendingRegistration } from "@/db/registrations";
 import { CompleteRegistrationForm } from "./CompleteRegistrationForm";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 // force-dynamic: reads the registration from the database at request time.
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ export default async function CompleteRegistrationPage({ params }: { params: Pro
       <header className="site-header form-header registration-header">
         <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
-          <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>
+          <a className="header-link" href={FUTPREP_SITE}>Futprep home</a>
         </div>
       </header>
       <section className="registration-shell">

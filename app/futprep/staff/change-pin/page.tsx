@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireFutprepStaff } from "../../staff-auth";
 import { ChangePinForm } from "./ChangePinForm";
 import { StaffLogoutButton } from "../StaffLogoutButton";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 export default async function FutprepChangePinPage() {
   await requireFutprepStaff(["admin", "coach", "ceo", "helper"], "/futprep/staff/change-pin");
@@ -15,7 +16,7 @@ export default async function FutprepChangePinPage() {
           <span className="staff-workspace-label">Futprep · Change PIN</span>
         </div>
         <nav>
-          <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
+          <a href={FUTPREP_SITE}>Parent view ↗</a>
           <StaffLogoutButton />
         </nav>
       </header>

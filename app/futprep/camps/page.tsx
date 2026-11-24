@@ -10,11 +10,12 @@ import { campDays, formatDateRange } from "@/lib/futprepTerms";
 import { portpassWhatsAppUrl } from "@/lib/contact";
 import { themeTokens, tokenStyle } from "@/lib/futprepTheme";
 import type { CSSProperties } from "react";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 // Where the empty state sends parents instead (brief 27 A): the two things
 // Futprep runs every week. No dates here: a camp's dates appear only once
 // its row is public and its registration window is open.
-const SATURDAY_SESSIONS_HREF = "/sports-fitness/futprep-athletics";
+const SATURDAY_SESSIONS_HREF = "/futprep/register";
 const PRIVATE_SESSIONS_HREF = "/futprep/book";
 
 // Futprep's holiday camps (brief 06 v2, A1.6): every public camp with an
@@ -70,7 +71,7 @@ export default async function FutprepCampsPage() {
 
   return (
     <div className={`${bizDisplay.variable} ${ppSans.variable}`} style={tokens as CSSProperties}>
-      <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: "Futprep Athletics", href: "/sports-fitness/futprep-athletics" }, { label: "Holiday camps", href: "/futprep/camps" }]} />
+      <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: "Futprep Athletics", href: FUTPREP_SITE }, { label: "Holiday camps", href: "/futprep/camps" }]} />
       <main className="tpl-page camps-page">
         <section className="camps-hero">
           <span className="camps-eyebrow">Futprep Athletics · Holiday camps</span>
@@ -140,7 +141,7 @@ export default async function FutprepCampsPage() {
                 </li>
               ))}
             </ul>
-            <p><Link href="/futprep/coaches">Meet the coaches →</Link></p>
+            <p><a href={FUTPREP_SITE}>Meet the coaches →</a></p>
           </section>
         )}
       </main>

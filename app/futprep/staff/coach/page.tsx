@@ -18,6 +18,7 @@ import { CoachRoster } from "./CoachRoster";
 import { CoachSessionTools } from "./CoachSessionTools";
 import { StaffLogoutButton } from "../StaffLogoutButton";
 import "../coaches.css";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +107,7 @@ export default async function FutprepCoachPage({
           {!readOnly && <Link href="/futprep/staff/programs">Programs</Link>}
           {!readOnly && <Link href="/futprep/staff/pay">Coach pay</Link>}
           {role==="ceo" && <Link href="/futprep/staff/contracts">Contracts</Link>}
-          <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
+          <a href={FUTPREP_SITE}>Parent view ↗</a>
           <StaffLogoutButton />
         </nav>
       </header>

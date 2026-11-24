@@ -6,6 +6,7 @@ import { CoachTeamManager } from "./CoachTeamManager";
 import { StaffLogoutButton } from "../StaffLogoutButton";
 import "../../coaches/booking-days.css";
 import "../coaches.css";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 export const dynamic="force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function FutprepTeamPage(){
   return <main className="staff-workspace theme-night">
     <header className="staff-workspace-header">
       <div><Link className="brand" href="/"><BrandLogo /></Link><span className="staff-workspace-label">Futprep · Team management</span></div>
-      <nav><Link href="/futprep/staff/private-sessions">Private sessions</Link><Link href="/futprep/staff/accounts">Staff accounts</Link>{role==="ceo"&&<Link href="/futprep/staff/ceo">CEO overview</Link>}<Link href="/futprep/coaches">Public team ↗</Link><StaffLogoutButton /></nav>
+      <nav><Link href="/futprep/staff/private-sessions">Private sessions</Link><Link href="/futprep/staff/accounts">Staff accounts</Link>{role==="ceo"&&<Link href="/futprep/staff/ceo">CEO overview</Link>}<a href={FUTPREP_SITE}>Public team ↗</a><StaffLogoutButton /></nav>
     </header>
     <section className="staff-workspace-content">
       <div className="staff-page-intro"><div><span className="section-kicker">{role==="ceo"?"CEO":"Admin"} · team control</span><h1>Futprep team.</h1></div><p>Add, hide, unhide, update, or retire team profiles. Public-facing bios, licenses, playing history, videos and testimonials live here so the same information can later power marketing assets.</p></div>

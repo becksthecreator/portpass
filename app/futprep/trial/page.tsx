@@ -8,6 +8,7 @@ import { EMPTY_ATTRIBUTION } from "@/lib/attribution";
 import { getSession } from "@/lib/auth/session";
 import { tasterCardCopy, upcomingTaster } from "@/lib/futprepClasses";
 import { nassauToday } from "@/lib/futprepTerms";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 // The free taster Saturday (brief 12, replacing #97's two in-term free
 // Saturdays): one pre-term Saturday per term, held as data on the term
@@ -42,7 +43,7 @@ export default async function FutprepTrialPage() {
         <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
           <div className="futprep-program-brand compact"><img src="/futprep-logo.png" alt="Futprep Athletics" /><span><b>FREE TASTER SATURDAY</b><small>by Futprep Athletics</small></span></div>
-          <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>
+          <a className="header-link" href={FUTPREP_SITE}>Futprep home</a>
           <Link className="header-link" href="/futprep/register">Register for the term</Link>
         </div>
       </header>

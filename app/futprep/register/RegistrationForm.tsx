@@ -13,6 +13,7 @@ import { formatDateRange, offerHeadline } from "@/lib/futprepTerms";
 import { ageInMonths, ageRangeMonths } from "@/lib/futprepClasses";
 import { FormEvent, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 import {
   FUTPREP_BANK_DETAILS,
   normalizeProgramSlug,
@@ -283,7 +284,7 @@ export function RegistrationForm({
           <div><dt>Location</dt><dd>{result.term.location}</dd></div>
           <div><dt>Status</dt><dd><span className="status status-submitted">{trial ? "Free taster" : "Waitlist"}</span></dd></div>
         </dl>
-        <a className="secondary-button" href={selectedProgram ? `/sports-fitness/futprep-athletics/${selectedProgram.slug}` : "/sports-fitness/futprep-athletics"}>Back to program details</a>
+        <a className="secondary-button" href={FUTPREP_SITE}>Back to program details</a>
         <InstallPrompt heading="Keep PortPass on your phone" lead="Add it to your home screen to come back to this in one tap. Nothing to download from a store." />
       </section>
     );
@@ -325,7 +326,7 @@ export function RegistrationForm({
           )}
         </div>
         <a className="primary-button" href={`/futprep/my/${result.referenceCode}`}>Check registration status →</a>
-        <a className="secondary-button" href={isCamp ? "/futprep/camps" : selectedProgram ? `/sports-fitness/futprep-athletics/${selectedProgram.slug}` : "/sports-fitness/futprep-athletics"}>{isCamp ? "Back to camps" : "Back to program details"}</a>
+        <a className="secondary-button" href={isCamp ? "/futprep/camps" : FUTPREP_SITE}>{isCamp ? "Back to camps" : "Back to program details"}</a>
         {/* Guest first, account after (speed & sign-in brief, 29 Sept, 2.1):
             one tap, email and name already filled in; the registration is
             attached to the account when the code is verified. */}
@@ -564,7 +565,7 @@ export function RegistrationForm({
         {error && <p className="form-error registration-error" role="alert">{error}</p>}
 
         <div className="registration-actions">
-          {step > 0 ? <button className="secondary-button" type="button" onClick={()=>setStep((s)=>s-1)} disabled={busy}>← Back</button> : <a className="secondary-button" href={isCamp ? "/futprep/camps" : selectedProgram ? `/sports-fitness/futprep-athletics/${selectedProgram.slug}` : "/sports-fitness/futprep-athletics"}>{isCamp ? "← Camp details" : "← Program details"}</a>}
+          {step > 0 ? <button className="secondary-button" type="button" onClick={()=>setStep((s)=>s-1)} disabled={busy}>← Back</button> : <a className="secondary-button" href={isCamp ? "/futprep/camps" : FUTPREP_SITE}>{isCamp ? "← Camp details" : "← Program details"}</a>}
           {step < steps.length - 1
             ? <button className="primary-button" type="button" onClick={next}>Continue →</button>
             : <button className="primary-button" type="submit" disabled={busy}>{busy ? "Submitting…" : isTrial ? "Book the free Saturday →" : isWaitlist ? "Join the waitlist →" : "Submit registration →"}</button>}
