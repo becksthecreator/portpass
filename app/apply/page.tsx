@@ -6,6 +6,7 @@ import { SiteFooter } from "@/app/_components/SiteFooter";
 import { listPlans } from "@/db/pricing";
 import type { PricingPlan } from "@/lib/pricingFormat";
 import { Scorecard, Ticket, type ScoreRow } from "@/app/_components/ticket/Ticket";
+import { portpassWhatsAppUrl } from "@/lib/contact";
 import "./first-look.css";
 
 // /apply is the First Look page (Site Design's mockup, Bex's OK, 24 Nov):
@@ -27,7 +28,7 @@ function DmFirstLook({ className }: { className: string }) {
   return (
     <p className={`fl-dm ${className}`}>
       <b>DM FIRST LOOK</b>
-      <span>Rather message? Send the two words to PortPass on Instagram. We reply and set a time.</span>
+      <span>Rather message? DM FIRST LOOK to PortPass on Instagram, or <a href={portpassWhatsAppUrl("Hi PortPass, I'd like a free First Look.")} target="_blank" rel="noopener noreferrer">WhatsApp us</a>. We reply and set a time.</span>
     </p>
   );
 }

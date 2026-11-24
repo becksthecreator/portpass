@@ -24,6 +24,7 @@
 .fl-dm{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin:0;font-size:.88rem;color:var(--ink);background:var(--paper);border-radius:12px;padding:12px 14px;border:1.5px dashed var(--line)}
 .fl-dm b{font-family:var(--font-pp-display),Archivo,sans-serif;font-weight:900;letter-spacing:.04em;background:var(--deck);border-radius:6px;padding:7px 9px;white-space:nowrap}
 .fl-dm span{flex:1 1 180px}
+.fl-dm a{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .fl-desk-only{display:none}
 
 @media (min-width:980px){

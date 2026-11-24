@@ -120,7 +120,6 @@ export function ApplicationForm({ plans }: { plans: PlanOption[] }) {
         <button className="primary-button" disabled={busy} type="submit">{busy ? "Sending…" : "Book my free First Look"}</button>
       </div>
       <PrivacyNote />
-      <p className="apply-alt">Rather just talk? <a href={whatsappHref} target="_blank" rel="noopener noreferrer">Message us on WhatsApp →</a></p>
     </form>
   );
 }
