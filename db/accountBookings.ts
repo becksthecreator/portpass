@@ -41,7 +41,7 @@ const LIMIT = 50;
 
 // An exact, case-insensitive match: the wildcard characters an address may
 // contain are escaped, so "a_b@x.com" never matches "acb@x.com".
-function exactEmail(email: string): string {
+export function exactEmail(email: string): string {
   return email.trim().toLowerCase().replace(/[\\%_]/g, (char) => `\\${char}`);
 }
 

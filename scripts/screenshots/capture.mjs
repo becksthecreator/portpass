@@ -191,6 +191,7 @@ const SHOTS = [
   ["brief18-header-signed-out-375", "anon", "/", null],
   ["brief18-signup-375", "anon", "/signup?as=customer", ".auth-doors"],
   ["brief18-account-375", "admin", "/account", null],
+  ["parent-home-2-coming-up-375", "admin", "/account", ".account-week"],
   // Brief 18, part G: a lime brand colour with no photo and no WhatsApp
   // number (as Carv is): the brand header, navy on lime, the Enquire form.
   ["brief18-lime-preview-375", "admin", "/business/test-delete-lime-gym/preview", ".tpl-enquire"],
