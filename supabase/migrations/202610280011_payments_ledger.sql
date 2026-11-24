@@ -179,7 +179,7 @@ declare
   v_is_test boolean := coalesce((p_request->>'is_test')::boolean, false);
   v_hash text;
   v_existing record;
-  v_payables bigint[];
+  v_payables text[];
   v_tx bigint;
   v_entry jsonb;
   v_account_key text;
