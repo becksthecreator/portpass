@@ -171,3 +171,11 @@
   .v4-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .v4-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+/* A card is as tall as its taller face (the details side), so the front
+   keeps its buttons at the bottom instead of leaving a gap under them; and
+   the celebration pieces stay behind the done screen's words. */
+.v4-face { display: flex; flex-direction: column; }
+.v4-face > .v4-card-actions { margin-top: auto; padding-top: 6px; }
+.v4-done-top > *:not(.v4-burst) { position: relative; z-index: 1; }
+.v4-burst { z-index: 0; }
