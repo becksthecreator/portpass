@@ -1309,6 +1309,14 @@ export async function updateFutprepRegistrationDetail(
     if (!moved) throw new Error("PROGRAM_NOT_AVAILABLE");
     delete updates.program_id;
     delete updates.term_id;
+    // The move is saved on its own, so its history line is written straight
+    // after it rather than waiting for the rest of the edit (Security & QA
+    // on #293): if a later step fails, the class change is still recorded.
+    if (changes.Programme) {
+      const { error: moveAuditError } = await db.from("registration_edits").insert({ registration_id: registrationId, changed_by: staffName, changes: { Programme: changes.Programme } });
+      throwIfSupabaseError(moveAuditError, "Could not record edit history");
+      delete changes.Programme;
+    }
   }
 
   if (Object.keys(updates).length) {

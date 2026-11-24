@@ -4,22 +4,32 @@
 --    (db/staff.ts updateFutprepRegistrationDetail) wrote the new class
 --    straight onto the row, with no count, so a move could put the new
 --    class over its cap. Now the move goes through
---    move_registration_within_cap, under the NEW class's lock (the same
---    lock as create_registration_within_cap and
---    set_registration_status_within_cap), and is refused when the child
---    holds a place and the new class is full.
+--    move_registration_within_cap, which takes the lock of BOTH classes,
+--    the one the child leaves and the one they join (the same lock key as
+--    create_registration_within_cap and set_registration_status_within_cap),
+--    and is refused when the child holds a place and the new class is full.
 --
 -- 2. A child could get free tasters in two classes at the same moment: the
 --    "already had a taster" check (TRIAL_ALREADY_USED) looks across the
 --    business, but the lock it ran under was one class's. Now a taster
 --    also takes a lock for the business's tasters, before the class's, so
 --    two taster requests for one business are answered one at a time.
---    Every caller takes the business lock first and the class lock second,
---    and nothing takes them the other way round, so they can't deadlock.
+--
+-- And, because a child can now change class under these locks (Security &
+-- QA on #293): set_registration_status_within_cap read the child's class
+-- before taking its lock and never again, so a status change racing a move
+-- could count the class the child was leaving. It now re-reads the class
+-- under the lock and, if a move got there first, takes the new class's lock
+-- and counts that one.
+--
+-- Lock order, so nothing can deadlock: a taster takes the business lock,
+-- then one class lock. A move takes its two class locks in ascending key
+-- order. A status change holds one class lock at a time while it checks,
+-- and only goes on to another after a move into that class has committed.
 --
 -- Refusals are answers, not errors, and nothing is written:
---   move: another business's row, programme or term -> {"refused": "NOT_FOUND"}
---         the new class is full                     -> {"refused": "PROGRAM_FULL"}
+--   move: another business's row, programme or term, or no row -> {"refused": "NOT_FOUND"}
+--         the new class is full                                -> {"refused": "PROGRAM_FULL"}
 --         otherwise -> {"id", "program_id", "term_id", "previous_program_id", "previous_term_id"}
 
 create or replace function public.move_registration_within_cap(
@@ -39,26 +49,53 @@ declare
   v_status text;
   v_program_id bigint;
   v_term_id bigint;
+  v_seen_program bigint;
+  v_seen_term bigint;
+  v_old_key integer;
+  v_new_key integer := hashtext(p_program_id::text || ':' || p_term_id::text);
+  v_attempt integer := 0;
 begin
   if p_registration_id is null or p_organization_id is null or p_program_id is null or p_term_id is null
      or coalesce(cardinality(p_active_statuses), 0) = 0 then
     raise exception 'move_registration_within_cap: bad request';
   end if;
 
-  -- The row, the programme and the term all belong to this business.
-  if not exists (select 1 from public.registrations r where r.id = p_registration_id and r.organization_id = p_organization_id)
-     or not exists (select 1 from public.programs p where p.id = p_program_id and p.organization_id = p_organization_id)
+  -- The programme and the term belong to this business.
+  if not exists (select 1 from public.programs p where p.id = p_program_id and p.organization_id = p_organization_id)
      or not exists (select 1 from public.program_terms t where t.id = p_term_id and t.program_id = p_program_id) then
     return jsonb_build_object('refused', 'NOT_FOUND');
   end if;
 
-  perform pg_advisory_xact_lock(hashtext('registrations'), hashtext(p_program_id::text || ':' || p_term_id::text));
+  loop
+    v_attempt := v_attempt + 1;
+    select r.program_id, r.term_id into v_seen_program, v_seen_term
+      from public.registrations r
+     where r.id = p_registration_id and r.organization_id = p_organization_id;
+    if not found then
+      return jsonb_build_object('refused', 'NOT_FOUND');
+    end if;
 
-  -- Read the row again under the lock: another request may just have
-  -- changed its status or class.
-  select r.registration_status, r.program_id, r.term_id into v_status, v_program_id, v_term_id
-    from public.registrations r
-   where r.id = p_registration_id and r.organization_id = p_organization_id;
+    -- Both classes, lower key first.
+    v_old_key := hashtext(v_seen_program::text || ':' || v_seen_term::text);
+    perform pg_advisory_xact_lock(hashtext('registrations'), least(v_old_key, v_new_key));
+    if v_old_key <> v_new_key then
+      perform pg_advisory_xact_lock(hashtext('registrations'), greatest(v_old_key, v_new_key));
+    end if;
+
+    -- Read the row again under the locks: another request may just have
+    -- changed its status or class, or deleted it.
+    select r.registration_status, r.program_id, r.term_id into v_status, v_program_id, v_term_id
+      from public.registrations r
+     where r.id = p_registration_id and r.organization_id = p_organization_id;
+    if not found then
+      return jsonb_build_object('refused', 'NOT_FOUND');
+    end if;
+    exit when (v_program_id, v_term_id) is not distinct from (v_seen_program, v_seen_term);
+    -- Another move got there first: look again, and lock its class too.
+    if v_attempt >= 3 then
+      raise exception 'move_registration_within_cap: the registration kept changing';
+    end if;
+  end loop;
 
   if (v_program_id, v_term_id) is distinct from (p_program_id, p_term_id) and v_status = any(p_active_statuses) then
     if p_cap is null or p_cap < 0 then
@@ -85,7 +122,84 @@ revoke all on function public.move_registration_within_cap(bigint, bigint, bigin
 grant execute on function public.move_registration_within_cap(bigint, bigint, bigint, bigint, integer, text[]) to service_role;
 
 comment on function public.move_registration_within_cap(bigint, bigint, bigint, bigint, integer, text[]) is
-  'Moves a registration to another class under the new class''s lock, refusing a move that would put a child holding a place into a full class. Called by db/registrations.ts only.';
+  'Moves a registration to another class under both classes'' locks, refusing a move that would put a child holding a place into a full class. Called by db/registrations.ts only.';
+
+-- set_registration_status_within_cap as in 202610280007, with one change:
+-- the class is read again under its lock, and if a move changed it, the new
+-- class is locked and read instead (marked below).
+create or replace function public.set_registration_status_within_cap(
+  p_registration_id bigint,
+  p_organization_id bigint,
+  p_status text,
+  p_cap integer,
+  p_active_statuses text[]
+)
+returns jsonb
+language plpgsql
+set search_path = public, pg_temp
+set lock_timeout = '10s'
+as $$
+declare
+  v_program_id bigint;
+  v_term_id bigint;
+  v_current text;
+  v_now_program bigint;
+  v_now_term bigint;
+  v_attempt integer := 0;
+begin
+  if p_registration_id is null or p_organization_id is null or p_status is null
+     or coalesce(cardinality(p_active_statuses), 0) = 0 then
+    raise exception 'set_registration_status_within_cap: bad request';
+  end if;
+
+  select r.program_id, r.term_id into v_program_id, v_term_id
+    from public.registrations r
+   where r.id = p_registration_id and r.organization_id = p_organization_id;
+  if v_program_id is null then
+    return jsonb_build_object('refused', 'NOT_FOUND');
+  end if;
+
+  -- Changed (202610280010): lock the class, then make sure the child is
+  -- still in it; a move may have committed in between.
+  loop
+    v_attempt := v_attempt + 1;
+    perform pg_advisory_xact_lock(hashtext('registrations'), hashtext(v_program_id::text || ':' || v_term_id::text));
+    select r.registration_status, r.program_id, r.term_id into v_current, v_now_program, v_now_term
+      from public.registrations r
+     where r.id = p_registration_id and r.organization_id = p_organization_id;
+    if not found then
+      return jsonb_build_object('refused', 'NOT_FOUND');
+    end if;
+    exit when (v_now_program, v_now_term) is not distinct from (v_program_id, v_term_id);
+    if v_attempt >= 3 then
+      raise exception 'set_registration_status_within_cap: the registration kept changing';
+    end if;
+    v_program_id := v_now_program;
+    v_term_id := v_now_term;
+  end loop;
+
+  if p_status = any(p_active_statuses) and not (v_current = any(p_active_statuses)) then
+    if p_cap is null or p_cap < 0 then
+      raise exception 'set_registration_status_within_cap: bad request';
+    end if;
+    if (select count(*) from public.registrations r
+         where r.program_id = v_program_id
+           and r.term_id = v_term_id
+           and r.registration_status = any(p_active_statuses)) >= p_cap then
+      return jsonb_build_object('refused', 'PROGRAM_FULL');
+    end if;
+  end if;
+
+  update public.registrations
+     set registration_status = p_status
+   where id = p_registration_id and organization_id = p_organization_id;
+
+  return jsonb_build_object('id', p_registration_id, 'registration_status', p_status, 'previous_status', v_current);
+end;
+$$;
+
+revoke all on function public.set_registration_status_within_cap(bigint, bigint, text, integer, text[]) from public, anon, authenticated;
+grant execute on function public.set_registration_status_within_cap(bigint, bigint, text, integer, text[]) to service_role;
 
 -- create_registration_within_cap as in 202610220001, with one change: a
 -- taster takes the business's taster lock first (marked below).

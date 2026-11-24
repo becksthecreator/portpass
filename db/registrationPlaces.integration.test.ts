@@ -1,11 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { updateFutprepRegistrationDetail } from "./staff";
+import { getSupabaseAdmin } from "./supabase";
 import { EMPTY_ATTRIBUTION } from "@/lib/attribution";
 import {
   createFutprepPendingRegistration,
   createFutprepRegistration,
   ensureFutprepPilotData,
+  setRegistrationStatusWithinCap,
   type FutprepRegistrationInput,
 } from "./registrations";
 
@@ -351,6 +353,23 @@ describe("moving a child to another class respects that class's cap (20261028001
     expect(placed).toHaveLength(1);
     expect(refused).toEqual(Array(3).fill("PROGRAM_FULL"));
     expect((await rowsIn(target)).filter((r) => TAKES_A_PLACE.has(r.registration_status))).toHaveLength(2);
+  });
+
+  it("a move and a reactivation at the same moment never put the new class over its cap (Security & QA on #293)", async () => {
+    for (let round = 0; round < 5; round += 1) {
+      const full = await newClass(1);
+      await createFutprepPendingRegistration(staffChild(full));
+      const from = await newClass(3);
+      const child = await createFutprepPendingRegistration(staffChild(from));
+      expect((await db().from("registrations").update({ registration_status: "cancelled" }).eq("id", child.registrationId)).error).toBeNull();
+
+      await allAtOnce([
+        () => updateFutprepRegistrationDetail(child.registrationId, { programSlug: full.slug }, deskName),
+        async () => { await setRegistrationStatusWithinCap(getSupabaseAdmin(), { registrationId: child.registrationId, organizationId, status: "pending" }); },
+      ]);
+
+      expect((await rowsIn(full)).filter((r) => TAKES_A_PLACE.has(r.registration_status))).toHaveLength(1);
+    }
   });
 
   it("a browser can't call the move function", async () => {
