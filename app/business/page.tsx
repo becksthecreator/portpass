@@ -11,9 +11,9 @@ import { getBusinessProof } from "@/db/businessProof";
 import { proofSentence } from "@/lib/businessProof";
 import { Board, Ticket } from "@/app/_components/ticket/Ticket";
 
-// The kinds of business on the board (Site Design, 24 Nov). "Boarding"
-// means we are taking that kind of business now, not that one is live.
-const BOARD = ["Salons", "Barbers", "Gyms", "Restaurants", "Tours", "Events"].map((name) => ({ name, status: "Boarding" }));
+// The kinds of business on the board (Site Design, 24 Nov), each
+// "Opening soon" (Bex, 25 Nov): none is claimed to be live.
+const BOARD = ["Salons", "Barbers", "Gyms", "Restaurants", "Tours", "Events"].map((name) => ({ name, status: "Opening soon" }));
 import "@/app/phase1.css";
 
 // No openGraph here on purpose: the root file-based image is inherited
@@ -80,7 +80,7 @@ export default async function BusinessPage() {
             the words beside them say it all. */}
         <div className="biz-hero-stack" aria-hidden="true">
           <Ticket top="Your business" topRight="Nassau" title="Saturday, 10:30" line="Found on PortPass · Booked in a minute" stubLabel="Ticket" stubValue="0001" stubFoot="Admit one" stamp="Booked" />
-          <Board rows={BOARD} label="Kinds of business we're taking now" />
+          <Board rows={BOARD} label="Kinds of business opening soon" />
         </div>
       </section>
 

@@ -79,8 +79,7 @@ export function Scorecard({ rows, foot }: { rows: ScoreRow[]; foot: string }) {
   );
 }
 
-// A departure board of kinds of business. "Boarding" means we're taking
-// that kind of business now, not that one is already live.
+// A departure board of kinds of business, each with a status line.
 export function Board({ rows, label }: { rows: { name: string; status: string }[]; label: string }) {
   return (
     <div className="tk-board" role="group" aria-label={label}>

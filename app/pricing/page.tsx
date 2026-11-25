@@ -32,14 +32,14 @@ export const metadata: Metadata = {
 };
 
 const STEPS: { step: string; name: string; price: string; text: string }[] = [
-  { step: "Diagnose", name: "We look", price: "Free", text: "We sit with you, find where your time, money and customers leak, and why earlier fixes didn't stick. You get a short written plan. No charge, and nothing to sign." },
+  { step: "Diagnose", name: "We look", price: "Free", text: "In about 30 minutes, at your business or on a call, we find where your time, money and customers leak, and why earlier fixes didn't stick. You get a short written plan. No charge, and nothing to sign." },
   { step: "Fix", name: "We fix", price: "Quoted", text: "If you want us to fix it, we quote the set-up for your business before we start: PortPass set up for you, your website and marketing where you need them, and your staff shown how to use it." },
   { step: "Run", name: "We run it with you", price: "Monthly", text: "We keep it running and send you an update every week, on a monthly retainer or a share of revenue. We agree which, and the amount, before we start." },
 ];
 
 const FAQS: { q: string; a: string }[] = [
   { q: "Why is there no price list?", a: "Because a gym, a salon and a summer camp need different things. We'd rather look first and quote you a price that fits your business than sell you a plan you don't need." },
-  { q: "Is the first look really free?", a: "Yes. We sit with you, look at how the business runs and give you a short written plan. You owe nothing, and you can keep the plan whether or not you work with us." },
+  { q: "Is the first look really free?", a: "Yes. In about 30 minutes, at your business or on a call, we look at how the business runs and give you a short written plan. You owe nothing, and you can keep the plan whether or not you work with us." },
   { q: "Do you take a cut of my payments?", a: "No. Your customers pay you directly. If we agree a share of revenue for running things, we invoice it to you separately. We never take it out of your customers' payments, and PortPass never holds your money." },
   { q: "Can customers pay by card?", a: "Card payments are not available yet. Cash and bank transfer work today, paid straight to you." },
   // VAT wording waits for the accountant's confirmation; this is the placeholder the brief asks for.

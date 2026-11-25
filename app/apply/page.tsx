@@ -15,20 +15,22 @@ import "./first-look.css";
 const APPLY_TITLE = "Your free First Look | PortPass Bahamas";
 const APPLY_DESCRIPTION = "We look at your business the way a new customer does. Then we show you what we found.";
 
-// An example: the five rows a First Look scores, with example marks.
+// An example: the six rows a First Look scores (the same six as the
+// outreach pack's call scorecard, Bex 25 Nov), with example marks.
 const SCORE_ROWS: ScoreRow[] = [
   { name: "How customers find you", detail: "Google, Instagram, word of mouth", mark: "Strong", tone: "strong" },
   { name: "How they book", detail: "Calls, DMs, walk-ins, paper book", mark: "Fix", tone: "signal" },
   { name: "How fast you reply", detail: "The messages that go unanswered", mark: "Fix", tone: "signal" },
   { name: "How they pay", detail: "Deposits, no-shows, who still owes", mark: "OK", tone: "ok" },
   { name: "What brings them back", detail: "Reminders, reviews, regulars", mark: "OK", tone: "ok" },
+  { name: "Your time", detail: "Hours a week on messages and admin", mark: "Fix", tone: "signal" },
 ];
 
 function DmFirstLook({ className }: { className: string }) {
   return (
     <p className={`fl-dm ${className}`}>
       <b>DM FIRST LOOK</b>
-      <span>Rather message? DM FIRST LOOK to PortPass on Instagram, or <a href={portpassWhatsAppUrl("Hi PortPass, I'd like a free First Look.")} target="_blank" rel="noopener noreferrer">WhatsApp us</a>. We reply and set a time.</span>
+      <span>Rather message? Send the two words to PortPass on Instagram, or <a href={portpassWhatsAppUrl("Hi PortPass, I'd like a free First Look.")} target="_blank" rel="noopener noreferrer">WhatsApp us</a>. We reply and set a time.</span>
     </p>
   );
 }
@@ -77,7 +79,7 @@ export default async function ApplyPage() {
             <h1>Your free <br />First <span>Look.</span></h1>
             <p className="fl-sub">We look at your business the way a new customer does. Then we show you what we found.</p>
           </div>
-          <Ticket top="First Look" topRight="No cost" title="About one hour" line="At your business · One-page scorecard after" stubLabel="Pass" stubValue="FREE" stubFoot="No obligation" stamp="Free" />
+          <Ticket top="First Look" topRight="No cost" title="About 30 minutes" line="At your business or on a call · One-page scorecard after" stubLabel="Pass" stubValue="FREE" stubFoot="No obligation" stamp="Free" />
           <a className="home-button fl-phone-only" href="#book">Book my free First Look</a>
           <DmFirstLook className="fl-phone-only" />
           <Scorecard rows={SCORE_ROWS} foot="Example scorecard. Yours is about your business, plus the two or three fixes we'd make first." />
