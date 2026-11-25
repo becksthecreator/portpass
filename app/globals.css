@@ -53,7 +53,7 @@
    container the way `overflow-x:hidden` would -- hidden breaks
    `position:sticky` (the mobile action bar depends on it), clip doesn't. */
 html{scroll-behavior:smooth;overflow-x:clip}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-pp-sans),Arial,Helvetica,sans-serif}
 /* A single oversized third-party embed is the usual other cause of
    horizontal overflow -- there are three WeddingWire scripts injecting
    content into this page now. */
@@ -5005,6 +5005,11 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .nav-panel::before{content:"";position:absolute;left:0;right:0;top:-10px;height:10px}
 .nav-panel-all{display:flex;justify-content:space-between;align-items:center;gap:12px;border-radius:8px;color:var(--ink);font-weight:800;font-size:.9rem;padding:10px 12px;text-decoration:none}
 .nav-panel-all:hover,.nav-panel-all:focus-visible{background:var(--deck)}
+.nav-panel-soon,.sheet-soon{display:grid;gap:6px;border-top:1px solid var(--line);margin-top:6px;padding:12px 12px 6px;font-size:.85rem;color:var(--muted);max-width:320px}
+.nav-panel-soon p,.sheet-soon p{margin:0;line-height:1.45}
+.nav-panel-soon strong,.sheet-soon strong{display:block;color:var(--ink);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
+.nav-panel-soon a,.sheet-soon a{color:var(--signal);font-weight:700;text-decoration:underline;text-underline-offset:3px;display:inline-flex;align-items:center;min-height:44px}
+.sheet-soon{max-width:none;margin:0 18px;padding:12px 4px 14px;flex:0 0 auto}
 .nav-panel-list{list-style:none;margin:6px 0 0;padding:6px 0 0;border-top:1px solid var(--line);display:grid}
 .nav-panel-list a{display:flex;justify-content:space-between;align-items:center;gap:16px;border-radius:8px;color:var(--ink);font-size:.9rem;font-weight:600;padding:9px 12px;text-decoration:none}
 .nav-panel-list a:hover,.nav-panel-list a:focus-visible{background:var(--deck)}
@@ -5041,6 +5046,8 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 .site-shell-footer-contact a{color:var(--sky);text-decoration:underline;text-underline-offset:3px}
 .site-shell-footer-categories{display:flex;flex-wrap:wrap;gap:16px;font-size:.8rem;font-weight:600}
 .site-shell-footer-categories a{color:#fff}
+.site-shell-footer-soon{flex-basis:100%;margin:0;font-weight:500;color:rgba(255,255,255,.78)}
+.site-shell-footer-soon a{text-decoration:underline;text-underline-offset:3px}
 .site-shell-footer-prices{color:rgba(255,255,255,.74);font-size:.78rem;margin:0 0 16px}
 .site-shell-footer-legal{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding-top:18px;border-top:1px solid rgba(255,255,255,.16);font-size:.75rem;color:rgba(255,255,255,.66)}
 .site-shell-footer-legal nav{display:flex;flex-wrap:wrap;gap:16px}
