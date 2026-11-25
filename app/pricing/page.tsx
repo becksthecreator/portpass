@@ -14,6 +14,7 @@ import { SiteFooter } from "@/app/_components/SiteFooter";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { PageTransition } from "@/app/_components/motion/PageTransition";
 import { portpassWhatsAppUrl } from "@/lib/contact";
+import { Ticket } from "@/app/_components/ticket/Ticket";
 import { jsonLdString } from "@/lib/seo/jsonLd";
 
 const SITE_URL = "https://portpassbahamas.com";
@@ -31,14 +32,14 @@ export const metadata: Metadata = {
 };
 
 const STEPS: { step: string; name: string; price: string; text: string }[] = [
-  { step: "Diagnose", name: "We look", price: "Free", text: "We sit with you, find where your time, money and customers leak, and why earlier fixes didn't stick. You get a short written plan. No charge, and nothing to sign." },
+  { step: "Diagnose", name: "We look", price: "Free", text: "In about 30 minutes, at your business or on a call, we find where your time, money and customers leak, and why earlier fixes didn't stick. You get a short written plan. No charge, and nothing to sign." },
   { step: "Fix", name: "We fix", price: "Quoted", text: "If you want us to fix it, we quote the set-up for your business before we start: PortPass set up for you, your website and marketing where you need them, and your staff shown how to use it." },
   { step: "Run", name: "We run it with you", price: "Monthly", text: "We keep it running and send you an update every week, on a monthly retainer or a share of revenue. We agree which, and the amount, before we start." },
 ];
 
 const FAQS: { q: string; a: string }[] = [
   { q: "Why is there no price list?", a: "Because a gym, a salon and a summer camp need different things. We'd rather look first and quote you a price that fits your business than sell you a plan you don't need." },
-  { q: "Is the first look really free?", a: "Yes. We sit with you, look at how the business runs and give you a short written plan. You owe nothing, and you can keep the plan whether or not you work with us." },
+  { q: "Is the first look really free?", a: "Yes. In about 30 minutes, at your business or on a call, we look at how the business runs and give you a short written plan. You owe nothing, and you can keep the plan whether or not you work with us." },
   { q: "Do you take a cut of my payments?", a: "No. Your customers pay you directly. If we agree a share of revenue for running things, we invoice it to you separately. We never take it out of your customers' payments, and PortPass never holds your money." },
   { q: "Can customers pay by card?", a: "Card payments are not available yet. Cash and bank transfer work today, paid straight to you." },
   // VAT wording waits for the accountant's confirmation; this is the placeholder the brief asks for.
@@ -57,14 +58,15 @@ export default function PricingPage() {
         <p>{SUB}</p>
       </section>
 
-      <section className="pricing-cards" aria-label="Diagnose, fix, run">
+      {/* The three steps as stamped tickets (Site Design's First Look pages,
+          24 Nov). The words are unchanged; the stamp is each step's price
+          status, never a price. */}
+      <section className="pricing-cards pricing-tickets" aria-label="Diagnose, fix, run">
         {STEPS.map((s, i) => (
-          <article className={`pricing-card${i === 0 ? " pricing-card-featured" : ""}`} key={s.step}>
-            <span className="pricing-badge">{`${i + 1}. ${s.step}`}</span>
-            <h2>{s.name}</h2>
-            <div className="pricing-price"><strong>{s.price}</strong></div>
-            <p className="pricing-card-blurb">{s.text}</p>
-            {i === 0 && <Link className="home-button" href={APPLY_HREF} data-still="">Book a free first look</Link>}
+          <article key={s.step}>
+            <Ticket titleAs="h2" top={`Step ${i + 1}`} topRight={s.step} title={s.name} line={s.text} stubLabel="Step" stubValue={String(i + 1).padStart(2, "0")} stubFoot={s.price} stamp={s.price} stampTone={i === 0 ? "signal" : "ink"} stripe={i === 0 ? "signal" : "ink"}>
+              {i === 0 && <Link className="home-button pricing-ticket-cta" href={APPLY_HREF} data-still="">Book a free First Look</Link>}
+            </Ticket>
           </article>
         ))}
       </section>

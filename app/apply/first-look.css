@@ -1,0 +1,36 @@
+/* /apply as the First Look page (Site Design's mockup, 24 Nov). Phone:
+   headline, ticket, button, DM, scorecard, then the form. From 980px: the
+   words, ticket and scorecard beside the form. */
+.fl-page{padding-bottom:0}
+.fl{max-width:1200px;margin:0 auto;padding:36px 16px 64px;display:grid;grid-template-columns:minmax(0,1fr);gap:28px;align-items:start}
+.fl-left{display:flex;flex-direction:column;gap:20px;min-width:0}
+.fl-kicker{margin:0;font-size:.75rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--signal)}
+.fl-words h1{font-family:var(--font-pp-display),Archivo,sans-serif;font-stretch:104%;font-weight:900;font-size:clamp(2.5rem,8vw,4rem);line-height:.9;letter-spacing:-.03em;margin:12px 0 0;text-wrap:balance}
+.fl-words h1 span{color:var(--signal)}
+.fl-sub{margin:14px 0 0;font-size:1.05rem;line-height:1.55;color:var(--muted);max-width:30em}
+.fl-note{margin:0;font-size:.9rem;color:var(--muted)}
+.fl-note a{color:var(--harbour);font-weight:700}
+.fl-left .home-button{align-self:stretch;text-align:center;justify-content:center}
+
+.fl-form{background:var(--paper);border-radius:16px;box-shadow:0 18px 40px -22px rgba(13,27,61,.35);padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0;scroll-margin-top:90px}
+.fl-form h2{margin:0;font-family:var(--font-pp-display),Archivo,sans-serif;font-stretch:104%;font-weight:900;font-size:1.4rem}
+.fl-form .application-form{border:0;padding:0;max-width:none;margin:0;background:transparent}
+.fl-form .form-grid{grid-template-columns:minmax(0,1fr)}
+.fl-form .full-field{grid-column:auto}
+.fl-form .form-submit{flex-direction:column;align-items:stretch;gap:10px}
+.fl-form .form-submit .primary-button{width:100%}
+.fl-form .confirmation{margin:0;max-width:none}
+
+.fl-dm{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin:0;font-size:.88rem;color:var(--ink);background:var(--paper);border-radius:12px;padding:12px 14px;border:1.5px dashed var(--line)}
+.fl-dm b{font-family:var(--font-pp-display),Archivo,sans-serif;font-weight:900;letter-spacing:.04em;background:var(--deck);border-radius:6px;padding:7px 9px;white-space:nowrap}
+.fl-dm span{flex:1 1 180px}
+.fl-dm a{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px;display:inline-block;padding-block:12px;margin-block:-12px}
+.fl-desk-only{display:none}
+
+@media (min-width:980px){
+  .fl{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:40px;padding:56px 5vw 80px}
+  .fl-phone-only{display:none}
+  .fl-desk-only{display:flex}
+  .fl-form .form-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .fl-form .full-field{grid-column:1/-1}
+}

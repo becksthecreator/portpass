@@ -85,7 +85,7 @@ export function ApplicationForm({ plans }: { plans: PlanOption[] }) {
         <span className="confirmation-mark">✓</span>
         <div className="eyebrow"><span className="eyebrow-dot" />Got it</div>
         <h2>We&rsquo;ll message you on WhatsApp.</h2>
-        <p>Usually within a business day. Have a few photos and your prices ready and we&rsquo;ll build the page from there.</p>
+        <p>Usually within a business day, to set a time for your First Look.</p>
         <a className="primary-button" href={whatsappHref} target="_blank" rel="noopener noreferrer">Message us now on WhatsApp →</a>
       </section>
     );
@@ -116,11 +116,10 @@ export function ApplicationForm({ plans }: { plans: PlanOption[] }) {
       </div>
       {error && <p className="form-error">{error}</p>}
       <div className="form-submit">
-        <p>We reply on WhatsApp. No account or card needed to get started.</p>
-        <button className="primary-button" disabled={busy} type="submit">{busy ? "Sending…" : "Get listed →"}</button>
+        <p>We&rsquo;ll message you on WhatsApp within a business day to set a time.</p>
+        <button className="primary-button" disabled={busy} type="submit">{busy ? "Sending…" : "Book my free First Look"}</button>
       </div>
       <PrivacyNote />
-      <p className="apply-alt">Rather just talk? <a href={whatsappHref} target="_blank" rel="noopener noreferrer">Message us on WhatsApp →</a></p>
     </form>
   );
 }
