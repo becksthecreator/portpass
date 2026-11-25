@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NOT_FOUND_METADATA } from "@/lib/notFoundMetadata";
 import { notFound } from "next/navigation";
 import { CategoryPage, liveBusinessNames } from "@/app/_components/CategoryPage";
 import { listSections } from "@/db/categories";
@@ -30,7 +31,7 @@ async function visibleSection(slug: string) {
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { category } = await params;
   const section = await visibleSection(category);
-  if (!section) return {};
+  if (!section) return NOT_FOUND_METADATA;
   const names = await liveBusinessNames(section.slug);
   const live = names.length;
   const title = sectionTitle(section.name);
