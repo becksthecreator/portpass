@@ -2,6 +2,7 @@ import { BrandLogo } from "@/app/_components/BrandLogo";
 import Link from "next/link";
 import { getSiteContent } from "@/db/siteContent";
 import { getNavTree } from "@/lib/navSections";
+import { SECTIONS } from "@/lib/sections";
 import { announcementVisible, nassauDay } from "@/lib/siteContent";
 import { HeaderAccount } from "./HeaderAccount";
 import { SiteNav } from "./SiteNav";
@@ -41,6 +42,11 @@ export async function SiteHeader({ breadcrumb, tide = false }: { breadcrumb?: Cr
   // Its link is never prefetched: it is on every page, and a prefetch of a
   // business's page must not count as a visit that came from PortPass.
   const [sections, { announcement }] = await Promise.all([getNavTree(), getSiteContent()]);
+  // Every other kind of business, named in the Browse menu as "opening
+  // soon" text (pre-ads audit, 24 Nov): a hidden section's page is a 404 or
+  // a redirect, so it isn't a link until it is un-hidden in Admin.
+  const live = new Set(sections.map((section) => section.href));
+  const soon = SECTIONS.filter((s) => !live.has(s.href)).map((s) => s.name);
   const announce = announcementVisible(announcement, nassauDay()) ? announcement : null;
   // The full trail ("PortPass / Weddings / Bahamas Weddings By The Sea")
   // reads like a file path, so only a single link back to the immediate
@@ -72,7 +78,7 @@ export async function SiteHeader({ breadcrumb, tide = false }: { breadcrumb?: Cr
       <HeaderMotion />
       <div className="site-shell-header-top">
         <Link className="site-shell-brand" href="/" transitionTypes={tideTypes}><BrandLogo markQuery={HEADER_MARK_QUERY} /></Link>
-        <SiteNav sections={sections} tide={tide} />
+        <SiteNav sections={sections} soon={soon} tide={tide} />
         <div className="site-shell-header-actions">
           <HeaderAccount />
           <Link className="site-shell-for-business site-shell-pricing" href="/pricing" transitionTypes={tideTypes}>Pricing</Link>
