@@ -6,6 +6,7 @@ import { hasPlatformRole } from "@/lib/auth/guards";
 import { hasAnyStaffAccount } from "../../staff-auth";
 import { StaffLoginForm } from "./StaffLoginForm";
 import { BootstrapAdminForm } from "./BootstrapAdminForm";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 export default async function StaffLoginPage({
   searchParams,
@@ -32,8 +33,8 @@ export default async function StaffLoginPage({
       <header className="site-header form-header registration-header">
         <Link className="brand" href="/"><BrandLogo /></Link>
         <div className="registration-header-right">
-          <Link className="header-link" href="/sports-fitness/futprep-athletics">Futprep home</Link>
-          <Link className="header-link" href="/sports-fitness/futprep-athletics/lil-kickers">Parent view</Link>
+          <a className="header-link" href={FUTPREP_SITE}>Futprep home</a>
+          <a className="header-link" href={FUTPREP_SITE}>Parent view</a>
         </div>
       </header>
       <section className="staff-login-shell">

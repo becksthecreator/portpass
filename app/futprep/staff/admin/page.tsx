@@ -8,6 +8,7 @@ import { listFutprepOffers } from "@/db/registrations";
 import { offerHeadline } from "@/lib/futprepTerms";
 import { MoneySummary } from "./MoneySummary";
 import { StaffLogoutButton } from "../StaffLogoutButton";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function FutprepStaffAdminPage() {
           <Link href="/futprep/staff/contracts">Contracts</Link>
           <Link href="/futprep/staff/pay">Coach pay</Link>
           <Link href="/futprep/staff/accounts">Staff accounts</Link>
-          <Link href="/sports-fitness/futprep-athletics/lil-kickers">Parent view ↗</Link>
+          <a href={FUTPREP_SITE}>Parent view ↗</a>
           <StaffLogoutButton />
         </nav>
       </header>
