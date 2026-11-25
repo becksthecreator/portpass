@@ -42,7 +42,7 @@ function OpeningSoon({ soon, className, tabIndex }: { soon: string[]; className:
   return (
     <div className={className}>
       <p><strong>Opening next</strong> Every kind of business, from salons to tours</p>
-      <Link href="/apply" tabIndex={tabIndex}>Book a free First Look <span aria-hidden="true">→</span></Link>
+      <Link href="/apply" tabIndex={tabIndex} aria-label="Book a free First Look">Book a free First Look <span aria-hidden="true">→</span></Link>
     </div>
   );
 }
