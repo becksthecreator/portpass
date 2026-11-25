@@ -41,7 +41,7 @@
 .tk-board ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}
 .tk-board li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-radius:5px;background:linear-gradient(#16264D 0 calc(50% - .5px),#0A1430 calc(50% - .5px) calc(50% + .5px),#1A2C58 calc(50% + .5px))}
 .tk-board li b{font-family:var(--font-pp-display),Archivo,sans-serif;font-weight:800;font-size:.95rem;letter-spacing:.3em;text-transform:uppercase;min-width:0;overflow-wrap:anywhere}
-.tk-board li small{font-family:var(--font-pp-display),Archivo,sans-serif;font-weight:800;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#8DB8F2}
+.tk-board li small{font-family:var(--font-pp-display),Archivo,sans-serif;font-weight:800;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#8DB8F2;white-space:nowrap}
 
 @media (max-width:700px){
   .tk{--stub:86px}
@@ -50,4 +50,5 @@
   .tk-stub b{font-size:1.4rem}
   .tk>.tk-stamp{display:none}
   .tk-has-stamp .tk-main{padding-bottom:12px}
+  .tk-board li b{letter-spacing:.16em;font-size:.85rem}
 }
