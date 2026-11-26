@@ -4481,8 +4481,12 @@ footer p,footer>a:last-child,.footer-partner{color:var(--muted);font-size:.74rem
 /* /business (PortPass for business) -- built on the home-theme tokens. */
 .biz-hero{padding:72px 5vw 40px;max-width:1000px;margin:0 auto;text-align:center}
 .biz-hero h1{font-family:var(--hp-font-display);font-size:clamp(2.1rem,5vw,3.6rem);font-weight:700;letter-spacing:-.02em;line-height:1.05;margin:0 0 18px}
-.biz-hero>p{color:var(--muted);font-size:1.1rem;line-height:1.6;max-width:640px;margin:0 auto 28px}
+.biz-hero>p,.biz-hero-words>p{color:var(--muted);font-size:1.1rem;line-height:1.6;max-width:640px;margin:0 auto 28px}
 .biz-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.biz-hero-ticket{max-width:1200px;display:grid;grid-template-columns:minmax(0,1fr);gap:32px;align-items:center;padding-left:16px;padding-right:16px}
+.biz-hero-ticket h1 span{color:var(--signal)}
+.biz-hero-stack{display:flex;flex-direction:column;gap:16px;width:min(520px,100%);justify-self:center;text-align:left}
+@media(min-width:980px){.biz-hero-ticket{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;text-align:left;padding:64px 5vw 48px}.biz-hero-ticket>.biz-hero-words>p{margin-left:0}.biz-hero-ticket .biz-actions{justify-content:flex-start}}
 .biz-sections{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));max-width:1100px;margin:0 auto;padding:10px 5vw 70px}
 .biz-section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
 .biz-section h2{font-family:var(--hp-font-display);font-size:1.2rem;font-weight:700;margin:0 0 8px}
@@ -5400,6 +5404,10 @@ a.admin-tile:hover{border-color:var(--sky)}
 .pricing-toggle a[aria-current]{background:var(--ink);color:#fff}
 .pricing-toggle-note{display:block;margin-top:10px;font-size:.84rem;color:var(--harbour);font-weight:700}
 .pricing-cards{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));max-width:1160px;margin:0 auto;padding:28px 5vw 30px}
+.pricing-tickets{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:22px;max-width:1260px;padding-left:max(16px,3vw);padding-right:max(16px,3vw)}
+.pricing-tickets .tk{--stub:90px}
+.pricing-tickets .tk-main{min-height:190px}
+.pricing-ticket-cta{align-self:flex-start;margin-top:8px;padding:12px 20px}
 .pricing-card{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:26px 22px;display:flex;flex-direction:column;gap:10px}
 .pricing-card-featured{border-color:var(--ink);box-shadow:0 12px 30px rgba(11,42,60,.08)}
 .pricing-badge{position:absolute;top:-12px;left:22px;background:var(--ink);color:#fff;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:999px}
