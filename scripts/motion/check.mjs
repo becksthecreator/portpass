@@ -68,17 +68,21 @@ function totp(base32Secret, now = Date.now()) {
 const HERO = ".fd";
 // Its entrance is CSS and finishes on its own; this waits for it, 2.5 s at
 // most.
+// (The selector is passed in: the callback runs in the browser, which
+// cannot see this file's constants.)
 const heroSettled = (page) =>
-  page.evaluate(() =>
-    Promise.race([
-      Promise.all(
-        document
-          .getAnimations()
-          .filter((a) => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest(HERO))
-          .map((a) => a.finished.catch(() => null)),
-      ).then(() => true),
-      new Promise((resolve) => setTimeout(() => resolve(false), 2500)),
-    ]),
+  page.evaluate(
+    (hero) =>
+      Promise.race([
+        Promise.all(
+          document
+            .getAnimations()
+            .filter((a) => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest(hero))
+            .map((a) => a.finished.catch(() => null)),
+        ).then(() => true),
+        new Promise((resolve) => setTimeout(() => resolve(false), 2500)),
+      ]),
+    HERO,
   );
 const notAtFullOpacity = () => Array.from(document.querySelectorAll("[data-reveal], [data-reveal][data-stagger] > *")).filter((el) => getComputedStyle(el).opacity !== "1").length;
 
@@ -575,7 +579,7 @@ try {
     await page.waitForTimeout(700);
     const stillArrived = await page.evaluate(() => document.querySelectorAll("[data-reveal][data-in]").length);
     // The scroll-linked line and ferry may run.
-    const replaying = await page.evaluate(() => document.getAnimations().filter((a) => a.playState === "running" && a.effect && a.effect.target && a.effect.target.closest && !a.effect.target.closest(HERO) && !a.effect.target.closest(".home-how-steps-wrap")).length);
+    const replaying = await page.evaluate((hero) => document.getAnimations().filter((a) => a.playState === "running" && a.effect && a.effect.target && a.effect.target.closest && !a.effect.target.closest(hero) && !a.effect.target.closest(".home-how-steps-wrap")).length, HERO);
     check(stillArrived === arrivedBefore && replaying === 0, "nothing re-triggers on scrolling back up and down again", `${arrivedBefore} arrived, then ${stillArrived}; ${replaying} running outside the hero and the line`);
     await context.close();
 
