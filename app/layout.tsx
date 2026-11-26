@@ -11,8 +11,8 @@ import { PwaRegister } from "./_components/PwaRegister";
 import { analyticsRedactionScript } from "@/lib/analyticsRedact";
 import { ppDisplay, ppSans } from "./fonts";
 
-const TITLE = "PortPass Bahamas | Sports clubs, coaches and gyms in The Bahamas";
-const DESCRIPTION = "Sports clubs, coaches and gyms in The Bahamas: find a class, register and pay the club directly.";
+const TITLE = "PortPass Bahamas | Bookings and payments for Bahamian businesses";
+const DESCRIPTION = "Classes, tours, tables, appointments and events from businesses across The Bahamas. Book in a few taps and pay the business directly, by cash or bank transfer.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://portpassbahamas.com"),

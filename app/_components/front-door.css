@@ -1,0 +1,43 @@
+/* Home page Section 1, "The front door" (app/_components/FrontDoor.tsx).
+   Harbour Signal tokens only (app/globals.css). Phone first: one column
+   at 375px, words then picture; two columns from 900px. The pictures rise in
+   once; they sit still under reduced motion and with the kill switch off. */
+
+.fd{background:var(--deck);color:var(--ink);overflow:hidden;position:relative;isolation:isolate}
+.fd-inner{max-width:1160px;margin:0 auto;padding:40px 16px 48px;display:grid;grid-template-columns:minmax(0,1fr);gap:36px;align-items:center}
+.fd-words{min-width:0}
+@media(min-width:900px){.fd-inner{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);padding:72px 5vw 80px;gap:48px}}
+
+.fd-kicker{font-size:.75rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--harbour);margin:0 0 14px}
+.fd-title{font-family:var(--hp-font-display);font-size:clamp(2.35rem,7.4vw,4.4rem);line-height:1.02;letter-spacing:-.025em;font-weight:800;margin:0 0 18px;text-wrap:balance}
+.fd-phrase{display:inline-block}
+.fd-one{color:var(--signal)}
+.fd-lede{font-size:clamp(1rem,2.4vw,1.15rem);line-height:1.55;color:var(--muted);margin:0 0 22px;max-width:36em}
+
+.fd-search{margin:0 0 20px;max-width:30rem}
+.fd-search-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.fd-search-row{display:flex;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px;box-shadow:0 8px 24px rgba(13,27,61,.06)}
+.fd-search-row input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:1rem;padding:10px 14px;color:var(--ink)}
+.fd-search-row input:focus{outline:none}
+.fd-search-row:focus-within{border-color:var(--harbour);box-shadow:0 0 0 3px var(--tint)}
+.fd-search-row button{border:0;border-radius:999px;background:var(--ink);color:#fff;font-weight:700;padding:10px 18px;cursor:pointer}
+.fd-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px}
+.fd-owner{color:var(--harbour);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+
+@keyframes fd-rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+/* ---- real: photographs and a real screen ------------------------------ */
+.fd-real{position:relative;justify-self:center;width:min(460px,100%);aspect-ratio:1/1.12}
+.fd-photo,.fd-device{position:absolute;overflow:hidden;box-shadow:0 22px 44px rgba(13,27,61,.18);background:var(--tint)}
+.fd-photo img,.fd-device img{object-fit:cover}
+.fd-photo-a{left:0;top:0;width:60%;aspect-ratio:4/5;border-radius:22px}
+.fd-photo-b{right:0;top:12%;width:46%;aspect-ratio:3/4;border-radius:22px}
+.fd-device{left:30%;top:36%;width:34%;aspect-ratio:9/18.5;border-radius:26px;border:8px solid var(--ink);background:var(--paper)}
+.fd-device img{object-position:top}
+/* Off under reduced motion and when the Admin kill switch is off
+   (data-motion="off" on <html>, lib/motion/motion.css). */
+@media (prefers-reduced-motion: no-preference){
+  html[data-motion="on"] .fd-photo-a{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .1s both}
+  html[data-motion="on"] .fd-photo-b{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .3s both}
+  html[data-motion="on"] .fd-device{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .5s both}
+}
