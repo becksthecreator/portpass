@@ -5,8 +5,15 @@
 //   1. With reduced motion asked for, nothing animates on / after load
 //      (document.getAnimations() is empty), and every reveal shows its
 //      final state.
-//   2. Without JavaScript, the hero headline, image and both buttons are
-//      visible on the first screen, and no reveal is held hidden.
+//   2. Without JavaScript, the front door's headline, search and both
+//      actions are on the first screen, its first photo is in the page and
+//      not held, and no reveal is held hidden.
+//
+// The home page's top is the front door (app/_components/FrontDoor.tsx,
+// #301), which replaced the photo hero with its sun and drift. The checks
+// that were about the hero now hold the front door to the same rules: its
+// entrance ends, nothing in it loops, and its words pass WCAG AA. The sun
+// checks still run on any page that has a sun.
 //   3. On a phone with the CPU slowed 4x: a filmstrip of the first 1.8 s
 //      and of the first section revealing, every reveal has arrived after
 //      one scroll through the page, and the layout shift (CLS) stays
@@ -57,15 +64,17 @@ function totp(base32Secret, now = Date.now()) {
   const code = (digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000;
   return String(code).padStart(6, "0");
 }
-// The hero's entrance is CSS and finishes on its own; this waits for it
-// (not for the photo's drift, which never ends), 2.5 s at most.
+// The home page's top: the front door.
+const HERO = ".fd";
+// Its entrance is CSS and finishes on its own; this waits for it, 2.5 s at
+// most.
 const heroSettled = (page) =>
   page.evaluate(() =>
     Promise.race([
       Promise.all(
         document
           .getAnimations()
-          .filter((a) => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest(".pp-hero-centre"))
+          .filter((a) => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest(HERO))
           .map((a) => a.finished.catch(() => null)),
       ).then(() => true),
       new Promise((resolve) => setTimeout(() => resolve(false), 2500)),
@@ -111,7 +120,7 @@ async function heroTextContrast(page, selector, { hide = [] } = {}) {
     return { x: Math.max(0, r.left), y: Math.max(0, r.top), width: r.width, height: r.height, color: getComputedStyle(el).color };
   }, selector);
   if (!box || box.width < 1 || box.height < 1) return null;
-  const tag = await page.addStyleTag({ content: [".pp-hero-centre,.pp-hero-centre *{color:transparent!important;text-shadow:none!important;transition:none!important}", ...hide.map((s) => `${s}{visibility:hidden!important}`)].join("") });
+  const tag = await page.addStyleTag({ content: [".fd-words,.fd-words *{color:transparent!important;text-shadow:none!important;transition:none!important}", ...hide.map((s) => `${s}{visibility:hidden!important}`)].join("") });
   await page.waitForTimeout(80);
   const png = await page.screenshot({ clip: { x: box.x, y: box.y, width: box.width, height: box.height } });
   await tag.evaluate((node) => node.remove());
@@ -253,16 +262,20 @@ try {
     const context = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, javaScriptEnabled: false });
     const page = await context.newPage();
     await page.goto(`${BASE}/`, { waitUntil: "load" });
-    check(await heroSettled(page), "without JavaScript: the hero's CSS entrance finishes within 2.5 s of load");
+    check(await heroSettled(page), "without JavaScript: the front door's CSS entrance finishes within 2.5 s of load");
     const visible = async (selector) => {
       const el = page.locator(selector).first();
       const box = await el.boundingBox().catch(() => null);
       const opacity = await el.evaluate((node) => getComputedStyle(node).opacity).catch(() => "0");
       return Boolean(box && box.height > 0 && box.y < PHONE.height && opacity === "1");
     };
-    check(await visible(".pp-hero h1"), "without JavaScript: the hero headline is on the first screen");
-    check(await visible(".pp-hero-frame img"), "without JavaScript: the hero image is on the first screen");
-    check((await visible(".pp-hero-actions a:nth-child(1)")) && (await visible(".pp-hero-actions a:nth-child(2)")), "without JavaScript: both hero buttons are on the first screen");
+    check(await visible(".fd h1"), "without JavaScript: the front door's headline is on the first screen");
+    check(await visible(".fd-search input"), "without JavaScript: the front door's search box is on the first screen");
+    check((await visible(".fd-actions a:nth-child(1)")) && (await visible(".fd-actions a:nth-child(2)")), "without JavaScript: both front-door actions are on the first screen");
+    // On a phone the photos sit under the words, on the second screen: they
+    // must be in the page and visible, not held.
+    const photo = await page.locator(".fd-photo-a img").first().evaluate((node) => ({ shown: getComputedStyle(node.parentElement).opacity === "1", src: Boolean(node.getAttribute("src")) })).catch(() => null);
+    check(Boolean(photo && photo.shown && photo.src), "without JavaScript: the front door's first photo is in the page and not held", JSON.stringify(photo));
     const held = await page.evaluate(() => document.documentElement.hasAttribute("data-motion-js"));
     check(!held, "without JavaScript: no reveal is held hidden (data-motion-js is not set)");
     const hidden = await page.evaluate(notAtFullOpacity);
@@ -333,9 +346,9 @@ try {
       await page.screenshot({ path: `${OUT}/frames/home-load-${pad(t)}ms-375.png` });
     }
     await page.waitForLoadState("load");
-    check(await heroSettled(page), "on a slow phone the hero's entrance finishes within 2.5 s of load");
-    const headline = await page.locator(".pp-hero h1").first().evaluate((node) => getComputedStyle(node).opacity);
-    check(headline === "1", "the hero headline is at full opacity once settled");
+    check(await heroSettled(page), "on a slow phone the front door's entrance finishes within 2.5 s of load");
+    const headline = await page.locator(".fd h1").first().evaluate((node) => getComputedStyle(node).opacity);
+    check(headline === "1", "the front door's headline is at full opacity once settled");
     const total = await page.evaluate(() => document.querySelectorAll("[data-reveal]").length);
     // A visitor who reads the hero for a while must still see the first
     // section rise: well after the failsafe window, a reveal below the
@@ -387,16 +400,12 @@ try {
     check(gone, "the Prow moment is gone within a second");
     await page.waitForLoadState("load");
     await heroSettled(page);
-    const drifting = await page.evaluate(() => document.getAnimations().some((a) => a.playState === "running" && a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest(".pp-hero-frame")));
-    check(drifting, "the hero photo drifts while the hero is on screen");
+    // The front door's photos rise once; nothing in it loops.
+    const looping = await page.evaluate(() => document.getAnimations().filter((a) => a.playState === "running" && a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest(".fd")).length);
+    check(looping === 0, "nothing in the front door is still moving once its entrance has ended", `${looping} running`);
     const rowBefore = await page.evaluate(() => document.querySelector(".site-shell-header")?.getBoundingClientRect().height ?? 0);
     await page.evaluate(() => window.scrollTo({ top: 1600, behavior: "instant" }));
     await page.waitForTimeout(400);
-    const paused = await page.evaluate(() => {
-      const img = document.querySelector(".pp-hero-frame img");
-      return Boolean(document.querySelector(".pp-hero")?.hasAttribute("data-offscreen") && img && getComputedStyle(img).animationPlayState === "paused");
-    });
-    check(paused, "the drift is paused once the hero is off screen");
     const header = await page.evaluate(() => {
       const el = document.querySelector(".site-shell-header");
       return el ? { condensed: el.hasAttribute("data-condensed"), top: el.getBoundingClientRect().top, height: el.getBoundingClientRect().height } : null;
@@ -450,11 +459,11 @@ try {
     await desktop.close();
   }
 
-  // 5. The hero's words against what is behind them, once everything in
-  // the hero that ends has ended, at 375px and at 1440px. The headline is
-  // large text, so WCAG AA asks 3:1 of it (Sun Drift shipped only because
-  // it still passes, with and without the sun); the lede and the kicker are
-  // body-size text and must reach 4.5:1, with and without the sun.
+  // 5. The front door's words against what is behind them, once its
+  // entrance has ended, at 375px and at 1440px. The headline is large text,
+  // so WCAG AA asks 3:1 of it; the lede and the kicker are body-size text
+  // and must reach 4.5:1. The "without the sun" pass runs only where a sun
+  // still is.
   for (const viewport of [PHONE, { width: 1440, height: 900 }]) {
     const at = `at ${viewport.width}px`;
     const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
@@ -462,27 +471,27 @@ try {
     await page.goto(`${BASE}/`, { waitUntil: "load" });
     await page
       .waitForFunction(() => {
-        const img = document.querySelector(".pp-hero-frame img");
+        const img = document.querySelector(".fd-photo-a img");
         return Boolean(img && img.complete && img.naturalWidth > 0);
       }, null, { timeout: 15000 })
       .catch(() => null);
-    await settledWithin(page, ".pp-hero", 4000);
+    await settledWithin(page, HERO, 4000);
     // The settled frame first, before any pass hides or shows anything.
     await page.screenshot({ path: `${OUT}/frames/hero-settled-${viewport.width}.png` });
     // The hero's text has a colour transition; while it is measured, every
     // hide and every restore must be instant, or a later measurement reads
     // letters still fading back in. Off for the whole section.
-    await page.addStyleTag({ content: ".pp-hero-centre,.pp-hero-centre *{transition:none!important}" });
+    await page.addStyleTag({ content: ".fd-words,.fd-words *{transition:none!important}" });
     const hasSun = await page.evaluate(() => Boolean(document.querySelector(".pp-hero-sun")));
-    const headline = await heroTextContrast(page, ".pp-hero h1");
-    const without = hasSun ? await heroTextContrast(page, ".pp-hero h1", { hide: [".pp-hero-sun"] }) : null;
-    const lede = await heroTextContrast(page, ".pp-hero-lede");
-    const ledeWithout = hasSun ? await heroTextContrast(page, ".pp-hero-lede", { hide: [".pp-hero-sun"] }) : null;
-    const kicker = await heroTextContrast(page, ".pp-hero-kicker");
-    const kickerWithout = hasSun ? await heroTextContrast(page, ".pp-hero-kicker", { hide: [".pp-hero-sun"] }) : null;
-    check(headline !== null && headline >= 3, `the hero headline against what is behind it passes WCAG AA for large text (3:1) ${at}`, `${headline}:1${without !== null ? `; ${without}:1 without the sun` : ""}`);
-    check(lede !== null && lede >= 4.5 && (ledeWithout === null || ledeWithout >= 4.5), `the hero lede against what is behind it passes WCAG AA for body text (4.5:1) ${at}`, `${lede}:1${ledeWithout !== null ? `; ${ledeWithout}:1 without the sun` : ""}`);
-    check(kicker !== null && kicker >= 4.5 && (kickerWithout === null || kickerWithout >= 4.5), `the hero kicker against what is behind it passes WCAG AA for body text (4.5:1) ${at}`, `${kicker}:1${kickerWithout !== null ? `; ${kickerWithout}:1 without the sun` : ""}`);
+    const headline = await heroTextContrast(page, ".fd h1");
+    const without = hasSun ? await heroTextContrast(page, ".fd h1", { hide: [".pp-hero-sun"] }) : null;
+    const lede = await heroTextContrast(page, ".fd-lede");
+    const ledeWithout = hasSun ? await heroTextContrast(page, ".fd-lede", { hide: [".pp-hero-sun"] }) : null;
+    const kicker = await heroTextContrast(page, ".fd-kicker");
+    const kickerWithout = hasSun ? await heroTextContrast(page, ".fd-kicker", { hide: [".pp-hero-sun"] }) : null;
+    check(headline !== null && headline >= 3, `the front door's headline against what is behind it passes WCAG AA for large text (3:1) ${at}`, `${headline}:1${without !== null ? `; ${without}:1 without the sun` : ""}`);
+    check(lede !== null && lede >= 4.5 && (ledeWithout === null || ledeWithout >= 4.5), `the front door's lede against what is behind it passes WCAG AA for body text (4.5:1) ${at}`, `${lede}:1${ledeWithout !== null ? `; ${ledeWithout}:1 without the sun` : ""}`);
+    check(kicker !== null && kicker >= 4.5 && (kickerWithout === null || kickerWithout >= 4.5), `the front door's kicker against what is behind it passes WCAG AA for body text (4.5:1) ${at}`, `${kicker}:1${kickerWithout !== null ? `; ${kickerWithout}:1 without the sun` : ""}`);
     await context.close();
   }
 
@@ -565,8 +574,8 @@ try {
     await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
     await page.waitForTimeout(700);
     const stillArrived = await page.evaluate(() => document.querySelectorAll("[data-reveal][data-in]").length);
-    // The hero's drift and the scroll-linked line and ferry may run.
-    const replaying = await page.evaluate(() => document.getAnimations().filter((a) => a.playState === "running" && a.effect && a.effect.target && a.effect.target.closest && !a.effect.target.closest(".pp-hero") && !a.effect.target.closest(".home-how-steps-wrap")).length);
+    // The scroll-linked line and ferry may run.
+    const replaying = await page.evaluate(() => document.getAnimations().filter((a) => a.playState === "running" && a.effect && a.effect.target && a.effect.target.closest && !a.effect.target.closest(HERO) && !a.effect.target.closest(".home-how-steps-wrap")).length);
     check(stillArrived === arrivedBefore && replaying === 0, "nothing re-triggers on scrolling back up and down again", `${arrivedBefore} arrived, then ${stillArrived}; ${replaying} running outside the hero and the line`);
     await context.close();
 
@@ -611,15 +620,16 @@ try {
 
   // 8. Squish Buttons, Bounce Badges and the Departure Board (brief 22, M3).
   {
-    // Squish: the hero's "Browse what's on" (an anchor on the page) lifts
-    // 2px on hover, squashes on press and springs back; a pricing plan's
-    // button, which is about money, never moves.
+    // Squish: the front door's "Get the app" lifts 2px on hover, squashes
+    // on press and springs back; a pricing plan's button, which is about
+    // money, never moves.
     const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const wide = await desktop.newPage();
     await wide.goto(`${BASE}/`, { waitUntil: "load" });
     await heroSettled(wide);
     const transformOf = (locator) => locator.evaluate((node) => getComputedStyle(node).transform);
-    const button = wide.locator('.pp-hero-actions .home-button[href="#open-now"]').first();
+    const button = wide.locator('.fd-actions .home-button[href="/app"]').first();
+    check((await button.count()) > 0, "the front door's \"Get the app\" button is on / for the Squish checks");
     if ((await button.count()) > 0) {
       const box = await button.boundingBox();
       await wide.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -643,8 +653,9 @@ try {
       await wide.waitForTimeout(400);
       await wide.mouse.up();
       await wide.waitForTimeout(300);
-      const hash = await wide.evaluate(() => window.location.hash);
-      check(hash === "#open-now", "a press begun at a Squish Button's top edge still clicks it", `hash ${hash || "(none)"}`);
+      await wide.waitForURL(`${BASE}/app`, { timeout: 5000 }).catch(() => null);
+      const path = await wide.evaluate(() => window.location.pathname);
+      check(path === "/app", "a press begun at a Squish Button's top edge still clicks it", `went to ${path}`);
     }
     await wide.goto(`${BASE}/pricing`, { waitUntil: "load" });
     const plan = wide.locator(".home-button[data-still]").first();
@@ -668,7 +679,7 @@ try {
     const calmDesk = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
     const calmPage = await calmDesk.newPage();
     await calmPage.goto(`${BASE}/`, { waitUntil: "load" });
-    const calmButton = calmPage.locator('.pp-hero-actions .home-button[href="#open-now"]').first();
+    const calmButton = calmPage.locator('.fd-actions .home-button[href="/app"]').first();
     if ((await calmButton.count()) > 0) {
       const box = await calmButton.boundingBox();
       await calmPage.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

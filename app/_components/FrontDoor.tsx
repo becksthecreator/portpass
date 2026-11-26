@@ -41,7 +41,11 @@ function RealPictures() {
   return (
     <div className="fd-real" aria-hidden="true">
       <div className="fd-photo fd-photo-a">
-        <Image src="/futprep/lil-kickers/lil-kickers-training.jpg" alt="" fill priority sizes="(max-width: 900px) 60vw, 360px" quality={72} />
+        {/* Eager, but no `priority` preload: on a phone this photo sits
+            under the words, and the page's largest paint is the line under
+            the headline. A high-priority image preload competed with the
+            stylesheet that paint waits for (motion check, Lighthouse LCP). */}
+        <Image src="/futprep/lil-kickers/lil-kickers-training.jpg" alt="" fill loading="eager" sizes="(max-width: 900px) 60vw, 360px" quality={72} />
       </div>
       <div className="fd-photo fd-photo-b">
         <Image src="/weddings/bahamas-by-the-sea/bws-12.webp" alt="" fill sizes="(max-width: 900px) 50vw, 300px" quality={72} />

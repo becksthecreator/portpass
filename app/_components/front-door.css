@@ -1,7 +1,7 @@
 /* Home page Section 1, "The front door" (app/_components/FrontDoor.tsx).
    Harbour Signal tokens only (app/globals.css). Phone first: one column
    at 375px, words then picture; two columns from 900px. The pictures rise in
-   once and sit still under reduced motion. */
+   once; they sit still under reduced motion and with the kill switch off. */
 
 .fd{background:var(--deck);color:var(--ink);overflow:hidden;position:relative;isolation:isolate}
 .fd-inner{max-width:1160px;margin:0 auto;padding:40px 16px 48px;display:grid;grid-template-columns:minmax(0,1fr);gap:36px;align-items:center}
@@ -34,8 +34,10 @@
 .fd-photo-b{right:0;top:12%;width:46%;aspect-ratio:3/4;border-radius:22px}
 .fd-device{left:30%;top:36%;width:34%;aspect-ratio:9/18.5;border-radius:26px;border:8px solid var(--ink);background:var(--paper)}
 .fd-device img{object-position:top}
+/* Off under reduced motion and when the Admin kill switch is off
+   (data-motion="off" on <html>, lib/motion/motion.css). */
 @media (prefers-reduced-motion: no-preference){
-  .fd-photo-a{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .1s both}
-  .fd-photo-b{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .3s both}
-  .fd-device{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .5s both}
+  html[data-motion="on"] .fd-photo-a{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .1s both}
+  html[data-motion="on"] .fd-photo-b{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .3s both}
+  html[data-motion="on"] .fd-device{animation:fd-rise .8s cubic-bezier(.2,.7,.2,1) .5s both}
 }
