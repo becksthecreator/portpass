@@ -15,7 +15,7 @@ export const metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-// Privacy Policy v2 (brief 16 D, brief 07). Written for PortPass accounts,
+// Privacy Policy v3 (v2: brief 16 D, brief 07; v3, 27 Nov: the BahamasLocal directory). Written for PortPass accounts,
 // Google sign-in and children's programmes, with the retention periods
 // Antonio approved. Every statement on this page was checked against what
 // the code does on 1 Oct 2026 (cookies, storage, emails, who sees health

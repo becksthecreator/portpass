@@ -21,14 +21,20 @@ export type LegalDocument = {
 };
 
 export const PRIVACY_POLICY: LegalDocument = {
-  version: 2,
+  version: 3,
   updated: "2026-11-27",
   changelog: [
     {
-      version: 2,
+      version: 3,
       date: "2026-11-27",
       changes: [
-        "27 November 2026: to invite businesses, we also take a business's published contact details from the BahamasLocal directory (bahamaslocal.com), as well as from Google's business listings and the business's own Instagram page. Business contacts only.",
+        "To invite businesses, we also take the contact details a business publishes for itself from the BahamasLocal directory (bahamaslocal.com), as well as from Google's business listings and the business's own Instagram page.",
+      ],
+    },
+    {
+      version: 2,
+      date: "2026-10-01",
+      changes: [
         "Names the law this policy follows: the Data Protection (Privacy of Personal Information) Act, and the Data Protection Act, 2025 once it is in force.",
         "Adds PortPass accounts and signing in with Google: what Google shares with us, and that PortPass never posts to Google.",
         "Adds a full section on children's information: what is collected, who can see health details, and photos.",
