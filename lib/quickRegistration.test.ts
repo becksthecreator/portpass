@@ -71,3 +71,21 @@ describe("the Done screen", () => {
     expect(mapsUrl("Lyford Cay Lower Campus Soccer Field", "Nassau")).toBe("https://www.google.com/maps/search/?api=1&query=Lyford%20Cay%20Lower%20Campus%20Soccer%20Field%2C%20Nassau");
   });
 });
+
+describe("the exact birthday the new register sends (V4)", () => {
+  it("takes a real, past date up to 18 years ago", async () => {
+    const { quickChildDob } = await import("./quickRegistration");
+    expect(quickChildDob("2024-08-14", "2026-11-24")).toBe("2024-08-14");
+    expect(quickChildDob("2026-11-24", "2026-11-24")).toBe("2026-11-24");
+    expect(quickChildDob("2008-11-24", "2026-11-24")).toBe("2008-11-24");
+  });
+
+  it("refuses a future date, an impossible one, too old, or anything else", async () => {
+    const { quickChildDob } = await import("./quickRegistration");
+    expect(quickChildDob("2026-11-25", "2026-11-24")).toBeNull();
+    expect(quickChildDob("2025-02-30", "2026-11-24")).toBeNull();
+    expect(quickChildDob("2008-11-23", "2026-11-24")).toBeNull();
+    expect(quickChildDob("14/08/2024", "2026-11-24")).toBeNull();
+    expect(quickChildDob("", "2026-11-24")).toBeNull();
+  });
+});

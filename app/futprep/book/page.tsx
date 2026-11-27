@@ -12,6 +12,7 @@ import { PrivateSessionBooking } from "../coaches/PrivateSessionBooking";
 import "../coaches/booking-days.css";
 import "../tap-steps.css";
 import "./book.css";
+import { FUTPREP_SITE } from "@/lib/futprepOffSite";
 
 // /futprep/book?coach=<slug>&service=<slug> (Brief 29, part D): the booking
 // form as a page of its own, with the coach and the service already chosen,
@@ -70,7 +71,7 @@ export default async function FutprepBookPage({ searchParams }: { searchParams: 
     <main className="futprep-book-page" style={(await futprepTokenStyle()) as CSSProperties}>
       <header className="futprep-team-header">
         <Link className="brand" href="/"><BrandLogo /></Link>
-        <nav><Link href="/futprep/coaches">All coaches</Link> <Link href="/sports-fitness/futprep-athletics">Futprep home</Link></nav>
+        <nav><a href={FUTPREP_SITE}>All coaches</a> <a href={FUTPREP_SITE}>Futprep home</a></nav>
       </header>
       <section className="futprep-book-intro">
         <span>Futprep Athletics</span>

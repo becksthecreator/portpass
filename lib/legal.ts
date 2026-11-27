@@ -21,16 +21,22 @@ export type LegalDocument = {
 };
 
 export const PRIVACY_POLICY: LegalDocument = {
-  version: 3,
-  updated: "2026-11-23",
+  version: 4,
+  updated: "2026-11-27",
   changelog: [
     {
-      version: 3,
-      date: "2026-11-23",
+      version: 4,
+      date: "2026-11-27",
       changes: [
         "Our contact address is now info@portpassbahamas.com, and our inbox is Google Workspace (Gmail) instead of Microsoft Outlook.",
         "When you sign in with the email you registered with, a registration form can fill in your and your children's basic details from earlier registrations, never health details, emergency contacts or pickup names.",
-        "To invite businesses, we also take a business's published contact details from the BahamasLocal directory (bahamaslocal.com), as well as from Google's business listings and the business's own Instagram page. Business contacts only.",
+      ],
+    },
+    {
+      version: 3,
+      date: "2026-11-27",
+      changes: [
+        "To invite businesses, we also take the contact details a business publishes for itself from the BahamasLocal directory (bahamaslocal.com), as well as from Google's business listings and the business's own Instagram page.",
       ],
     },
     {

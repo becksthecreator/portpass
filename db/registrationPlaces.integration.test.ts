@@ -1,10 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { updateFutprepRegistrationDetail } from "./staff";
+import { getSupabaseAdmin } from "./supabase";
 import { EMPTY_ATTRIBUTION } from "@/lib/attribution";
 import {
   createFutprepPendingRegistration,
   createFutprepRegistration,
   ensureFutprepPilotData,
+  setRegistrationStatusWithinCap,
   type FutprepRegistrationInput,
 } from "./registrations";
 
@@ -278,5 +281,102 @@ describe("a double tap makes one registration (audit finding 2)", () => {
     expect(placed).toHaveLength(1);
     expect(refused).toEqual(["TRIAL_ALREADY_USED"]);
     expect((await rowsIn(target)).filter((r) => r.child_name === form.childName)).toHaveLength(1);
+  });
+});
+
+// Left open by the reviews of #200-#222, fixed by migration 202610280010.
+describe("one taster per child, whichever class (202610280010)", () => {
+  it("the same child's taster asked for in two classes at once: one taster, one refusal", async () => {
+    const first = await newClass(10, 5);
+    const second = await newClass(10, 5);
+    const same = { childName: `${MARK} taster twin ${crypto.randomUUID().slice(0, 6)}`, childDob: "2092-04-02", parentPhone: "+12425550142", mode: "trial" as const, signedInUserId: "test-user" };
+
+    const { placed, refused } = await allAtOnce([
+      () => createFutprepRegistration(child(first, { ...same, trialSessionId: first.trialSessionId })),
+      () => createFutprepRegistration(child(second, { ...same, trialSessionId: second.trialSessionId })),
+    ]);
+
+    expect(placed).toHaveLength(1);
+    expect(refused).toEqual(["TRIAL_ALREADY_USED"]);
+    const tasters = [...(await rowsIn(first)), ...(await rowsIn(second))].filter((r) => r.child_name === same.childName);
+    expect(tasters).toHaveLength(1);
+  });
+});
+
+describe("moving a child to another class respects that class's cap (202610280010)", () => {
+  const deskName = "TEST — delete desk";
+  const rowOf = async (id: number) => (await db().from("registrations").select("program_id,term_id,child_name,registration_status").eq("id", id).single()).data!;
+
+  it("a child with a place can't be moved into a full class, and nothing in the edit is saved", async () => {
+    const full = await newClass(1);
+    await createFutprepPendingRegistration(staffChild(full));
+    const from = await newClass(5);
+    const moving = await createFutprepPendingRegistration(staffChild(from));
+
+    await expect(updateFutprepRegistrationDetail(moving.registrationId, { programSlug: full.slug, childName: `${MARK} renamed` }, deskName)).rejects.toThrow("PROGRAM_FULL");
+
+    const row = await rowOf(moving.registrationId);
+    expect(Number(row.program_id)).toBe(from.programId);
+    expect(row.child_name).not.toBe(`${MARK} renamed`);
+    expect((await rowsIn(full)).filter((r) => TAKES_A_PLACE.has(r.registration_status))).toHaveLength(1);
+  });
+
+  it("a move into a class with room goes through, with the rest of the edit", async () => {
+    const room = await newClass(3);
+    const from = await newClass(3);
+    const moving = await createFutprepPendingRegistration(staffChild(from));
+
+    await updateFutprepRegistrationDetail(moving.registrationId, { programSlug: room.slug, childName: `${MARK} moved` }, deskName);
+
+    expect(await rowOf(moving.registrationId)).toMatchObject({ program_id: room.programId, term_id: room.termId, child_name: `${MARK} moved` });
+  });
+
+  it("a waitlisted child can be moved to a full class: they take no place", async () => {
+    const full = await newClass(1);
+    await createFutprepPendingRegistration(staffChild(full));
+    const from = await newClass(3);
+    const waiting = await createFutprepPendingRegistration(staffChild(from));
+    expect((await db().from("registrations").update({ registration_status: "waitlist" }).eq("id", waiting.registrationId)).error).toBeNull();
+
+    await updateFutprepRegistrationDetail(waiting.registrationId, { programSlug: full.slug }, deskName);
+
+    expect(await rowOf(waiting.registrationId)).toMatchObject({ program_id: full.programId, registration_status: "waitlist" });
+  });
+
+  it("four children moved at once into the last place: one moves, three are refused", async () => {
+    const target = await newClass(2);
+    await createFutprepPendingRegistration(staffChild(target));
+    const movers = await Promise.all(Array.from({ length: 4 }, async () => (await createFutprepPendingRegistration(staffChild(await newClass(3)))).registrationId));
+
+    const { placed, refused } = await allAtOnce(movers.map((id) => () => updateFutprepRegistrationDetail(id, { programSlug: target.slug }, deskName)));
+
+    expect(placed).toHaveLength(1);
+    expect(refused).toEqual(Array(3).fill("PROGRAM_FULL"));
+    expect((await rowsIn(target)).filter((r) => TAKES_A_PLACE.has(r.registration_status))).toHaveLength(2);
+  });
+
+  it("a move and a reactivation at the same moment never put the new class over its cap (Security & QA on #293)", async () => {
+    for (let round = 0; round < 5; round += 1) {
+      const full = await newClass(1);
+      await createFutprepPendingRegistration(staffChild(full));
+      const from = await newClass(3);
+      const child = await createFutprepPendingRegistration(staffChild(from));
+      expect((await db().from("registrations").update({ registration_status: "cancelled" }).eq("id", child.registrationId)).error).toBeNull();
+
+      await allAtOnce([
+        () => updateFutprepRegistrationDetail(child.registrationId, { programSlug: full.slug }, deskName),
+        async () => { await setRegistrationStatusWithinCap(getSupabaseAdmin(), { registrationId: child.registrationId, organizationId, status: "pending" }); },
+      ]);
+
+      expect((await rowsIn(full)).filter((r) => TAKES_A_PLACE.has(r.registration_status))).toHaveLength(1);
+    }
+  });
+
+  it("a browser can't call the move function", async () => {
+    const target = await newClass(3);
+    const browser = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? "", { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error } = await browser.rpc("move_registration_within_cap", { p_registration_id: 1, p_organization_id: organizationId, p_program_id: target.programId, p_term_id: target.termId, p_cap: 99, p_active_statuses: ["pending"] });
+    expect(data).toBeNull();
+    expect(error?.code).toBe("42501");
   });
 });
