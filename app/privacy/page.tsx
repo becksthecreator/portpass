@@ -15,11 +15,12 @@ export const metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-// Privacy Policy v2 (brief 16 D, brief 07). Written for PortPass accounts,
+// Privacy Policy v3 (v2: brief 16 D, brief 07; v3, 27 Nov: the BahamasLocal directory). Written for PortPass accounts,
 // Google sign-in and children's programmes, with the retention periods
 // Antonio approved. Every statement on this page was checked against what
 // the code does on 1 Oct 2026 (cookies, storage, emails, who sees health
-// details, what is deleted and when). Change the code and this page
+// details, what is deleted and when), and the invitation sources again on
+// 27 Nov 2026. Change the code and this page
 // together. The version, date and changelog live in lib/legal.ts.
 export default function PrivacyPage() {
   return (
@@ -63,7 +64,7 @@ export default function PrivacyPage() {
           <strong>When you ask to be listed.</strong> Your name, business name, section, WhatsApp number, Instagram handle if you give one, and a short note. We also save the plan you picked, if any, and any tag on the link that brought you to the form (it shows which advert or poster you came from).
         </p>
         <p>
-          <strong>When we invite a business.</strong> To invite businesses to PortPass, we keep a list of businesses in The Bahamas with the details each one publishes about itself: its name, what it offers, its business phone, WhatsApp, email, website and Instagram page, and its Google rating. These come from Google’s business listings, the business’s own public Instagram page, and what its owner tells us. We never take them from private chats or groups. A founder writes to a business personally, one at a time. If you ask us not to contact your business again, we delete its details and keep only its name, so that we never add it back.
+          <strong>When we invite a business.</strong> To invite businesses to PortPass, we keep a list of businesses in The Bahamas with the details each one publishes about itself: its name, what it offers, its business phone, WhatsApp, email, website and Instagram page, and its Google rating. These come from Google’s business listings, the BahamasLocal directory (bahamaslocal.com), the business’s own public Instagram page, and what its owner tells us. We keep only the contact details a business publishes for itself or its owner gives us. We never take them from private chats or groups. A founder writes to a business personally, one at a time. If you ask us not to contact your business again, we delete its details and keep only its name, so that we never add it back.
         </p>
         <p>
           <strong>When you work for a business on PortPass.</strong> Your name, your role, an account name and a staff sign-in, the hours and notes you log, and your name on the records you enter. We store a scrambled version of your PIN, not the digits themselves; a PIN is short, so don’t reuse one you use anywhere else. For coaches, the business may also record a public profile (name, nickname, title, photo, short biography, coaching licences, where you played, your favourite player and team, an introduction video and the times you are available), the sessions you worked and what you are owed for them. What you are owed is shown only to you, to the owner of the business and to PortPass’s founders. A coach’s profile may also show a short quote from a customer, with the name the business gives.

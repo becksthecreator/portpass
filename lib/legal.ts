@@ -21,9 +21,16 @@ export type LegalDocument = {
 };
 
 export const PRIVACY_POLICY: LegalDocument = {
-  version: 2,
-  updated: "2026-10-01",
+  version: 3,
+  updated: "2026-11-27",
   changelog: [
+    {
+      version: 3,
+      date: "2026-11-27",
+      changes: [
+        "To invite businesses, we also take the contact details a business publishes for itself from the BahamasLocal directory (bahamaslocal.com), as well as from Google's business listings and the business's own Instagram page.",
+      ],
+    },
     {
       version: 2,
       date: "2026-10-01",
