@@ -18,12 +18,10 @@ const BASE: Metadata = {
   openGraph: { type: "website", siteName: "PortPass Bahamas", title: TITLE, description: DESCRIPTION, url: "https://portpassbahamas.com/guides" },
 };
 
-// Every published guide. While none is published the page says so and
-// stays out of search (noindex below), rather than being an empty page.
-export async function generateMetadata(): Promise<Metadata> {
-  const guides = await listPublishedGuides();
-  return guides.length ? BASE : { ...BASE, robots: { index: false, follow: true } };
-}
+// Hidden from search since 19 Nov 2026 (Antonio: "Hide from Google"):
+// PortPass no longer sells this line. The page stays up for anyone with
+// the link; it is noindex and out of the sitemap (app/sitemap.ts).
+export const metadata: Metadata = { ...BASE, robots: { index: false, follow: true } };
 
 export default async function GuidesPage() {
   const guides = await listPublishedGuides();
