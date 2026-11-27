@@ -363,3 +363,24 @@ export async function createFutprepProgram(input: FutprepProgramInput, scope?: {
   }
   return { id: programId, slug, sessionsCreated: sessions.length };
 }
+
+// The terms of one Futprep class, for the badge on its public page
+// (lib/futprepClassStatus.ts). Dates and registration times only.
+export async function futprepClassTermWindows(programSlug: string): Promise<import("@/lib/futprepClassStatus").TermWindow[] | null> {
+  const db = getSupabaseAdmin();
+  const organizationId = await futprepOrganizationId();
+  const { data: program, error } = await db.from("programs").select("id").eq("organization_id", organizationId).eq("slug", programSlug).maybeSingle();
+  throwIfSupabaseError(error, "Could not load the class");
+  if (!program) return null;
+  const { data: terms, error: termsError } = await db
+    .from("program_terms")
+    .select("active,end_date,registration_opens_at,registration_closes_at")
+    .eq("program_id", program.id);
+  throwIfSupabaseError(termsError, "Could not load the class's terms");
+  return ((terms ?? []) as Array<{ active: boolean; end_date: string; registration_opens_at: string | null; registration_closes_at: string | null }>).map((t) => ({
+    active: Boolean(t.active),
+    endDate: t.end_date,
+    registrationOpensAt: t.registration_opens_at,
+    registrationClosesAt: t.registration_closes_at,
+  }));
+}

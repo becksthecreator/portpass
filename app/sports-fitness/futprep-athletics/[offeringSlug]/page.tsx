@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { getOfferingListingBySlug } from "@/db/organizations";
+import { futprepClassTermWindows } from "@/db/programs";
+import { classBadge } from "@/lib/futprepClassStatus";
 import { ProgramTemplate } from "@/app/_components/blocks/OfferingTemplate";
 import { SiteHeader } from "@/app/_components/SiteHeader";
 import { SiteFooter } from "@/app/_components/SiteFooter";
@@ -44,6 +46,11 @@ export default async function FutprepOfferingPage({ params }: { params: Promise<
   if (!listing) notFound();
 
   const { organization, offering } = listing;
+  // A class page (offering slug = programme slug) says what registration
+  // says: "Registration opens Mon 7 Dec", "Open now" or closed. Other
+  // offerings (private sessions) keep the plain badge.
+  const terms = await futprepClassTermWindows(offering.slug).catch(() => null);
+  const badge = terms ? classBadge(terms) : undefined;
   const courseSchema = offering.priceCents !== null ? {
     "@context": "https://schema.org",
     "@type": "Course",
@@ -67,7 +74,7 @@ export default async function FutprepOfferingPage({ params }: { params: Promise<
         <JsonLd data={courseSchema} />
       )}
       <SiteHeader breadcrumb={[{ label: "Sports & Fitness", href: "/sports-fitness" }, { label: organization.name, href: "/sports-fitness/futprep-athletics" }, { label: offering.name, href: `/sports-fitness/futprep-athletics/${offering.slug}` }]} />
-      <ProgramTemplate listing={listing} />
+      <ProgramTemplate listing={listing} badge={badge} />
       <SiteFooter orgLine={`${organization.name} · Booking and payments powered by PortPass`} />
     </div>
   );

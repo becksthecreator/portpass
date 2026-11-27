@@ -1,4 +1,6 @@
-# Launch checklist: Thursday 19 Nov 2026
+# Launch checklist: Monday 7 Dec 2026 (was Thursday 19 Nov)
+> **Moved (16 Nov 2026):** Term 2 registration now opens at **05:00 UTC on Monday 7 Dec 2026** (midnight in Nassau), not 19 Nov: migration `202610270004` (applied live 16 Nov) set it, with Term 2 running 9 Jan to 13 Mar 2027 at $340 / $420 per term. Read every "19 Nov" below as 7 Dec. The file keeps its name so links to it still work.
+
 
 Futprep's Term 2 registration opens to parents at 05:00 UTC (midnight in Nassau) on Thursday 19 Nov 2026. Checked against `main` at ff452a9 on 11 Oct 2026 from the `shipping-and-launch` skill (agent-skills 1be8e34). Report-only: nothing was fixed. Live facts come from read-only `curl` of public pages that day.
 
