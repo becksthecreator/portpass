@@ -37,7 +37,7 @@ describe("/privacy and /terms say what brief 16 requires", () => {
       expect(page).toContain("<AttorneyReviewNote />");
       expect(page).toContain("<LegalChangelog");
     }
-    expect(PRIVACY_POLICY.version).toBe(2);
+    expect(PRIVACY_POLICY.version).toBe(4);
     expect(TERMS_OF_SERVICE.version).toBe(3);
   });
 

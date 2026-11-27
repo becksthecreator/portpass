@@ -15,11 +15,12 @@ export const metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-// Privacy Policy v2 (brief 16 D, brief 07). Written for PortPass accounts,
+// Privacy Policy v4 (v2: brief 16 D, brief 07; v3, 27 Nov: the BahamasLocal directory; v4: info@ and Google Workspace, and the returning-family pre-fill). Written for PortPass accounts,
 // Google sign-in and children's programmes, with the retention periods
 // Antonio approved. Every statement on this page was checked against what
 // the code does on 1 Oct 2026 (cookies, storage, emails, who sees health
-// details, what is deleted and when). Change the code and this page
+// details, what is deleted and when), and the invitation sources again on
+// 27 Nov 2026. Change the code and this page
 // together. The version, date and changelog live in lib/legal.ts.
 export default function PrivacyPage() {
   return (
@@ -63,7 +64,7 @@ export default function PrivacyPage() {
           <strong>When you ask to be listed.</strong> Your name, business name, section, WhatsApp number, Instagram handle if you give one, and a short note. We also save the plan you picked, if any, and any tag on the link that brought you to the form (it shows which advert or poster you came from).
         </p>
         <p>
-          <strong>When we invite a business.</strong> To invite businesses to PortPass, we keep a list of businesses in The Bahamas with the details each one publishes about itself: its name, what it offers, its business phone, WhatsApp, email, website and Instagram page, and its Google rating. These come from Google’s business listings, the business’s own public Instagram page, and what its owner tells us. We never take them from private chats or groups. A founder writes to a business personally, one at a time. If you ask us not to contact your business again, we delete its details and keep only its name, so that we never add it back.
+          <strong>When we invite a business.</strong> To invite businesses to PortPass, we keep a list of businesses in The Bahamas with the details each one publishes about itself: its name, what it offers, its business phone, WhatsApp, email, website and Instagram page, and its Google rating. These come from Google’s business listings, the BahamasLocal directory (bahamaslocal.com), the business’s own public Instagram page, and what its owner tells us. We keep only the contact details a business publishes for itself or its owner gives us. We never take them from private chats or groups. A founder writes to a business personally, one at a time. If you ask us not to contact your business again, we delete its details and keep only its name, so that we never add it back.
         </p>
         <p>
           <strong>When you work for a business on PortPass.</strong> Your name, your role, an account name and a staff sign-in, the hours and notes you log, and your name on the records you enter. We store a scrambled version of your PIN, not the digits themselves; a PIN is short, so don’t reuse one you use anywhere else. For coaches, the business may also record a public profile (name, nickname, title, photo, short biography, coaching licences, where you played, your favourite player and team, an introduction video and the times you are available), the sessions you worked and what you are owed for them. What you are owed is shown only to you, to the owner of the business and to PortPass’s founders. A coach’s profile may also show a short quote from a customer, with the name the business gives.
@@ -90,6 +91,10 @@ export default function PrivacyPage() {
         </p>
         <p>
           <strong>Emergency contacts and pickup names</strong> are seen by the same staff as health details, and by the business’s coaches on the day of a session. If the business sends you a personal link to register again next term, the link fills in what you gave last time. That is your name, email, phone and relationship to the child; your child’s name, date of birth and gender; the emergency contact; and the pickup names. Anyone you forward that link to can see all of it while early registration is open. A link stops working 120 days after it was made. The business’s staff can also download a class list with names, dates of birth and parents’ contact details; it never includes health details, emergency contacts or pickup names. A personal link never fills in health details; we ask for them fresh each time you register.
+        </p>
+        <p id="prefill">
+          {/* Approved word for word by Bex, 24 Nov 2026, for Futprep's returning-family lookup. */}
+          <strong>Filling in from your account.</strong> If you sign in to PortPass with the email you registered with, the form can fill in your name, phone and relationship, and your children’s names, dates of birth and gender, from your earlier registrations. It never fills in health details, emergency contacts or pickup names.
         </p>
         <p>
           <strong>Records the business starts.</strong> Sometimes the business begins a child’s record before you do. Its staff may add your child’s name, and your name and contact details if they have them. A business moving to PortPass may bring over what it already holds about your child, which can include emergency contacts and health details. You are then sent a link to complete and sign the registration yourself. Where a school has hired the business, the business keeps only your child’s name and attendance; the school holds the rest.
@@ -127,7 +132,7 @@ export default function PrivacyPage() {
           <li><strong>Vercel:</strong> website hosting. Every page you open and every form you send passes through its servers, and its logs record your internet address and the address of each page.</li>
           <li><strong>Resend:</strong> sends our emails, so it handles the address, subject and text of each one.</li>
           <li><strong>Google:</strong> only if you choose to sign in with Google.</li>
-          <li><strong>Microsoft Outlook:</strong> our own inbox, where requests to be listed and emails you send us arrive.</li>
+          <li><strong>Google Workspace (Gmail):</strong> our own inbox at info@portpassbahamas.com, where requests for a First Look and emails you send us arrive.</li>
           <li><strong>Anthropic and GitHub:</strong> tools we use to build and maintain PortPass. Anthropic’s AI also reads the public details of a business we plan to invite. They are not sent customer records in normal use.</li>
         </ul>
         <p>

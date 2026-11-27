@@ -2,7 +2,7 @@ import { claimReminder, getBankDetails, releaseReminder, runDailyBilling } from 
 import { logMessage } from "@/db/growth";
 import { addDays, annualPriceCents, bankDetailsComplete, owedCents } from "@/lib/billing";
 import { invoiceReminderEmail, trialEndingEmail } from "@/lib/billingEmail";
-import { portpassFrom, sendEmail } from "@/lib/email";
+import { sendEmail, portpassSender } from "@/lib/email";
 
 // The billing part of the daily job (brief 09, 2.3):
 //   1. drafts the invoices that are due (never sends one: a founder does);
@@ -42,7 +42,7 @@ export async function runBillingStep(today: string): Promise<void> {
       }
       if (!email) continue;
       if (!(await claimReminder(reminder, account.organizationId))) continue;
-      const outcome = await sendEmail({ to: account.billingEmail, from: portpassFrom(), subject: email.subject, html: email.html, log: { template, organizationId: account.organizationId } });
+      const outcome = await sendEmail({ to: account.billingEmail, ...portpassSender(), subject: email.subject, html: email.html, log: { template, organizationId: account.organizationId } });
       // Not sent: give the claim back so a second run today can try once more.
       if (outcome === "failed") await releaseReminder(reminder);
     } catch (error) {

@@ -5,7 +5,7 @@ import { logMessage } from "@/db/growth";
 import { businessNoticeEmail, type BusinessNotice } from "@/lib/adminEmail";
 import { requireAdminApi } from "@/lib/auth/admin";
 import { createRateLimiter } from "@/lib/auth/rateLimit";
-import { portpassFrom, sendEmail } from "@/lib/email";
+import { sendEmail, portpassSender } from "@/lib/email";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -41,7 +41,7 @@ async function tellOwners(business: Business, notice: BusinessNotice, note: stri
     }
     const email = businessNoticeEmail({ notice, businessName: business.name, slug: business.slug, note });
     for (const to of owners) {
-      await sendEmail({ to, subject: email.subject, html: email.html, from: portpassFrom(), log: { template, organizationId: business.id } });
+      await sendEmail({ to, subject: email.subject, html: email.html, ...portpassSender(), log: { template, organizationId: business.id } });
     }
   } catch (error) {
     // The action itself has happened and is in the audit log; a failed

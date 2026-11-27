@@ -3,7 +3,7 @@ import { ORG_ROLES, type OrgRole } from "@/db/accounts";
 import { forceSignOut, removeMember, renewInvite, setMemberRole } from "@/db/adminPeople";
 import { requireAdminApi } from "@/lib/auth/admin";
 import { createRateLimiter } from "@/lib/auth/rateLimit";
-import { escapeHtml, portpassEmailShell, portpassFrom, sendEmail } from "@/lib/email";
+import { escapeHtml, portpassEmailShell, sendEmail, portpassSender } from "@/lib/email";
 
 // Admin -> People & access (brief 08, 1.5): change a person's role in a
 // business, remove their access, sign them out everywhere, or send an
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       const next = encodeURIComponent(`/business/${invite.organizationSlug ?? ""}`);
       const outcome = await sendEmail({
         to: invite.email,
-        from: portpassFrom(),
+        ...portpassSender(),
         log: { template: "team_invite_reminder", organizationId: invite.organizationId },
         subject: `Reminder: you've been added to ${invite.organizationName} on PortPass`,
         html: portpassEmailShell(`Join ${invite.organizationName} on PortPass`, `

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ORG_ROLES, type OrgRole } from "@/db/accounts";
 import { createInvite, getBusiness, listInvites, revokeInvite } from "@/db/business";
 import { requireOrgRoleApi } from "@/lib/auth/guards";
-import { escapeHtml, portpassEmailShell, portpassFrom, sendEmail } from "@/lib/email";
+import { escapeHtml, portpassEmailShell, sendEmail, portpassSender } from "@/lib/email";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -35,7 +35,7 @@ export async function POST(request: Request, ctx: Ctx) {
     const business = await getBusiness(id);
     await sendEmail({
       to: email,
-      from: portpassFrom(),
+      ...portpassSender(),
       log: { template: "team_invite", organizationId: id },
       subject: `You've been added to ${business?.name ?? "a business"} on PortPass`,
       html: portpassEmailShell(`Join ${business?.name ?? "the team"} on PortPass`, `
